@@ -3,257 +3,302 @@
 </script>
 
 <script lang="ts">
-  // Rupert, drawn in lines after the app icon (ear tufts, folded-paper
-  // brows, round bronze wire glasses, amber beak). He draws himself in when
-  // shown, and acts out what the assistant is doing. With "reduce motion"
-  // he stays still.
-  import { onMount } from "svelte";
+  // Rupert, cut out of the app icon, acting out what the assistant does.
+  // The artwork is the icon's own; only his eyes are drawn on top (over
+  // the painted ones), so they can blink, look around and read. A small
+  // badge names the task. Still under "reduce motion".
+  import owlUrl from "$lib/assets/rupert-owl.png";
 
   let { mood = "idle", size = 44 }: { mood?: OwlMood; size?: number } = $props();
 
-  const eyesOpen = $derived(mood !== "happy");
-  /** After the first drawing, parts that come back (eyes) show at once. */
-  let drawn = $state(false);
-  onMount(() => {
-    const t = setTimeout(() => (drawn = true), 1500);
-    return () => clearTimeout(t);
-  });
+  const uid = $props.id();
+  const labels: Record<OwlMood, string> = {
+    idle: "Rupert",
+    thinking: "Rupert is thinking",
+    searching: "Rupert is searching",
+    studying: "Rupert is reading",
+    opening: "Rupert is showing you something",
+    happy: "Rupert found it",
+    puzzled: "Rupert is puzzled",
+  };
 </script>
 
-<svg
-  class="owl mood-{mood}"
-  class:drawn
-  width={size}
-  height={size}
-  viewBox="0 0 120 120"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2.6"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-  role="img"
-  aria-label="Rupert is {mood === 'idle' ? 'listening' : mood}"
->
-  <g class="body">
-    <g class="head">
-      <!-- Head with ear tufts, down to the wings -->
-      <path
-        class="draw"
-        style="--d: 0s"
-        pathLength="1"
-        d="M17 67 Q12 50 15 38 Q16 31 20 26 L24 8 L41 16 Q60 12 79 16 L96 8 L100 26 Q104 31 105 38 Q108 50 103 67"
-      />
-      <!-- Folded-paper brows, dipping to the middle -->
-      <path class="draw brow-l" style="--d: 0.3s" pathLength="1" d="M20 31 L31 22 Q47 25 60 33 L57 38 Q45 32 33 30 L23 38 Z" />
-      <path class="draw brow-r" style="--d: 0.35s" pathLength="1" d="M100 31 L89 22 Q73 25 60 33 L63 38 Q75 32 87 30 L97 38 Z" />
-      <!-- Facial disc, coming to a point below the beak -->
-      <path class="draw" style="--d: 0.45s" pathLength="1" d="M23 38 Q17 50 22 62 Q30 74 60 80 Q90 74 98 62 Q103 50 97 38" />
-      <!-- Round wire glasses -->
-      <g class="glasses">
-        <circle class="draw" style="--d: 0.55s" pathLength="1" cx="44.4" cy="51.2" r="14.4" />
-        <circle class="draw" style="--d: 0.6s" pathLength="1" cx="75.6" cy="51.2" r="14.4" />
-        <path class="draw" style="--d: 0.7s" pathLength="1" d="M58.8 49.5 Q60 46.8 61.2 49.5 M30 50 L14 46.5 M90 50 L106 46.5" />
-        {#if mood === "studying"}
-          <path class="glint" d="M36 44 L41 40 M67.2 44 L72.2 40" />
-        {/if}
+<div class="owl mood-{mood}" style:width="{size}px" style:height="{size}px" role="img" aria-label={labels[mood]}>
+  <div class="body">
+    <img src={owlUrl} alt="" draggable="false" />
+    <!-- Eyes, in the cut-out image's own coordinates (950 × 1000) -->
+    <svg class="eyes" viewBox="0 0 950 1000" aria-hidden="true">
+      <defs>
+        <radialGradient id="pupil-{uid}" cx="40%" cy="35%" r="70%">
+          <stop offset="0" stop-color="#5a3322" />
+          <stop offset="1" stop-color="#2a150c" />
+        </radialGradient>
+        <radialGradient id="face-{uid}">
+          <stop offset="0.8" stop-color="#efcea5" />
+          <stop offset="1" stop-color="#efcea5" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <!-- Paint over the drawn pupils, then draw movable ones. -->
+      <circle cx="335.9" cy="454" r="88" fill="url(#face-{uid})" />
+      <circle cx="615.9" cy="454.7" r="88" fill="url(#face-{uid})" />
+      <g class="pupils">
+        <circle cx="335.9" cy="454" r="70" fill="url(#pupil-{uid})" />
+        <circle cx="615.9" cy="454.7" r="70" fill="url(#pupil-{uid})" />
+        <circle cx="360" cy="426" r="16" fill="#fff" />
+        <circle cx="640" cy="426" r="16" fill="#fff" />
       </g>
-      <!-- Eyes: big dark pupils with a highlight -->
-      {#if eyesOpen}
-        <g class="eyes">
-          <g class="pupils">
-            <circle class="pupil" cx="44" cy="51" r="8" />
-            <circle class="pupil" cx="76" cy="51" r="8" />
-            <circle class="shine" cx="46.6" cy="47.6" r="2.1" />
-            <circle class="shine" cx="78.6" cy="47.6" r="2.1" />
-          </g>
-        </g>
-      {:else}
-        <path class="draw happy-eyes" style="--d: 0s" pathLength="1" d="M36 54 Q44 44 52 54 M68 54 Q76 44 84 54" />
-      {/if}
-      <!-- Beak -->
-      <path class="beak" d="M56 56 L64 56 L60 66 Z" />
-    </g>
-    <!-- Wings, and the belly between them -->
-    <path class="draw wing-l" style="--d: 0.8s" pathLength="1" d="M10 111 Q6 82 22 69 Q36 64 43 82 Q46 96 44 111" />
-    <path class="draw wing-r" style="--d: 0.85s" pathLength="1" d="M110 111 Q114 82 98 69 Q84 64 77 82 Q74 96 76 111" />
-    <path class="draw" style="--d: 0.95s" pathLength="1" d="M44 111 Q60 114 76 111" />
-  </g>
-
-  <!-- What he's doing -->
-  {#if mood === "thinking"}
-    <g class="thought">
-      <circle class="dot d1" cx="104" cy="15" r="2.4" />
-      <circle class="dot d2" cx="110" cy="8" r="3" />
-      <circle class="dot d3" cx="117" cy="1" r="3.6" />
-    </g>
-  {:else if mood === "searching"}
-    <g class="magnifier">
-      <circle class="draw prop" style="--d: 0s" pathLength="1" cx="92" cy="88" r="9" />
-      <path class="draw prop" style="--d: 0.2s" pathLength="1" d="M98.5 94.5 L108 104" />
-    </g>
-  {:else if mood === "studying"}
-    <g class="book">
       <path
-        class="draw prop"
-        style="--d: 0s"
-        pathLength="1"
-        d="M42 88 Q51 83 60 88 Q69 83 78 88 L78 101 Q69 96 60 101 Q51 96 42 101 Z M60 88 L60 101"
+        class="closed"
+        d="M272 474 Q336 396 400 474 M552 474 Q616 396 680 474"
+        fill="none"
+        stroke="#3a1d0e"
+        stroke-width="18"
+        stroke-linecap="round"
       />
-      <path class="draw prop lines" style="--d: 0.3s" pathLength="1" d="M46 91 L56 89.5 M46 95 L56 93.5 M64 89.5 L74 91 M64 93.5 L74 95" />
-    </g>
-  {:else if mood === "opening"}
-    <g class="folder">
-      <path class="draw prop" style="--d: 0s" pathLength="1" d="M88 90 L97 90 L100 93 L114 93 L114 110 L88 110 Z" />
-      <path class="draw prop flap" style="--d: 0.25s" pathLength="1" d="M88 97 L114 97" />
-    </g>
-  {:else if mood === "puzzled"}
-    <g class="question">
-      <path class="draw prop" style="--d: 0s" pathLength="1" d="M105 16 Q105 6 112 6 Q119 6 119 12 Q119 17 112 19 L112 24" />
-      <circle class="fill" cx="112" cy="30" r="1.8" />
-    </g>
-  {/if}
-</svg>
+    </svg>
+  </div>
+
+  <span class="badge" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      {#if mood === "thinking"}
+        <circle class="dot" cx="6" cy="12" r="2.3" />
+        <circle class="dot" cx="12" cy="12" r="2.3" />
+        <circle class="dot" cx="18" cy="12" r="2.3" />
+      {:else if mood === "searching"}
+        <circle cx="10" cy="10" r="6" stroke-width="2.4" />
+        <path d="M14.5 14.5 L20 20" stroke-width="2.6" />
+      {:else if mood === "studying"}
+        <path d="M3 6 Q7.5 4 12 6.5 Q16.5 4 21 6 V18.5 Q16.5 16.5 12 19 Q7.5 16.5 3 18.5 Z M12 6.5 V19" stroke-width="2" />
+      {:else if mood === "opening"}
+        <path d="M3 7 a1 1 0 0 1 1-1 h5 l2 2 h9 a1 1 0 0 1 1 1 v9 a1 1 0 0 1-1 1 H4 a1 1 0 0 1-1-1 Z" stroke-width="2" />
+      {:else if mood === "happy"}
+        <path class="ok" d="M5 12.5 L10 17 L19 7" stroke-width="2.8" />
+      {:else if mood === "puzzled"}
+        <path class="warn" d="M8.5 9 Q8.5 5 12 5 Q15.5 5 15.5 8.5 Q15.5 11 12 12.5 V14.5" stroke-width="2.6" />
+        <circle class="warn-dot" cx="12" cy="19" r="1.2" />
+      {/if}
+    </svg>
+  </span>
+</div>
 
 <style>
   .owl {
-    overflow: visible;
+    position: relative;
     flex: none;
+    animation: arrive 0.35s ease-out;
   }
-  .glasses {
-    stroke: var(--folder);
+  .body {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 95%;
   }
-  .fill {
-    fill: currentColor;
-    stroke: none;
+  .body img,
+  .eyes {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
   }
-  .pupil {
-    fill: #3d2316;
-    stroke-width: 1.6;
+  .body img {
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
   }
-  .shine {
-    fill: #fff;
-    stroke: none;
+  .eyes {
+    overflow: visible;
   }
-  .beak {
-    fill: #e08a2c;
-    stroke: #c26f17;
-    stroke-width: 1.4;
-  }
-  .prop {
-    stroke: var(--accent);
-  }
-  .glint {
-    stroke: var(--bg);
-    stroke-width: 2;
-    opacity: 0;
-    animation: glint 2.4s ease-in-out infinite;
-  }
-  .dot {
-    fill: var(--accent);
-    stroke: none;
-    opacity: 0.2;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  .d2 {
-    animation-delay: 0.25s;
-  }
-  .d3 {
-    animation-delay: 0.5s;
-  }
-  /* Groups move around their own centres. */
-  .head,
-  .body,
-  .eyes,
-  .pupils,
-  .magnifier,
-  .flap,
-  .wing-r,
-  .brow-r {
+  .eyes * {
     transform-box: fill-box;
     transform-origin: center;
   }
-
-  /* Drawn in, line by line. */
-  .draw {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: draw 0.9s ease-out forwards;
-    animation-delay: var(--d, 0s);
-  }
-  .fill,
   .pupils,
-  .beak {
-    animation: appear 0.4s ease-out 1s both;
+  .closed {
+    transition:
+      opacity 0.2s,
+      transform 0.3s;
   }
-  .prop.draw {
-    animation-duration: 0.6s;
+  .closed {
+    opacity: 0;
+  }
+  .mood-happy .pupils {
+    opacity: 0;
+  }
+  .mood-happy .closed {
+    opacity: 1;
   }
 
-  /* Idle: breathing and the odd blink. */
+  /* The task badge */
+  .badge {
+    position: absolute;
+    right: -6%;
+    bottom: 0;
+    width: 42%;
+    height: 42%;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--accent);
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transform: scale(0.6);
+    transition:
+      opacity 0.25s,
+      transform 0.25s;
+  }
+  .owl:not(.mood-idle) .badge {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .badge svg {
+    width: 64%;
+    height: 64%;
+    stroke: var(--accent);
+  }
+  .badge .dot {
+    fill: var(--accent);
+    stroke: none;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .badge .dot:nth-child(2) {
+    animation-delay: 0.25s;
+  }
+  .badge .dot:nth-child(3) {
+    animation-delay: 0.5s;
+  }
+  .badge .ok {
+    stroke: #4f9a5a;
+  }
+  .badge .warn {
+    stroke: #c26f17;
+  }
+  .badge .warn-dot {
+    fill: #c26f17;
+    stroke: none;
+  }
+
+  /* Body language */
   .mood-idle .body {
+    animation: sway 5s ease-in-out infinite;
+  }
+  .mood-thinking .body {
+    animation: ponder 3.2s ease-in-out infinite;
+  }
+  .mood-searching .body {
     animation: breathe 4s ease-in-out infinite;
   }
-  .mood-idle .eyes {
-    animation: blink 5s ease-in-out 1.5s infinite;
+  .mood-studying .body {
+    animation: nod 1.3s ease-in-out infinite;
   }
-  /* Thinking: looking up and away. */
+  .mood-opening .body {
+    animation: turn 1.2s ease-in-out infinite;
+  }
+  .mood-happy .body {
+    animation: squash 0.8s ease-out infinite;
+  }
+  .mood-puzzled .body {
+    animation: puzzle 2.4s ease-in-out infinite;
+  }
+
+  /* The eyes */
+  .mood-idle .pupils {
+    animation: blink 5s ease-in-out 1s infinite;
+  }
   .mood-thinking .pupils {
     animation: look-up 2.4s ease-in-out infinite;
   }
-  /* Searching: the glass sweeps, the eyes follow. */
-  .mood-searching .magnifier {
-    animation: sweep 1.6s ease-in-out infinite;
-  }
   .mood-searching .pupils {
-    animation: follow 1.6s ease-in-out infinite;
+    animation: scan 3.2s infinite;
   }
-  /* Studying: reading line by line. */
   .mood-studying .pupils {
     animation: read 2.4s steps(1) infinite;
   }
-  .drawn .fill,
-  .drawn .beak,
-  .drawn .pupils {
-    animation: none;
+  .mood-opening .pupils {
+    transform: translate(22px, 24px);
   }
-  .happy-eyes {
-    animation-duration: 0.35s;
-  }
-  /* Opening: the flap swings, a wing lifts. */
-  .mood-opening .flap {
-    transform-origin: left center;
-    animation: flap 1.4s ease-in-out infinite;
-  }
-  .mood-opening .wing-r {
-    transform-origin: bottom center;
-    animation: wave 1.4s ease-in-out infinite;
-  }
-  /* Happy: a little hop. */
-  .mood-happy .body {
-    animation: hop 0.6s ease-out 2;
-  }
-  /* Puzzled: head tilt, one brow up. */
-  .mood-puzzled .head {
-    transform: rotate(8deg);
-    transition: transform 0.4s;
-  }
-  .mood-puzzled .brow-r {
-    transform: translateY(-3px) rotate(-6deg);
+  .mood-puzzled .pupils {
+    transform: translate(-20px, -22px);
   }
 
-  @keyframes draw {
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-  @keyframes appear {
+  @keyframes arrive {
     from {
       opacity: 0;
+      transform: scale(0.85);
+    }
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes sway {
+    0%,
+    100% {
+      transform: rotate(-1.5deg);
+    }
+    50% {
+      transform: rotate(1.5deg) scale(1.01);
     }
   }
   @keyframes breathe {
     50% {
-      transform: scale(1.025);
+      transform: scale(1.02);
+    }
+  }
+  @keyframes ponder {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    40%,
+    60% {
+      transform: rotate(-6deg) translateY(-1%);
+    }
+  }
+  @keyframes nod {
+    0%,
+    100% {
+      transform: scale(1.05) translateY(2%) rotate(0);
+    }
+    50% {
+      transform: scale(1.05) translateY(4%) rotate(2deg);
+    }
+  }
+  @keyframes turn {
+    0%,
+    50%,
+    100% {
+      transform: scaleX(1) translateY(0);
+    }
+    25% {
+      transform: scaleX(0.92) translateY(-4%);
+    }
+  }
+  @keyframes squash {
+    0%,
+    100% {
+      transform: scale(1, 1);
+    }
+    20% {
+      transform: scale(1.08, 0.9);
+    }
+    45% {
+      transform: scale(0.94, 1.08) translateY(-8%);
+    }
+    70% {
+      transform: scale(1.03, 0.97);
+    }
+  }
+  @keyframes puzzle {
+    0%,
+    100% {
+      transform: rotate(9deg);
+    }
+    50% {
+      transform: rotate(6deg);
     }
   }
   @keyframes blink {
@@ -263,7 +308,7 @@
       transform: scaleY(1);
     }
     97% {
-      transform: scaleY(0.1);
+      transform: scaleY(0.12);
     }
   }
   @keyframes look-up {
@@ -273,91 +318,59 @@
     }
     30%,
     70% {
-      transform: translate(2.5px, -3px);
-    }
-  }
-  @keyframes sweep {
-    0%,
-    100% {
-      transform: translate(0, 0) rotate(0);
-    }
-    50% {
-      transform: translate(-44px, -36px) rotate(-12deg);
-    }
-  }
-  @keyframes follow {
-    0%,
-    100% {
-      transform: translate(2.5px, 1px);
-    }
-    50% {
-      transform: translate(-2.5px, 0);
+      transform: translate(22px, -26px);
     }
   }
   @keyframes read {
     0% {
-      transform: translate(-2.5px, 1px);
+      transform: translate(-26px, 14px);
     }
     25% {
-      transform: translate(0, 1px);
+      transform: translate(0, 14px);
     }
     50% {
-      transform: translate(2.5px, 1px);
+      transform: translate(26px, 14px);
     }
     75% {
-      transform: translate(-2.5px, 3px);
+      transform: translate(-26px, 28px);
     }
   }
-  @keyframes glint {
+  /* Scanning a shelf: quick jumps, short holds, a blink. */
+  @keyframes scan {
     0%,
-    60%,
-    100% {
-      opacity: 0;
+    14% {
+      transform: translate(-30px, -8px);
     }
-    75% {
-      opacity: 0.9;
+    17%,
+    30% {
+      transform: translate(28px, -14px);
     }
-  }
-  @keyframes pulse {
+    33%,
     50% {
-      opacity: 1;
+      transform: translate(-22px, 18px) scaleY(1);
     }
-  }
-  @keyframes flap {
-    0%,
+    51.5% {
+      transform: translate(-22px, 18px) scaleY(0.12);
+    }
+    53%,
+    62% {
+      transform: translate(30px, 12px) scaleY(1);
+    }
+    65%,
+    80% {
+      transform: translate(4px, -26px);
+    }
+    83%,
     100% {
-      transform: rotate(0);
-    }
-    50% {
-      transform: rotate(-32deg);
-    }
-  }
-  @keyframes wave {
-    0%,
-    100% {
-      transform: rotate(0);
-    }
-    50% {
-      transform: rotate(-14deg);
-    }
-  }
-  @keyframes hop {
-    40% {
-      transform: translateY(-5px);
+      transform: translate(-30px, -8px);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .owl *,
-    .owl {
+    .owl,
+    .owl * {
       animation: none !important;
       transition: none !important;
-    }
-    .draw {
-      stroke-dashoffset: 0;
-    }
-    .dot {
-      opacity: 0.8;
     }
   }
 </style>
