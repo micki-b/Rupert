@@ -802,6 +802,13 @@ pub(crate) mod tests {
         w.sync(&source(root, Provider::OneDrive), "", true).unwrap();
     }
 
+    /// Indexes a source into a fresh in-memory index (no PDF text).
+    pub(crate) fn index_as_local(_root: &Path, source: &Source) -> Index {
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.sync(source, "", true).unwrap();
+        w.index
+    }
+
     fn search(w: &Worker, text: &str) -> Vec<String> {
         w.index
             .search(&SearchQuery {

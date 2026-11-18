@@ -9,6 +9,7 @@ use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, Intak
 use rupert_core::llm::LmStudio;
 use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
 use rupert_core::settings::{Settings, SettingsStore};
+use rupert_core::tag_edit::{self, Preview, TagEdit};
 use rupert_core::text::TextExtractor;
 use rupert_core::{
     CloudState, DirChange, DocMeta, Entry, FileKind, FolderMeta, Hit, Index, IndexStats,
@@ -33,6 +34,8 @@ const IMPORT_DONE: &str = "import-done";
 const SCAN_PROGRESS: &str = "scan-progress";
 /// A scan finished. Payload: `ScanDone`.
 const SCAN_DONE: &str = "scan-done";
+/// The tag manager changed a document. Payload: `TagEditProgress`.
+const TAG_EDIT_PROGRESS: &str = "tag-edit-progress";
 /// File ▸ Scan… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_SCAN: &str = "menu-scan";
@@ -322,6 +325,98 @@ async fn write_meta(
     .map_err(err)??;
     state.indexer.send(Job::File { source, rel_path });
     Ok(record)
+}
+
+// MARK: - Test hook (debug builds only)
+
+/// Runs `RUPERT_TEST_JS` in the page once it has loaded, so a test
+/// instance can be driven without clicking (macOS won't bring a window
+/// forward while another app is in use).
+#[cfg(debug_assertions)]
+fn run_test_script(app: &AppHandle) {
+    let Ok(js) = std::env::var("RUPERT_TEST_JS") else {
+        return;
+    };
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        if let Some(w) = app.get_webview_window("main") {
+            let _ = w.eval(&js);
+        }
+    });
+}
+
+// MARK: - Commands: tag manager
+
+/// What a rename, merge or delete would change.
+#[tauri::command]
+fn tag_edit_preview(edit: TagEdit, state: State<AppState>) -> CmdResult<Preview> {
+    let sources = state.sources();
+    let index = state.index.lock().unwrap();
+    tag_edit::plan(&index, &sources, &edit)
+        .map(|(_, preview)| preview)
+        .map_err(err)
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TagEditProgress {
+    done: usize,
+    total: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TagEditFailure {
+    path: String,
+    error: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TagEditReport {
+    changed: usize,
+    failed: Vec<TagEditFailure>,
+}
+
+/// Renames, merges or deletes tags in every document that has them.
+#[tauri::command]
+async fn tag_edit_apply(edit: TagEdit, app: AppHandle) -> CmdResult<TagEditReport> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let sources = state.sources();
+        let (targets, _) = {
+            let index = state.index.lock().unwrap();
+            tag_edit::plan(&index, &sources, &edit).map_err(err)?
+        };
+        let total = targets.len();
+        let mut report = TagEditReport {
+            changed: 0,
+            failed: Vec::new(),
+        };
+        for (i, target) in targets.iter().enumerate() {
+            let result = {
+                let index = state.index.lock().unwrap();
+                tag_edit::apply_one(&index, target, &edit)
+            };
+            match result {
+                Ok(true) => report.changed += 1,
+                Ok(false) => {}
+                Err(e) => report.failed.push(TagEditFailure {
+                    path: format!("{}/{}", target.source.name, target.rel_path),
+                    error: e.to_string(),
+                }),
+            }
+            state.indexer.send(Job::File {
+                source: target.source.clone(),
+                rel_path: target.rel_path.clone(),
+            });
+            let _ = app.emit(TAG_EDIT_PROGRESS, TagEditProgress { done: i + 1, total });
+        }
+        Ok(report)
+    })
+    .await
+    .map_err(err)?
 }
 
 // MARK: - Commands: search
@@ -821,6 +916,8 @@ pub fn run() {
             state.reconfigure_intake();
             state.indexer.send(Job::SyncAll(state.sources()));
             app.manage(state);
+            #[cfg(debug_assertions)]
+            run_test_script(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -838,6 +935,8 @@ pub fn run() {
             search,
             list_tags,
             tag_suggestions,
+            tag_edit_preview,
+            tag_edit_apply,
             index_status,
             scansnap_library,
             scansnap_plan,

@@ -25,6 +25,7 @@ pub mod scansnap;
 pub mod settings;
 pub mod sidecar;
 pub mod source;
+pub mod tag_edit;
 pub mod text;
 pub mod text_layer;
 pub mod watch;

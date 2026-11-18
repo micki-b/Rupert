@@ -33,6 +33,7 @@
   import ImportDialog from "$lib/ImportDialog.svelte";
   import Inbox from "$lib/Inbox.svelte";
   import TagFilter from "$lib/TagFilter.svelte";
+  import TagManager from "$lib/TagManager.svelte";
   import ScanDialog from "$lib/ScanDialog.svelte";
   import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
@@ -61,6 +62,7 @@
   let query = $state("");
   let selectedTags = $state<string[]>([]);
   let tagMode = $state<TagMode>("any");
+  let tagManagerOpen = $state(false);
   let favoritesOnly = $state(false);
   let hits = $state<Hit[]>([]);
   let searchedOnce = $state(false);
@@ -387,6 +389,7 @@
     {#if tagsOpen}
       <div class="tag-filter-wrap">
         <TagFilter bind:selected={selectedTags} bind:mode={tagMode} refresh={indexTick} onchange={tagsChanged} />
+        <button class="manage-tags" onclick={() => (tagManagerOpen = true)}>Manage tags…</button>
       </div>
     {/if}
 
@@ -696,6 +699,17 @@
   {/if}
 </div>
 
+{#if tagManagerOpen}
+  <TagManager
+    onclose={() => (tagManagerOpen = false)}
+    onchanged={() => {
+      selectedTags = [];
+      tagsBefore = 0;
+      loadIndexInfo();
+    }}
+  />
+{/if}
+
 {#if scanOpen}
   <ScanDialog
     hasInbox={!!appSettings?.inbox}
@@ -865,6 +879,16 @@
   }
   .tag-filter-wrap {
     padding: 0 0 6px 18px;
+  }
+  .manage-tags {
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+  .manage-tags:hover {
+    color: var(--accent);
   }
   .tag-join {
     color: var(--muted);

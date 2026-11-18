@@ -80,6 +80,26 @@ export interface SearchArgs {
   favoritesOnly?: boolean;
 }
 
+/** A tag manager edit: rename (several tags: merge) or delete. */
+export interface TagEdit {
+  from: string[];
+  action: { kind: "rename"; to: string } | { kind: "delete" };
+}
+
+/** What a tag edit would change, by where each document keeps its details. */
+export interface TagEditPreview {
+  documents: number;
+  inFile: number;
+  sidecar: number;
+  pending: number;
+  download: number;
+}
+
+export interface TagEditReport {
+  changed: number;
+  failed: { path: string; error: string }[];
+}
+
 /** A page of tags for the tag filter, and how many matched in all. */
 export interface TagList {
   tags: TagCount[];
@@ -293,6 +313,8 @@ export const api = {
    * "all", only those that occur together with the selection). */
   tagSuggestions: (filter: string, selected: string[], mode: TagMode, limit: number) =>
     invoke<TagList>("tag_suggestions", { filter, selected, mode, limit }),
+  tagEditPreview: (edit: TagEdit) => invoke<TagEditPreview>("tag_edit_preview", { edit }),
+  tagEditApply: (edit: TagEdit) => invoke<TagEditReport>("tag_edit_apply", { edit }),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
   scansnapLibrary: () => invoke<string | null>("scansnap_library"),
   scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),
@@ -399,3 +421,6 @@ export function revealLabel(os: string | undefined): string {
   if (os === "windows") return "Show in Explorer";
   return "Show in Files";
 }
+
+export const onTagEditProgress = (f: (p: { done: number; total: number }) => void): Promise<UnlistenFn> =>
+  listen<{ done: number; total: number }>("tag-edit-progress", (e) => f(e.payload));

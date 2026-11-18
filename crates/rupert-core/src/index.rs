@@ -561,6 +561,61 @@ impl Index {
         })
     }
 
+    /// Every document with any of `tags` (ignoring case): source id,
+    /// relative path and whether it is online-only.
+    pub fn documents_with_tags(
+        &self,
+        tags: &[String],
+    ) -> Result<Vec<(String, String, CloudState)>> {
+        let (tags_json, n) = tag_set(tags);
+        if n == 0 {
+            return Ok(Vec::new());
+        }
+        let sql = format!(
+            "SELECT d.source_id, d.rel_path, d.cloud FROM docs d WHERE 1{} ORDER BY d.source_id, d.rel_path",
+            tag_condition(TagMode::Any)
+        );
+        let mut stmt = self.conn.prepare(&sql).map_err(db)?;
+        let rows = stmt
+            .query_map(rusqlite::named_params! { ":tags": tags_json }, |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    if r.get::<_, i64>(2)? != 0 {
+                        CloudState::CloudOnly
+                    } else {
+                        CloudState::Local
+                    },
+                ))
+            })
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// A document's details as indexed (for online-only files, where the
+    /// file itself can't be read without downloading it).
+    pub fn doc_meta(&self, source_id: &str, rel_path: &str) -> Result<Option<DocMeta>> {
+        self.conn
+            .query_row(
+                "SELECT doc_id, title, tags, notes, document_date, favorite FROM docs
+                 WHERE source_id = ?1 AND rel_path = ?2",
+                params![source_id, rel_path],
+                |r| {
+                    let tags: String = r.get(2)?;
+                    Ok(DocMeta {
+                        id: r.get(0)?,
+                        title: r.get(1)?,
+                        tags: serde_json::from_str(&tags).unwrap_or_default(),
+                        notes: r.get(3)?,
+                        document_date: r.get(4)?,
+                        favorite: r.get::<_, i64>(5)? != 0,
+                    })
+                },
+            )
+            .optional()
+            .map_err(db)
+    }
+
     pub fn tags(&self) -> Result<Vec<TagCount>> {
         let mut stmt = self
             .conn

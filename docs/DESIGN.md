@@ -102,6 +102,11 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - Each file is indexed and recorded in the catalog, even when it has no text, so no machine downloads it again. Then its space is freed again: macOS `NSFileManager.evictUbiquitousItem` (tested on iCloud Drive and OneDrive; the modification time is unchanged, so the catalog entry stays valid), Windows by setting `FILE_ATTRIBUTE_UNPINNED`, which OneDrive honors. Files in sources without a catalog stay downloaded.
   - Regular jobs always come first; each file is tried at most once per session; the status bar shows the progress.
 
+## Tags
+
+- **Filter (desktop sidebar, phone sheet):** type to narrow; with nothing typed the 12 most-used tags show, otherwise tags starting with the text, then those with a word starting with it, then those containing it, more-used first; "Show all" for the rest. Several tags can be selected, matching **Any** (at least one) or **All** (every one), ignoring case. In All mode the list only offers tags that occur together with the selection, counted that way, so it narrows as you pick. The selection combines with text search and Favorites. Queries take under 10 ms on 6,900 documents (`json_each` over the stored tag lists; a separate tag table is the upgrade if libraries grow much larger).
+- **Tag manager (desktop):** pick tags and rename one, merge several into one (the merged tag takes the place of the first it replaces, once), or delete them from every document. A preview counts the documents by where the change is saved, and changes are written where each document's details live (`tag_edit.rs`): inside local PDFs, in the sidecar for other formats, and as pending sidecar details for online-only PDFs so nothing is downloaded. Pending details can only add or replace, so an online-only PDF that would be left with no tags is downloaded and changed in place; the dialog asks first. The phone stays read-only.
+
 ## Scanning and intake
 
 ### Pipeline
