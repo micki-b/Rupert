@@ -71,6 +71,8 @@ impl Engine {
 
     /// Recognizes the words in a PNG image of `width`×`height` pixels.
     pub fn recognize(&self, png: &[u8], width: u32, height: u32) -> Result<Vec<OcrWord>> {
+        // Tesseract reports pixels itself; only Vision needs the size.
+        let _ = (width, height);
         match self {
             #[cfg(target_os = "macos")]
             Engine::Vision => vision::recognize(png, width as f64, height as f64),
