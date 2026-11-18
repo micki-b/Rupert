@@ -36,56 +36,60 @@
 >
   <g class="body">
     <g class="head">
-      <!-- Outline with ear tufts -->
+      <!-- Head with ear tufts, down to the wings -->
       <path
         class="draw"
         style="--d: 0s"
         pathLength="1"
-        d="M38 30 L30 14 L47 25 Q60 21 73 25 L90 14 L82 30 Q96 44 94 66 Q92 92 76 104 Q60 112 44 104 Q28 92 26 66 Q24 44 38 30 Z"
+        d="M17 67 Q12 50 15 38 Q16 31 20 26 L24 8 L41 16 Q60 12 79 16 L96 8 L100 26 Q104 31 105 38 Q108 50 103 67"
       />
-      <!-- Folded-paper brows -->
-      <path class="draw brow-l" style="--d: 0.35s" pathLength="1" d="M36 45 Q46 35 58 45 L52 46 Q45 41 38 47 Z" />
-      <path class="draw brow-r" style="--d: 0.4s" pathLength="1" d="M84 45 Q74 35 62 45 L68 46 Q75 41 82 47 Z" />
+      <!-- Folded-paper brows, dipping to the middle -->
+      <path class="draw brow-l" style="--d: 0.3s" pathLength="1" d="M20 31 L31 22 Q47 25 60 33 L57 38 Q45 32 33 30 L23 38 Z" />
+      <path class="draw brow-r" style="--d: 0.35s" pathLength="1" d="M100 31 L89 22 Q73 25 60 33 L63 38 Q75 32 87 30 L97 38 Z" />
+      <!-- Facial disc, coming to a point below the beak -->
+      <path class="draw" style="--d: 0.45s" pathLength="1" d="M23 38 Q17 50 22 62 Q30 74 60 80 Q90 74 98 62 Q103 50 97 38" />
       <!-- Round wire glasses -->
       <g class="glasses">
-        <circle class="draw" style="--d: 0.55s" pathLength="1" cx="48" cy="57" r="11" />
-        <circle class="draw" style="--d: 0.6s" pathLength="1" cx="72" cy="57" r="11" />
-        <path class="draw" style="--d: 0.7s" pathLength="1" d="M59 56 Q60 53 61 56 M37 56 L29 52 M83 56 L91 52" />
+        <circle class="draw" style="--d: 0.55s" pathLength="1" cx="44.4" cy="51.2" r="14.4" />
+        <circle class="draw" style="--d: 0.6s" pathLength="1" cx="75.6" cy="51.2" r="14.4" />
+        <path class="draw" style="--d: 0.7s" pathLength="1" d="M58.8 49.5 Q60 46.8 61.2 49.5 M30 50 L14 46.5 M90 50 L106 46.5" />
         {#if mood === "studying"}
-          <path class="glint" d="M42 51 L46 48 M66 51 L70 48" />
+          <path class="glint" d="M36 44 L41 40 M67.2 44 L72.2 40" />
         {/if}
       </g>
-      <!-- Eyes -->
+      <!-- Eyes: big dark pupils with a highlight -->
       {#if eyesOpen}
         <g class="eyes">
           <g class="pupils">
-            <circle class="fill" cx="48" cy="58" r="3.6" />
-            <circle class="fill" cx="72" cy="58" r="3.6" />
+            <circle class="pupil" cx="44" cy="51" r="8" />
+            <circle class="pupil" cx="76" cy="51" r="8" />
+            <circle class="shine" cx="46.6" cy="47.6" r="2.1" />
+            <circle class="shine" cx="78.6" cy="47.6" r="2.1" />
           </g>
         </g>
       {:else}
-        <path class="draw happy-eyes" style="--d: 0s" pathLength="1" d="M43 59 Q48 52 53 59 M67 59 Q72 52 77 59" />
+        <path class="draw happy-eyes" style="--d: 0s" pathLength="1" d="M36 54 Q44 44 52 54 M68 54 Q76 44 84 54" />
       {/if}
       <!-- Beak -->
-      <path class="beak" d="M55.5 66 L64.5 66 L60 74 Z" />
+      <path class="beak" d="M56 56 L64 56 L60 66 Z" />
     </g>
-    <!-- Wings and chest -->
-    <path class="draw wing-l" style="--d: 0.85s" pathLength="1" d="M31 70 Q22 88 36 101" />
-    <path class="draw wing-r" style="--d: 0.9s" pathLength="1" d="M89 70 Q98 88 84 101" />
-    <path class="draw" style="--d: 1s" pathLength="1" d="M47 84 L60 93 L73 84" />
+    <!-- Wings, and the belly between them -->
+    <path class="draw wing-l" style="--d: 0.8s" pathLength="1" d="M10 111 Q6 82 22 69 Q36 64 43 82 Q46 96 44 111" />
+    <path class="draw wing-r" style="--d: 0.85s" pathLength="1" d="M110 111 Q114 82 98 69 Q84 64 77 82 Q74 96 76 111" />
+    <path class="draw" style="--d: 0.95s" pathLength="1" d="M44 111 Q60 114 76 111" />
   </g>
 
   <!-- What he's doing -->
   {#if mood === "thinking"}
     <g class="thought">
-      <circle class="dot d1" cx="97" cy="20" r="2.4" />
-      <circle class="dot d2" cx="104" cy="12" r="3" />
-      <circle class="dot d3" cx="112" cy="5" r="3.6" />
+      <circle class="dot d1" cx="104" cy="15" r="2.4" />
+      <circle class="dot d2" cx="110" cy="8" r="3" />
+      <circle class="dot d3" cx="117" cy="1" r="3.6" />
     </g>
   {:else if mood === "searching"}
     <g class="magnifier">
-      <circle class="draw prop" style="--d: 0s" pathLength="1" cx="86" cy="78" r="9" />
-      <path class="draw prop" style="--d: 0.2s" pathLength="1" d="M92.5 84.5 L102 94" />
+      <circle class="draw prop" style="--d: 0s" pathLength="1" cx="92" cy="88" r="9" />
+      <path class="draw prop" style="--d: 0.2s" pathLength="1" d="M98.5 94.5 L108 104" />
     </g>
   {:else if mood === "studying"}
     <g class="book">
@@ -93,19 +97,19 @@
         class="draw prop"
         style="--d: 0s"
         pathLength="1"
-        d="M38 92 Q49 86 60 92 Q71 86 82 92 L82 106 Q71 100 60 106 Q49 100 38 106 Z M60 92 L60 106"
+        d="M42 88 Q51 83 60 88 Q69 83 78 88 L78 101 Q69 96 60 101 Q51 96 42 101 Z M60 88 L60 101"
       />
-      <path class="draw prop lines" style="--d: 0.3s" pathLength="1" d="M43 95 L54 93 M43 99 L54 97 M66 93 L77 95 M66 97 L77 99" />
+      <path class="draw prop lines" style="--d: 0.3s" pathLength="1" d="M46 91 L56 89.5 M46 95 L56 93.5 M64 89.5 L74 91 M64 93.5 L74 95" />
     </g>
   {:else if mood === "opening"}
     <g class="folder">
-      <path class="draw prop" style="--d: 0s" pathLength="1" d="M84 86 L93 86 L96 89 L110 89 L110 106 L84 106 Z" />
-      <path class="draw prop flap" style="--d: 0.25s" pathLength="1" d="M84 93 L110 93" />
+      <path class="draw prop" style="--d: 0s" pathLength="1" d="M88 90 L97 90 L100 93 L114 93 L114 110 L88 110 Z" />
+      <path class="draw prop flap" style="--d: 0.25s" pathLength="1" d="M88 97 L114 97" />
     </g>
   {:else if mood === "puzzled"}
     <g class="question">
-      <path class="draw prop" style="--d: 0s" pathLength="1" d="M99 22 Q99 12 106 12 Q113 12 113 18 Q113 23 106 25 L106 30" />
-      <circle class="fill" cx="106" cy="36" r="1.8" />
+      <path class="draw prop" style="--d: 0s" pathLength="1" d="M105 16 Q105 6 112 6 Q119 6 119 12 Q119 17 112 19 L112 24" />
+      <circle class="fill" cx="112" cy="30" r="1.8" />
     </g>
   {/if}
 </svg>
@@ -120,6 +124,14 @@
   }
   .fill {
     fill: currentColor;
+    stroke: none;
+  }
+  .pupil {
+    fill: #3d2316;
+    stroke-width: 1.6;
+  }
+  .shine {
+    fill: #fff;
     stroke: none;
   }
   .beak {
@@ -169,6 +181,7 @@
     animation-delay: var(--d, 0s);
   }
   .fill,
+  .pupils,
   .beak {
     animation: appear 0.4s ease-out 1s both;
   }
@@ -199,7 +212,8 @@
     animation: read 2.4s steps(1) infinite;
   }
   .drawn .fill,
-  .drawn .beak {
+  .drawn .beak,
+  .drawn .pupils {
     animation: none;
   }
   .happy-eyes {
@@ -211,7 +225,7 @@
     animation: flap 1.4s ease-in-out infinite;
   }
   .mood-opening .wing-r {
-    transform-origin: top center;
+    transform-origin: bottom center;
     animation: wave 1.4s ease-in-out infinite;
   }
   /* Happy: a little hop. */
@@ -268,7 +282,7 @@
       transform: translate(0, 0) rotate(0);
     }
     50% {
-      transform: translate(-34px, -14px) rotate(-12deg);
+      transform: translate(-44px, -36px) rotate(-12deg);
     }
   }
   @keyframes follow {
