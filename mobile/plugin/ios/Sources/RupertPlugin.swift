@@ -381,6 +381,9 @@ extension RupertPlugin {
       let anchor = AuthAnchor(self.manager.viewController?.view.window)
       self.authAnchor = anchor
       session.presentationContextProvider = anchor
+      // A private session with its own cookies: Safari's cookies (stale
+      // Microsoft sessions) broke the sign-in's session cookie.
+      session.prefersEphemeralWebBrowserSession = true
       self.authSession = session
       if !session.start() {
         self.authSession = nil
