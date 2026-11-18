@@ -3,6 +3,7 @@
 //! Everything that is not UI lives here so it can be tested without Tauri and
 //! reused by other front ends (mobile viewer, CLI). See `docs/DESIGN.md`.
 
+pub mod assistant;
 pub mod camera;
 pub mod catalog;
 pub mod cloud;

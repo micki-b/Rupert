@@ -31,6 +31,35 @@ pub struct Settings {
     pub lm_studio_model: Option<String>,
     /// How filed documents are named: `{date}` and `{title}` are replaced.
     pub name_pattern: String,
+    /// The chat assistant. (API keys are kept in the system's keychain,
+    /// never here.)
+    pub assistant: AssistantSettings,
+}
+
+/// Which model the assistant talks to.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AssistantProvider {
+    /// LM Studio on this computer (the LM Studio settings above).
+    #[default]
+    Local,
+    /// Claude, through Anthropic's API.
+    Anthropic,
+    /// Any OpenAI-compatible service (OpenAI, OpenRouter, …).
+    Openai,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct AssistantSettings {
+    pub provider: AssistantProvider,
+    /// Model for a cloud provider (`None`: Anthropic's default; required
+    /// for OpenAI-compatible services). The local one uses LM Studio's.
+    pub model: Option<String>,
+    /// OpenAI-compatible service address (`None`: OpenAI's).
+    pub base_url: Option<String>,
+    /// Anthropic: use the `ant` command-line login instead of an API key.
+    pub anthropic_cli_login: bool,
 }
 
 impl Default for Settings {
@@ -42,6 +71,7 @@ impl Default for Settings {
             lm_studio_url: llm::DEFAULT_URL.into(),
             lm_studio_model: None,
             name_pattern: "{date} {title}".into(),
+            assistant: AssistantSettings::default(),
         }
     }
 }

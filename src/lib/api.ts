@@ -196,6 +196,45 @@ export interface Settings {
   lmStudioModel: string | null;
   /** `{date}` and `{title}` are replaced. */
   namePattern: string;
+  assistant: AssistantSettings;
+}
+
+/** Which model the chat assistant uses. Keys live in the keychain. */
+export type AssistantProvider = "local" | "anthropic" | "openai";
+
+export interface AssistantSettings {
+  provider: AssistantProvider;
+  /** Cloud model (Anthropic: empty means its default). */
+  model: string | null;
+  /** OpenAI-compatible service address (empty: OpenAI). */
+  baseUrl: string | null;
+  /** Claude through the `ant` command-line login instead of an API key. */
+  anthropicCliLogin: boolean;
+}
+
+export interface AssistantInfo {
+  /** Documents' details and text go to a cloud service. */
+  cloud: boolean;
+  label: string;
+}
+
+export interface AssistantStep {
+  tool: string;
+  summary: string;
+}
+
+/** Something the assistant asks the main window to show. */
+export type AssistantAction =
+  | { kind: "openFolder"; sourceId: string; relPath: string }
+  | { kind: "showDocument"; sourceId: string; relPath: string }
+  | { kind: "search"; text: string; tags: string[]; tagMode: TagMode; favoritesOnly: boolean };
+
+export interface AssistantReply {
+  text: string;
+  steps: AssistantStep[];
+  actions: AssistantAction[];
+  model: string;
+  cloud: boolean;
 }
 
 export interface FolderChoice {
@@ -321,6 +360,14 @@ export const api = {
    * "all", only those that occur together with the selection). */
   tagSuggestions: (filter: string, selected: string[], mode: TagMode, limit: number) =>
     invoke<TagList>("tag_suggestions", { filter, selected, mode, limit }),
+  assistantInfo: () => invoke<AssistantInfo>("assistant_info"),
+  assistantSend: (text: string) => invoke<AssistantReply>("assistant_send", { text }),
+  assistantReset: () => invoke<void>("assistant_reset"),
+  assistantSetKey: (provider: AssistantProvider, key: string | null) =>
+    invoke<void>("assistant_set_key", { provider, key }),
+  assistantHasKey: (provider: AssistantProvider) => invoke<boolean>("assistant_has_key", { provider }),
+  assistantCliStatus: () => invoke<{ installed: boolean; signedIn: boolean }>("assistant_cli_status"),
+  assistantCliLogin: () => invoke<void>("assistant_cli_login"),
   favoriteFolders: () => invoke<FavoriteFolder[]>("favorite_folders"),
   folderFavorite: (sourceId: string, relPath: string) => invoke<boolean>("folder_favorite", { sourceId, relPath }),
   setFolderFavorite: (sourceId: string, relPath: string, favorite: boolean) =>
@@ -436,3 +483,6 @@ export function revealLabel(os: string | undefined): string {
 
 export const onTagEditProgress = (f: (p: { done: number; total: number }) => void): Promise<UnlistenFn> =>
   listen<{ done: number; total: number }>("tag-edit-progress", (e) => f(e.payload));
+
+export const onAssistantStep = (f: (step: AssistantStep) => void): Promise<UnlistenFn> =>
+  listen<AssistantStep>("assistant-step", (e) => f(e.payload));

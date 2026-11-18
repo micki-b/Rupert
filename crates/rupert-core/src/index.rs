@@ -678,6 +678,21 @@ impl Index {
         rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
+    /// A document's indexed body text (from the file, the catalog or its
+    /// sidecar), if any. Never reads the file itself.
+    pub fn document_text(&self, source_id: &str, rel_path: &str) -> Result<Option<String>> {
+        self.conn
+            .query_row(
+                "SELECT f.body FROM fts f JOIN docs d ON d.id = f.rowid
+                 WHERE d.source_id = ?1 AND d.rel_path = ?2",
+                params![source_id, rel_path],
+                |r| r.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map(Option::flatten)
+            .map_err(db)
+    }
+
     /// A document's details as indexed (for online-only files, where the
     /// file itself can't be read without downloading it).
     pub fn doc_meta(&self, source_id: &str, rel_path: &str) -> Result<Option<DocMeta>> {

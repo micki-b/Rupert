@@ -4,6 +4,8 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+mod assistant;
+
 use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
 use rupert_core::folder_info::{self, FolderInfo};
 use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, IntakeItem};
@@ -53,6 +55,8 @@ const MENU_IMPORT: &str = "menu-import-scansnap";
 
 struct AppState {
     store: Mutex<SourceStore>,
+    /// For extra read connections (e.g. the assistant's).
+    index_path: PathBuf,
     /// `None` if the OS refused to start a watcher; browsing still works.
     watcher: Mutex<Option<LibraryWatcher>>,
     /// Read connection for searches (the indexer thread has its own).
@@ -981,6 +985,7 @@ pub fn run() {
             .ok();
 
             let state = AppState {
+                index_path: index_path.clone(),
                 store: Mutex::new(store),
                 watcher: Mutex::new(watcher),
                 index: Mutex::new(index),
@@ -995,6 +1000,7 @@ pub fn run() {
             state.reconfigure_intake();
             state.indexer.send(Job::SyncAll(state.sources()));
             app.manage(state);
+            app.manage(assistant::AssistantState::new());
             #[cfg(debug_assertions)]
             run_test_script(app.handle());
             Ok(())
@@ -1015,6 +1021,13 @@ pub fn run() {
             list_tags,
             tag_suggestions,
             tag_edit_preview,
+            assistant::assistant_info,
+            assistant::assistant_send,
+            assistant::assistant_reset,
+            assistant::assistant_set_key,
+            assistant::assistant_has_key,
+            assistant::assistant_cli_status,
+            assistant::assistant_cli_login,
             favorite_folders,
             folder_favorite,
             set_folder_favorite,

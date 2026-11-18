@@ -26,6 +26,7 @@
     type TagCount,
     type TagMode,
     type FavoriteFolder,
+    type AssistantAction,
   } from "$lib/api";
   import { changes } from "$lib/changes.svelte";
   import { formatDate, formatSize, kindLabel } from "$lib/format";
@@ -35,6 +36,7 @@
   import Inbox from "$lib/Inbox.svelte";
   import TagFilter from "$lib/TagFilter.svelte";
   import TagManager from "$lib/TagManager.svelte";
+  import Assistant from "$lib/Assistant.svelte";
   import ScanDialog from "$lib/ScanDialog.svelte";
   import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
@@ -113,10 +115,37 @@
     if (folder !== current) return; // user moved on meanwhile
     loading = false;
     entries = list ?? [];
-    if (selected && !searching) {
+    if (pendingSelect) {
+      const want = pendingSelect;
+      pendingSelect = null;
+      const entry = entries.find((e) => e.relPath === want);
+      if (entry) selected = { sourceId: current.sourceId, entry };
+    } else if (selected && !searching) {
       const rel = selected.entry.relPath;
       const still = entries.find((e) => e.relPath === rel);
       selected = still ? { sourceId: current.sourceId, entry: still } : null;
+    }
+  }
+
+  /** A document to select once its folder has loaded (from the assistant). */
+  let pendingSelect: string | null = null;
+
+  /** Carries out what the assistant asked the window to show. */
+  function assistantAction(a: AssistantAction) {
+    if (a.kind === "openFolder") {
+      selectFolder(a.sourceId, a.relPath);
+    } else if (a.kind === "showDocument") {
+      const cut = a.relPath.lastIndexOf("/");
+      pendingSelect = a.relPath;
+      selectFolder(a.sourceId, cut < 0 ? "" : a.relPath.slice(0, cut));
+    } else {
+      inboxOpen = false;
+      selected = null;
+      query = a.text;
+      selectedTags = [...a.tags];
+      tagMode = a.tagMode;
+      tagsBefore = selectedTags.length;
+      favoritesOnly = a.favoritesOnly;
     }
   }
 
@@ -749,6 +778,8 @@
   </section>
   {/if}
 </div>
+
+<Assistant onaction={assistantAction} onsettings={() => (settingsOpen = true)} />
 
 {#if tagManagerOpen}
   <TagManager

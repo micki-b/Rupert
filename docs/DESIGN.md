@@ -23,6 +23,7 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 | Organization | Folders + tags (one document, many tags). |
 | Search | Full-text search across all documents. |
 | Auto-naming / filing | Yes, using only a local model via LM Studio. |
+| Chat assistant | Local LM Studio by default; a cloud model (Claude, or OpenAI-compatible) only if the user picks one (decided 2026-11-18). |
 | Page editing | Out of scope (no rotate/reorder/merge/split). |
 | File operations | Rename/move change the real file right away; delete goes to the system Trash. |
 | Migration | Import from ScanSnap Home. |
@@ -101,6 +102,18 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - After regular indexing is done, the indexer downloads online-only PDFs and text files whose text is unknown, 6 at a time (a download is ~2–5 s of mostly waiting, so parallel fetches help), skipping files over 100 MB.
   - Each file is indexed and recorded in the catalog, even when it has no text, so no machine downloads it again. Then its space is freed again: macOS `NSFileManager.evictUbiquitousItem` (tested on iCloud Drive and OneDrive; the modification time is unchanged, so the catalog entry stays valid), Windows by setting `FILE_ATTRIBUTE_UNPINNED`, which OneDrive honors. Files in sources without a catalog stay downloaded.
   - Regular jobs always come first; each file is tried at most once per session; the status bar shows the progress.
+
+## Chat assistant (desktop)
+
+- A chat button in the lower right (⌘J) opens "Ask Rupert": find documents, answer questions about them, and show things in the window ("open the Boat folder", "show everything tagged Taxes and 2025").
+- **Engine** (`assistant.rs`): one tool loop for two API shapes: OpenAI-compatible chat completions (LM Studio locally, or a cloud service with an API key) and Anthropic's Messages API over HTTP (no official Rust SDK). At most 8 tool rounds per message; a failed request leaves the conversation as it was.
+- **Tools, read-only:** search (text, tags any/all, favorites), list tags, sources and favorite folders, list a folder, read a document's indexed text (from the index: nothing is downloaded), and three window requests (open folder, show document, show results) that the UI carries out. The assistant can't change files; it says so.
+- **Models (Settings ▸ Assistant):**
+  - **LM Studio** (default): the server and model from the inbox settings; nothing leaves the computer. Tested with Qwen 3.6 35B: search, read and show all worked, slowly (a minute or two per question, mostly the model's reasoning).
+  - **Claude:** default `claude-opus-5-5`, adaptive thinking, and server-side refusal fallbacks (`fallbacks: "default"`); assistant turns are echoed back unchanged (thinking included), except reasoning before a fallback boundary, as the API requires. Sign-in with an API key, or with the user's Anthropic account through the `ant` CLI (`ant auth login`, then a short-lived token per message).
+  - **OpenAI-compatible service:** address, model and API key.
+  - API keys are kept in the system keychain (`keyring`), never in `settings.json`.
+- **Privacy:** with a cloud model, the question and whatever the tools return (titles, tags, folder names, the text of documents the model reads) go to that service. The panel shows "☁" and the model name whenever a cloud model is active, the first screen says what is sent, and Settings repeats it. Inbox suggestions and OCR stay on LM Studio and the local OCR engine regardless.
 
 ## Favorite folders
 
