@@ -15,7 +15,8 @@
     | "camera"
     | "library"
     | "settings"
-    | "star";
+    | "star"
+    | "tag";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
@@ -35,6 +36,7 @@
     library: "M4 4h4v16H4zM10 4h4v16h-4zM16.2 4.6l3.6-.9 3 15.5-3.6.9z",
     settings: "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4",
     star: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z",
+    tag: "M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8a1.4 1.4 0 0 1 0 2l-7.1 7.1a1.4 1.4 0 0 1-2 0zM8 8h.01",
   };
 </script>
 

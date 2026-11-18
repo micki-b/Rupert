@@ -477,16 +477,23 @@
       <button
         role="tab"
         aria-selected={sidebarView === "folders"}
+        aria-label="Folders"
+        title="Folders"
         class:on={sidebarView === "folders"}
-        onclick={() => setSidebarView("folders")}>Folders</button
+        onclick={() => setSidebarView("folders")}
       >
+        <Icon name="folder" size={16} />
+      </button>
       <button
         role="tab"
         aria-selected={sidebarView === "tags"}
+        aria-label="Tags{selectedTags.length ? `, ${selectedTags.length} selected` : ''}"
+        title="Tags"
         class:on={sidebarView === "tags"}
         onclick={() => setSidebarView("tags")}
       >
-        Tags{#if selectedTags.length}&nbsp;<span class="badge">{selectedTags.length}</span>{/if}
+        <Icon name="tag" size={16} />
+        {#if selectedTags.length}<span class="badge">{selectedTags.length}</span>{/if}
       </button>
     </div>
 
@@ -1015,20 +1022,27 @@
   }
   .view-switch button {
     flex: 1;
+    position: relative;
     border: 0;
     background: none;
     border-radius: 5px;
-    padding: 3px 0;
-    font-size: 12px;
+    padding: 4px 0;
     color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
   }
+  .view-switch button:hover:not(.on) {
+    color: var(--text);
+  }
+  .view-switch .badge {
+    position: absolute;
+    top: 1px;
+    left: calc(50% + 6px);
+  }
   .view-switch button.on {
     background: var(--bg);
-    color: var(--text);
-    font-weight: 600;
+    color: var(--accent);
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
   }
   .badge {
