@@ -353,6 +353,25 @@ pub fn fetch_document(
     Ok(dest)
 }
 
+/// Writes (or removes) a OneDrive folder's own details file.
+pub fn write_folder_info(
+    app: &AppHandle,
+    folder: &RemoteFolder,
+    rel_dir: &str,
+    info: &rupert_core::folder_info::FolderInfo,
+) -> Result<(), String> {
+    use rupert_core::folder_info;
+    let graph = app.state::<OneDrive>().graph(app)?;
+    let rel = folder_info::rel_path_for(rel_dir);
+    if info.is_empty() {
+        graph.delete_small(&folder.item_id, &rel).map_err(err)
+    } else {
+        graph
+            .write_small(&folder.item_id, &rel, &folder_info::to_bytes(info))
+            .map_err(err)
+    }
+}
+
 /// Uploads a finished scan; the name OneDrive gave it.
 pub fn upload_scan(
     app: &AppHandle,

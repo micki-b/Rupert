@@ -69,6 +69,8 @@ export const phone = {
     invoke<Hit[]>("search", { query: { text, tags, tagMode, favoritesOnly } }),
   tags: () => invoke<TagCount[]>("list_tags"),
   favoriteFolders: () => invoke<FavoriteFolder[]>("favorite_folders"),
+  setFolderFavorite: (sourceId: string, relPath: string, favorite: boolean) =>
+    invoke<void>("set_folder_favorite", { sourceId, relPath, favorite }),
   document: (sourceId: string, relPath: string) => invoke<DocInfo | null>("document", { sourceId, relPath }),
   open: (sourceId: string, relPath: string) => invoke<void>("open_document", { sourceId, relPath }),
   /** The saved file name, or null if the scan was cancelled. */

@@ -93,6 +93,11 @@
   let settingsError = $state<string | null>(null);
 
   const here = $derived(stack.at(-1) ?? null);
+  const hereFav = $derived(
+    !!here && favFolders.some((f) => f.sourceId === here.sourceId && f.relPath === here.relPath),
+  );
+  let favBusy = $state(false);
+  let favError = $state<string | null>(null);
   const progress = $derived(overview?.progress);
   const busyIndexing = $derived(Boolean(progress?.active || remoteProgress?.active));
   const shownProgress = $derived(remoteProgress?.active ? remoteProgress : progress);
@@ -173,6 +178,26 @@
     stack = [{ sourceId: f.sourceId, relPath: f.relPath, name: f.name }];
     entries = [];
     loadFolder();
+  }
+
+  async function toggleFolderFav() {
+    if (!here || favBusy) return;
+    const { sourceId, relPath, name } = here;
+    const next = !hereFav;
+    favBusy = true;
+    favError = null;
+    // Show it right away; undo if saving fails.
+    favFolders = next
+      ? [...favFolders, { sourceId, relPath, name, sourceName: "" }]
+      : favFolders.filter((f) => !(f.sourceId === sourceId && f.relPath === relPath));
+    try {
+      await phone.setFolderFavorite(sourceId, relPath, next);
+    } catch (e) {
+      favError = String(e);
+    } finally {
+      favFolders = await phone.favoriteFolders().catch(() => favFolders);
+      favBusy = false;
+    }
   }
 
   function showFavoriteDocuments() {
@@ -322,6 +347,17 @@
       <button class="back" onclick={back} aria-label="Back"><Icon name="back" size={22} /></button>
     {/if}
     <h1>{title}</h1>
+    {#if tab === "library" && here}
+      <button
+        class="star"
+        class:on={hereFav}
+        onclick={toggleFolderFav}
+        disabled={favBusy}
+        aria-pressed={hereFav}
+        aria-label={hereFav ? "Remove this folder from Favorites" : "Add this folder to Favorites"}
+        >{hereFav ? "★" : "☆"}</button
+      >
+    {/if}
     {#if busyIndexing && shownProgress}
       <span class="indexing" title={shownProgress.current ?? ""}>
         <span class="spinner"></span>{shownProgress.total ? `${shownProgress.done} / ${shownProgress.total}` : ""}
@@ -397,6 +433,7 @@
         {/if}
       {:else}
         {#if listError}<p class="error pad">{listError}</p>{/if}
+        {#if favError}<p class="error pad">{favError}</p>{/if}
         {#if !listing && entries.length === 0 && !listError}
           <p class="note">This folder has no documents.</p>
         {/if}
@@ -762,6 +799,17 @@
     color: var(--accent);
     padding: 4px 4px 4px 0;
     display: flex;
+  }
+  .star {
+    border: 0;
+    background: none;
+    font-size: 22px;
+    line-height: 1;
+    padding: 4px;
+    color: var(--muted);
+  }
+  .star.on {
+    color: #d9a520;
   }
   .indexing {
     display: flex;

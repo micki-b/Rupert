@@ -64,6 +64,16 @@ pub fn parse(bytes: &[u8]) -> Option<FolderInfo> {
         .filter(|i| !i.is_empty())
 }
 
+/// The file's contents, for writing it by other means (the phone writes
+/// through iOS or OneDrive).
+pub fn to_bytes(info: &FolderInfo) -> Vec<u8> {
+    let file = FolderFile {
+        version: VERSION,
+        info: info.clone(),
+    };
+    serde_json::to_vec_pretty(&file).expect("plain data serializes")
+}
+
 /// Saves a folder's details; empty details remove the file (and the
 /// `.rupert` folder if nothing else is in it).
 pub fn write(dir: &Path, info: &FolderInfo) -> Result<()> {
@@ -83,12 +93,8 @@ pub fn write(dir: &Path, info: &FolderInfo) -> Result<()> {
         fs::create_dir(hidden)?;
         sidecar::hide(hidden);
     }
-    let file = FolderFile {
-        version: VERSION,
-        info: info.clone(),
-    };
     let tmp = path.with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_vec_pretty(&file)?)?;
+    fs::write(&tmp, to_bytes(info))?;
     fs::rename(&tmp, &path)?;
     Ok(())
 }
@@ -150,5 +156,7 @@ mod tests {
         );
         assert_eq!(parse(br#"{"version":1}"#), None, "nothing set");
         assert_eq!(parse(b"garbage"), None);
+        let fav = FolderInfo { favorite: true };
+        assert_eq!(parse(&to_bytes(&fav)), Some(fav));
     }
 }

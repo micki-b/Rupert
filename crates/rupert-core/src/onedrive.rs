@@ -412,6 +412,69 @@ impl Graph {
         Ok(())
     }
 
+    /// Writes one of Rupert's small files (e.g. `Boat/.rupert/.folder.json`)
+    /// below a folder, replacing it, and creating its parent folder if
+    /// needed (an upload doesn't create missing folders).
+    pub fn write_small(&self, folder_id: &str, rel_path: &str, bytes: &[u8]) -> Result<()> {
+        let (parent, _) = rel_path.rsplit_once('/').unwrap_or(("", rel_path));
+        let (grand, dir_name) = parent.rsplit_once('/').unwrap_or(("", parent));
+        if !dir_name.is_empty() {
+            let base = if grand.is_empty() {
+                format!("{GRAPH}/me/drive/items/{}", encode(folder_id))
+            } else {
+                let path: Vec<String> = grand.split('/').map(encode).collect();
+                format!(
+                    "{GRAPH}/me/drive/items/{}:/{}:",
+                    encode(folder_id),
+                    path.join("/")
+                )
+            };
+            let resp = self
+                .http
+                .post(&format!("{base}/children"))
+                .header("Authorization", &self.auth())
+                .send_json(serde_json::json!({
+                    "name": dir_name,
+                    "folder": {},
+                    "@microsoft.graph.conflictBehavior": "fail"
+                }))
+                .map_err(net_err)?;
+            // 409: it exists already, which is fine.
+            if resp.status().as_u16() != 409 {
+                check(resp)?;
+            }
+        }
+        let resp = self
+            .http
+            .put(&Self::content_url(folder_id, rel_path))
+            .header("Authorization", &self.auth())
+            .header("Content-Type", "application/octet-stream")
+            .send(bytes)
+            .map_err(net_err)?;
+        check(resp)?;
+        Ok(())
+    }
+
+    /// Deletes one of Rupert's small files (OneDrive keeps it in its
+    /// recycle bin). Already gone counts as done.
+    pub fn delete_small(&self, folder_id: &str, rel_path: &str) -> Result<()> {
+        let path: Vec<String> = rel_path.split('/').map(encode).collect();
+        let resp = self
+            .http
+            .delete(&format!(
+                "{GRAPH}/me/drive/items/{}:/{}:",
+                encode(folder_id),
+                path.join("/")
+            ))
+            .header("Authorization", &self.auth())
+            .call()
+            .map_err(net_err)?;
+        if resp.status().as_u16() != 404 {
+            check(resp)?;
+        }
+        Ok(())
+    }
+
     /// Adds a new file to a folder; if the name is taken OneDrive picks a
     /// free one. Returns the name it got.
     pub fn upload(&self, folder_id: &str, name: &str, bytes: &[u8]) -> Result<String> {

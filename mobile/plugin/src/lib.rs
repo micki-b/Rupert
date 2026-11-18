@@ -194,6 +194,25 @@ impl<R: Runtime> Device<R> {
             .url)
     }
 
+    /// Writes one of Rupert's small files (under a `.rupert` folder),
+    /// coordinated with the sync service.
+    pub fn write_file(&self, path: &str, text: &str) -> Result<()> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            path: &'a str,
+            text: &'a str,
+        }
+        self.call::<serde_json::Value>("writeFile", Args { path, text })
+            .map(drop)
+    }
+
+    /// Removes one of Rupert's small files (and its `.rupert` folder if
+    /// that is then empty).
+    pub fn remove_file(&self, path: &str) -> Result<()> {
+        self.call::<serde_json::Value>("removeFile", PathArgs { path })
+            .map(drop)
+    }
+
     pub fn keychain_get(&self, key: &str) -> Result<Option<String>> {
         #[derive(Serialize)]
         struct Args<'a> {

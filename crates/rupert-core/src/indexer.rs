@@ -652,7 +652,13 @@ impl Worker {
     }
 
     fn sidecar_mtimes(&self, dir: &Path) -> HashMap<String, i64> {
-        self.prepare(&dir.join(sidecar::DIR_NAME));
+        let hidden = dir.join(sidecar::DIR_NAME);
+        self.prepare(&hidden);
+        // Created elsewhere (e.g. by the phone): make sure Windows hides it
+        // too, where a leading dot doesn't.
+        if self.mode == Mode::Library && cfg!(windows) && hidden.is_dir() {
+            sidecar::hide(&hidden);
+        }
         sidecar::mtimes(dir)
     }
 

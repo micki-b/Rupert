@@ -421,6 +421,52 @@ fn favorite_folders(state: State<AppState>) -> CmdResult<Vec<FavoriteFolder>> {
     Ok(out)
 }
 
+/// Stars or unstars a folder: the phone's one write to the library, and
+/// only to Rupert's own `.rupert/.folder.json` in that folder.
+#[tauri::command]
+async fn set_folder_favorite(
+    source_id: String,
+    rel_path: String,
+    favorite: bool,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<()> {
+    use rupert_core::folder_info::{self, FolderInfo};
+    let info = FolderInfo { favorite };
+    let rel = rel_path.trim_matches('/').to_string();
+    if let Some(folder) = state.remote(&source_id) {
+        let (handle, info2, rel2) = (app.clone(), info.clone(), rel.clone());
+        blocking(move || onedrive::write_folder_info(&handle, &folder, &rel2, &info2)).await?;
+    } else {
+        let source = state.source(&source_id)?;
+        let dir = rupert_core::resolve(&source.root, &rel).map_err(err)?;
+        let (handle, info2) = (app.clone(), info.clone());
+        blocking(move || {
+            let path = folder_info::path_for(&dir).to_string_lossy().into_owned();
+            let device = device(&handle);
+            let result = if info2.is_empty() {
+                device.remove_file(&path)
+            } else {
+                let text = String::from_utf8(folder_info::to_bytes(&info2)).map_err(err)?;
+                device.write_file(&path, &text)
+            };
+            match result {
+                // Not on iOS (development on a computer): write directly.
+                Err(DeviceError::Unsupported) => folder_info::write(&dir, &info2).map_err(err),
+                other => other.map_err(err),
+            }
+        })
+        .await?;
+    }
+    state
+        .index
+        .lock()
+        .unwrap()
+        .set_folder(&source_id, &rel, Some(&info))
+        .map_err(err)?;
+    Ok(())
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SearchArgs {
@@ -792,6 +838,7 @@ pub fn run() {
             search,
             list_tags,
             favorite_folders,
+            set_folder_favorite,
             tag_suggestions,
             document,
             open_document,

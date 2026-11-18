@@ -72,6 +72,11 @@ struct PlaceResult: Encodable {
   let name: String
 }
 
+struct WriteArgs: Decodable {
+  let path: String
+  let text: String
+}
+
 struct SignInArgs: Decodable {
   let url: String
   let callbackScheme: String
@@ -298,6 +303,75 @@ class RupertPlugin: Plugin {
       return CIImage(image: photo) ?? CIImage()
     }
   #endif
+
+  // MARK: Rupert's own small files
+
+  /// Writes one of Rupert's small files (e.g. a folder's `.folder.json`),
+  /// creating its `.rupert` folder if needed, coordinated with the sync
+  /// service. Documents are never written this way.
+  @objc public func writeFile(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(WriteArgs.self)
+    let url = URL(fileURLWithPath: args.path)
+    guard url.pathComponents.contains(".rupert") else {
+      invoke.reject("Only Rupert's own files are written.")
+      return
+    }
+    var coordinationError: NSError?
+    var writeError: Error?
+    NSFileCoordinator().coordinate(
+      writingItemAt: url, options: .forReplacing, error: &coordinationError
+    ) { target in
+      do {
+        try FileManager.default.createDirectory(
+          at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(args.text.utf8).write(to: target, options: .atomic)
+      } catch {
+        writeError = error
+      }
+    }
+    if let error = coordinationError ?? writeError {
+      invoke.reject("Couldn't save: \(error.localizedDescription)")
+    } else {
+      invoke.resolve()
+    }
+  }
+
+  /// Removes one of Rupert's small files, and its `.rupert` folder if that
+  /// is then empty. Already gone counts as done.
+  @objc public func removeFile(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(PathArgs.self)
+    let url = URL(fileURLWithPath: args.path)
+    guard url.pathComponents.contains(".rupert") else {
+      invoke.reject("Only Rupert's own files are removed.")
+      return
+    }
+    let fm = FileManager.default
+    var coordinationError: NSError?
+    var removeError: Error?
+    NSFileCoordinator().coordinate(
+      writingItemAt: url, options: .forDeleting, error: &coordinationError
+    ) { target in
+      guard fm.fileExists(atPath: target.path) else { return }
+      do {
+        try fm.removeItem(at: target)
+      } catch {
+        removeError = error
+      }
+    }
+    if let error = coordinationError ?? removeError {
+      invoke.reject("Couldn't save: \(error.localizedDescription)")
+      return
+    }
+    let dir = url.deletingLastPathComponent()
+    if let left = try? fm.contentsOfDirectory(atPath: dir.path), left.isEmpty {
+      NSFileCoordinator().coordinate(
+        writingItemAt: dir, options: .forDeleting, error: nil
+      ) { target in
+        try? fm.removeItem(at: target)
+      }
+    }
+    invoke.resolve()
+  }
 
   /// Copies a finished scan into the inbox folder under a free name.
   @objc public func place(_ invoke: Invoke) throws {
