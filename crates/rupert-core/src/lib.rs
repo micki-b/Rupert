@@ -11,6 +11,7 @@ pub mod indexer;
 pub mod listing;
 pub mod meta;
 pub mod pdf_meta;
+pub mod scansnap;
 pub mod sidecar;
 pub mod source;
 pub mod text;

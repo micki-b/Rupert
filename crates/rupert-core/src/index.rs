@@ -12,7 +12,7 @@ use crate::listing::CloudState;
 use crate::meta::{DocMeta, Storage};
 
 /// Bump to throw away and rebuild every user's index on schema changes.
-const SCHEMA_VERSION: i32 = 1;
+const SCHEMA_VERSION: i32 = 2;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
@@ -34,6 +34,8 @@ pub struct DocRow {
     pub meta: DocMeta,
     pub storage: Storage,
     pub text_state: TextState,
+    /// Modification time of the file's sidecar, if it has one.
+    pub sidecar_ms: Option<i64>,
 }
 
 /// Where the indexed body text came from, or why there is none.
@@ -44,6 +46,8 @@ pub enum TextState {
     Extracted,
     /// Copied from the shared catalog (the file itself is online-only).
     Catalog,
+    /// From the file's sidecar (e.g. ScanSnap Home's OCR text).
+    Sidecar,
     /// The file has no text (e.g. a scan without OCR).
     Empty,
     /// Online-only and not in the catalog yet.
@@ -59,6 +63,7 @@ impl TextState {
         match self {
             Self::Extracted => "extracted",
             Self::Catalog => "catalog",
+            Self::Sidecar => "sidecar",
             Self::Empty => "empty",
             Self::CloudOnly => "cloudOnly",
             Self::Unsupported => "unsupported",
@@ -69,6 +74,7 @@ impl TextState {
         match s {
             "extracted" => Self::Extracted,
             "catalog" => Self::Catalog,
+            "sidecar" => Self::Sidecar,
             "empty" => Self::Empty,
             "cloudOnly" => Self::CloudOnly,
             "unsupported" => Self::Unsupported,
@@ -77,14 +83,16 @@ impl TextState {
     }
 }
 
-/// Size, modification time and download state as last indexed; used to
-/// decide whether a file needs re-indexing.
+/// Size, modification time and download state as last indexed (plus the
+/// sidecar's modification time); used to decide whether a file needs
+/// re-indexing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stamp {
     pub size: u64,
     pub modified_ms: Option<i64>,
     pub cloud: CloudState,
     pub text_state: TextState,
+    pub sidecar_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -200,8 +208,9 @@ impl Index {
         let tags = serde_json::to_string(&row.meta.tags)?;
         tx.execute(
             "INSERT INTO docs (source_id, rel_path, dir, name, kind, size, mtime_ms, cloud,
-                doc_id, title, tags, notes, document_date, favorite, storage, text_state)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+                doc_id, title, tags, notes, document_date, favorite, storage, text_state,
+                sidecar_ms)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
             params![
                 row.source_id,
                 row.rel_path,
@@ -219,6 +228,7 @@ impl Index {
                 row.meta.favorite as i64,
                 storage_str(row.storage),
                 row.text_state.as_str(),
+                row.sidecar_ms,
             ],
         )
         .map_err(db)?;
@@ -300,7 +310,7 @@ impl Index {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT rel_path, size, mtime_ms, cloud, text_state FROM docs
+                "SELECT rel_path, size, mtime_ms, cloud, text_state, sidecar_ms FROM docs
                  WHERE source_id = ?1 AND rel_path >= ?2 AND rel_path < ?3",
             )
             .map_err(db)?;
@@ -317,6 +327,7 @@ impl Index {
                             CloudState::Local
                         },
                         text_state: TextState::parse(&r.get::<_, String>(4)?),
+                        sidecar_ms: r.get(5)?,
                     },
                 ))
             })
@@ -420,7 +431,7 @@ impl Index {
         self.conn
             .query_row(
                 "SELECT COUNT(*),
-                        SUM(text_state IN ('extracted', 'catalog')),
+                        SUM(text_state IN ('extracted', 'catalog', 'sidecar')),
                         SUM(text_state IN ('empty', 'unsupported', 'failed')),
                         SUM(text_state = 'cloudOnly'),
                         SUM(favorite)
@@ -436,6 +447,31 @@ impl Index {
                     })
                 },
             )
+            .map_err(db)
+    }
+
+    /// Documents of exactly `size` bytes, as (source id, relative path).
+    /// Used to find files that were moved or renamed outside Rupert.
+    pub fn find_by_size(&self, size: u64) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT source_id, rel_path FROM docs WHERE size = ?1")
+            .map_err(db)?;
+        let rows = stmt
+            .query_map([size as i64], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// Where a document's indexed text came from, if it is indexed.
+    pub fn text_state(&self, source_id: &str, rel_path: &str) -> Result<Option<TextState>> {
+        self.conn
+            .query_row(
+                "SELECT text_state FROM docs WHERE source_id = ?1 AND rel_path = ?2",
+                params![source_id, rel_path],
+                |r| Ok(TextState::parse(&r.get::<_, String>(0)?)),
+            )
+            .optional()
             .map_err(db)
     }
 
@@ -490,9 +526,11 @@ CREATE TABLE IF NOT EXISTS docs (
     favorite INTEGER NOT NULL DEFAULT 0,
     storage TEXT NOT NULL,
     text_state TEXT NOT NULL,
+    sidecar_ms INTEGER,
     UNIQUE (source_id, rel_path)
 );
 CREATE INDEX IF NOT EXISTS docs_dir ON docs (source_id, dir);
+CREATE INDEX IF NOT EXISTS docs_size ON docs (size);
 CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5 (
     name, title, tags, notes, body,
     tokenize = 'unicode61 remove_diacritics 2',
@@ -592,6 +630,7 @@ mod tests {
             },
             storage: Storage::Embedded,
             text_state: TextState::Extracted,
+            sidecar_ms: None,
         }
     }
 

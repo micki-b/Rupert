@@ -14,21 +14,24 @@ fn main() {
     let db = std::path::PathBuf::from(args.next().expect("db path"));
     let queries: Vec<String> = args.collect();
 
+    // Idle = an inactive report after at least one active one.
     let idle = Arc::new(Mutex::new(false));
+    let busy = Arc::new(Mutex::new(false));
     let last = Arc::new(Mutex::new(Instant::now()));
-    let (i, l) = (Arc::clone(&idle), Arc::clone(&last));
+    let (i, b, l) = (Arc::clone(&idle), Arc::clone(&busy), Arc::clone(&last));
     let start = Instant::now();
     let handle = rupert_core::indexer::spawn(
         db.clone(),
         Some(lib),
         move |p| {
             if p.active {
+                *b.lock().unwrap() = true;
                 let mut last = l.lock().unwrap();
                 if last.elapsed() > Duration::from_secs(5) {
                     eprintln!("  {}/{} …", p.done, p.total);
                     *last = Instant::now();
                 }
-            } else if p.total == 0 && start.elapsed() > Duration::from_millis(500) {
+            } else if *b.lock().unwrap() {
                 *i.lock().unwrap() = true;
             }
         },

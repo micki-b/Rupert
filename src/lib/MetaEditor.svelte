@@ -131,6 +131,21 @@
   <div class="offline">
     <Icon name="cloud" size={16} />
     <p>This PDF is online-only. Its details are stored inside it, so showing them downloads the file.</p>
+    {#if record}
+      {@const m = record.meta}
+      <p class="beside">
+        Already known without downloading:
+        {[
+          m.title,
+          m.documentDate && `dated ${m.documentDate}`,
+          m.favorite && "favorite",
+          m.tags.length && m.tags.map((t) => `#${t}`).join(" "),
+          m.notes,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    {/if}
     <button onclick={() => load(true)} disabled={loading}>
       {loading ? "Downloading…" : "Download and show details"}
     </button>
@@ -155,7 +170,12 @@
 
     <label class="field">
       <span>Document date</span>
-      <input type="date" bind:value={form.documentDate} disabled={loading} />
+      <input
+        type="date"
+        class:unset={!form.documentDate}
+        bind:value={form.documentDate}
+        disabled={loading}
+      />
     </label>
 
     <div class="field">
@@ -310,6 +330,15 @@
   }
   button:disabled {
     opacity: 0.5;
+  }
+  /* WebKit draws today's date in an empty date field; hide it until focused
+     so an unset date doesn't look like a real one. */
+  input.unset:not(:focus)::-webkit-datetime-edit {
+    color: transparent;
+  }
+  .beside {
+    font-size: 12px;
+    color: var(--muted);
   }
   .storage {
     margin: 0;

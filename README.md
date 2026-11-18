@@ -6,7 +6,7 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux.
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.
 - OCR and AI filing suggestions run locally (AI via LM Studio).
 
-Status: **milestone 3**. You can add folders as sources, browse them with live updates and online-only status, and edit a document's title, tags, document date, notes and favorite flag. Details are saved inside PDFs, or in a hidden sidecar file for other formats. Full-text search across all sources, plus Favorites and Tags. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
+Status: **milestones 1–3 and 5**. You can add folders as sources, browse them with live updates and online-only status, and edit a document's title, tags, document date, notes and favorite flag. Details are saved inside PDFs, or in a hidden sidecar file for other formats. Full-text search across all sources, plus Favorites and Tags. Import document dates, favorites, receipts and OCR text from ScanSnap Home (File ▸ Import from ScanSnap Home…). See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
 
 ## Layout
 

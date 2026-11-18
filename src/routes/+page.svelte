@@ -7,6 +7,7 @@
     onDirChanged,
     onIndexChanged,
     onIndexProgress,
+    onMenuImport,
     providerLabel,
     revealLabel,
     snippetParts,
@@ -23,6 +24,7 @@
   import { formatDate, formatSize, kindLabel } from "$lib/format";
   import FolderNode from "$lib/FolderNode.svelte";
   import Icon from "$lib/Icon.svelte";
+  import ImportDialog from "$lib/ImportDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
 
   type Folder = { sourceId: string; relPath: string };
@@ -38,6 +40,7 @@
   let menuFor = $state<string | null>(null);
   let renaming = $state<string | null>(null);
   let renameValue = $state("");
+  let importing = $state(false);
 
   // Search & library filters
   let query = $state("");
@@ -119,6 +122,7 @@
 
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
+      onMenuImport(() => (importing = true)),
       onIndexProgress((p) => (progress = p)),
       onIndexChanged(() => {
         indexTick++;
@@ -389,6 +393,10 @@
     {#if sources.length === 0}
       <p class="empty small">No sources yet.</p>
     {/if}
+
+    <button class="lib-item import" onclick={() => (importing = true)}>
+      <span class="label">Import from ScanSnap Home…</span>
+    </button>
   </aside>
 
   {#snippet menu(s: Source)}
@@ -581,6 +589,10 @@
   </section>
 </div>
 
+{#if importing}
+  <ImportDialog {sources} onclose={() => (importing = false)} onsourceadded={() => loadSources()} />
+{/if}
+
 <footer>
   <span>{#if info}{info.name} {info.version}{/if}</span>
   <span class="status">
@@ -694,6 +706,11 @@
   }
   .disclosure.open {
     transform: rotate(90deg);
+  }
+  .lib-item.import {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 12px;
   }
   .tag-item {
     padding-left: 30px;

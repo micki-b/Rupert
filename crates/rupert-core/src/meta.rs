@@ -4,6 +4,8 @@
 //! - PDFs: inside the file (XMP + Info dictionary), see [`crate::pdf_meta`].
 //! - Everything else, and PDFs that can't be safely changed (encrypted or
 //!   signed): a hidden sidecar file, see [`crate::sidecar`].
+//! - Details recorded for an online-only PDF without downloading it wait in
+//!   the sidecar ("pending") and move into the PDF on its next save.
 
 use std::path::Path;
 
@@ -100,6 +102,14 @@ impl PartialMeta {
         }
     }
 
+    /// Combines pending sidecar details with what the file holds: fields
+    /// set in `pending` win, the rest come from `base`.
+    pub fn merge(pending: DocMeta, base: DocMeta) -> DocMeta {
+        PartialMeta::from(pending)
+            .or(PartialMeta::from(base))
+            .into_meta()
+    }
+
     pub fn into_meta(self) -> DocMeta {
         DocMeta {
             id: self.id,
@@ -112,7 +122,21 @@ impl PartialMeta {
     }
 }
 
-fn is_iso_date(s: &str) -> bool {
+impl From<DocMeta> for PartialMeta {
+    /// Empty values (no tags, not a favorite) count as "not set".
+    fn from(m: DocMeta) -> Self {
+        PartialMeta {
+            id: m.id,
+            title: m.title,
+            tags: Some(m.tags).filter(|t| !t.is_empty()),
+            notes: m.notes,
+            document_date: m.document_date,
+            favorite: m.favorite.then_some(true),
+        }
+    }
+}
+
+pub fn is_iso_date(s: &str) -> bool {
     let b = s.as_bytes();
     b.len() == 10
         && b[4] == b'-'
@@ -158,15 +182,17 @@ pub struct MetaRecord {
 
 // MARK: - Read / write
 
+const PENDING_NOTE: &str = "Some details are kept beside the file until it's next saved in Rupert";
+
 /// Reads a document's metadata from wherever it is stored. Reads the file,
 /// so for online-only files this downloads it; callers decide whether that
 /// is acceptable.
 pub fn read_meta(path: &Path) -> Result<MetaRecord> {
-    let from_sidecar = sidecar::read(path)?;
+    let side = sidecar::read(path)?.and_then(|s| s.meta.map(|m| (m, s.pending)));
 
     if FileKind::from_path(path) != FileKind::Pdf {
-        return Ok(match from_sidecar {
-            Some(meta) => record(meta, Storage::Sidecar, None),
+        return Ok(match side {
+            Some((meta, _)) => record(meta, Storage::Sidecar, None),
             None => record(DocMeta::default(), Storage::None, None),
         });
     }
@@ -174,27 +200,40 @@ pub fn read_meta(path: &Path) -> Result<MetaRecord> {
     match pdf_meta::read(path) {
         Ok(pdf) => {
             let note = pdf.unwritable_reason;
-            if let Some(meta) = from_sidecar {
-                return Ok(record(meta, Storage::Sidecar, note));
+            match side {
+                Some((meta, false)) => Ok(record(meta, Storage::Sidecar, note)),
+                Some((meta, true)) => {
+                    let merged = PartialMeta::merge(meta, pdf.meta.into_meta());
+                    let note = note.or_else(|| Some(PENDING_NOTE.into()));
+                    Ok(record(merged, Storage::Sidecar, note))
+                }
+                None => {
+                    let meta = pdf.meta.into_meta();
+                    let storage = if meta.is_empty() && meta.id.is_none() {
+                        Storage::None
+                    } else {
+                        Storage::Embedded
+                    };
+                    Ok(record(meta, storage, note))
+                }
             }
-            let meta = pdf.meta.into_meta();
-            let storage = if meta.is_empty() && meta.id.is_none() {
-                Storage::None
-            } else {
-                Storage::Embedded
-            };
-            Ok(record(meta, storage, note))
         }
         Err(e) => {
             let note = Some(format!(
                 "couldn't read the PDF ({e}); details are kept in a sidecar"
             ));
-            Ok(match from_sidecar {
-                Some(meta) => record(meta, Storage::Sidecar, note),
+            Ok(match side {
+                Some((meta, _)) => record(meta, Storage::Sidecar, note),
                 None => record(DocMeta::default(), Storage::None, note),
             })
         }
     }
+}
+
+/// Reads only what can be known without touching the file itself: the
+/// sidecar's metadata, if any (and whether it is pending for a PDF).
+pub fn read_meta_beside(path: &Path) -> Result<Option<(DocMeta, bool)>> {
+    Ok(sidecar::read(path)?.and_then(|s| s.meta.map(|m| (m, s.pending))))
 }
 
 /// Saves `meta` for the file at `path`: inside the PDF when possible,
@@ -202,16 +241,14 @@ pub fn read_meta(path: &Path) -> Result<MetaRecord> {
 /// controls whether the sidecar records a content hash (hashing an
 /// online-only file would download it).
 pub fn write_meta(path: &Path, meta: DocMeta, file_is_local: bool) -> Result<MetaRecord> {
-    let mut meta = meta.normalized()?;
-    if meta.id.is_none() {
-        meta.id = Some(uuid::Uuid::new_v4().to_string());
-    }
+    let meta = prepare(meta)?;
 
     if FileKind::from_path(path) == FileKind::Pdf {
         match pdf_meta::write(path, &meta) {
             Ok(()) => {
-                // An earlier fallback sidecar would now shadow the PDF.
-                sidecar::remove(path)?;
+                // Drop fallback or pending details that would now shadow the
+                // PDF (text in the sidecar stays).
+                sidecar::write_meta(path, None, false, file_is_local)?;
                 return read_meta(path);
             }
             Err(Error::Unsupported(_) | Error::Pdf(_)) => {
@@ -221,8 +258,27 @@ pub fn write_meta(path: &Path, meta: DocMeta, file_is_local: bool) -> Result<Met
         }
     }
 
-    sidecar::write(path, &meta, file_is_local)?;
+    sidecar::write_meta(path, Some(meta), false, file_is_local)?;
     read_meta(path)
+}
+
+/// Saves `meta` without reading or changing the file itself (for
+/// online-only files). For PDFs the details are marked pending and move
+/// into the PDF on its next save; other formats keep them in the sidecar
+/// anyway.
+pub fn write_meta_beside(path: &Path, meta: DocMeta) -> Result<DocMeta> {
+    let meta = prepare(meta)?;
+    let pending = FileKind::from_path(path) == FileKind::Pdf;
+    sidecar::write_meta(path, Some(meta.clone()), pending, false)?;
+    Ok(meta)
+}
+
+fn prepare(meta: DocMeta) -> Result<DocMeta> {
+    let mut meta = meta.normalized()?;
+    if meta.id.is_none() {
+        meta.id = Some(uuid::Uuid::new_v4().to_string());
+    }
+    Ok(meta)
 }
 
 fn record(meta: DocMeta, storage: Storage, note: Option<String>) -> MetaRecord {

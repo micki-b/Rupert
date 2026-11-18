@@ -49,7 +49,11 @@ pub fn resolve(root: &Path, rel: &str) -> Result<PathBuf> {
     for part in rel.split('/').filter(|p| !p.is_empty()) {
         let mut components = Path::new(part).components();
         match (components.next(), components.next()) {
-            (Some(Component::Normal(c)), None) if !part.contains('\\') => path.push(c),
+            // A backslash is a separator on Windows but an ordinary
+            // character in macOS and Linux file names.
+            (Some(Component::Normal(c)), None) if !(cfg!(windows) && part.contains('\\')) => {
+                path.push(c)
+            }
             _ => return Err(Error::InvalidPath(rel.to_string())),
         }
     }
@@ -325,8 +329,15 @@ mod tests {
         let root = Path::new("/lib");
         assert_eq!(resolve(root, "a/b").unwrap(), Path::new("/lib/a/b"));
         assert_eq!(resolve(root, "").unwrap(), Path::new("/lib"));
-        for bad in ["..", "a/../../etc", "./a", "a\\..\\b"] {
+        for bad in ["..", "a/../../etc", "./a"] {
             assert!(resolve(root, bad).is_err(), "{bad}");
+        }
+        let odd = resolve(root, "Scans/TITLE 4;\\ BOAT.pdf");
+        if cfg!(windows) {
+            assert!(odd.is_err());
+            assert!(resolve(root, "a\\..\\b").is_err());
+        } else {
+            assert_eq!(odd.unwrap(), Path::new("/lib/Scans/TITLE 4;\\ BOAT.pdf"));
         }
     }
 

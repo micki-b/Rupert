@@ -279,13 +279,13 @@ fn format_utc(secs: u64) -> String {
 // MARK: - Tests
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use lopdf::content::{Content, Operation};
     use lopdf::dictionary;
 
     /// A minimal one-page PDF, optionally with an Info dictionary.
-    fn make_pdf(path: &Path, info: Option<Dictionary>) {
+    pub(crate) fn make_pdf(path: &Path, info: Option<Dictionary>) {
         let mut doc = Document::with_version("1.5");
         let pages_id = doc.new_object_id();
         let content = Content {

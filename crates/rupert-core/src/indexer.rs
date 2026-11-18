@@ -5,9 +5,10 @@
 //! changes, and single files after Rupert saves metadata.
 //!
 //! Online-only files are never read. Their entry comes from the shared
-//! catalog when another machine has indexed them, otherwise from the name.
+//! catalog when another machine has indexed them, from the file's sidecar
+//! (metadata, imported text), and otherwise from the name.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -20,7 +21,7 @@ use crate::error::Result;
 use crate::file_kind::FileKind;
 use crate::index::{DocRow, Index, Stamp, TextState};
 use crate::listing::{CloudState, Entry, list_dir};
-use crate::meta::{self, Storage};
+use crate::meta::{self, DocMeta, PartialMeta, Storage};
 use crate::sidecar;
 use crate::source::{Provider, Source};
 use crate::text::TextExtractor;
@@ -113,6 +114,18 @@ struct Worker {
 struct Found {
     rel_path: String,
     entry: Entry,
+    /// Modification time of its sidecar, if it has one.
+    sidecar_ms: Option<i64>,
+}
+
+impl Found {
+    fn new(entry: Entry, sidecars: &HashMap<String, i64>) -> Self {
+        Found {
+            rel_path: entry.rel_path.clone(),
+            sidecar_ms: sidecars.get(&entry.name).copied(),
+            entry,
+        }
+    }
 }
 
 impl Worker {
@@ -126,6 +139,7 @@ impl Worker {
             let jobs = coalesce(jobs);
 
             self.progress.active = true;
+            self.report(true);
             for job in jobs {
                 if let Err(e) = self.handle(job) {
                     eprintln!("rupert: indexing error: {e}");
@@ -158,7 +172,10 @@ impl Worker {
                     .into_iter()
                     .find(|e| !e.is_dir && e.rel_path == rel_path);
                 match found {
-                    Some(entry) => self.index_file(&source, &Found { rel_path, entry })?,
+                    Some(entry) => {
+                        let sidecars = sidecar::mtimes(&source.root.join(parent));
+                        self.index_file(&source, &Found::new(entry, &sidecars))?
+                    }
                     None => self.remove_file(&source, &rel_path)?,
                 }
             }
@@ -183,14 +200,12 @@ impl Worker {
         if recursive {
             walk(source, rel_dir, &mut found);
         } else {
+            let sidecars = sidecar::mtimes(&source.root.join(rel_dir));
             for entry in list_dir(&source.root, rel_dir, source.show_all_types)? {
                 if entry.is_dir {
                     subdirs.push(entry.rel_path.clone());
                 } else {
-                    found.push(Found {
-                        rel_path: entry.rel_path.clone(),
-                        entry,
-                    });
+                    found.push(Found::new(entry, &sidecars));
                 }
             }
         }
@@ -219,7 +234,7 @@ impl Worker {
         // New or changed files.
         let todo: Vec<&Found> = found
             .iter()
-            .filter(|f| needs_indexing(known.get(&f.rel_path), &f.entry))
+            .filter(|f| needs_indexing(known.get(&f.rel_path), f))
             .collect();
         self.progress.total += todo.len();
         for f in todo {
@@ -256,44 +271,58 @@ impl Worker {
         let path = source.root.join(&f.rel_path);
         let e = &f.entry;
         let kind = e.kind.unwrap_or(FileKind::Other);
+        // Sidecars are separate small files, safe to read even when the
+        // document itself is online-only.
+        let side = if f.sidecar_ms.is_some() {
+            sidecar::read(&path).ok().flatten()
+        } else {
+            None
+        };
+        let side_text = side
+            .as_ref()
+            .and_then(|s| s.text.clone())
+            .filter(|t| !t.trim().is_empty());
 
         let (meta, storage, text_state, body) = if e.cloud == CloudState::CloudOnly {
             // Never read online-only files. Use the catalog if it's current.
-            match catalog::read(&source.root, &f.rel_path)?
-                .filter(|c| c.matches(e.size, e.modified_ms))
-            {
-                Some(c) => {
-                    let state = if c.text.as_deref().is_some_and(|t| !t.is_empty()) {
-                        TextState::Catalog
-                    } else {
-                        TextState::CloudOnly
-                    };
-                    (c.meta, c.storage.into(), state, c.text)
-                }
-                None => {
-                    // Sidecars are separate small files, safe to read.
-                    let meta = if kind == FileKind::Pdf {
-                        None
-                    } else {
-                        sidecar::read(&path).ok().flatten()
-                    };
-                    let storage = if meta.is_some() {
-                        Storage::Sidecar
-                    } else {
-                        Storage::None
-                    };
-                    (
-                        meta.unwrap_or_default(),
-                        storage,
+            let (mut meta, mut storage, mut state, mut body) =
+                match catalog::read(&source.root, &f.rel_path)?
+                    .filter(|c| c.matches(e.size, e.modified_ms))
+                {
+                    Some(c) => {
+                        let state = if c.text.as_deref().is_some_and(|t| !t.is_empty()) {
+                            TextState::Catalog
+                        } else {
+                            TextState::CloudOnly
+                        };
+                        (c.meta, c.storage.into(), state, c.text)
+                    }
+                    None => (
+                        DocMeta::default(),
+                        Storage::None,
                         TextState::CloudOnly,
                         None,
-                    )
-                }
+                    ),
+                };
+            if let Some(s) = &side
+                && let Some(m) = &s.meta
+            {
+                meta = if s.pending {
+                    PartialMeta::merge(m.clone(), meta)
+                } else {
+                    m.clone()
+                };
+                storage = Storage::Sidecar;
             }
+            if state != TextState::Catalog && side_text.is_some() {
+                (state, body) = (TextState::Sidecar, side_text);
+            }
+            (meta, storage, state, body)
         } else {
             let record = meta::read_meta(&path)?;
             let (state, body) = match self.extractor.extract(&path) {
                 Ok(Some(t)) if !t.is_empty() => (TextState::Extracted, Some(t)),
+                _ if side_text.is_some() => (TextState::Sidecar, side_text),
                 Ok(Some(_)) => (TextState::Empty, None),
                 Ok(None) => (TextState::Unsupported, None),
                 Err(_) => (TextState::Failed, None),
@@ -330,6 +359,7 @@ impl Worker {
                 meta,
                 storage,
                 text_state,
+                sidecar_ms: f.sidecar_ms,
             },
             body.as_deref(),
         )?;
@@ -374,16 +404,21 @@ fn shares_catalog(source: &Source) -> bool {
     source.provider != Provider::Local
 }
 
-fn needs_indexing(known: Option<&Stamp>, e: &Entry) -> bool {
+fn needs_indexing(known: Option<&Stamp>, f: &Found) -> bool {
+    let e = &f.entry;
     match known {
         None => true,
         Some(k) => {
             k.size != e.size
                 || k.modified_ms != e.modified_ms
                 || k.cloud != e.cloud
+                || k.sidecar_ms != f.sidecar_ms
                 // Downloaded since we last saw it, or text failed before.
                 || (e.cloud == CloudState::Local
-                    && matches!(k.text_state, TextState::CloudOnly | TextState::Catalog))
+                    && matches!(
+                        k.text_state,
+                        TextState::CloudOnly | TextState::Catalog | TextState::Sidecar
+                    ))
         }
     }
 }
@@ -394,14 +429,12 @@ fn walk(source: &Source, rel_dir: &str, out: &mut Vec<Found>) {
     let Ok(entries) = list_dir(&source.root, rel_dir, source.show_all_types) else {
         return;
     };
+    let sidecars = sidecar::mtimes(&source.root.join(rel_dir));
     for entry in entries {
         if entry.is_dir {
             walk(source, &entry.rel_path, out);
         } else {
-            out.push(Found {
-                rel_path: entry.rel_path.clone(),
-                entry,
-            });
+            out.push(Found::new(entry, &sidecars));
         }
     }
 }
@@ -542,10 +575,61 @@ mod tests {
                 cloud: CloudState::CloudOnly,
                 ..listed
             },
+            sidecar_ms: None,
         };
         let mut b = worker(Index::open_in_memory().unwrap());
         b.index_file(&src, &found).unwrap();
         assert_eq!(search(&b, "tenant"), ["lease.md"]);
+    }
+
+    #[test]
+    fn sidecar_text_and_pending_details_are_indexed() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join("scan.md"), "").unwrap(); // no text of its own
+        let src = source(root, Provider::Local);
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.sync(&src, "", true).unwrap();
+        assert!(search(&w, "harbor").is_empty());
+
+        // Imported OCR text in the sidecar is noticed by the next pass.
+        let file = root.join("scan.md");
+        sidecar::write_text(&file, "harbor master invoice", "ScanSnap Home", true).unwrap();
+        w.sync(&src, "", true).unwrap();
+        assert_eq!(search(&w, "harbor"), ["scan.md"]);
+
+        // Online-only: never read, but the sidecar's text and details count.
+        meta::write_meta_beside(
+            &file,
+            DocMeta {
+                title: Some("Harbor invoice".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let listed = list_dir(root, "", false).unwrap().remove(0);
+        let sidecars = sidecar::mtimes(root);
+        let found = Found::new(
+            Entry {
+                cloud: CloudState::CloudOnly,
+                ..listed
+            },
+            &sidecars,
+        );
+        assert!(found.sidecar_ms.is_some());
+        w.index_file(&src, &found).unwrap();
+        let hit = &w
+            .index
+            .search(&SearchQuery {
+                text: "master".into(),
+                ..Default::default()
+            })
+            .unwrap()[0];
+        assert_eq!(hit.title.as_deref(), Some("Harbor invoice"));
+        assert_eq!(
+            w.index.text_state("src", "scan.md").unwrap(),
+            Some(TextState::Sidecar)
+        );
     }
 
     #[test]

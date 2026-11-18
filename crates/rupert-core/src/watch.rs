@@ -13,6 +13,7 @@ use serde::Serialize;
 use crate::error::Result;
 use crate::file_kind::is_ignored_name;
 use crate::listing::relative;
+use crate::sidecar;
 use crate::source::Source;
 
 const DEBOUNCE: Duration = Duration::from_millis(400);
@@ -89,7 +90,9 @@ impl LibraryWatcher {
 
 /// Maps a changed path to the folder that contains it, or `None` if the
 /// change is irrelevant (outside every source, or inside ignored files such
-/// as `.rupert/` or `.DS_Store`).
+/// as `.rupert/catalog/` or `.DS_Store`). A changed sidecar
+/// (`Taxes/.rupert/W-2.pdf.json`, e.g. synced from another machine) counts
+/// as a change to the document's folder.
 fn changed_dir(roots: &[WatchedRoot], path: &Path) -> Option<DirChange> {
     let root = roots
         .iter()
@@ -103,6 +106,7 @@ fn changed_dir(roots: &[WatchedRoot], path: &Path) -> Option<DirChange> {
     if rel.is_empty() {
         return None; // the root itself
     }
+    let rel = sidecar_owner(&rel).unwrap_or(rel);
     if rel.split('/').any(is_ignored_name) {
         return None;
     }
@@ -111,6 +115,17 @@ fn changed_dir(roots: &[WatchedRoot], path: &Path) -> Option<DirChange> {
         source_id: root.source_id.clone(),
         rel_dir: rel_dir.to_string(),
     })
+}
+
+/// `Taxes/.rupert/W-2.pdf.json` → `Taxes/W-2.pdf`.
+fn sidecar_owner(rel: &str) -> Option<String> {
+    let (parent, name) = rel.rsplit_once('/').unwrap_or(("", rel));
+    let dir = parent.strip_suffix(sidecar::DIR_NAME)?;
+    if !(dir.is_empty() || dir.ends_with('/')) {
+        return None;
+    }
+    let file = name.strip_suffix(".json")?;
+    Some(format!("{dir}{file}"))
 }
 
 // MARK: - Tests
@@ -145,7 +160,18 @@ mod tests {
         assert_eq!(change("/lib/a"), None);
         assert_eq!(change("/elsewhere/x.pdf"), None);
         assert_eq!(change("/lib/a/.DS_Store"), None);
-        assert_eq!(change("/lib/a/Taxes/.rupert/W-2.pdf.json"), None);
+        assert_eq!(
+            change("/lib/a/Taxes/.rupert/W-2.pdf.json").unwrap().rel_dir,
+            "Taxes"
+        );
+        assert_eq!(change("/lib/a/.rupert/scan.pdf.json").unwrap().rel_dir, "");
+        assert_eq!(change("/lib/a/Taxes/.rupert/W-2.pdf.json.tmp"), None);
+        assert_eq!(change("/lib/a/.rupert/catalog/ab/ab12.json.gz"), None);
+        assert_eq!(change("/lib/a/.rupert/catalog/ab.json"), None);
+        assert_eq!(
+            change("/lib/a/x.rupert/a.json").unwrap().rel_dir,
+            "x.rupert"
+        );
     }
 
     #[test]

@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
 use rupert_core::{
     CloudState, DirChange, DocMeta, Entry, FileKind, FolderMeta, Hit, Index, IndexStats,
     IndexerHandle, Job, LibraryWatcher, MetaRecord, Progress, SearchQuery, Source, SourceStore,
@@ -19,6 +20,12 @@ const DIR_CHANGED: &str = "dir-changed";
 const INDEX_PROGRESS: &str = "index-progress";
 /// The index changed; refresh searches and tag lists. No payload.
 const INDEX_CHANGED: &str = "index-changed";
+/// ScanSnap Home import progress. Payload: `ImportProgress`.
+const IMPORT_PROGRESS: &str = "import-progress";
+/// ScanSnap Home import finished. Payload: `ImportReport`.
+const IMPORT_DONE: &str = "import-done";
+/// File ▸ Import from ScanSnap Home… was chosen (macOS menu). No payload.
+const MENU_IMPORT: &str = "menu-import-scansnap";
 
 // MARK: - State
 
@@ -30,6 +37,8 @@ struct AppState {
     index: Mutex<Index>,
     indexer: IndexerHandle,
     progress: Mutex<Progress>,
+    /// The ScanSnap Home import last reviewed, waiting to be applied.
+    import_plan: Mutex<Option<ImportPlan>>,
 }
 
 impl AppState {
@@ -221,7 +230,8 @@ fn reveal_entry(
 #[serde(rename_all = "camelCase")]
 struct MetaResponse {
     /// `false` when the details live inside an online-only file and the
-    /// caller didn't allow downloading it.
+    /// caller didn't allow downloading it. `record` then holds only what the
+    /// sidecar knows (e.g. imported details waiting to move into the PDF).
     available: bool,
     record: Option<MetaRecord>,
 }
@@ -243,9 +253,14 @@ async fn read_meta(
             && !allow_download
             && rupert_core::cloud_state(&path).map_err(err)? == CloudState::CloudOnly
         {
+            let beside = rupert_core::meta::read_meta_beside(&path).map_err(err)?;
             return Ok(MetaResponse {
                 available: false,
-                record: None,
+                record: beside.map(|(meta, _)| MetaRecord {
+                    meta,
+                    storage: rupert_core::Storage::Sidecar,
+                    note: None,
+                }),
             });
         }
         let record = rupert_core::read_meta(&path).map_err(err)?;
@@ -323,7 +338,107 @@ fn index_status(state: State<AppState>) -> CmdResult<IndexStatus> {
     })
 }
 
+// MARK: - Commands: ScanSnap Home import
+
+/// ScanSnap Home's library folder, if it's in the usual place.
+#[tauri::command]
+fn scansnap_library() -> Option<String> {
+    scansnap::default_library().map(|p| p.display().to_string())
+}
+
+/// Reads the library and works out what an import would do. Writes nothing;
+/// the plan is kept for `scansnap_apply`.
+#[tauri::command]
+async fn scansnap_plan(library: String, app: AppHandle) -> CmdResult<ImportSummary> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let sources = state.sources();
+        let plan = {
+            let index = state.index.lock().unwrap();
+            scansnap::plan(std::path::Path::new(&library), &sources, Some(&index))
+        }
+        .map_err(err)?;
+        let summary = plan.summary.clone();
+        *state.import_plan.lock().unwrap() = Some(plan);
+        Ok(summary)
+    })
+    .await
+    .map_err(err)?
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ImportProgress {
+    done: usize,
+    total: usize,
+}
+
+/// Applies the reviewed plan in the background. Progress and the final
+/// report arrive as events; changed folders are then re-indexed.
+#[tauri::command]
+fn scansnap_apply(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
+    let plan = state
+        .import_plan
+        .lock()
+        .unwrap()
+        .take()
+        .ok_or("nothing to import; review the import first")?;
+    let sources = state.sources();
+    std::thread::Builder::new()
+        .name("rupert-import".into())
+        .spawn(move || {
+            let mut last = std::time::Instant::now();
+            let (report, touched): (ImportReport, _) =
+                scansnap::apply(&plan, &sources, |done, total| {
+                    if done == total || last.elapsed().as_millis() >= 100 {
+                        last = std::time::Instant::now();
+                        let _ = app.emit(IMPORT_PROGRESS, ImportProgress { done, total });
+                    }
+                });
+            let state = app.state::<AppState>();
+            for (source_id, rel_dir) in touched {
+                if let Ok(source) = state.source(&source_id) {
+                    state.indexer.send(Job::SyncDir { source, rel_dir });
+                }
+            }
+            let _ = app.emit(IMPORT_DONE, report);
+        })
+        .map_err(err)?;
+    Ok(())
+}
+
 // MARK: - Setup
+
+/// macOS: the standard menu bar plus File ▸ Import from ScanSnap Home….
+/// (Windows and Linux keep their window chrome menu-free; the sidebar has
+/// the same action.)
+#[cfg(target_os = "macos")]
+fn install_menu(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+    let menu = Menu::default(app.handle())?;
+    let import = MenuItem::with_id(
+        app,
+        MENU_IMPORT,
+        "Import from ScanSnap Home…",
+        true,
+        None::<&str>,
+    )?;
+    for item in menu.items()? {
+        if let Some(sub) = item.as_submenu()
+            && sub.text()? == "File"
+        {
+            sub.prepend(&PredefinedMenuItem::separator(app)?)?;
+            sub.prepend(&import)?;
+        }
+    }
+    app.set_menu(menu)?;
+    app.on_menu_event(|app, event| {
+        if event.id() == MENU_IMPORT {
+            let _ = app.emit(MENU_IMPORT, ());
+        }
+    });
+    Ok(())
+}
 
 /// Where PDFium lives: bundled resources in a built app, `src-tauri/pdfium`
 /// when running from the source tree.
@@ -339,6 +454,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            install_menu(app)?;
             let config_dir = app.path().app_config_dir()?;
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
@@ -387,6 +504,7 @@ pub fn run() {
                 index: Mutex::new(index),
                 indexer,
                 progress: Mutex::new(Progress::default()),
+                import_plan: Mutex::new(None),
             };
             state.rewatch();
             state.indexer.send(Job::SyncAll(state.sources()));
@@ -408,6 +526,9 @@ pub fn run() {
             search,
             list_tags,
             index_status,
+            scansnap_library,
+            scansnap_plan,
+            scansnap_apply,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");

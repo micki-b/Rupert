@@ -100,6 +100,47 @@ export interface MetaResponse {
   record: MetaRecord | null;
 }
 
+export interface FolderCount {
+  path: string;
+  count: number;
+}
+
+export interface RenamedFile {
+  from: string;
+  sourceId: string;
+  relPath: string;
+}
+
+/** What a ScanSnap Home import would do (see rupert_core::scansnap). */
+export interface ImportSummary {
+  library: string;
+  items: number;
+  inTrash: number;
+  withDetails: number;
+  ready: number;
+  dates: number;
+  favorites: number;
+  receipts: number;
+  texts: number;
+  onlineOnly: number;
+  alreadySearchable: number;
+  renamed: RenamedFile[];
+  outsideSources: FolderCount[];
+  notFound: string[];
+}
+
+export interface ImportProgress {
+  done: number;
+  total: number;
+}
+
+export interface ImportReport {
+  embedded: number;
+  sidecar: number;
+  unchanged: number;
+  failed: { sourceId: string; relPath: string; error: string }[];
+}
+
 export interface AppInfo {
   name: string;
   version: string;
@@ -129,7 +170,22 @@ export const api = {
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
   listTags: () => invoke<TagCount[]>("list_tags"),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
+  scansnapLibrary: () => invoke<string | null>("scansnap_library"),
+  scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),
+  scansnapApply: () => invoke<void>("scansnap_apply"),
 };
+
+export function onImportProgress(handler: (p: ImportProgress) => void): Promise<UnlistenFn> {
+  return listen<ImportProgress>("import-progress", (e) => handler(e.payload));
+}
+
+export function onMenuImport(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-import-scansnap", () => handler());
+}
+
+export function onImportDone(handler: (r: ImportReport) => void): Promise<UnlistenFn> {
+  return listen<ImportReport>("import-done", (e) => handler(e.payload));
+}
 
 export function onIndexProgress(handler: (p: Progress) => void): Promise<UnlistenFn> {
   return listen<Progress>("index-progress", (e) => handler(e.payload));

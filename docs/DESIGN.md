@@ -74,8 +74,13 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 
 ### Sidecars (formats that can't hold metadata)
 
+- A sidecar holds up to three things:
+  - **Metadata** for formats that can't hold it (and PDFs that can't be changed safely). This copy is the master.
+  - **Pending metadata** for a PDF that was online-only when the details were recorded (e.g. by the ScanSnap Home import), so nothing had to be downloaded. Fields set there take precedence over the PDF's own; they move into the PDF the next time it's saved in Rupert.
+  - **Text** from elsewhere (ScanSnap Home's OCR) for files with no text layer, so they can be searched even while online-only.
 - One hidden `.rupert/` folder per directory, holding one JSON sidecar per file. This is one hidden folder per directory instead of a dotfile next to every document, which matters on Windows, where dotfiles are visible. Rupert also sets the Windows hidden attribute.
 - Each sidecar stores the file's content hash. If someone moves the file without its sidecar, Rupert reattaches the sidecar when the file turns up elsewhere.
+- The indexer notices sidecar changes (including ones synced from another machine): the watcher maps `.rupert/<file>.json` to its document, and the index stamp includes the sidecar's modification time.
 - **To verify:** that iCloud Drive and OneDrive reliably sync dot-folders on all three platforms.
 
 ## Index, watching, online-only files
@@ -90,7 +95,7 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - Entries are gzip'd JSON named by a hash of the document's relative path (`.rupert/catalog/ab/ab12….json.gz`) and are trusted only if size and modification time (±2 s) still match.
   - Written only for cloud sources (OneDrive, iCloud, Google Drive, Dropbox), only for documents with text or details, and only when the content changed — so two machines that agree never re-upload.
   - After a full pass, entries for deleted documents and sync-conflict copies are removed.
-- **Finding (2026-11-18):** on the MacBook Pro, 18,463 of 19,421 OneDrive documents are online-only. The catalog only helps if *some* machine has the files downloaded, so on this machine most documents are searchable by name and details only. Open decision: an opt-in per source to download online-only documents for indexing (and free the space again afterwards where the OS allows).
+- **Finding (2026-11-18):** on the MacBook Pro, 18,463 of 19,421 OneDrive documents are online-only. The catalog only helps if *some* machine has the files downloaded, so on this machine most documents are searchable by name and details only. **Decided:** an opt-in per source to download online-only documents for indexing (and free the space again afterwards where the OS allows). Not built yet.
 
 ## Scanning and intake
 
@@ -121,7 +126,15 @@ Source: `~/Library/Application Support/PFU/ScanSnap Home/Managed/ScanSnapHome.sq
 - **Favorites:** 11. **Receipt fields** (vendor, category, amount): 8 items.
 - **Trash:** 17 items.
 
-The importer matches items by folder path + filename and writes document date, favorite flag and receipt fields into each file's metadata.
+Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://` URL), and document dates are stored as local midnight (read back with SQLite's `localtime`). The OCR text lives in `ScanSnapHomeSearch_V2.db` (`TextTbl`, joined on `contentId = ZCONTENTID`).
+
+**The importer (built, `rupert_core::scansnap`)**, from a temporary copy of both databases:
+
+- Imports only what isn't already in the files: the document date when it differs from the file's creation date, the favorite flag, receipts (tag "Receipt" plus a notes line such as "Receipt: CVS, 20.50 USD (tax 0.92)"), and OCR text unless the file's own text is already indexed. Fields the user has set are never overwritten, and running it again changes nothing.
+- Finds each file by folder path + name. Renamed files are matched by size + type within the same folder, moved files by size + type across Rupert's index. A match must be unique, and never a file that ScanSnap Home knows under another name.
+- Local PDFs get the details embedded; other formats use their sidecar. Online-only files are never read: details go into the sidecar as pending, text into the sidecar.
+- A review screen comes first (counts, renamed matches, files not found, folders outside Rupert's sources with an "Add as source" button). It is reached from File ▸ Import from ScanSnap Home… on macOS, or the sidebar.
+- **Run on the real library 2026-11-18:** 1,498 documents in Documents and OneDrive/Boating; 223 PDFs updated (all still readable with Poppler); none of the online-only files were downloaded. 3 items couldn't be found. Content-searchable documents went from 1,211 to 3,122.
 
 ## Still to verify
 
@@ -137,7 +150,7 @@ The importer matches items by folder path + filename and writes document date, f
 2. ✅ Metadata: read/write XMP + Info dict, sidecars, tags, `rupert:id` identity. Tested on 26 real PDFs (Poppler, PDFKit and Spotlight read the results; original bytes and rendering unchanged). Finder-tag sync deferred until after milestone 3.
 3. ✅ Search: text extraction (PDFium), FTS5 index, shared catalog, search bar, Favorites and Tags in the sidebar. Whole OneDrive (19,421 documents) walked in 32 s; searches take 4–30 ms.
 4. Intake: inbox, OCR, LM Studio suggestions, review screen.
-5. ScanSnap Home import.
+5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
 6. Direct scanning (eSCL first, then ScanSnap).
 7. Phone viewer.
 
