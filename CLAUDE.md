@@ -18,6 +18,7 @@ Read `docs/DESIGN.md` first. It records the product decisions and the metadata l
 
 ```sh
 export PATH="/opt/homebrew/opt/rustup/bin:$PATH"   # Homebrew rustup on this Mac
+./scripts/fetch-pdfium.sh   # needed before any build (bundled resource)
 cargo test --workspace
 npm run check
 npm run tauri dev

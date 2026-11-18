@@ -30,6 +30,9 @@ jobs:
           sudo apt-get update -o Acquire::Retries=3
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev librsvg2-dev patchelf
+      - name: Fetch PDFium
+        shell: bash
+        run: ./scripts/fetch-pdfium.sh
       - run: npm ci
       - run: npm run check
       - run: npm run build
@@ -71,6 +74,9 @@ jobs:
           sudo apt-get update -o Acquire::Retries=3
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev librsvg2-dev patchelf
+      - name: Fetch PDFium
+        shell: bash
+        run: ./scripts/fetch-pdfium.sh
       - run: npm ci
       - run: npm run tauri build -- ${{ matrix.args }}
       - uses: actions/upload-artifact@v4

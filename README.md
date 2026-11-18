@@ -6,7 +6,7 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux.
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.
 - OCR and AI filing suggestions run locally (AI via LM Studio).
 
-Status: **milestone 2**. You can add folders as sources, browse them with live updates and online-only status, and edit a document's title, tags, document date, notes and favorite flag. Details are saved inside PDFs, or in a hidden sidecar file for other formats. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
+Status: **milestone 3**. You can add folders as sources, browse them with live updates and online-only status, and edit a document's title, tags, document date, notes and favorite flag. Details are saved inside PDFs, or in a hidden sidecar file for other formats. Full-text search across all sources, plus Favorites and Tags. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
 
 ## Layout
 
@@ -21,6 +21,7 @@ Status: **milestone 2**. You can add folders as sources, browse them with live u
 Requirements: Rust (stable), Node 22+, and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
 
 ```sh
+./scripts/fetch-pdfium.sh   # PDF text extraction library (once per machine)
 npm install
 npm run tauri dev        # run the app with hot reload
 cargo test --workspace   # Rust tests

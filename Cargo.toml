@@ -14,5 +14,5 @@ repository = "https://github.com/micki-b/Rupert"
 codegen-units = 1
 lto = true
 opt-level = 3
-panic = "abort"
+panic = "unwind" # the indexer isolates per-file panics (malformed PDFs) with catch_unwind
 strip = true

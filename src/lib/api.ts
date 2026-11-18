@@ -26,6 +26,52 @@ export interface Entry {
   cloud: CloudState;
 }
 
+/** A folder entry plus what the index knows about it. */
+export interface ListedEntry extends Entry {
+  title?: string | null;
+  tags?: string[];
+  favorite?: boolean;
+  documentDate?: string | null;
+}
+
+export interface Hit extends Entry {
+  sourceId: string;
+  title: string | null;
+  tags: string[];
+  documentDate: string | null;
+  favorite: boolean;
+  /** Body excerpt; matches wrapped in U+E000 … U+E001. */
+  snippet: string | null;
+}
+
+export interface TagCount {
+  tag: string;
+  count: number;
+}
+
+export interface Progress {
+  active: boolean;
+  done: number;
+  total: number;
+  current: string | null;
+  pdfText: boolean;
+}
+
+export interface IndexStats {
+  documents: number;
+  withText: number;
+  withoutText: number;
+  cloudOnlyUnindexed: number;
+  favorites: number;
+}
+
+export interface SearchArgs {
+  text?: string;
+  sourceId?: string | null;
+  tag?: string | null;
+  favoritesOnly?: boolean;
+}
+
 export interface DirChange {
   sourceId: string;
   relDir: string;
@@ -71,7 +117,7 @@ export const api = {
   updateSource: (id: string, changes: { name?: string; showAllTypes?: boolean }) =>
     invoke<Source>("update_source", { id, ...changes }),
   listDir: (sourceId: string, relPath: string) =>
-    invoke<Entry[]>("list_dir", { sourceId, relPath }),
+    invoke<ListedEntry[]>("list_dir", { sourceId, relPath }),
   openEntry: (sourceId: string, relPath: string) =>
     invoke<void>("open_entry", { sourceId, relPath }),
   revealEntry: (sourceId: string, relPath: string) =>
@@ -80,7 +126,34 @@ export const api = {
     invoke<MetaResponse>("read_meta", { sourceId, relPath, allowDownload }),
   writeMeta: (sourceId: string, relPath: string, meta: DocMeta) =>
     invoke<MetaRecord>("write_meta", { sourceId, relPath, meta }),
+  search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
+  listTags: () => invoke<TagCount[]>("list_tags"),
+  indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
 };
+
+export function onIndexProgress(handler: (p: Progress) => void): Promise<UnlistenFn> {
+  return listen<Progress>("index-progress", (e) => handler(e.payload));
+}
+
+export function onIndexChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("index-changed", () => handler());
+}
+
+/** Splits a snippet into plain and highlighted runs. */
+export function snippetParts(snippet: string): { text: string; hit: boolean }[] {
+  const parts: { text: string; hit: boolean }[] = [];
+  let hit = false;
+  let buf = "";
+  for (const ch of snippet) {
+    if (ch === "\uE000" || ch === "\uE001") {
+      if (buf) parts.push({ text: buf, hit });
+      buf = "";
+      hit = ch === "\uE000";
+    } else buf += ch;
+  }
+  if (buf) parts.push({ text: buf, hit });
+  return parts;
+}
 
 export function onDirChanged(handler: (changes: DirChange[]) => void): Promise<UnlistenFn> {
   return listen<DirChange[]>("dir-changed", (e) => handler(e.payload));

@@ -11,3 +11,6 @@ vite.config.ts.timestamp-*
 
 # Rust (workspace)
 /target
+
+# Downloaded by scripts/fetch-pdfium.sh
+/src-tauri/pdfium/

@@ -1,15 +1,23 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { ask, open } from "@tauri-apps/plugin-dialog";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
     api,
     onDirChanged,
+    onIndexChanged,
+    onIndexProgress,
     providerLabel,
     revealLabel,
+    snippetParts,
     type AppInfo,
     type Entry,
+    type Hit,
+    type IndexStats,
+    type ListedEntry,
+    type Progress,
     type Source,
+    type TagCount,
   } from "$lib/api";
   import { changes } from "$lib/changes.svelte";
   import { formatDate, formatSize, kindLabel } from "$lib/format";
@@ -18,19 +26,35 @@
   import MetaEditor from "$lib/MetaEditor.svelte";
 
   type Folder = { sourceId: string; relPath: string };
+  type Selected = { sourceId: string; entry: Entry };
 
   let info = $state<AppInfo | null>(null);
   let sources = $state<Source[]>([]);
   let folder = $state<Folder | null>(null);
-  let entries = $state<Entry[]>([]);
-  let entry = $state<Entry | null>(null);
+  let entries = $state<ListedEntry[]>([]);
+  let selected = $state<Selected | null>(null);
   let loading = $state(false);
   let error = $state<string | null>(null);
   let menuFor = $state<string | null>(null);
   let renaming = $state<string | null>(null);
   let renameValue = $state("");
 
+  // Search & library filters
+  let query = $state("");
+  let tagFilter = $state<string | null>(null);
+  let favoritesOnly = $state(false);
+  let hits = $state<Hit[]>([]);
+  let searchedOnce = $state(false);
+  let tags = $state<TagCount[]>([]);
+  let tagsOpen = $state(true);
+  let stats = $state<IndexStats | null>(null);
+  let progress = $state<Progress | null>(null);
+  let indexTick = $state(0);
+  let searchInput: HTMLInputElement | undefined = $state();
+
+  const searching = $derived(query.trim() !== "" || tagFilter !== null || favoritesOnly);
   const source = $derived(sources.find((s) => s.id === folder?.sourceId) ?? null);
+  const sourceName = (id: string) => sources.find((s) => s.id === id)?.name ?? "";
   const crumbs = $derived.by(() => {
     if (!folder || !source) return [];
     const parts = folder.relPath ? folder.relPath.split("/") : [];
@@ -64,12 +88,26 @@
     if (folder !== current) return; // user moved on meanwhile
     loading = false;
     entries = list ?? [];
-    if (entry) entry = entries.find((e) => e.relPath === entry!.relPath) ?? null;
+    if (selected && !searching) {
+      const rel = selected.entry.relPath;
+      const still = entries.find((e) => e.relPath === rel);
+      selected = still ? { sourceId: current.sourceId, entry: still } : null;
+    }
+  }
+
+  async function loadIndexInfo() {
+    const [t, s] = await Promise.all([api.listTags(), api.indexStatus()]);
+    tags = t;
+    stats = s.stats;
+    progress ??= s.progress;
   }
 
   function selectFolder(sourceId: string, relPath: string) {
+    query = "";
+    tagFilter = null;
+    favoritesOnly = false;
     folder = { sourceId, relPath };
-    entry = null;
+    selected = null;
     entries = [];
     loadEntries();
   }
@@ -77,25 +115,97 @@
   onMount(() => {
     api.appInfo().then((i) => (info = i));
     loadSources();
+    loadIndexInfo();
 
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
+      onIndexProgress((p) => (progress = p)),
+      onIndexChanged(() => {
+        indexTick++;
+        loadIndexInfo();
+      }),
       getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (focused) loadSources(true);
       }),
     ];
     const closeMenu = () => (menuFor = null);
+    const shortcuts = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        searchInput?.focus();
+        searchInput?.select();
+      }
+    };
     window.addEventListener("click", closeMenu);
+    window.addEventListener("keydown", shortcuts);
     return () => {
       unlisten.forEach((p) => p.then((off) => off()));
       window.removeEventListener("click", closeMenu);
+      window.removeEventListener("keydown", shortcuts);
     };
   });
 
   $effect(() => {
     changes.tick;
-    if (folder && changes.affects(folder.sourceId, folder.relPath)) loadEntries();
+    if (folder && !searching && changes.affects(folder.sourceId, folder.relPath)) loadEntries();
   });
+
+  // Refresh the folder's titles/tags when the index catches up.
+  $effect(() => {
+    if (indexTick === 0) return;
+    untrack(() => {
+      if (folder && !searching) loadEntries();
+    });
+  });
+
+  // MARK: - Search
+
+  let searchSeq = 0;
+  $effect(() => {
+    const args = { text: query, tag: tagFilter, favoritesOnly };
+    indexTick; // re-run when the index changes
+    if (!searching) {
+      hits = [];
+      searchedOnce = false;
+      return;
+    }
+    const seq = ++searchSeq;
+    const timer = setTimeout(async () => {
+      const result = await run(() => api.search(args));
+      if (seq !== searchSeq) return;
+      hits = result ?? [];
+      searchedOnce = true;
+    }, 150);
+    return () => clearTimeout(timer);
+  });
+
+  // Sidebar filters start a fresh view; typing afterwards searches within them.
+  function filterTag(tag: string) {
+    query = "";
+    tagFilter = tagFilter === tag ? null : tag;
+    favoritesOnly = false;
+    selected = null;
+  }
+
+  function filterFavorites() {
+    query = "";
+    favoritesOnly = !favoritesOnly;
+    tagFilter = null;
+    selected = null;
+  }
+
+  function clearSearch() {
+    query = "";
+    tagFilter = null;
+    favoritesOnly = false;
+  }
+
+  function showInFolder(sel: Selected) {
+    const rel = sel.entry.relPath;
+    const dir = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+    selectFolder(sel.sourceId, dir);
+    selected = sel;
+  }
 
   // MARK: - Source actions
 
@@ -119,8 +229,8 @@
     if (folder?.sourceId === s.id) {
       folder = null;
       entries = [];
-      entry = null;
     }
+    if (selected?.sourceId === s.id) selected = null;
     await loadSources();
   }
 
@@ -147,21 +257,61 @@
 
   // MARK: - Entry actions
 
-  function activate(e: Entry) {
-    if (!folder) return;
-    if (e.isDir) selectFolder(folder.sourceId, e.relPath);
-    else run(() => api.openEntry(folder!.sourceId, e.relPath));
+  function activate(sourceId: string, e: Entry) {
+    if (e.isDir) selectFolder(sourceId, e.relPath);
+    else run(() => api.openEntry(sourceId, e.relPath));
   }
 
-  function reveal(e: Entry) {
-    if (folder) run(() => api.revealEntry(folder!.sourceId, e.relPath));
+  function reveal(sel: Selected) {
+    run(() => api.revealEntry(sel.sourceId, sel.entry.relPath));
+  }
+
+  function dirOf(relPath: string) {
+    return relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
+  }
+
+  function statusText(): string {
+    if (progress?.active && progress.total > 0) {
+      return `Indexing ${progress.done.toLocaleString()} of ${progress.total.toLocaleString()}…`;
+    }
+    if (progress?.active) return "Checking for changes…";
+    if (!stats || stats.documents === 0) return "";
+    const parts = [`${stats.documents.toLocaleString()} documents`];
+    parts.push(`${stats.withText.toLocaleString()} searchable by content`);
+    if (stats.cloudOnlyUnindexed)
+      parts.push(`${stats.cloudOnlyUnindexed.toLocaleString()} online-only (name and details only)`);
+    return parts.join(" · ");
   }
 </script>
 
 <div class="shell">
-  <!-- MARK: Sources -->
+  <!-- MARK: Sidebar -->
   <aside class="sources">
     <header>
+      <h2>Library</h2>
+    </header>
+    <button class="lib-item" class:active={favoritesOnly} onclick={filterFavorites}>
+      <span class="lib-icon star">★</span>
+      <span class="label">Favorites</span>
+      {#if stats?.favorites}<span class="count">{stats.favorites}</span>{/if}
+    </button>
+    <button class="lib-item" onclick={() => (tagsOpen = !tagsOpen)} aria-expanded={tagsOpen}>
+      <span class="lib-icon disclosure" class:open={tagsOpen}><Icon name="chevron" size={12} /></span>
+      <span class="label">Tags</span>
+      {#if tags.length}<span class="count">{tags.length}</span>{/if}
+    </button>
+    {#if tagsOpen}
+      {#each tags as t (t.tag)}
+        <button class="lib-item tag-item" class:active={tagFilter === t.tag} onclick={() => filterTag(t.tag)}>
+          <span class="label"># {t.tag}</span>
+          <span class="count">{t.count}</span>
+        </button>
+      {:else}
+        <p class="empty small">No tags yet.</p>
+      {/each}
+    {/if}
+
+    <header class="sources-header">
       <h2>Sources</h2>
       <button class="icon-btn" onclick={addSource} title="Add a folder" aria-label="Add a folder">
         <Icon name="plus" />
@@ -189,7 +339,7 @@
               relPath=""
               name={s.name}
               depth={0}
-              selected={folder}
+              selected={searching ? null : folder}
               onselect={selectFolder}
               startExpanded
             >
@@ -237,7 +387,7 @@
     </div>
 
     {#if sources.length === 0}
-      <p class="empty">No sources yet.</p>
+      <p class="empty small">No sources yet.</p>
     {/if}
   </aside>
 
@@ -256,8 +406,30 @@
     </div>
   {/snippet}
 
+  {#snippet tagChips(list: string[] | undefined)}
+    {#each list ?? [] as t (t)}<span class="chip">{t}</span>{/each}
+  {/snippet}
+
   <!-- MARK: Documents -->
   <main class="documents">
+    <div class="searchbar">
+      <input
+        bind:this={searchInput}
+        bind:value={query}
+        type="search"
+        placeholder="Search all documents"
+        onkeydown={(e) => {
+          if (e.key === "Escape") clearSearch();
+        }}
+      />
+      {#if tagFilter}
+        <button class="filter-chip" onclick={() => (tagFilter = null)} title="Remove filter"># {tagFilter} ×</button>
+      {/if}
+      {#if favoritesOnly}
+        <button class="filter-chip" onclick={() => (favoritesOnly = false)} title="Remove filter">★ Favorites ×</button>
+      {/if}
+    </div>
+
     {#if error}
       <div class="error" role="alert">
         <Icon name="warning" size={14} />
@@ -266,13 +438,48 @@
       </div>
     {/if}
 
-    {#if folder && source}
+    {#if searching}
+      <p class="result-count muted">
+        {#if !searchedOnce}Searching…{:else if hits.length === 0}No matching documents.{:else}{hits.length}{hits.length >= 300 ? "+" : ""} documents{/if}
+      </p>
+      <ul class="results">
+        {#each hits as h (h.sourceId + "\n" + h.relPath)}
+          <li>
+            <button
+              class="result"
+              class:selected={selected?.sourceId === h.sourceId && selected?.entry.relPath === h.relPath}
+              onclick={() => (selected = { sourceId: h.sourceId, entry: h })}
+              ondblclick={() => activate(h.sourceId, h)}
+            >
+              <div class="r-title">
+                <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
+                {#if h.favorite}<span class="fav">★</span>{/if}
+                <strong>{h.title ?? h.name}</strong>
+                {#if h.title}<span class="muted r-name">{h.name}</span>{/if}
+                {#if h.cloud === "cloudOnly"}
+                  <span class="cloud" title="Online-only"><Icon name="cloud" size={13} /></span>
+                {/if}
+              </div>
+              {#if h.snippet}
+                <div class="snippet">
+                  {#each snippetParts(h.snippet) as p, i (i)}{#if p.hit}<mark>{p.text}</mark>{:else}{p.text}{/if}{/each}
+                </div>
+              {/if}
+              <div class="r-meta muted">
+                <span>{sourceName(h.sourceId)}{dirOf(h.relPath) ? " / " + dirOf(h.relPath) : ""}</span>
+                {#if h.documentDate}<span>· {h.documentDate}</span>{/if}
+                {@render tagChips(h.tags)}
+              </div>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {:else if folder && source}
       <nav class="crumbs" aria-label="Folder path">
         {#each crumbs as c, i (c.relPath)}
           {#if i > 0}<span class="sep">/</span>{/if}
-          <button
-            class:current={i === crumbs.length - 1}
-            onclick={() => selectFolder(source.id, c.relPath)}>{c.name}</button
+          <button class:current={i === crumbs.length - 1} onclick={() => selectFolder(source.id, c.relPath)}
+            >{c.name}</button
           >
         {/each}
       </nav>
@@ -296,15 +503,17 @@
           <tbody>
             {#each entries as e (e.relPath)}
               <tr
-                class:selected={entry?.relPath === e.relPath}
-                onclick={() => (entry = e)}
-                ondblclick={() => activate(e)}
+                class:selected={selected?.entry.relPath === e.relPath}
+                onclick={() => (selected = { sourceId: source.id, entry: e })}
+                ondblclick={() => activate(source.id, e)}
               >
                 <td class="name">
                   <span class="file-icon" class:folder={e.isDir}>
                     <Icon name={e.isDir ? "folder" : e.kind === "pdf" ? "pdf" : "file"} size={15} />
                   </span>
-                  <span class="file-name">{e.name}</span>
+                  {#if e.favorite}<span class="fav">★</span>{/if}
+                  <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
+                  {@render tagChips(e.tags)}
                   {#if e.cloud === "cloudOnly"}
                     <span class="cloud" title="Online-only: opening it downloads it">
                       <Icon name="cloud" size={14} />
@@ -312,7 +521,7 @@
                   {/if}
                 </td>
                 <td class="muted">{e.isDir ? "Folder" : kindLabel[e.kind ?? "other"]}</td>
-                <td class="num muted">{e.isDir || e.cloud === "cloudOnly" && !e.size ? "" : formatSize(e.size)}</td>
+                <td class="num muted">{e.isDir || (e.cloud === "cloudOnly" && !e.size) ? "" : formatSize(e.size)}</td>
                 <td class="muted">{formatDate(e.modifiedMs)}</td>
               </tr>
             {/each}
@@ -327,7 +536,7 @@
           <p>Add a folder to get started. Rupert shows it as it is on disk and never moves your files on its own.</p>
           <button class="primary" onclick={addSource}>Add a folder…</button>
         {:else}
-          <p class="muted">Choose a folder on the left.</p>
+          <p class="muted">Choose a folder on the left, or search above.</p>
         {/if}
       </div>
     {/if}
@@ -336,33 +545,35 @@
   <!-- MARK: Details -->
   <section class="details">
     <h2>Details</h2>
-    {#if entry}
-      <div class="detail-name">{entry.name}</div>
-      {#if !entry.isDir && folder}
-        <MetaEditor sourceId={folder.sourceId} {entry} />
+    {#if selected}
+      {@const e = selected.entry}
+      <div class="detail-name">{e.name}</div>
+      {#if !e.isDir}
+        <MetaEditor sourceId={selected.sourceId} entry={e} />
         <hr />
       {/if}
       <dl>
         <dt>Kind</dt>
-        <dd>{entry.isDir ? "Folder" : kindLabel[entry.kind ?? "other"]}</dd>
-        {#if !entry.isDir && entry.size}
+        <dd>{e.isDir ? "Folder" : kindLabel[e.kind ?? "other"]}</dd>
+        {#if !e.isDir && e.size}
           <dt>Size</dt>
-          <dd>{formatSize(entry.size)}</dd>
+          <dd>{formatSize(e.size)}</dd>
         {/if}
         <dt>Modified</dt>
-        <dd>{formatDate(entry.modifiedMs)}</dd>
+        <dd>{formatDate(e.modifiedMs)}</dd>
         <dt>Location</dt>
-        <dd>{source?.name}/{entry.relPath}</dd>
-        {#if entry.cloud === "cloudOnly"}
+        <dd>{sourceName(selected.sourceId)}/{e.relPath}</dd>
+        {#if e.cloud === "cloudOnly"}
           <dt>Storage</dt>
-          <dd class="cloud-note">
-            <Icon name="cloud" size={14} /> Online-only. Opening it downloads it.
-          </dd>
+          <dd class="cloud-note"><Icon name="cloud" size={14} /> Online-only. Opening it downloads it.</dd>
         {/if}
       </dl>
       <div class="actions">
-        <button class="primary" onclick={() => activate(entry!)}>Open</button>
-        <button onclick={() => reveal(entry!)}>{revealLabel(info?.os)}</button>
+        <button class="primary" onclick={() => activate(selected!.sourceId, e)}>Open</button>
+        <button onclick={() => reveal(selected!)}>{revealLabel(info?.os)}</button>
+        {#if searching}
+          <button onclick={() => showInFolder(selected!)}>Show in Rupert</button>
+        {/if}
       </div>
     {:else}
       <p class="empty">Select a document.</p>
@@ -371,7 +582,11 @@
 </div>
 
 <footer>
-  {#if info}{info.name} {info.version} · {info.os}/{info.arch}{/if}
+  <span>{#if info}{info.name} {info.version}{/if}</span>
+  <span class="status">
+    {statusText()}
+    {#if progress && !progress.pdfText}· PDF text search unavailable (PDFium missing){/if}
+  </span>
 </footer>
 
 <style>
@@ -393,6 +608,10 @@
   .muted,
   .empty {
     color: var(--muted);
+  }
+  .small {
+    font-size: 12px;
+    padding: 0 8px;
   }
 
   button {
@@ -420,7 +639,7 @@
     color: var(--text);
   }
 
-  /* Sources */
+  /* Sidebar */
   .sources {
     background: var(--panel);
     border-right: 1px solid var(--border);
@@ -431,7 +650,58 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 4px 8px 8px;
+    padding: 0 4px 6px 8px;
+  }
+  .sources-header {
+    margin-top: 14px;
+  }
+  .lib-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 26px;
+    border: 0;
+    background: none;
+    padding: 0 8px;
+    text-align: left;
+    border-radius: 6px;
+  }
+  .lib-item:hover {
+    background: var(--hover);
+  }
+  .lib-item.active {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+  .lib-item .label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lib-icon {
+    width: 16px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+  }
+  .lib-icon.star {
+    color: #d9a520;
+  }
+  .disclosure {
+    transition: transform 0.12s;
+  }
+  .disclosure.open {
+    transform: rotate(90deg);
+  }
+  .tag-item {
+    padding-left: 30px;
+    font-size: 12px;
+  }
+  .count {
+    font-size: 11px;
+    color: var(--muted);
   }
   .source {
     position: relative;
@@ -518,6 +788,33 @@
     overflow: auto;
     padding: 12px 16px;
     min-width: 0;
+  }
+  .searchbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .searchbar input {
+    flex: 1;
+    font: inherit;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .searchbar input:focus {
+    outline: 2px solid var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .filter-chip {
+    border: 0;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-radius: 12px;
+    padding: 3px 10px;
+    white-space: nowrap;
   }
   .error {
     display: flex;
@@ -610,6 +907,18 @@
   .file-icon.folder {
     color: var(--folder);
   }
+  .fav {
+    color: #d9a520;
+    flex: none;
+  }
+  .chip {
+    flex: none;
+    font-size: 11px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
   .cloud {
     display: grid;
     color: var(--cloud);
@@ -630,6 +939,73 @@
   .welcome h1 {
     margin: 0 0 4px;
     font-size: 26px;
+  }
+
+  /* Results */
+  .result-count {
+    margin: 0 0 8px;
+    font-size: 12px;
+  }
+  .results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .result {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+  }
+  .result:hover {
+    background: var(--hover);
+  }
+  .result.selected {
+    background: var(--accent-soft);
+  }
+  .r-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .r-title strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .r-name {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .snippet {
+    margin: 3px 0 0 21px;
+    font-size: 12px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .snippet mark {
+    background: rgba(217, 165, 32, 0.35);
+    color: inherit;
+    border-radius: 2px;
+  }
+  .r-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 3px 0 0 21px;
+    font-size: 11px;
   }
 
   /* Details */
@@ -684,5 +1060,14 @@
     font-size: 11px;
     color: var(--muted);
     border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .status {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

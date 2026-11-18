@@ -31,6 +31,9 @@ pub enum Error {
     #[error("{0}")]
     InvalidValue(String),
 
+    #[error("search index: {0}")]
+    Index(String),
+
     /// The PDF couldn't be parsed or the update didn't verify.
     #[error("PDF problem: {0}")]
     Pdf(String),
