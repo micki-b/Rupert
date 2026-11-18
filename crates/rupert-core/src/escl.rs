@@ -443,7 +443,20 @@ fn write_new(dir: &Path, stem: &str, bytes: &[u8]) -> Result<PathBuf> {
     Ok(target)
 }
 
-// MARK: - JPEG pages → PDF
+// MARK: - Page images → PDF
+
+/// A scanned page's image, embedded into the PDF as is.
+#[derive(Debug, Clone)]
+pub(crate) enum PageImage {
+    /// JPEG data (gray or RGB).
+    Jpeg(Vec<u8>),
+    /// 1 bit per pixel, rows padded to whole bytes, 1 = white.
+    Bilevel {
+        width: u32,
+        height: u32,
+        bits: Vec<u8>,
+    },
+}
 
 struct JpegInfo {
     width: u32,
@@ -485,37 +498,70 @@ fn jpeg_info(data: &[u8]) -> Option<JpegInfo> {
 /// for its pixel width and height. The JPEG data is embedded as is (no
 /// re-encoding).
 pub(crate) fn jpegs_to_pdf(pages: &[Vec<u8>], dpi: impl Fn(u32, u32) -> f64) -> Result<Vec<u8>> {
+    let pages: Vec<PageImage> = pages.iter().cloned().map(PageImage::Jpeg).collect();
+    images_to_pdf(&pages, dpi)
+}
+
+/// One page per image, sized by the resolution `dpi` gives for its pixel
+/// width and height. JPEG data is embedded as is; bilevel images are
+/// Flate-compressed.
+pub(crate) fn images_to_pdf(pages: &[PageImage], dpi: impl Fn(u32, u32) -> f64) -> Result<Vec<u8>> {
     let mut doc = Document::with_version("1.5");
     let pages_id = doc.new_object_id();
     let mut kids = Vec::new();
-    for data in pages {
-        let info = jpeg_info(data).ok_or_else(|| net_err("a scanned page isn't a JPEG"))?;
-        let dpi = dpi(info.width, info.height);
-        let color_space = match info.components {
-            1 => "DeviceGray",
-            3 => "DeviceRGB",
-            n => {
-                return Err(net_err(format!(
-                    "unsupported JPEG with {n} color components"
-                )));
+    for page in pages {
+        let (width, height, image) = match page {
+            PageImage::Jpeg(data) => {
+                let info = jpeg_info(data).ok_or_else(|| net_err("a scanned page isn't a JPEG"))?;
+                let color_space = match info.components {
+                    1 => "DeviceGray",
+                    3 => "DeviceRGB",
+                    n => {
+                        return Err(net_err(format!(
+                            "unsupported JPEG with {n} color components"
+                        )));
+                    }
+                };
+                let image = Stream::new(
+                    Dictionary::from_iter([
+                        ("Type", Object::Name(b"XObject".to_vec())),
+                        ("Subtype", Object::Name(b"Image".to_vec())),
+                        ("Width", Object::Integer(info.width as i64)),
+                        ("Height", Object::Integer(info.height as i64)),
+                        ("ColorSpace", Object::Name(color_space.as_bytes().to_vec())),
+                        ("BitsPerComponent", Object::Integer(8)),
+                        ("Filter", Object::Name(b"DCTDecode".to_vec())),
+                    ]),
+                    data.clone(),
+                );
+                (info.width, info.height, image)
+            }
+            PageImage::Bilevel {
+                width,
+                height,
+                bits,
+            } => {
+                let mut z =
+                    flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+                std::io::Write::write_all(&mut z, bits)?;
+                let image = Stream::new(
+                    Dictionary::from_iter([
+                        ("Type", Object::Name(b"XObject".to_vec())),
+                        ("Subtype", Object::Name(b"Image".to_vec())),
+                        ("Width", Object::Integer(*width as i64)),
+                        ("Height", Object::Integer(*height as i64)),
+                        ("ColorSpace", Object::Name(b"DeviceGray".to_vec())),
+                        ("BitsPerComponent", Object::Integer(1)),
+                        ("Filter", Object::Name(b"FlateDecode".to_vec())),
+                    ]),
+                    z.finish()?,
+                );
+                (*width, *height, image)
             }
         };
-        let image = doc.add_object(Stream::new(
-            Dictionary::from_iter([
-                ("Type", Object::Name(b"XObject".to_vec())),
-                ("Subtype", Object::Name(b"Image".to_vec())),
-                ("Width", Object::Integer(info.width as i64)),
-                ("Height", Object::Integer(info.height as i64)),
-                ("ColorSpace", Object::Name(color_space.as_bytes().to_vec())),
-                ("BitsPerComponent", Object::Integer(8)),
-                ("Filter", Object::Name(b"DCTDecode".to_vec())),
-            ]),
-            data.clone(),
-        ));
-        let (w, h) = (
-            info.width as f64 * 72.0 / dpi,
-            info.height as f64 * 72.0 / dpi,
-        );
+        let image = doc.add_object(image);
+        let dpi = dpi(width, height);
+        let (w, h) = (width as f64 * 72.0 / dpi, height as f64 * 72.0 / dpi);
         let content = doc.add_object(Stream::new(
             Dictionary::new(),
             format!("q {w:.3} 0 0 {h:.3} 0 0 cm /Im0 Do Q\n").into_bytes(),

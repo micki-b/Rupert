@@ -144,9 +144,16 @@ impl<R: Runtime> Device<R> {
             .map(drop)
     }
 
-    /// Runs the document camera; JPEG page files, empty if cancelled.
-    pub fn scan(&self) -> Result<Vec<String>> {
-        Ok(self.call::<ScanResult>("scan", ())?.pages)
+    /// Runs Rupert's document camera. `mode` is "color", "gray" or "bw";
+    /// `dpi` the output resolution. Page image files (JPEG, or PNG for
+    /// black and white), empty if cancelled.
+    pub fn scan(&self, mode: &str, dpi: u32) -> Result<Vec<String>> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            mode: &'a str,
+            dpi: u32,
+        }
+        Ok(self.call::<ScanResult>("scan", Args { mode, dpi })?.pages)
     }
 
     /// Copies `from` into `folder` as `name` (plus its extension, numbered

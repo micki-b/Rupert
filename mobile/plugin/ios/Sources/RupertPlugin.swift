@@ -5,8 +5,9 @@
 // - Documents are never read in the background. `download` fetches one file
 //   the user opened; `fetchFolder` fetches Rupert's own small hidden files
 //   (sidecars and the shared catalog), never documents.
-// - `scan` runs the system document camera and returns JPEG pages; Rust
-//   turns them into a PDF and `place` copies it into the inbox folder.
+// - `scan` runs Rupert's document camera (Scanner.swift) and returns the
+//   page images; Rust turns them into a PDF and `place` copies it into the
+//   inbox folder.
 // - `signIn` shows a web sign-in page (Microsoft, for OneDrive) and returns
 //   the redirect; tokens are kept with the `keychain*` commands.
 
@@ -18,7 +19,7 @@ import SwiftRs
 import Tauri
 import UIKit
 import UniformTypeIdentifiers
-import VisionKit
+import AVFoundation
 
 // MARK: - Arguments and results
 
@@ -98,7 +99,6 @@ struct KeyValue: Encodable {
 
 class RupertPlugin: Plugin {
   private var pickerDelegate: FolderPickerDelegate?
-  private var scanDelegate: ScanDelegate?
   private var previewSource: PreviewSource?
   /// Folders whose security-scoped access is open for the app's lifetime.
   private var accessed: [URL] = []
@@ -237,84 +237,65 @@ class RupertPlugin: Plugin {
 
   // MARK: Scanning
 
-  @objc public func scan(_ invoke: Invoke) {
+  @objc public func scan(_ invoke: Invoke) throws {
+    let options = try invoke.parseArgs(ScanOptions.self)
     DispatchQueue.main.async {
       #if targetEnvironment(simulator)
-        // The simulator has no camera: hand back a generated test page so
-        // the rest of the pipeline can be tried.
-        invoke.resolve(ScanResult(pages: Self.save([Self.testPage()])))
+        // The simulator has no camera: run a generated photo of a page
+        // through the same processing.
+        DispatchQueue.global(qos: .userInitiated).async {
+          let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("rupert-scan-\(UUID().uuidString)", isDirectory: true)
+          try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+          let path = PageProcessor.process(
+            Self.testPhoto(), options: options, to: dir.appendingPathComponent("page-001"))
+          invoke.resolve(ScanResult(pages: path.map { [$0] } ?? []))
+        }
       #else
-        guard VNDocumentCameraViewController.isSupported else {
-          invoke.reject("This device can't scan documents.")
+        guard AVCaptureDevice.authorizationStatus(for: .video) != .denied else {
+          invoke.reject("Rupert isn't allowed to use the camera (Settings ▸ Apps ▸ Rupert).")
           return
         }
-        let camera = VNDocumentCameraViewController()
-        let delegate = ScanDelegate { result in
-          self.scanDelegate = nil
-          switch result {
-          case .none:
-            invoke.resolve(ScanResult(pages: []))
-          case .some(.success(let images)):
-            DispatchQueue.global(qos: .userInitiated).async {
-              invoke.resolve(ScanResult(pages: Self.save(images)))
-            }
-          case .some(.failure(let error)):
-            invoke.reject(error.localizedDescription)
-          }
+        let camera = ScannerViewController(options: options) { pages in
+          invoke.resolve(ScanResult(pages: pages ?? []))
         }
-        self.scanDelegate = delegate
-        camera.delegate = delegate
         self.manager.viewController?.present(camera, animated: true)
       #endif
     }
   }
 
-  /// Longest side kept: 11 inches at 300 dpi, plenty for OCR.
-  private static let maxPixels: CGFloat = 3300
-
-  private static func save(_ images: [UIImage]) -> [String] {
-    let dir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("rupert-scan-\(UUID().uuidString)", isDirectory: true)
-    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    var paths: [String] = []
-    for (i, image) in images.enumerated() {
-      let url = dir.appendingPathComponent(String(format: "page-%03d.jpg", i + 1))
-      if let data = shrink(image).jpegData(compressionQuality: 0.7),
-        (try? data.write(to: url)) != nil
-      {
-        paths.append(url.path)
-      }
-    }
-    return paths
-  }
-
-  private static func shrink(_ image: UIImage) -> UIImage {
-    let size = image.size
-    let scale = min(1, maxPixels / max(size.width * image.scale, size.height * image.scale))
-    let target = CGSize(
-      width: (size.width * image.scale * scale).rounded(),
-      height: (size.height * image.scale * scale).rounded())
-    let format = UIGraphicsImageRendererFormat()
-    format.scale = 1
-    format.opaque = true
-    return UIGraphicsImageRenderer(size: target, format: format).image { _ in
-      image.draw(in: CGRect(origin: .zero, size: target))
-    }
-  }
-
   #if targetEnvironment(simulator)
-    private static func testPage() -> UIImage {
-      let size = CGSize(width: 1275, height: 1650)
+    /// A page lying slightly askew on a dark table, with uneven light.
+    private static func testPhoto() -> CIImage {
+      let size = CGSize(width: 3000, height: 4000)
       let format = UIGraphicsImageRendererFormat()
       format.scale = 1
-      return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
-        UIColor.white.setFill()
+      let photo = UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+        UIColor(white: 0.18, alpha: 1).setFill()
         ctx.fill(CGRect(origin: .zero, size: size))
-        let text = "Rupert test scan\n\nInvoice 1042\nHarbor Marine Supply\nAmount due: $86.40"
+        let page = UIBezierPath()
+        page.move(to: CGPoint(x: 420, y: 380))
+        page.addLine(to: CGPoint(x: 2620, y: 470))
+        page.addLine(to: CGPoint(x: 2540, y: 3560))
+        page.addLine(to: CGPoint(x: 360, y: 3480))
+        page.close()
+        let colors = [UIColor(white: 0.97, alpha: 1).cgColor, UIColor(white: 0.72, alpha: 1).cgColor]
+        let gradient = CGGradient(
+          colorsSpace: CGColorSpaceCreateDeviceGray(), colors: colors as CFArray, locations: [0, 1])!
+        ctx.cgContext.saveGState()
+        page.addClip()
+        ctx.cgContext.drawLinearGradient(
+          gradient, start: CGPoint(x: 400, y: 400), end: CGPoint(x: 2600, y: 3500), options: [])
+        ctx.cgContext.restoreGState()
+        ctx.cgContext.translateBy(x: 520, y: 520)
+        ctx.cgContext.rotate(by: 0.04)
+        let text =
+          "HARBOR MARINE SUPPLY\n\nInvoice 1042\nRaw water impeller kit\nYanmar 3JH5E\n\nAmount due: $86.40\nThank you for your business."
         text.draw(
-          in: CGRect(x: 120, y: 160, width: 1035, height: 1300),
-          withAttributes: [.font: UIFont.systemFont(ofSize: 56), .foregroundColor: UIColor.black])
+          in: CGRect(x: 0, y: 0, width: 1900, height: 2600),
+          withAttributes: [.font: UIFont.systemFont(ofSize: 110), .foregroundColor: UIColor.black])
       }
+      return CIImage(image: photo) ?? CIImage()
     }
   #endif
 
@@ -470,35 +451,6 @@ class FolderPickerDelegate: NSObject, UIDocumentPickerDelegate {
 
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
     done(nil)
-  }
-}
-
-class ScanDelegate: NSObject, VNDocumentCameraViewControllerDelegate {
-  /// `nil` when cancelled.
-  private let done: (Result<[UIImage], Error>?) -> Void
-
-  init(_ done: @escaping (Result<[UIImage], Error>?) -> Void) {
-    self.done = done
-  }
-
-  func documentCameraViewController(
-    _ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan
-  ) {
-    let images = (0..<scan.pageCount).map { scan.imageOfPage(at: $0) }
-    controller.dismiss(animated: true)
-    done(.success(images))
-  }
-
-  func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-    controller.dismiss(animated: true)
-    done(nil)
-  }
-
-  func documentCameraViewController(
-    _ controller: VNDocumentCameraViewController, didFailWithError error: Error
-  ) {
-    controller.dismiss(animated: true)
-    done(.failure(error))
   }
 }
 

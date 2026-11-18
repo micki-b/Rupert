@@ -20,6 +20,7 @@
     type OneDriveStatus,
     type Overview,
     type Progress,
+    type ScanSettings,
     type TagCount,
   } from "$lib/phone/api";
 
@@ -47,6 +48,26 @@
   let openError = $state<string | null>(null);
 
   let scanning = $state(false);
+  const SCAN_KEY = "rupert.phoneScan";
+  let scanSettings = $state<ScanSettings>(loadScanSettings());
+
+  function loadScanSettings(): ScanSettings {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SCAN_KEY) ?? "null");
+      if (saved?.mode && saved?.dpi) return saved;
+    } catch {
+      /* first time */
+    }
+    return { mode: "gray", dpi: 300 };
+  }
+
+  function saveScanSettings() {
+    try {
+      localStorage.setItem(SCAN_KEY, JSON.stringify($state.snapshot(scanSettings)));
+    } catch {
+      /* not essential */
+    }
+  }
   let lastScan = $state<string | null>(null);
   let scanError = $state<string | null>(null);
 
@@ -190,7 +211,8 @@
     scanning = true;
     scanError = null;
     try {
-      const saved = await phone.scan(scanName());
+      saveScanSettings();
+      const saved = await phone.scan(scanName(), $state.snapshot(scanSettings));
       if (saved) lastScan = saved;
     } catch (e) {
       scanError = String(e);
@@ -409,6 +431,40 @@
           {/if}
           {#if settingsError}<p class="error">{settingsError}</p>{/if}
         {:else if overview}
+          <div class="scan-options">
+            <div class="segmented" role="radiogroup" aria-label="Color">
+              {#each [["color", "Color"], ["gray", "Grayscale"], ["bw", "Black & white"]] as [value, label] (value)}
+                <button
+                  role="radio"
+                  aria-checked={scanSettings.mode === value}
+                  class:on={scanSettings.mode === value}
+                  onclick={() => ((scanSettings.mode = value as ScanSettings["mode"]), saveScanSettings())}
+                >
+                  {label}
+                </button>
+              {/each}
+            </div>
+            <div class="segmented" role="radiogroup" aria-label="Resolution">
+              {#each [150, 200, 300, 400] as dpi (dpi)}
+                <button
+                  role="radio"
+                  aria-checked={scanSettings.dpi === dpi}
+                  class:on={scanSettings.dpi === dpi}
+                  onclick={() => ((scanSettings.dpi = dpi), saveScanSettings())}
+                >
+                  {dpi} dpi
+                </button>
+              {/each}
+            </div>
+            <p class="note small">
+              {scanSettings.mode === "bw"
+                ? "Black & white: sharp, small files; shadows are evened out. Best for text."
+                : scanSettings.mode === "gray"
+                  ? "Grayscale suits most paperwork."
+                  : "Color for receipts with stamps, photos and forms in color."}
+              300 dpi gives the best text recognition.
+            </p>
+          </div>
           <button class="big" onclick={scan} disabled={scanning}>
             <Icon name="camera" size={44} />
             <span>{scanning ? "Saving…" : "Scan a document"}</span>
@@ -757,6 +813,36 @@
   .scan p {
     margin: 0;
   }
+  .scan-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .scan-options .note {
+    padding: 0 4px;
+  }
+  .segmented {
+    display: flex;
+    background: var(--panel);
+    border-radius: 9px;
+    padding: 2px;
+  }
+  .segmented button {
+    flex: 1;
+    border: 0;
+    background: none;
+    padding: 7px 4px;
+    border-radius: 7px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .segmented button.on {
+    background: var(--bg);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+    font-weight: 600;
+  }
   .searchbar {
     display: flex;
     align-items: center;
@@ -819,7 +905,7 @@
     gap: 10px;
     padding: 28px 40px;
     border-radius: 20px;
-    margin-top: 24px;
+    margin-top: 8px;
   }
   button:disabled {
     opacity: 0.55;

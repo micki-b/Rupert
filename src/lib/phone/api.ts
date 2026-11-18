@@ -33,6 +33,14 @@ export interface DocInfo extends Hit {
   textState: "extracted" | "catalog" | "sidecar" | "empty" | "cloudOnly" | "unsupported" | "failed";
 }
 
+export type ScanMode = "color" | "gray" | "bw";
+
+export interface ScanSettings {
+  mode: ScanMode;
+  /** Output resolution (the page's long side taken as 11 inches). */
+  dpi: number;
+}
+
 export interface OneDriveStatus {
   /** This build has the app's Microsoft registration. */
   configured: boolean;
@@ -61,7 +69,7 @@ export const phone = {
   document: (sourceId: string, relPath: string) => invoke<DocInfo | null>("document", { sourceId, relPath }),
   open: (sourceId: string, relPath: string) => invoke<void>("open_document", { sourceId, relPath }),
   /** The saved file name, or null if the scan was cancelled. */
-  scan: (name: string) => invoke<string | null>("scan", { name }),
+  scan: (name: string, settings: ScanSettings) => invoke<string | null>("scan", { name, settings }),
   onedriveStatus: () => invoke<OneDriveStatus>("onedrive_status"),
   /** `false` if cancelled. */
   onedriveSignIn: () => invoke<boolean>("onedrive_sign_in"),

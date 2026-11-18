@@ -447,11 +447,20 @@ async fn open_document(
 
 // MARK: - Commands: scanning
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ScanSettings {
+    /// "color", "gray" or "bw".
+    mode: String,
+    dpi: u32,
+}
+
 /// Scans with the camera and saves the PDF to the inbox as `name`. The
 /// saved file name, or `None` if the scan was cancelled.
 #[tauri::command]
 async fn scan(
     name: String,
+    settings: ScanSettings,
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> CmdResult<Option<String>> {
@@ -468,7 +477,13 @@ async fn scan(
     let handle = app.clone();
     let placed = blocking(move || {
         let device = device(&handle);
-        let pages = device.scan().map_err(err)?;
+        let mode = match settings.mode.as_str() {
+            m @ ("color" | "gray" | "bw") => m,
+            _ => "gray",
+        };
+        let pages = device
+            .scan(mode, settings.dpi.clamp(100, 600))
+            .map_err(err)?;
         let Some(first) = pages.first() else {
             return Ok(None);
         };
