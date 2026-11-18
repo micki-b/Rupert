@@ -366,6 +366,61 @@ fn list_remote(source_id: &str, rel_path: &str, state: &AppState) -> CmdResult<V
     Ok(folders.chain(files).collect())
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FavoriteFolder {
+    source_id: String,
+    rel_path: String,
+    name: String,
+    source_name: String,
+}
+
+/// Folders marked as favorites (on a computer), in any library folder.
+#[tauri::command]
+fn favorite_folders(state: State<AppState>) -> CmdResult<Vec<FavoriteFolder>> {
+    let mut names: Vec<(String, String)> = state
+        .sources()
+        .into_iter()
+        .map(|s| (s.id, s.name))
+        .collect();
+    names.extend(
+        state
+            .saved
+            .lock()
+            .unwrap()
+            .saved
+            .remote
+            .iter()
+            .map(|f| (f.id.clone(), f.name.clone())),
+    );
+    let favs = state
+        .index
+        .lock()
+        .unwrap()
+        .favorite_folders()
+        .map_err(err)?;
+    let mut out: Vec<FavoriteFolder> = favs
+        .into_iter()
+        .filter_map(|(source_id, rel_path)| {
+            let source_name = names.iter().find(|(id, _)| *id == source_id)?.1.clone();
+            let name = rel_path
+                .rsplit('/')
+                .next()
+                .filter(|n| !n.is_empty())
+                .unwrap_or(&source_name)
+                .to_string();
+            Some(FavoriteFolder {
+                source_id,
+                rel_path,
+                name,
+                source_name,
+            })
+        })
+        .collect();
+    out.sort_by_key(|f| f.name.to_lowercase());
+    Ok(out)
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SearchArgs {
@@ -736,6 +791,7 @@ pub fn run() {
             list_dir,
             search,
             list_tags,
+            favorite_folders,
             tag_suggestions,
             document,
             open_document,

@@ -10,6 +10,7 @@ pub mod error;
 pub mod escl;
 pub mod file_kind;
 pub mod fileops;
+pub mod folder_info;
 pub mod index;
 pub mod indexer;
 pub mod intake;

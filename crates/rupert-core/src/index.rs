@@ -8,11 +8,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
+use crate::folder_info::FolderInfo;
 use crate::listing::CloudState;
 use crate::meta::{DocMeta, Storage};
 
 /// Bump to throw away and rebuild every user's index on schema changes.
-const SCHEMA_VERSION: i32 = 3;
+const SCHEMA_VERSION: i32 = 4;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
@@ -202,7 +203,9 @@ impl Index {
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .map_err(db)?;
         if version != SCHEMA_VERSION {
-            conn.execute_batch("DROP TABLE IF EXISTS docs; DROP TABLE IF EXISTS fts;")
+            conn.execute_batch(
+                "DROP TABLE IF EXISTS docs; DROP TABLE IF EXISTS fts; DROP TABLE IF EXISTS folders;",
+            )
                 .map_err(db)?;
             conn.execute_batch(SCHEMA).map_err(db)?;
             conn.pragma_update(None, "user_version", SCHEMA_VERSION)
@@ -307,6 +310,9 @@ impl Index {
         self.conn
             .execute("DELETE FROM docs WHERE source_id = ?1", [source_id])
             .map_err(db)?;
+        self.conn
+            .execute("DELETE FROM folders WHERE source_id = ?1", [source_id])
+            .map_err(db)?;
         Ok(())
     }
 
@@ -316,7 +322,7 @@ impl Index {
         let existing: Vec<String> = {
             let mut stmt = self
                 .conn
-                .prepare("SELECT DISTINCT source_id FROM docs")
+                .prepare("SELECT source_id FROM docs UNION SELECT source_id FROM folders")
                 .map_err(db)?;
             stmt.query_map([], |r| r.get(0))
                 .map_err(db)?
@@ -559,6 +565,86 @@ impl Index {
             matching: ranked.len(),
             tags: ranked.into_iter().take(limit).map(|(_, t)| t).collect(),
         })
+    }
+
+    // MARK: Folders
+
+    /// Records a folder's details (`None` or empty: forget them).
+    pub fn set_folder(
+        &self,
+        source_id: &str,
+        rel_path: &str,
+        info: Option<&FolderInfo>,
+    ) -> Result<()> {
+        let rel_path = rel_path.trim_matches('/');
+        match info.filter(|i| !i.is_empty()) {
+            Some(i) => self.conn.execute(
+                "INSERT INTO folders (source_id, rel_path, favorite) VALUES (?1, ?2, ?3)
+                 ON CONFLICT (source_id, rel_path) DO UPDATE SET favorite = excluded.favorite",
+                params![source_id, rel_path, i.favorite],
+            ),
+            None => self.conn.execute(
+                "DELETE FROM folders WHERE source_id = ?1 AND rel_path = ?2",
+                params![source_id, rel_path],
+            ),
+        }
+        .map_err(db)?;
+        Ok(())
+    }
+
+    /// Folders with details at or below `rel_dir`.
+    pub fn folders_under(&self, source_id: &str, rel_dir: &str) -> Result<Vec<String>> {
+        let rel_dir = rel_dir.trim_matches('/');
+        let (lo, hi) = prefix_range(rel_dir);
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT rel_path FROM folders WHERE source_id = ?1
+                 AND (rel_path = ?2 OR (rel_path >= ?3 AND rel_path < ?4))",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(params![source_id, rel_dir, lo, hi], |r| r.get(0))
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// Replaces what is known about the folders at or below `rel_dir` with
+    /// `found` (after a complete pass over them). Whether anything changed.
+    pub fn replace_folders_under(
+        &self,
+        source_id: &str,
+        rel_dir: &str,
+        found: &[(String, FolderInfo)],
+    ) -> Result<bool> {
+        let before = self.folders_under(source_id, rel_dir)?;
+        let mut changed = before.len() != found.len();
+        for rel in &before {
+            if !found.iter().any(|(r, _)| r == rel) {
+                self.set_folder(source_id, rel, None)?;
+                changed = true;
+            }
+        }
+        for (rel, info) in found {
+            changed |= !before.contains(rel);
+            self.set_folder(source_id, rel, Some(info))?;
+        }
+        Ok(changed)
+    }
+
+    /// Every favorite folder: source id and relative path, by path.
+    pub fn favorite_folders(&self) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT source_id, rel_path FROM folders WHERE favorite = 1
+                 ORDER BY source_id, rel_path COLLATE NOCASE",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
     /// Every document with any of `tags` (ignoring case): source id,
@@ -843,6 +929,12 @@ CREATE TABLE IF NOT EXISTS docs (
     UNIQUE (source_id, rel_path)
 );
 CREATE INDEX IF NOT EXISTS docs_dir ON docs (source_id, dir);
+CREATE TABLE IF NOT EXISTS folders (
+    source_id TEXT NOT NULL,
+    rel_path TEXT NOT NULL,
+    favorite INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (source_id, rel_path)
+);
 CREATE INDEX IF NOT EXISTS docs_size ON docs (size);
 CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5 (
     name, title, tags, notes, body,
@@ -1138,6 +1230,35 @@ mod tests {
         assert_eq!(names(&docs), ["Boat/c.pdf"]);
         let (dirs, _) = idx.list_folder("s", "Boat/Engine").unwrap();
         assert_eq!(dirs, ["Oil"]);
+    }
+
+    #[test]
+    fn favorite_folders_are_recorded_and_replaced() {
+        let idx = Index::open_in_memory().unwrap();
+        let fav = FolderInfo { favorite: true };
+        idx.set_folder("s", "Boat", Some(&fav)).unwrap();
+        idx.set_folder("s", "Boat/Engine", Some(&fav)).unwrap();
+        idx.set_folder("s", "Taxes", Some(&fav)).unwrap();
+        idx.set_folder("t", "", Some(&fav)).unwrap();
+        assert_eq!(idx.favorite_folders().unwrap().len(), 4);
+        assert_eq!(idx.folders_under("s", "Boat").unwrap().len(), 2);
+
+        // A pass over Boat that only found Boat itself drops Engine.
+        assert!(
+            idx.replace_folders_under("s", "Boat", &[("Boat".into(), fav.clone())])
+                .unwrap()
+        );
+        assert!(
+            !idx.replace_folders_under("s", "Boat", &[("Boat".into(), fav.clone())])
+                .unwrap()
+        );
+        idx.set_folder("s", "Taxes", None).unwrap();
+        assert_eq!(
+            idx.favorite_folders().unwrap(),
+            [("s".into(), "Boat".into()), ("t".into(), "".into())]
+        );
+        idx.retain_sources(&["s"]).unwrap();
+        assert_eq!(idx.favorite_folders().unwrap().len(), 1);
     }
 
     #[test]

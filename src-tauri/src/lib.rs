@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
+use rupert_core::folder_info::{self, FolderInfo};
 use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, IntakeItem};
 use rupert_core::llm::LmStudio;
 use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
@@ -344,6 +345,84 @@ fn run_test_script(app: &AppHandle) {
             let _ = w.eval(&js);
         }
     });
+}
+
+// MARK: - Commands: favorite folders
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FavoriteFolder {
+    source_id: String,
+    rel_path: String,
+    /// The folder's name (the source's name for a source root).
+    name: String,
+    source_name: String,
+}
+
+/// Favorite folders whose source is still in the library.
+fn favorite_folder_list(state: &AppState) -> CmdResult<Vec<FavoriteFolder>> {
+    let sources = state.sources();
+    let favs = state
+        .index
+        .lock()
+        .unwrap()
+        .favorite_folders()
+        .map_err(err)?;
+    let mut out: Vec<FavoriteFolder> = favs
+        .into_iter()
+        .filter_map(|(source_id, rel_path)| {
+            let source = sources.iter().find(|s| s.id == source_id)?;
+            let name = rel_path
+                .rsplit('/')
+                .next()
+                .filter(|n| !n.is_empty())
+                .unwrap_or(&source.name)
+                .to_string();
+            Some(FavoriteFolder {
+                source_name: source.name.clone(),
+                source_id,
+                rel_path,
+                name,
+            })
+        })
+        .collect();
+    out.sort_by_key(|f| f.name.to_lowercase());
+    Ok(out)
+}
+
+#[tauri::command]
+fn favorite_folders(state: State<AppState>) -> CmdResult<Vec<FavoriteFolder>> {
+    favorite_folder_list(&state)
+}
+
+#[tauri::command]
+fn folder_favorite(source_id: String, rel_path: String, state: State<AppState>) -> CmdResult<bool> {
+    let source = state.source(&source_id)?;
+    let dir = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+    Ok(folder_info::read(&dir).is_some_and(|i| i.favorite))
+}
+
+/// Marks a folder as a favorite (or not), in the folder's own `.rupert`.
+#[tauri::command]
+fn set_folder_favorite(
+    source_id: String,
+    rel_path: String,
+    favorite: bool,
+    app: AppHandle,
+    state: State<AppState>,
+) -> CmdResult<()> {
+    let source = state.source(&source_id)?;
+    let dir = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+    let info = FolderInfo { favorite };
+    folder_info::write(&dir, &info).map_err(err)?;
+    state
+        .index
+        .lock()
+        .unwrap()
+        .set_folder(&source_id, &rel_path, Some(&info))
+        .map_err(err)?;
+    let _ = app.emit(INDEX_CHANGED, ());
+    Ok(())
 }
 
 // MARK: - Commands: tag manager
@@ -936,6 +1015,9 @@ pub fn run() {
             list_tags,
             tag_suggestions,
             tag_edit_preview,
+            favorite_folders,
+            folder_favorite,
+            set_folder_favorite,
             tag_edit_apply,
             index_status,
             scansnap_library,

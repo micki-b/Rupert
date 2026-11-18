@@ -165,6 +165,12 @@ mod tests {
             "Taxes"
         );
         assert_eq!(change("/lib/a/.rupert/scan.pdf.json").unwrap().rel_dir, "");
+        // A folder's own details (favorite) re-sync that folder.
+        assert_eq!(
+            change("/lib/a/Taxes/.rupert/.folder.json").unwrap().rel_dir,
+            "Taxes"
+        );
+        assert_eq!(change("/lib/a/.rupert/.folder.json").unwrap().rel_dir, "");
         assert_eq!(change("/lib/a/Taxes/.rupert/W-2.pdf.json.tmp"), None);
         assert_eq!(change("/lib/a/.rupert/catalog/ab/ab12.json.gz"), None);
         assert_eq!(change("/lib/a/.rupert/catalog/ab.json"), None);

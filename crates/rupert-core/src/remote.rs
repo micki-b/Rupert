@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 use crate::catalog;
 use crate::error::Result;
 use crate::file_kind::{FileKind, is_ignored_name};
+use crate::folder_info::{self, FolderInfo};
 use crate::index::{DocRow, Index, TextState};
 use crate::indexer::online_only_details;
 use crate::listing::CloudState;
@@ -125,6 +126,19 @@ pub fn sync(
         }
         on_progress(((n + 1) * BATCH).min(total), total);
     }
+
+    // Folder details (favorites): a few tiny files, read every time.
+    let suffix = format!("{}/{}", sidecar::DIR_NAME, folder_info::FILE_NAME);
+    let folders: Vec<(String, FolderInfo)> = hidden
+        .keys()
+        .filter_map(|rel| {
+            let dir = rel.strip_suffix(suffix.as_str())?;
+            let dir = dir.strip_suffix('/').unwrap_or(dir);
+            let info = folder_info::parse(&fetch(rel).ok()?)?;
+            Some((dir.to_string(), info))
+        })
+        .collect();
+    index.replace_folders_under(&source.id, "", &folders)?;
     Ok(report)
 }
 
@@ -296,6 +310,15 @@ mod tests {
         let again = sync(&index, &src, &files, &fetch, &mut |_, _| {}).unwrap();
         assert_eq!(again, SyncReport::default());
         assert!(fetched.lock().unwrap().is_empty());
+
+        // A favorite folder set on the computer shows up.
+        folder_info::write(&root.join("Engine"), &FolderInfo { favorite: true }).unwrap();
+        let with_fav = listing(root);
+        sync(&index, &src, &with_fav, &fetch, &mut |_, _| {}).unwrap();
+        assert_eq!(
+            index.favorite_folders().unwrap(),
+            [("remote".to_string(), "Engine".to_string())]
+        );
 
         // A document gone from the listing leaves the index.
         let fewer: Vec<RemoteFile> = files

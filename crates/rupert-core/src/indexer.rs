@@ -30,6 +30,7 @@ use crate::catalog::{self, CatalogEntry};
 use crate::cloud;
 use crate::error::Result;
 use crate::file_kind::FileKind;
+use crate::folder_info::{self, FolderInfo};
 use crate::index::{DocRow, Index, Stamp, TextState};
 use crate::listing::{CloudState, Entry, cloud_state, list_dir};
 use crate::meta::{self, DocMeta, PartialMeta, Storage};
@@ -310,7 +311,16 @@ impl Worker {
         let mut found = Vec::new();
         let mut subdirs = Vec::new();
         if recursive {
-            self.walk(source, rel_dir, &mut found);
+            let mut dirs = Vec::new();
+            self.walk(source, rel_dir, &mut found, &mut dirs);
+            // Folder details (favorites) of every folder walked.
+            let infos: Vec<(String, FolderInfo)> = dirs
+                .into_iter()
+                .filter_map(|d| folder_info::read(&source.root.join(&d)).map(|i| (d, i)))
+                .collect();
+            self.dirty |= self
+                .index
+                .replace_folders_under(&source.id, rel_dir, &infos)?;
         } else {
             let sidecars = self.sidecar_mtimes(&source.root.join(rel_dir));
             for entry in list_dir(&source.root, rel_dir, source.show_all_types)? {
@@ -320,6 +330,28 @@ impl Worker {
                     found.push(Found::new(entry, &sidecars));
                 }
             }
+            // This folder's own details, and forget vanished subfolders'.
+            let info = folder_info::read(&source.root.join(rel_dir));
+            self.index.set_folder(&source.id, rel_dir, info.as_ref())?;
+            for known in self.index.folders_under(&source.id, rel_dir)? {
+                let top = known
+                    .strip_prefix(rel_dir)
+                    .unwrap_or(&known)
+                    .trim_start_matches('/')
+                    .split('/')
+                    .next()
+                    .unwrap_or_default()
+                    .to_string();
+                let sub = if rel_dir.is_empty() {
+                    top
+                } else {
+                    format!("{rel_dir}/{top}")
+                };
+                if known != rel_dir && !subdirs.contains(&sub) {
+                    self.index.set_folder(&source.id, &known, None)?;
+                }
+            }
+            self.dirty = true;
         }
 
         let known = self.index.stamps_under(&source.id, rel_dir)?;
@@ -626,14 +658,15 @@ impl Worker {
 
     /// Every document file at or below `rel_dir`, using the same filtering
     /// as the folder view (no file contents are read).
-    fn walk(&self, source: &Source, rel_dir: &str, out: &mut Vec<Found>) {
+    fn walk(&self, source: &Source, rel_dir: &str, out: &mut Vec<Found>, dirs: &mut Vec<String>) {
         let Ok(entries) = list_dir(&source.root, rel_dir, source.show_all_types) else {
             return;
         };
+        dirs.push(rel_dir.to_string());
         let sidecars = self.sidecar_mtimes(&source.root.join(rel_dir));
         for entry in entries {
             if entry.is_dir {
-                self.walk(source, &entry.rel_path, out);
+                self.walk(source, &entry.rel_path, out, dirs);
             } else {
                 out.push(Found::new(entry, &sidecars));
             }
@@ -859,6 +892,43 @@ pub(crate) mod tests {
         fs::write(root.join("Taxes/2025/w2.txt"), "Wages and tips").unwrap();
         w.sync(&src, "", false).unwrap();
         assert_eq!(search(&w, "wages"), ["Taxes/2025/w2.txt"]);
+    }
+
+    #[test]
+    fn favorite_folders_are_indexed_and_follow_changes() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("Boat/Engine")).unwrap();
+        fs::create_dir_all(root.join("Taxes")).unwrap();
+        fs::write(root.join("Boat/Engine/impeller.md"), "Impeller").unwrap();
+        let fav = FolderInfo { favorite: true };
+        folder_info::write(&root.join("Boat/Engine"), &fav).unwrap();
+        folder_info::write(&root.join("Taxes"), &fav).unwrap();
+
+        let src = source(root, Provider::Local);
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.sync(&src, "", true).unwrap();
+        let favs = |w: &Worker| -> Vec<String> {
+            w.index
+                .favorite_folders()
+                .unwrap()
+                .into_iter()
+                .map(|(_, p)| p)
+                .collect()
+        };
+        assert_eq!(favs(&w), ["Boat/Engine", "Taxes"]);
+        // The favorite file isn't mistaken for a document's sidecar.
+        assert_eq!(w.index.stats().unwrap().documents, 1);
+
+        // Renamed elsewhere: the favorite moves with the folder.
+        fs::rename(root.join("Boat"), root.join("Boating")).unwrap();
+        w.sync(&src, "", false).unwrap();
+        assert_eq!(favs(&w), ["Boating/Engine", "Taxes"]);
+
+        // Unfavorited on another machine: a folder pass notices.
+        folder_info::write(&root.join("Taxes"), &FolderInfo::default()).unwrap();
+        w.sync(&src, "Taxes", false).unwrap();
+        assert_eq!(favs(&w), ["Boating/Engine"]);
     }
 
     #[test]

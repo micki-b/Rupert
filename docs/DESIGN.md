@@ -102,6 +102,12 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - Each file is indexed and recorded in the catalog, even when it has no text, so no machine downloads it again. Then its space is freed again: macOS `NSFileManager.evictUbiquitousItem` (tested on iCloud Drive and OneDrive; the modification time is unchanged, so the catalog entry stays valid), Windows by setting `FILE_ATTRIBUTE_UNPINNED`, which OneDrive honors. Files in sources without a catalog stay downloaded.
   - Regular jobs always come first; each file is tried at most once per session; the status bar shows the progress.
 
+## Favorite folders
+
+- A folder's own details (for now: favorite) live in its hidden `.rupert/.folder.json` (`folder_info.rs`), so they follow the folder when it's renamed or moved anywhere and sync to other machines with it. The leading dot keeps the name apart from document sidecars, which are named after documents (never hidden). Unfavoriting removes the file, and the `.rupert` folder if it's then empty.
+- The index keeps them in a `folders` table (schema 4), filled as folders are walked; a folder pass also forgets subfolders that vanished. The watcher maps the file to its folder like a sidecar, so changes from another machine show up when they sync.
+- Desktop: a ☆/★ beside the folder path; favorite folders are listed under Favorites in the sidebar. Phone: a Favorites group at the top of Library (favorite folders and favorite documents), read-only like the rest; OneDrive folders read the file through Graph.
+
 ## Tags
 
 - **Filter (desktop sidebar, phone sheet):** type to narrow; with nothing typed the 12 most-used tags show, otherwise tags starting with the text, then those with a word starting with it, then those containing it, more-used first; "Show all" for the rest. Several tags can be selected, matching **Any** (at least one) or **All** (every one), ignoring case. In All mode the list only offers tags that occur together with the selection, counted that way, so it narrows as you pick. The selection combines with text search and Favorites. Queries take under 10 ms on 6,900 documents (`json_each` over the stored tag lists; a separate tag table is the upgrade if libraries grow much larger).

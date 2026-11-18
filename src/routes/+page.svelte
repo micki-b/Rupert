@@ -25,6 +25,7 @@
     type Source,
     type TagCount,
     type TagMode,
+    type FavoriteFolder,
   } from "$lib/api";
   import { changes } from "$lib/changes.svelte";
   import { formatDate, formatSize, kindLabel } from "$lib/format";
@@ -63,6 +64,9 @@
   let selectedTags = $state<string[]>([]);
   let tagMode = $state<TagMode>("any");
   let tagManagerOpen = $state(false);
+  let favoriteFolders = $state<FavoriteFolder[]>([]);
+  /** Whether the open folder is a favorite. */
+  let folderFav = $state(false);
   let favoritesOnly = $state(false);
   let hits = $state<Hit[]>([]);
   let searchedOnce = $state(false);
@@ -117,8 +121,9 @@
   }
 
   async function loadIndexInfo() {
-    const [t, s] = await Promise.all([api.listTags(), api.indexStatus()]);
+    const [t, s, f] = await Promise.all([api.listTags(), api.indexStatus(), api.favoriteFolders()]);
     tags = t;
+    favoriteFolders = f;
     stats = s.stats;
     progress ??= s.progress;
   }
@@ -207,6 +212,34 @@
     }, 150);
     return () => clearTimeout(timer);
   });
+
+  // Whether the open folder is a favorite (read from the folder itself).
+  $effect(() => {
+    const f = folder;
+    indexTick;
+    if (!f) return;
+    api
+      .folderFavorite(f.sourceId, f.relPath)
+      .then((fav) => {
+        if (folder === f) folderFav = fav;
+      })
+      .catch(() => (folderFav = false));
+  });
+
+  async function toggleFolderFav() {
+    if (!folder) return;
+    const f = folder;
+    const next = !folderFav;
+    folderFav = next;
+    try {
+      error = null;
+      await api.setFolderFavorite(f.sourceId, f.relPath, next);
+    } catch (e) {
+      error = String(e);
+      folderFav = !next;
+    }
+    favoriteFolders = await api.favoriteFolders();
+  }
 
   // Sidebar filters start a fresh view; typing afterwards searches within
   // them, and further tags narrow or widen the selection.
@@ -381,6 +414,17 @@
       <span class="label">Favorites</span>
       {#if stats?.favorites}<span class="count">{stats.favorites}</span>{/if}
     </button>
+    {#each favoriteFolders as f (f.sourceId + "/" + f.relPath)}
+      <button
+        class="lib-item fav-folder"
+        class:active={!searching && folder?.sourceId === f.sourceId && folder?.relPath === f.relPath}
+        onclick={() => selectFolder(f.sourceId, f.relPath)}
+        title="{f.sourceName}{f.relPath ? ' / ' + f.relPath : ''}"
+      >
+        <span class="lib-icon folder-icon"><Icon name="folder" size={14} /></span>
+        <span class="label">{f.name}</span>
+      </button>
+    {/each}
     <button class="lib-item" onclick={() => (tagsOpen = !tagsOpen)} aria-expanded={tagsOpen}>
       <span class="lib-icon disclosure" class:open={tagsOpen}><Icon name="chevron" size={12} /></span>
       <span class="label">Tags</span>
@@ -599,6 +643,13 @@
             >{c.name}</button
           >
         {/each}
+        <button
+          class="folder-star"
+          class:on={folderFav}
+          onclick={toggleFolderFav}
+          title={folderFav ? "Remove this folder from Favorites" : "Add this folder to Favorites"}
+          aria-pressed={folderFav}>{folderFav ? "★" : "☆"}</button
+        >
       </nav>
 
       {#if entries.length === 0 && loading}
@@ -862,6 +913,20 @@
     display: grid;
     place-items: center;
     color: var(--muted);
+  }
+  .fav-folder {
+    padding-left: 22px;
+  }
+  .folder-icon {
+    color: var(--folder);
+  }
+  .folder-star {
+    margin-left: 6px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .folder-star.on {
+    color: #d9a520;
   }
   .lib-icon.star {
     color: #d9a520;

@@ -80,6 +80,14 @@ export interface SearchArgs {
   favoritesOnly?: boolean;
 }
 
+/** A folder marked as a favorite (kept in the folder's own `.rupert`). */
+export interface FavoriteFolder {
+  sourceId: string;
+  relPath: string;
+  name: string;
+  sourceName: string;
+}
+
 /** A tag manager edit: rename (several tags: merge) or delete. */
 export interface TagEdit {
   from: string[];
@@ -313,6 +321,10 @@ export const api = {
    * "all", only those that occur together with the selection). */
   tagSuggestions: (filter: string, selected: string[], mode: TagMode, limit: number) =>
     invoke<TagList>("tag_suggestions", { filter, selected, mode, limit }),
+  favoriteFolders: () => invoke<FavoriteFolder[]>("favorite_folders"),
+  folderFavorite: (sourceId: string, relPath: string) => invoke<boolean>("folder_favorite", { sourceId, relPath }),
+  setFolderFavorite: (sourceId: string, relPath: string, favorite: boolean) =>
+    invoke<void>("set_folder_favorite", { sourceId, relPath, favorite }),
   tagEditPreview: (edit: TagEdit) => invoke<TagEditPreview>("tag_edit_preview", { edit }),
   tagEditApply: (edit: TagEdit) => invoke<TagEditReport>("tag_edit_apply", { edit }),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),

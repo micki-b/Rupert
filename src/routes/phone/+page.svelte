@@ -15,6 +15,7 @@
     phone,
     scanName,
     type DocInfo,
+    type FavoriteFolder,
     type Hit,
     type Listed,
     type OneDriveFolder,
@@ -32,6 +33,7 @@
 
   let tab = $state<Tab>("library");
   let overview = $state<Overview | null>(null);
+  let favFolders = $state<FavoriteFolder[]>([]);
 
   let stack = $state<Crumb[]>([]);
   let entries = $state<Listed[]>([]);
@@ -103,6 +105,7 @@
   async function loadOverview() {
     overview = await phone.overview();
     od = await phone.onedriveStatus().catch(() => null);
+    favFolders = await phone.favoriteFolders().catch(() => []);
   }
 
   async function loadFolder() {
@@ -164,6 +167,19 @@
     stack = [{ sourceId: id, relPath: "", name }];
     entries = [];
     loadFolder();
+  }
+
+  function openFavorite(f: FavoriteFolder) {
+    stack = [{ sourceId: f.sourceId, relPath: f.relPath, name: f.name }];
+    entries = [];
+    loadFolder();
+  }
+
+  function showFavoriteDocuments() {
+    favoritesOnly = true;
+    selectedTags = [];
+    query = "";
+    switchTab("search");
   }
 
   function openEntry(e: Listed) {
@@ -331,6 +347,36 @@
             {#if settingsError}<p class="error">{settingsError}</p>{/if}
           </div>
         {:else if overview}
+          {#if favFolders.length || overview.stats.favorites}
+            <h2 class="group">Favorites</h2>
+            <ul class="list">
+              {#each favFolders as f (f.sourceId + "/" + f.relPath)}
+                <li>
+                  <button class="row" onclick={() => openFavorite(f)}>
+                    <span class="icon folder"><Icon name="folder" size={22} /></span>
+                    <span class="main">
+                      <span class="name">{f.name}</span>
+                      <span class="sub">{f.relPath ? `${f.sourceName} / ${f.relPath}` : f.sourceName}</span>
+                    </span>
+                    <Icon name="chevron" />
+                  </button>
+                </li>
+              {/each}
+              {#if overview.stats.favorites}
+                <li>
+                  <button class="row" onclick={showFavoriteDocuments}>
+                    <span class="icon fav"><Icon name="star" size={22} /></span>
+                    <span class="main">
+                      <span class="name">Favorite documents</span>
+                      <span class="sub">{overview.stats.favorites}</span>
+                    </span>
+                    <Icon name="chevron" />
+                  </button>
+                </li>
+              {/if}
+            </ul>
+            <h2 class="group">Library</h2>
+          {/if}
           <ul class="list">
             {#each overview.sources as s (s.id)}
               <li>
@@ -800,6 +846,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     margin: 0;
+  }
+  .group {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 16px 16px 6px;
   }
   .fav {
     color: var(--accent);
