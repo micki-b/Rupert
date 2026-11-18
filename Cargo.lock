@@ -3409,8 +3409,11 @@ name = "rupert-core"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "libc",
  "lopdf",
  "notify-debouncer-mini",
+ "objc2",
+ "objc2-foundation",
  "pdfium-render",
  "quick-xml",
  "rusqlite",

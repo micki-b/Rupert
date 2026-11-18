@@ -133,15 +133,17 @@ fn update_source(
     id: String,
     name: Option<String>,
     show_all_types: Option<bool>,
+    download_online_only: Option<bool>,
     state: State<AppState>,
 ) -> CmdResult<SourceView> {
     let updated = state
         .store
         .lock()
         .unwrap()
-        .update(&id, name, show_all_types)
+        .update(&id, name, show_all_types, download_online_only)
         .map_err(err)?;
-    if show_all_types.is_some() {
+    // Re-sync: the file filter changed, or downloads start/stop.
+    if show_all_types.is_some() || download_online_only.is_some() {
         state.indexer.send(Job::SyncSource(updated.clone()));
     }
     Ok(updated.into())

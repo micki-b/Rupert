@@ -4,6 +4,7 @@
 //! reused by other front ends (mobile viewer, CLI). See `docs/DESIGN.md`.
 
 pub mod catalog;
+pub mod cloud;
 pub mod error;
 pub mod file_kind;
 pub mod index;

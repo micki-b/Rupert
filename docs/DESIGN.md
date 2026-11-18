@@ -85,6 +85,8 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 
 ## Index, watching, online-only files
 
+- **Providers** are detected from the path and, on macOS, from the folder's File Provider domain (`com.apple.file-provider-domain-id` xattr on it or a parent). That catches `~/Documents` and `~/Desktop` when iCloud's "Desktop & Documents Folders" is on. Saved sources are re-checked at startup.
+
 - The local index is a SQLite database (`index.sqlite`, FTS5 full-text search) in the app-data folder, keyed by source + relative path. A schema change simply discards and rebuilds it.
 - A background thread keeps it current: a full pass at startup (only files whose size, modification time or download state changed are re-read), a folder pass whenever the watcher reports a change, and a single-file pass after Rupert saves metadata. Each file is processed in isolation (`catch_unwind`; the release build unwinds instead of aborting), so one malformed PDF can't crash the app.
 - Text comes from PDFium for PDFs (bundled per platform by `scripts/fetch-pdfium.sh`; without it PDFs are indexed by name and details only) and directly from plain-text files. Capped at 1,500 pages / 1 MB of text per document.
@@ -95,7 +97,10 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - Entries are gzip'd JSON named by a hash of the document's relative path (`.rupert/catalog/ab/ab12….json.gz`) and are trusted only if size and modification time (±2 s) still match.
   - Written only for cloud sources (OneDrive, iCloud, Google Drive, Dropbox), only for documents with text or details, and only when the content changed — so two machines that agree never re-upload.
   - After a full pass, entries for deleted documents and sync-conflict copies are removed.
-- **Finding (2026-11-18):** on the MacBook Pro, 18,463 of 19,421 OneDrive documents are online-only. The catalog only helps if *some* machine has the files downloaded, so on this machine most documents are searchable by name and details only. **Decided:** an opt-in per source to download online-only documents for indexing (and free the space again afterwards where the OS allows). Not built yet.
+- **Finding (2026-11-18):** on the MacBook Pro, 18,463 of 19,421 OneDrive documents are online-only. The catalog only helps if *some* machine has the files downloaded, so on this machine most documents are searchable by name and details only. **Built:** an opt-in per source, "Download online-only files to index them" (in the source's ⋯ menu, cloud sources only):
+  - After regular indexing is done, the indexer downloads online-only PDFs and text files whose text is unknown, 6 at a time (a download is ~2–5 s of mostly waiting, so parallel fetches help), skipping files over 100 MB.
+  - Each file is indexed and recorded in the catalog, even when it has no text, so no machine downloads it again. Then its space is freed again: macOS `NSFileManager.evictUbiquitousItem` (tested on iCloud Drive and OneDrive; the modification time is unchanged, so the catalog entry stays valid), Windows by setting `FILE_ATTRIBUTE_UNPINNED`, which OneDrive honors. Files in sources without a catalog stay downloaded.
+  - Regular jobs always come first; each file is tried at most once per session; the status bar shows the progress.
 
 ## Scanning and intake
 

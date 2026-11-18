@@ -4,27 +4,40 @@
 //! (only changed files are re-read), folder syncs when the watcher reports
 //! changes, and single files after Rupert saves metadata.
 //!
-//! Online-only files are never read. Their entry comes from the shared
-//! catalog when another machine has indexed them, from the file's sidecar
-//! (metadata, imported text), and otherwise from the name.
+//! Online-only files are never read, unless the source has "download
+//! online-only files to index them" turned on. Their entry comes from the
+//! shared catalog when another machine has indexed them, from the file's
+//! sidecar (metadata, imported text), and otherwise from the name.
+//!
+//! With downloading on, once the regular work is done the worker fetches
+//! online-only documents whose text is unknown a few at a time, indexes
+//! them, records them in the catalog (even when they turn out to have no
+//! text, so no machine fetches them again) and frees the space again.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
 use crate::catalog::{self, CatalogEntry};
+use crate::cloud;
 use crate::error::Result;
 use crate::file_kind::FileKind;
 use crate::index::{DocRow, Index, Stamp, TextState};
-use crate::listing::{CloudState, Entry, list_dir};
+use crate::listing::{CloudState, Entry, cloud_state, list_dir};
 use crate::meta::{self, DocMeta, PartialMeta, Storage};
 use crate::sidecar;
 use crate::source::{Provider, Source};
 use crate::text::TextExtractor;
+
+/// Online-only files fetched at once (downloads are slow but not
+/// bandwidth-bound, so a few in parallel help a lot).
+const DOWNLOAD_BATCH: usize = 6;
+/// Larger files aren't downloaded just to read their text.
+const MAX_DOWNLOAD_BYTES: u64 = 100 * 1024 * 1024;
 
 // MARK: - Jobs and progress
 
@@ -56,6 +69,9 @@ pub struct Progress {
     pub current: Option<String>,
     /// False when PDFium couldn't be loaded: PDFs get no body text.
     pub pdf_text: bool,
+    /// Online-only documents being downloaded to read their text.
+    pub download_done: usize,
+    pub download_total: usize,
 }
 
 #[derive(Clone)]
@@ -92,6 +108,7 @@ pub fn spawn(
                 progress: Progress::default(),
                 last_report: Instant::now(),
                 dirty: false,
+                downloads: Downloads::default(),
             };
             worker.run(rx);
         })?;
@@ -108,6 +125,19 @@ struct Worker {
     progress: Progress,
     last_report: Instant,
     dirty: bool,
+    downloads: Downloads,
+}
+
+/// The queue of online-only documents to download and index.
+#[derive(Default)]
+struct Downloads {
+    queue: VecDeque<(String, String)>,
+    queued: HashSet<(String, String)>,
+    /// Tried this session (whatever the outcome); never queued again, so a
+    /// file that can't be read or evicted can't loop.
+    attempted: HashSet<(String, String)>,
+    /// Latest settings of every source seen, by id.
+    sources: HashMap<String, Source>,
 }
 
 /// A document file found on disk.
@@ -132,7 +162,23 @@ impl Worker {
     fn run(&mut self, rx: Receiver<Job>) {
         self.progress.pdf_text = self.extractor.pdf_supported();
         self.report(true);
-        while let Ok(first) = rx.recv() {
+        loop {
+            // Jobs come first; downloads fill the idle time between them.
+            let first = if self.downloads.queue.is_empty() {
+                match rx.recv() {
+                    Ok(job) => job,
+                    Err(_) => return,
+                }
+            } else {
+                match rx.try_recv() {
+                    Ok(job) => job,
+                    Err(TryRecvError::Empty) => {
+                        self.download_batch();
+                        continue;
+                    }
+                    Err(TryRecvError::Disconnected) => return,
+                }
+            };
             // Coalesce whatever queued up meanwhile; a full sync covers the rest.
             let mut jobs = vec![first];
             jobs.extend(rx.try_iter());
@@ -147,6 +193,8 @@ impl Worker {
             }
             self.progress = Progress {
                 pdf_text: self.extractor.pdf_supported(),
+                download_done: self.progress.download_done,
+                download_total: self.progress.download_total,
                 ..Default::default()
             };
             self.flush_changed();
@@ -160,12 +208,22 @@ impl Worker {
                 let ids: Vec<&str> = sources.iter().map(|s| s.id.as_str()).collect();
                 self.index.retain_sources(&ids)?;
                 self.dirty = true;
+                self.downloads
+                    .sources
+                    .retain(|id, _| ids.contains(&id.as_str()));
                 for source in &sources {
                     self.sync(source, "", true)?;
+                    self.queue_downloads(source)?;
                 }
             }
-            Job::SyncSource(source) => self.sync(&source, "", true)?,
-            Job::SyncDir { source, rel_dir } => self.sync(&source, &rel_dir, false)?,
+            Job::SyncSource(source) => {
+                self.sync(&source, "", true)?;
+                self.queue_downloads(&source)?;
+            }
+            Job::SyncDir { source, rel_dir } => {
+                self.sync(&source, &rel_dir, false)?;
+                self.queue_downloads(&source)?;
+            }
             Job::File { source, rel_path } => {
                 let parent = rel_path.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
                 let found = list_dir(&source.root, parent, source.show_all_types)?
@@ -181,6 +239,7 @@ impl Worker {
             }
             Job::RemoveSource(id) => {
                 self.index.remove_source(&id)?;
+                self.downloads.sources.remove(&id);
                 self.dirty = true;
             }
         }
@@ -268,6 +327,12 @@ impl Worker {
     }
 
     fn index_file(&mut self, source: &Source, f: &Found) -> Result<()> {
+        self.index_file_with(source, f, false)
+    }
+
+    /// `always_catalog`: record the file in the catalog even if it has no
+    /// text or details (after downloading it, so it isn't fetched again).
+    fn index_file_with(&mut self, source: &Source, f: &Found, always_catalog: bool) -> Result<()> {
         let path = source.root.join(&f.rel_path);
         let e = &f.entry;
         let kind = e.kind.unwrap_or(FileKind::Other);
@@ -290,10 +355,12 @@ impl Worker {
                     .filter(|c| c.matches(e.size, e.modified_ms))
                 {
                     Some(c) => {
+                        // An entry without text means a machine read the
+                        // file and found none.
                         let state = if c.text.as_deref().is_some_and(|t| !t.is_empty()) {
                             TextState::Catalog
                         } else {
-                            TextState::CloudOnly
+                            TextState::Empty
                         };
                         (c.meta, c.storage.into(), state, c.text)
                     }
@@ -328,7 +395,7 @@ impl Worker {
                 Err(_) => (TextState::Failed, None),
             };
             if shares_catalog(source) {
-                if body.is_some() || !record.meta.is_empty() {
+                if always_catalog || body.is_some() || !record.meta.is_empty() {
                     let entry = CatalogEntry::new(
                         &f.rel_path,
                         e.size,
@@ -364,6 +431,127 @@ impl Worker {
             body.as_deref(),
         )?;
         self.dirty = true;
+        Ok(())
+    }
+
+    // MARK: Downloading online-only files
+
+    /// Queues the source's online-only documents whose text is unknown, if
+    /// the source has downloading turned on.
+    fn queue_downloads(&mut self, source: &Source) -> Result<()> {
+        self.downloads
+            .sources
+            .insert(source.id.clone(), source.clone());
+        if !source.download_online_only || !source.is_available() {
+            return Ok(());
+        }
+        for rel in self
+            .index
+            .download_candidates(&source.id, MAX_DOWNLOAD_BYTES)?
+        {
+            let key = (source.id.clone(), rel);
+            if self.downloads.attempted.contains(&key) || !self.downloads.queued.insert(key.clone())
+            {
+                continue;
+            }
+            self.downloads.queue.push_back(key);
+            self.progress.download_total += 1;
+        }
+        Ok(())
+    }
+
+    /// Downloads a few queued files in parallel, then indexes each and
+    /// frees its space again.
+    fn download_batch(&mut self) {
+        let mut batch: Vec<(Source, String)> = Vec::new();
+        while batch.len() < DOWNLOAD_BATCH
+            && let Some(key) = self.downloads.queue.pop_front()
+        {
+            self.downloads.queued.remove(&key);
+            self.downloads.attempted.insert(key.clone());
+            let (id, rel) = key;
+            match self.downloads.sources.get(&id) {
+                Some(s) if s.download_online_only && s.is_available() => {
+                    batch.push((s.clone(), rel))
+                }
+                _ => self.progress.download_done += 1, // turned off or removed
+            }
+        }
+
+        let fetched: Vec<bool> = std::thread::scope(|scope| {
+            let handles: Vec<_> = batch
+                .iter()
+                .map(|(source, rel)| {
+                    let path = source.root.join(rel);
+                    scope.spawn(move || {
+                        // Skip files downloaded meanwhile; regular indexing has them.
+                        cloud_state(&path).ok() == Some(CloudState::CloudOnly)
+                            && cloud::download(&path).is_ok()
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|h| h.join().unwrap_or(false))
+                .collect()
+        });
+
+        for ((source, rel), ok) in batch.into_iter().zip(fetched) {
+            self.progress.current = Some(rel.clone());
+            if ok {
+                let result =
+                    catch_unwind(AssertUnwindSafe(|| self.index_downloaded(&source, &rel)));
+                match result {
+                    Ok(Err(e)) => eprintln!("rupert: couldn't index downloaded {rel}: {e}"),
+                    Err(_) => eprintln!("rupert: indexing downloaded {rel} crashed; skipped"),
+                    Ok(Ok(())) => {}
+                }
+            }
+            self.progress.download_done += 1;
+            self.report(false);
+        }
+
+        if self.downloads.queue.is_empty() {
+            self.progress.download_done = 0;
+            self.progress.download_total = 0;
+            self.progress.current = None;
+            self.flush_changed();
+            self.report(true);
+        }
+    }
+
+    /// Indexes a just-downloaded file, records it in the catalog, and (for
+    /// cloud sources, where the catalog keeps the text) frees its space.
+    fn index_downloaded(&mut self, source: &Source, rel: &str) -> Result<()> {
+        let parent = rel.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+        let Some(entry) = list_dir(&source.root, parent, source.show_all_types)?
+            .into_iter()
+            .find(|e| !e.is_dir && e.rel_path == rel)
+        else {
+            return Ok(());
+        };
+        let sidecars = sidecar::mtimes(&source.root.join(parent));
+        let found = Found::new(entry, &sidecars);
+        self.index_file_with(source, &found, true)?;
+
+        // If the space can't be freed (e.g. the file is open elsewhere) it
+        // simply stays downloaded.
+        let evict = || {
+            cloud::evict(&source.root.join(rel))
+                .inspect_err(|e| eprintln!("rupert: {rel}: {e}"))
+                .unwrap_or(false)
+        };
+        if shares_catalog(source) && found.entry.cloud == CloudState::Local && evict() {
+            let evicted = Found {
+                entry: Entry {
+                    cloud: CloudState::CloudOnly,
+                    ..found.entry.clone()
+                },
+                rel_path: found.rel_path.clone(),
+                sidecar_ms: found.sidecar_ms,
+            };
+            self.index_file(source, &evicted)?;
+        }
         Ok(())
     }
 
@@ -484,6 +672,7 @@ mod tests {
             root: root.to_path_buf(),
             provider,
             show_all_types: false,
+            download_online_only: false,
         }
     }
 
@@ -496,6 +685,7 @@ mod tests {
             progress: Progress::default(),
             last_report: Instant::now(),
             dirty: false,
+            downloads: Downloads::default(),
         }
     }
 
@@ -633,6 +823,94 @@ mod tests {
     }
 
     #[test]
+    fn downloaded_files_are_recorded_even_without_text() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join("blank.md"), "").unwrap();
+        fs::write(root.join("memo.md"), "anchor chain").unwrap();
+        let src = Source {
+            download_online_only: true,
+            ..source(root, Provider::OneDrive)
+        };
+        let mut w = worker(Index::open_in_memory().unwrap());
+
+        // Both seen as online-only first: candidates for downloading.
+        for name in ["blank.md", "memo.md"] {
+            let listed = list_dir(root, "", false)
+                .unwrap()
+                .into_iter()
+                .find(|e| e.name == name)
+                .unwrap();
+            let found = Found::new(
+                Entry {
+                    cloud: CloudState::CloudOnly,
+                    ..listed
+                },
+                &HashMap::new(),
+            );
+            w.index_file(&src, &found).unwrap();
+        }
+        assert_eq!(
+            w.index
+                .download_candidates("src", MAX_DOWNLOAD_BYTES)
+                .unwrap(),
+            ["blank.md", "memo.md"]
+        );
+        w.queue_downloads(&src).unwrap();
+        assert_eq!(w.progress.download_total, 2);
+        w.queue_downloads(&src).unwrap();
+        assert_eq!(w.progress.download_total, 2, "not queued twice");
+
+        // "Downloaded" (these files are local already): indexed, and both
+        // recorded in the catalog, the blank one too.
+        w.index_downloaded(&src, "blank.md").unwrap();
+        w.index_downloaded(&src, "memo.md").unwrap();
+        assert!(catalog::read(root, "blank.md").unwrap().is_some());
+        assert_eq!(search(&w, "anchor"), ["memo.md"]);
+
+        // Online-only again (evicted, or on another machine): the catalog
+        // answers, and nothing is a candidate any more.
+        for name in ["blank.md", "memo.md"] {
+            let listed = list_dir(root, "", false)
+                .unwrap()
+                .into_iter()
+                .find(|e| e.name == name)
+                .unwrap();
+            let found = Found::new(
+                Entry {
+                    cloud: CloudState::CloudOnly,
+                    ..listed
+                },
+                &HashMap::new(),
+            );
+            w.index_file(&src, &found).unwrap();
+        }
+        assert_eq!(
+            w.index.text_state("src", "blank.md").unwrap(),
+            Some(TextState::Empty)
+        );
+        assert_eq!(
+            w.index.text_state("src", "memo.md").unwrap(),
+            Some(TextState::Catalog)
+        );
+        assert!(
+            w.index
+                .download_candidates("src", MAX_DOWNLOAD_BYTES)
+                .unwrap()
+                .is_empty()
+        );
+
+        // Turning the setting off drops what's still queued.
+        let off = Source {
+            download_online_only: false,
+            ..src.clone()
+        };
+        w.queue_downloads(&off).unwrap();
+        w.download_batch();
+        assert_eq!(w.progress.download_total, 0, "queue drained");
+    }
+
+    #[test]
     fn local_sources_write_no_catalog() {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("a.txt"), "hello").unwrap();
@@ -675,6 +953,7 @@ mod tests {
             root: "/x".into(),
             provider: Provider::Local,
             show_all_types: false,
+            download_online_only: false,
         };
         let dir = |d: &str| Job::SyncDir {
             source: s.clone(),

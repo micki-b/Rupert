@@ -13,6 +13,8 @@ export interface Source {
   root: string;
   provider: Provider;
   showAllTypes: boolean;
+  /** Download online-only documents to read their text, then free the space. */
+  downloadOnlineOnly: boolean;
   available: boolean;
 }
 
@@ -55,6 +57,8 @@ export interface Progress {
   total: number;
   current: string | null;
   pdfText: boolean;
+  downloadDone: number;
+  downloadTotal: number;
 }
 
 export interface IndexStats {
@@ -155,7 +159,10 @@ export const api = {
   refreshSources: () => invoke<Source[]>("refresh_sources"),
   addSource: (path: string) => invoke<Source>("add_source", { path }),
   removeSource: (id: string) => invoke<void>("remove_source", { id }),
-  updateSource: (id: string, changes: { name?: string; showAllTypes?: boolean }) =>
+  updateSource: (
+    id: string,
+    changes: { name?: string; showAllTypes?: boolean; downloadOnlineOnly?: boolean },
+  ) =>
     invoke<Source>("update_source", { id, ...changes }),
   listDir: (sourceId: string, relPath: string) =>
     invoke<ListedEntry[]>("list_dir", { sourceId, relPath }),

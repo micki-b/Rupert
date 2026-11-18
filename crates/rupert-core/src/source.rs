@@ -10,8 +10,8 @@ use crate::error::{Error, Result};
 
 // MARK: - Provider
 
-/// Which sync service (if any) a source lives in, guessed from its path.
-/// Used for display only; Rupert treats every source as a plain folder.
+/// Which sync service (if any) a source lives in, from its path or what the
+/// OS reports. Cloud sources share a catalog (see [`crate::catalog`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Provider {
@@ -24,6 +24,14 @@ pub enum Provider {
 
 impl Provider {
     pub fn detect(path: &Path) -> Self {
+        match Self::from_path(path) {
+            Self::Local => crate::cloud::provider_of(path).unwrap_or(Self::Local),
+            known => known,
+        }
+    }
+
+    /// From the path alone (the folder names sync services use).
+    fn from_path(path: &Path) -> Self {
         for component in path.components() {
             let c = component.as_os_str().to_string_lossy();
             // macOS: ~/Library/Mobile Documents/com~apple~CloudDocs; Windows: ~/iCloudDrive
@@ -58,6 +66,10 @@ pub struct Source {
     /// Show every file type instead of only documents.
     #[serde(default)]
     pub show_all_types: bool,
+    /// Download online-only documents to read their text, then free the
+    /// space again (see [`crate::cloud`]).
+    #[serde(default)]
+    pub download_online_only: bool,
 }
 
 impl Source {
@@ -91,7 +103,26 @@ impl SourceStore {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
             Err(e) => return Err(e.into()),
         };
-        Ok(Self { path, sources })
+        let mut store = Self { path, sources };
+        store.redetect_providers()?;
+        Ok(store)
+    }
+
+    /// Re-checks each reachable source's provider (detection improves over
+    /// time, e.g. iCloud "Desktop & Documents" folders). Saves if any changed.
+    fn redetect_providers(&mut self) -> Result<()> {
+        let mut changed = false;
+        for source in self.sources.iter_mut().filter(|s| s.root.is_dir()) {
+            let provider = Provider::detect(&source.root);
+            if provider != source.provider {
+                source.provider = provider;
+                changed = true;
+            }
+        }
+        if changed {
+            self.save()?;
+        }
+        Ok(())
     }
 
     pub fn sources(&self) -> &[Source] {
@@ -136,6 +167,7 @@ impl SourceStore {
             root,
             provider,
             show_all_types: false,
+            download_online_only: false,
         };
         self.sources.push(source.clone());
         self.save()?;
@@ -156,6 +188,7 @@ impl SourceStore {
         id: &str,
         name: Option<String>,
         show_all_types: Option<bool>,
+        download_online_only: Option<bool>,
     ) -> Result<Source> {
         let source = self
             .sources
@@ -167,6 +200,9 @@ impl SourceStore {
         }
         if let Some(all) = show_all_types {
             source.show_all_types = all;
+        }
+        if let Some(download) = download_online_only {
+            source.download_online_only = download;
         }
         let updated = source.clone();
         self.save()?;
@@ -238,7 +274,7 @@ mod tests {
             ("/Users/a/Documents", Provider::Local),
         ];
         for (path, expected) in cases {
-            assert_eq!(Provider::detect(Path::new(path)), expected, "{path}");
+            assert_eq!(Provider::from_path(Path::new(path)), expected, "{path}");
         }
     }
 
@@ -256,12 +292,13 @@ mod tests {
         assert!(!added.show_all_types);
 
         store
-            .update(&added.id, Some("Paper".into()), Some(true))
+            .update(&added.id, Some("Paper".into()), Some(true), Some(true))
             .unwrap();
         let reloaded = SourceStore::load(&file).unwrap();
         assert_eq!(reloaded.sources().len(), 1);
         assert_eq!(reloaded.sources()[0].name, "Paper");
         assert!(reloaded.sources()[0].show_all_types);
+        assert!(reloaded.sources()[0].download_online_only);
 
         store.remove(&added.id).unwrap();
         assert!(SourceStore::load(&file).unwrap().sources().is_empty());

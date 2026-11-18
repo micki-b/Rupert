@@ -12,7 +12,7 @@ use crate::listing::CloudState;
 use crate::meta::{DocMeta, Storage};
 
 /// Bump to throw away and rebuild every user's index on schema changes.
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
@@ -459,6 +459,24 @@ impl Index {
             .map_err(db)?;
         let rows = stmt
             .query_map([size as i64], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// Online-only documents of a source whose text is still unknown and
+    /// could be read if downloaded (PDFs and plain text, up to `max_size`).
+    pub fn download_candidates(&self, source_id: &str, max_size: u64) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT rel_path FROM docs
+                 WHERE source_id = ?1 AND cloud = 1 AND text_state = 'cloudOnly'
+                   AND kind IN ('pdf', 'text') AND size <= ?2
+                 ORDER BY rel_path",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(params![source_id, max_size as i64], |r| r.get(0))
             .map_err(db)?;
         rows.collect::<std::result::Result<_, _>>().map_err(db)
     }

@@ -26,6 +26,7 @@ fn main() {
                 provider: Provider::detect(&root),
                 root,
                 show_all_types: false,
+                download_online_only: false,
             }
         })
         .collect();

@@ -898,6 +898,7 @@ mod tests {
             root: docs.clone(),
             provider: Provider::Local,
             show_all_types: false,
+            download_online_only: false,
         };
         Fixture {
             _tmp: tmp,
@@ -1068,6 +1069,7 @@ mod tests {
             root: dir.path().to_path_buf(),
             provider: Provider::OneDrive,
             show_all_types: false,
+            download_online_only: false,
         };
         let item = ImportItem {
             source_id: "s".into(),

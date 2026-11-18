@@ -245,6 +245,24 @@
     if (folder?.sourceId === s.id) loadEntries();
   }
 
+  async function toggleDownload(s: Source) {
+    menuFor = null;
+    const on = !s.downloadOnlineOnly;
+    if (on) {
+      const ok = await ask(
+        `Rupert will download the online-only PDFs and text files in “${s.name}” a few at a time, ` +
+          `read their text so they can be searched, and then free the space again. ` +
+          `Nothing is changed in the files.\n\nThis can take hours for a large folder and uses your ` +
+          `internet connection. Files larger than 100 MB are skipped. What Rupert finds is saved ` +
+          `in the folder's hidden catalog, so your other computers don't have to download them too.`,
+        { title: "Download online-only files to index them?", kind: "info", okLabel: "Start" },
+      );
+      if (!ok) return;
+    }
+    await run(() => api.updateSource(s.id, { downloadOnlineOnly: on }));
+    await loadSources();
+  }
+
   function startRename(s: Source) {
     menuFor = null;
     renaming = s.id;
@@ -279,6 +297,9 @@
       return `Indexing ${progress.done.toLocaleString()} of ${progress.total.toLocaleString()}…`;
     }
     if (progress?.active) return "Checking for changes…";
+    if (progress && progress.downloadTotal > 0) {
+      return `Downloading online-only documents to read them: ${progress.downloadDone.toLocaleString()} of ${progress.downloadTotal.toLocaleString()}…`;
+    }
     if (!stats || stats.documents === 0) return "";
     const parts = [`${stats.documents.toLocaleString()} documents`];
     parts.push(`${stats.withText.toLocaleString()} searchable by content`);
@@ -405,6 +426,16 @@
       <button role="menuitemcheckbox" aria-checked={s.showAllTypes} onclick={() => toggleAllTypes(s)}>
         <span class="check">{s.showAllTypes ? "✓" : ""}</span>Show all file types
       </button>
+      {#if s.provider !== "local"}
+        <button
+          role="menuitemcheckbox"
+          aria-checked={s.downloadOnlineOnly}
+          onclick={() => toggleDownload(s)}
+          title="Download online-only documents to read their text, then free the space again"
+        >
+          <span class="check">{s.downloadOnlineOnly ? "✓" : ""}</span>Download online-only files to index them
+        </button>
+      {/if}
       <button role="menuitem" onclick={() => startRename(s)}>
         <span class="check"></span>Rename…
       </button>

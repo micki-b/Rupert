@@ -8,7 +8,7 @@ Read `docs/DESIGN.md` first. It records the product decisions and the metadata l
 
 - **Disk is the source of truth.** Rupert never owns files. The SQLite index and the `.rupert/catalog/` cache must always be rebuildable from the files.
 - **Metadata lives in the file** (PDF: XMP + Info dict) or, for formats that can't hold it, in a sidecar under the directory's hidden `.rupert/` folder. Don't add metadata that exists only in the database.
-- **Never read the contents of online-only files** (iCloud/OneDrive placeholders). Any read starts a download.
+- **Never read the contents of online-only files** (iCloud/OneDrive placeholders). Any read starts a download. The one exception is a source with "download online-only files to index them" turned on (`indexer` download queue + `cloud.rs`), which downloads, indexes and then evicts.
 - **AI = local LM Studio only.** No cloud services for document content.
 - Logic goes in `crates/rupert-core` (testable, no Tauri). `src-tauri` commands stay thin.
 - Prefer permissive licenses. No AGPL (MuPDF, Ghostscript).

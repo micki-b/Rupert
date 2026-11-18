@@ -44,6 +44,7 @@ fn main() {
         root: folder,
         provider: Provider::Local,
         show_all_types: false,
+        download_online_only: false,
     }]));
     while !*idle.lock().unwrap() {
         std::thread::sleep(Duration::from_millis(100));
