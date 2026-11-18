@@ -1,0 +1,22 @@
+[package]
+name = "rupert-mobile"
+description = "Rupert for iPhone: browse and search the library, scan into the inbox"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "rupert_mobile_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+rupert-core = { path = "../crates/rupert-core" }
+tauri-plugin-rupert-ios = { path = "plugin" }
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

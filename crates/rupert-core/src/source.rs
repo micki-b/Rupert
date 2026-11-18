@@ -209,6 +209,22 @@ impl SourceStore {
         Ok(updated)
     }
 
+    /// Points a source at a new location of the same folder (on iOS, where
+    /// a saved folder's path can change between launches).
+    pub fn set_root(&mut self, id: &str, root: impl Into<PathBuf>) -> Result<()> {
+        let root = root.into();
+        let source = self
+            .sources
+            .iter_mut()
+            .find(|s| s.id == id)
+            .ok_or(Error::UnknownSource)?;
+        if source.root != root {
+            source.root = root;
+            self.save()?;
+        }
+        Ok(())
+    }
+
     /// Writes atomically (temp file + rename) so a crash never leaves a
     /// half-written list.
     fn save(&self) -> Result<()> {

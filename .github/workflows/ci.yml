@@ -79,6 +79,9 @@ jobs:
         run: ./scripts/fetch-pdfium.sh
       - run: npm ci
       - run: npm run tauri build -- ${{ matrix.args }}
+        env:
+          # The repo also holds the phone app (mobile/); build the desktop one.
+          TAURI_APP_PATH: src-tauri
       - uses: actions/upload-artifact@v4
         with:
           name: rupert-${{ runner.os }}

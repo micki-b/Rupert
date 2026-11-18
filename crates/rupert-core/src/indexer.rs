@@ -13,10 +13,14 @@
 //! online-only documents whose text is unknown a few at a time, indexes
 //! them, records them in the catalog (even when they turn out to have no
 //! text, so no machine fetches them again) and frees the space again.
+//!
+//! In [`Mode::Viewer`] (the phone) the indexer only reads: it uses the
+//! catalog and sidecars of every source but never writes, prunes or
+//! downloads anything.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::{Duration, Instant};
 
@@ -38,6 +42,32 @@ use crate::text::TextExtractor;
 const DOWNLOAD_BATCH: usize = 6;
 /// Larger files aren't downloaded just to read their text.
 const MAX_DOWNLOAD_BYTES: u64 = 100 * 1024 * 1024;
+
+// MARK: - Options
+
+/// What the indexer may change besides its own index.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mode {
+    /// Full Rupert: keeps the catalog of cloud sources current and
+    /// downloads online-only files for sources that ask for it.
+    #[default]
+    Library,
+    /// A viewer such as the phone app: reads the catalog and sidecars of
+    /// every source (its sync folders don't reveal the provider) and never
+    /// writes, prunes or downloads.
+    Viewer,
+}
+
+/// Called with a hidden `.rupert` folder before it is read, so a viewer can
+/// have the sync service fetch it first. Only those small folders are
+/// passed; documents are never.
+pub type PrepareHidden = Box<dyn Fn(&Path) + Send>;
+
+#[derive(Default)]
+pub struct Options {
+    pub mode: Mode,
+    pub prepare_hidden: Option<PrepareHidden>,
+}
 
 // MARK: - Jobs and progress
 
@@ -94,6 +124,23 @@ pub fn spawn(
     on_progress: impl Fn(Progress) + Send + 'static,
     on_changed: impl Fn() + Send + 'static,
 ) -> Result<IndexerHandle> {
+    spawn_with(
+        index_path,
+        extractor,
+        Options::default(),
+        on_progress,
+        on_changed,
+    )
+}
+
+/// [`spawn`] with [`Options`], e.g. read-only for a viewer.
+pub fn spawn_with(
+    index_path: PathBuf,
+    extractor: TextExtractor,
+    options: Options,
+    on_progress: impl Fn(Progress) + Send + 'static,
+    on_changed: impl Fn() + Send + 'static,
+) -> Result<IndexerHandle> {
     let index = Index::open(&index_path)?;
     let (tx, rx) = mpsc::channel();
     std::thread::Builder::new()
@@ -108,6 +155,8 @@ pub fn spawn(
                 last_report: Instant::now(),
                 dirty: false,
                 downloads: Downloads::default(),
+                mode: options.mode,
+                prepare_hidden: options.prepare_hidden,
             };
             worker.run(rx);
         })?;
@@ -125,6 +174,8 @@ struct Worker {
     last_report: Instant,
     dirty: bool,
     downloads: Downloads,
+    mode: Mode,
+    prepare_hidden: Option<PrepareHidden>,
 }
 
 /// The queue of online-only documents to download and index.
@@ -230,7 +281,7 @@ impl Worker {
                     .find(|e| !e.is_dir && e.rel_path == rel_path);
                 match found {
                     Some(entry) => {
-                        let sidecars = sidecar::mtimes(&source.root.join(parent));
+                        let sidecars = self.sidecar_mtimes(&source.root.join(parent));
                         self.index_file(&source, &Found::new(entry, &sidecars))?
                     }
                     None => self.remove_file(&source, &rel_path)?,
@@ -253,12 +304,15 @@ impl Worker {
             return Ok(()); // keep what we know until it comes back
         }
         let rel_dir = rel_dir.trim_matches('/');
+        if rel_dir.is_empty() && recursive {
+            self.prepare(&catalog::dir(&source.root));
+        }
         let mut found = Vec::new();
         let mut subdirs = Vec::new();
         if recursive {
-            walk(source, rel_dir, &mut found);
+            self.walk(source, rel_dir, &mut found);
         } else {
-            let sidecars = sidecar::mtimes(&source.root.join(rel_dir));
+            let sidecars = self.sidecar_mtimes(&source.root.join(rel_dir));
             for entry in list_dir(&source.root, rel_dir, source.show_all_types)? {
                 if entry.is_dir {
                     subdirs.push(entry.rel_path.clone());
@@ -292,7 +346,7 @@ impl Worker {
         // New or changed files.
         let todo: Vec<&Found> = found
             .iter()
-            .filter(|f| needs_indexing(known.get(&f.rel_path), f))
+            .filter(|f| needs_indexing(known.get(&f.rel_path), f, self.mode))
             .collect();
         self.progress.total += todo.len();
         for f in todo {
@@ -318,7 +372,7 @@ impl Worker {
         }
 
         // After a complete pass over a cloud source, drop stale catalog entries.
-        if recursive && rel_dir.is_empty() && shares_catalog(source) {
+        if recursive && rel_dir.is_empty() && self.writes_catalog(source) {
             let live: HashSet<String> = found.into_iter().map(|f| f.rel_path).collect();
             let _ = catalog::prune(&source.root, &live);
         }
@@ -386,14 +440,26 @@ impl Worker {
             (meta, storage, state, body)
         } else {
             let record = meta::read_meta(&path)?;
-            let (state, body) = match self.extractor.extract(&path) {
+            let (mut state, mut body) = match self.extractor.extract(&path) {
                 Ok(Some(t)) if !t.is_empty() => (TextState::Extracted, Some(t)),
                 _ if side_text.is_some() => (TextState::Sidecar, side_text),
                 Ok(Some(_)) => (TextState::Empty, None),
                 Ok(None) => (TextState::Unsupported, None),
                 Err(_) => (TextState::Failed, None),
             };
-            if shares_catalog(source) {
+            // This machine can't read the text (no PDFium, e.g. the phone),
+            // but another one may have: use its catalog entry, and keep it.
+            let mut from_catalog = false;
+            if matches!(state, TextState::Unsupported | TextState::Failed)
+                && self.reads_catalog(source)
+                && let Some(text) = catalog::read(&source.root, &f.rel_path)?
+                    .filter(|c| c.matches(e.size, e.modified_ms))
+                    .and_then(|c| c.text)
+                    .filter(|t| !t.is_empty())
+            {
+                (state, body, from_catalog) = (TextState::Catalog, Some(text), true);
+            }
+            if self.writes_catalog(source) && !from_catalog {
                 if always_catalog || body.is_some() || !record.meta.is_empty() {
                     let entry = CatalogEntry::new(
                         &f.rel_path,
@@ -438,6 +504,9 @@ impl Worker {
     /// Queues the source's online-only documents whose text is unknown, if
     /// the source has downloading turned on.
     fn queue_downloads(&mut self, source: &Source) -> Result<()> {
+        if self.mode == Mode::Viewer {
+            return Ok(());
+        }
         self.downloads
             .sources
             .insert(source.id.clone(), source.clone());
@@ -529,7 +598,7 @@ impl Worker {
         else {
             return Ok(());
         };
-        let sidecars = sidecar::mtimes(&source.root.join(parent));
+        let sidecars = self.sidecar_mtimes(&source.root.join(parent));
         let found = Found::new(entry, &sidecars);
         self.index_file_with(source, &found, true)?;
 
@@ -556,11 +625,51 @@ impl Worker {
 
     fn remove_file(&mut self, source: &Source, rel_path: &str) -> Result<()> {
         self.index.remove(&source.id, rel_path)?;
-        if shares_catalog(source) {
+        if self.writes_catalog(source) {
             let _ = catalog::remove(&source.root, rel_path);
         }
         self.dirty = true;
         Ok(())
+    }
+
+    // MARK: Shared files
+
+    fn writes_catalog(&self, source: &Source) -> bool {
+        self.mode == Mode::Library && shares_catalog(source)
+    }
+
+    fn reads_catalog(&self, source: &Source) -> bool {
+        self.mode == Mode::Viewer || shares_catalog(source)
+    }
+
+    /// Lets the viewer fetch a hidden folder before it's read.
+    fn prepare(&self, hidden_dir: &Path) {
+        if let Some(prepare) = &self.prepare_hidden
+            && hidden_dir.is_dir()
+        {
+            prepare(hidden_dir);
+        }
+    }
+
+    fn sidecar_mtimes(&self, dir: &Path) -> HashMap<String, i64> {
+        self.prepare(&dir.join(sidecar::DIR_NAME));
+        sidecar::mtimes(dir)
+    }
+
+    /// Every document file at or below `rel_dir`, using the same filtering
+    /// as the folder view (no file contents are read).
+    fn walk(&self, source: &Source, rel_dir: &str, out: &mut Vec<Found>) {
+        let Ok(entries) = list_dir(&source.root, rel_dir, source.show_all_types) else {
+            return;
+        };
+        let sidecars = self.sidecar_mtimes(&source.root.join(rel_dir));
+        for entry in entries {
+            if entry.is_dir {
+                self.walk(source, &entry.rel_path, out);
+            } else {
+                out.push(Found::new(entry, &sidecars));
+            }
+        }
     }
 
     /// Reports progress at most ~4×/s (or immediately if `force`), and lets
@@ -591,7 +700,7 @@ fn shares_catalog(source: &Source) -> bool {
     source.provider != Provider::Local
 }
 
-fn needs_indexing(known: Option<&Stamp>, f: &Found) -> bool {
+fn needs_indexing(known: Option<&Stamp>, f: &Found, mode: Mode) -> bool {
     let e = &f.entry;
     match known {
         None => true,
@@ -601,27 +710,13 @@ fn needs_indexing(known: Option<&Stamp>, f: &Found) -> bool {
                 || k.cloud != e.cloud
                 || k.sidecar_ms != f.sidecar_ms
                 // Downloaded since we last saw it, or text failed before.
-                || (e.cloud == CloudState::Local
+                // (A viewer can't read text itself, so retrying won't help.)
+                || (mode == Mode::Library
+                    && e.cloud == CloudState::Local
                     && matches!(
                         k.text_state,
                         TextState::CloudOnly | TextState::Catalog | TextState::Sidecar
                     ))
-        }
-    }
-}
-
-/// Every document file at or below `rel_dir`, using the same filtering as
-/// the folder view (no file contents are read).
-fn walk(source: &Source, rel_dir: &str, out: &mut Vec<Found>) {
-    let Ok(entries) = list_dir(&source.root, rel_dir, source.show_all_types) else {
-        return;
-    };
-    let sidecars = sidecar::mtimes(&source.root.join(rel_dir));
-    for entry in entries {
-        if entry.is_dir {
-            walk(source, &entry.rel_path, out);
-        } else {
-            out.push(Found::new(entry, &sidecars));
         }
     }
 }
@@ -685,6 +780,8 @@ mod tests {
             last_report: Instant::now(),
             dirty: false,
             downloads: Downloads::default(),
+            mode: Mode::Library,
+            prepare_hidden: None,
         }
     }
 
@@ -769,6 +866,110 @@ mod tests {
         let mut b = worker(Index::open_in_memory().unwrap());
         b.index_file(&src, &found).unwrap();
         assert_eq!(search(&b, "tenant"), ["lease.md"]);
+    }
+
+    /// Writes a catalog entry with text for a PDF, as a machine with PDFium would.
+    fn catalog_text_for(root: &Path, rel: &str, text: &str) {
+        let listed = list_dir(root, "", false)
+            .unwrap()
+            .into_iter()
+            .find(|e| e.rel_path == rel)
+            .unwrap();
+        let entry = CatalogEntry::new(
+            rel,
+            listed.size,
+            listed.modified_ms,
+            DocMeta::default(),
+            Storage::None,
+            Some(text.into()),
+        );
+        catalog::write(root, &entry).unwrap();
+    }
+
+    #[test]
+    fn machines_without_pdf_text_keep_the_catalog_text() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        crate::pdf_meta::tests::make_pdf(&root.join("deed.pdf"), None);
+        catalog_text_for(root, "deed.pdf", "Grant deed for the slip");
+
+        // No PDFium here: the other machine's text is used, not erased.
+        let src = source(root, Provider::OneDrive);
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.sync(&src, "", true).unwrap();
+        assert_eq!(search(&w, "slip"), ["deed.pdf"]);
+        let kept = catalog::read(root, "deed.pdf").unwrap().unwrap();
+        assert_eq!(kept.text.as_deref(), Some("Grant deed for the slip"));
+    }
+
+    #[test]
+    fn viewer_reads_but_never_writes_shared_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("Boat")).unwrap();
+        fs::write(root.join("Boat/survey.md"), "Hull survey").unwrap();
+        crate::pdf_meta::tests::make_pdf(&root.join("deed.pdf"), None);
+        catalog_text_for(root, "deed.pdf", "Grant deed for the slip");
+        // An entry for a file this machine can't see (e.g. not synced yet).
+        let ghost = CatalogEntry::new(
+            "Boat/ghost.pdf",
+            1,
+            Some(0),
+            DocMeta::default(),
+            Storage::None,
+            Some("ghost".into()),
+        );
+        catalog::write(root, &ghost).unwrap();
+        fs::create_dir_all(root.join("Boat/.rupert")).unwrap();
+        let before = catalog_files(root);
+
+        // Even a source that looks local is read like a cloud one.
+        let src = source(root, Provider::Local);
+        let prepared = Arc::new(Mutex::new(Vec::new()));
+        let seen = prepared.clone();
+        let top = root.to_path_buf();
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.mode = Mode::Viewer;
+        w.prepare_hidden = Some(Box::new(move |p: &Path| {
+            seen.lock()
+                .unwrap()
+                .push(p.strip_prefix(&top).unwrap().to_path_buf())
+        }));
+        w.sync(&src, "", true).unwrap();
+        assert_eq!(search(&w, "slip"), ["deed.pdf"]);
+        assert_eq!(search(&w, "hull"), ["Boat/survey.md"]);
+        assert_eq!(catalog_files(root), before, "nothing written or pruned");
+
+        // Removing a file doesn't touch the catalog either.
+        fs::remove_file(root.join("deed.pdf")).unwrap();
+        w.sync(&src, "", true).unwrap();
+        assert!(search(&w, "slip").is_empty());
+        assert_eq!(catalog_files(root), before);
+
+        let prepared = prepared.lock().unwrap();
+        assert!(prepared.iter().any(|p| p.ends_with(".rupert/catalog")));
+        assert!(prepared.iter().any(|p| p.ends_with("Boat/.rupert")));
+        assert!(
+            prepared
+                .iter()
+                .all(|p| p.to_string_lossy().contains(".rupert"))
+        );
+    }
+
+    fn catalog_files(root: &Path) -> Vec<(PathBuf, Vec<u8>)> {
+        let mut out = Vec::new();
+        let mut stack = vec![catalog::dir(root)];
+        while let Some(d) = stack.pop() {
+            for e in fs::read_dir(&d).into_iter().flatten().flatten() {
+                if e.path().is_dir() {
+                    stack.push(e.path());
+                } else {
+                    out.push((e.path(), fs::read(e.path()).unwrap()));
+                }
+            }
+        }
+        out.sort();
+        out
     }
 
     #[test]

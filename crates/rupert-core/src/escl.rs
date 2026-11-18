@@ -398,7 +398,7 @@ pub fn scan(
     let pdf = if pages.len() == 1 && pages[0].starts_with(b"%PDF") {
         pages.remove(0) // some scanners send PDF regardless
     } else {
-        jpegs_to_pdf(&pages, resolution as f64)?
+        jpegs_to_pdf(&pages, |_, _| resolution as f64)?
     };
     write_new(dest_dir, stem, &pdf)
 }
@@ -481,15 +481,16 @@ fn jpeg_info(data: &[u8]) -> Option<JpegInfo> {
     None
 }
 
-/// One page per JPEG, each the scanned size at `dpi`. The JPEG data is
-/// embedded as is (no re-encoding).
-fn jpegs_to_pdf(pages: &[Vec<u8>], dpi: f64) -> Result<Vec<u8>> {
+/// One page per JPEG, each the scanned size at the resolution `dpi` gives
+/// for its pixel width and height. The JPEG data is embedded as is (no
+/// re-encoding).
+pub(crate) fn jpegs_to_pdf(pages: &[Vec<u8>], dpi: impl Fn(u32, u32) -> f64) -> Result<Vec<u8>> {
     let mut doc = Document::with_version("1.5");
     let pages_id = doc.new_object_id();
     let mut kids = Vec::new();
     for data in pages {
-        let info =
-            jpeg_info(data).ok_or_else(|| net_err("the scanner sent a page that isn't a JPEG"))?;
+        let info = jpeg_info(data).ok_or_else(|| net_err("a scanned page isn't a JPEG"))?;
+        let dpi = dpi(info.width, info.height);
         let color_space = match info.components {
             1 => "DeviceGray",
             3 => "DeviceRGB",

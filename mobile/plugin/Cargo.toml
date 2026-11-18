@@ -1,0 +1,17 @@
+[package]
+name = "tauri-plugin-rupert-ios"
+description = "iOS services for Rupert's phone app: folder access, downloads, preview, document camera"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+links = "tauri-plugin-rupert-ios"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

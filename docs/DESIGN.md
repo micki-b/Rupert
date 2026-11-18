@@ -157,11 +157,25 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 - A review screen comes first (counts, renamed matches, files not found, folders outside Rupert's sources with an "Add as source" button). It is reached from File ▸ Import from ScanSnap Home… on macOS, or the sidebar.
 - **Run on the real library 2026-11-18:** 1,498 documents in Documents and OneDrive/Boating; 223 PDFs updated (all still readable with Poppler); none of the online-only files were downloaded. 3 items couldn't be found. Content-searchable documents went from 1,211 to 3,122.
 
+## Phone app (iPhone)
+
+A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mobile/plugin/ios`), on the same `rupert-core`. The UI is the `/phone` route of the shared SvelteKit front end. Android isn't planned: OneDrive and iCloud Drive there don't expose folders the app could read in place.
+
+- **Library:** the user picks folders in the Files picker (iCloud Drive, OneDrive, On My iPhone), the same folders Rupert uses on the computer. Access is kept with bookmarks, which are resolved at every launch because iOS paths can change.
+- **Read-only.** The indexer runs in viewer mode (`indexer::Mode::Viewer`): it reads the shared catalog and sidecars of every folder (the provider isn't visible from iOS paths) and never writes, prunes or downloads. Quick Look's markup is turned off.
+- **Text:** there's no PDFium on the phone, so body text comes from the catalog and sidecars that Rupert on a computer writes. Any machine that can't read a file's text now uses a matching catalog entry for it and leaves the entry alone; before, it erased the other machine's text.
+- **Downloads:** documents are fetched only when opened (`NSFileCoordinator`), then shown in Quick Look with sharing and printing. Rupert's own `.rupert/` folders are fetched before they're read (old-style iCloud `.name.icloud` placeholders included); a fetch that takes more than 90 s, e.g. offline, is skipped.
+- **Online-only files** are recognized like on the Mac (dataless files, `.icloud` placeholders).
+- **Scanning:** the system document camera (VisionKit: edge detection, perspective correction, filters). Pages are JPEGs of at most 3,300 px, embedded as is into one PDF sized so the longer side is 11 inches (camera pages carry no resolution). The PDF is copied with a coordinated write into the inbox folder chosen on the phone, which should be the Mac's inbox. OCR and filing suggestions happen there; the phone runs no AI.
+- **Tested in the iOS Simulator** on a made-up library (catalog written by the Mac engine): browsing, search with snippets, details from sidecars, Quick Look, scanning (the simulator has no camera, so it returns a generated page) into the inbox, and Apple Vision OCR of the result on the Mac. **Not yet tested on an iPhone with real iCloud Drive or OneDrive folders**, so how File Provider folders list and fetch on iOS is still open (see below).
+- Debug builds accept `SIMCTL_CHILD_RUPERT_TEST_FOLDER`, `…_INBOX` and `…_JS` to set up and drive a simulator, because the Files picker can't be scripted.
+
 ## Still to verify
 
 - iCloud Drive and OneDrive sync `.rupert/` dot-folders on all platforms.
 - Finder-tag writes on online-only files don't trigger downloads; whether OneDrive keeps Finder tags.
 - HP OfficeJet 250 supports eSCL/AirScan.
+- On an iPhone: listing big iCloud Drive and OneDrive folders through the picked bookmarks, fetching `.rupert/` folders, and that no document is downloaded until it is opened.
 - ScanSnap Home can save to a folder (or send to an app) without also cataloging the file.
 
 ## Milestones
@@ -173,7 +187,7 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 4. ✅ Intake: inbox, OCR (Apple Vision / Tesseract) with an invisible text layer, LM Studio suggestions, review screen, renaming and moving.
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
 6. Direct scanning: ✅ eSCL/AirScan (network scanners, all OSes). ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
-7. Phone viewer.
+7. ✅ iPhone app: browse and search the same folders (read-only), open documents in Quick Look, scan with the camera into the inbox. Tested in the simulator; not yet on a phone.
 
 ## Dependencies (licenses)
 

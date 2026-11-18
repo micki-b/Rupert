@@ -207,7 +207,7 @@ const FILE_ATTRIBUTE_HIDDEN: u32 = 0x0000_0002;
 #[cfg_attr(not(windows), allow(dead_code))]
 const FILE_ATTRIBUTE_SYSTEM: u32 = 0x0000_0004;
 
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[cfg_attr(not(any(target_os = "macos", target_os = "ios")), allow(dead_code))]
 fn dataless_flags(flags: u32) -> bool {
     flags & SF_DATALESS != 0
 }
@@ -232,6 +232,14 @@ fn is_cloud_only(meta: &fs::Metadata) -> bool {
     dataless_flags(meta.st_flags())
 }
 
+/// iOS File Provider folders (iCloud Drive, OneDrive) use the same
+/// dataless files; older iCloud placeholders are `.name.icloud` files.
+#[cfg(target_os = "ios")]
+fn is_cloud_only(meta: &fs::Metadata) -> bool {
+    use std::os::ios::fs::MetadataExt;
+    dataless_flags(meta.st_flags())
+}
+
 #[cfg(windows)]
 fn is_cloud_only(meta: &fs::Metadata) -> bool {
     use std::os::windows::fs::MetadataExt;
@@ -239,7 +247,7 @@ fn is_cloud_only(meta: &fs::Metadata) -> bool {
 }
 
 /// Linux sync clients keep full copies, so nothing is ever online-only.
-#[cfg(not(any(target_os = "macos", windows)))]
+#[cfg(not(any(target_os = "macos", target_os = "ios", windows)))]
 fn is_cloud_only(_meta: &fs::Metadata) -> bool {
     false
 }

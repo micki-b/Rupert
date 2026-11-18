@@ -1,10 +1,26 @@
 <script lang="ts">
   // Small stroke icons (24×24 grid), colored with currentColor.
-  type Name = "chevron" | "folder" | "file" | "pdf" | "cloud" | "plus" | "more" | "warning" | "inbox";
+  type Name =
+    | "chevron"
+    | "back"
+    | "folder"
+    | "file"
+    | "pdf"
+    | "cloud"
+    | "plus"
+    | "more"
+    | "warning"
+    | "inbox"
+    | "search"
+    | "camera"
+    | "library"
+    | "settings"
+    | "star";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
     chevron: "M9 6l6 6-6 6",
+    back: "M15 6l-6 6 6 6",
     folder: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
     file: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5",
     pdf: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M8 13h8M8 17h5",
@@ -13,6 +29,12 @@
     more: "M5 12h.01M12 12h.01M19 12h.01",
     warning: "M12 9v4M12 17h.01M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z",
     inbox: "M3 13h5l1.5 3h5L16 13h5M5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z",
+    search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4.2-4.2",
+    camera:
+      "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
+    library: "M4 4h4v16H4zM10 4h4v16h-4zM16.2 4.6l3.6-.9 3 15.5-3.6.9z",
+    settings: "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4",
+    star: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z",
   };
 </script>
 

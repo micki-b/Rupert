@@ -25,4 +25,8 @@ cargo test --workspace
 npm run check
 npm run tauri dev
 npm run tauri build
+npm run phone -- ios build --debug --target aarch64-sim   # iPhone app (mobile/), simulator
 ```
+
+- The phone app is read-only toward the library (`indexer::Mode::Viewer`). Keep it that way: no catalog writes, no metadata edits, Quick Look markup off.
+- `tauri ios init` installs and upgrades Homebrew packages. Run it with `HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_UPGRADE=1`, and don't rerun it casually: it regenerates `mobile/gen/apple`, whose build script was edited to set `TAURI_APP_PATH`.

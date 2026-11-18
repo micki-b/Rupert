@@ -44,7 +44,8 @@ pub struct DocRow {
 pub enum TextState {
     /// Extracted from the local file.
     Extracted,
-    /// Copied from the shared catalog (the file itself is online-only).
+    /// Copied from the shared catalog (the file is online-only, or this
+    /// machine can't read its text).
     Catalog,
     /// From the file's sidecar (e.g. ScanSnap Home's OCR text).
     Sidecar,
@@ -120,6 +121,16 @@ pub struct Hit {
     pub favorite: bool,
     /// Body excerpt with matches wrapped in HIGHLIGHT_START/END.
     pub snippet: Option<String>,
+}
+
+/// Everything the index knows about one document.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocInfo {
+    #[serde(flatten)]
+    pub hit: Hit,
+    pub notes: Option<String>,
+    pub text_state: TextState,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -406,6 +417,44 @@ impl Index {
             })
             .map_err(db)?;
         rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// One document's indexed details, if it's in the index.
+    pub fn document(&self, source_id: &str, rel_path: &str) -> Result<Option<DocInfo>> {
+        self.conn
+            .query_row(
+                "SELECT name, kind, size, mtime_ms, cloud, title, tags, document_date, favorite,
+                        notes, text_state
+                 FROM docs WHERE source_id = ?1 AND rel_path = ?2",
+                params![source_id, rel_path],
+                |r| {
+                    let tags: String = r.get(6)?;
+                    Ok(DocInfo {
+                        hit: Hit {
+                            source_id: source_id.into(),
+                            rel_path: rel_path.into(),
+                            name: r.get(0)?,
+                            kind: parse_kind(&r.get::<_, String>(1)?),
+                            size: r.get::<_, i64>(2)? as u64,
+                            modified_ms: r.get(3)?,
+                            cloud: if r.get::<_, i64>(4)? != 0 {
+                                CloudState::CloudOnly
+                            } else {
+                                CloudState::Local
+                            },
+                            title: r.get(5)?,
+                            tags: serde_json::from_str(&tags).unwrap_or_default(),
+                            document_date: r.get(7)?,
+                            favorite: r.get::<_, i64>(8)? != 0,
+                            snippet: None,
+                        },
+                        notes: r.get(9)?,
+                        text_state: TextState::parse(&r.get::<_, String>(10)?),
+                    })
+                },
+            )
+            .optional()
+            .map_err(db)
     }
 
     pub fn tags(&self) -> Result<Vec<TagCount>> {
@@ -837,6 +886,21 @@ mod tests {
             text: text.into(),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn looks_up_one_document() {
+        let idx = Index::open_in_memory().unwrap();
+        let mut r = row("Home/lease.pdf", Some("Apartment lease"), &["Legal"], true);
+        r.meta.notes = Some("Renew in March".into());
+        idx.upsert(&r, Some("The tenant agrees")).unwrap();
+        let doc = idx.document("s", "Home/lease.pdf").unwrap().unwrap();
+        assert_eq!(doc.hit.title.as_deref(), Some("Apartment lease"));
+        assert_eq!(doc.hit.tags, ["Legal"]);
+        assert!(doc.hit.favorite);
+        assert_eq!(doc.notes.as_deref(), Some("Renew in March"));
+        assert_eq!(doc.text_state, TextState::Extracted);
+        assert!(idx.document("s", "Home/other.pdf").unwrap().is_none());
     }
 
     #[test]

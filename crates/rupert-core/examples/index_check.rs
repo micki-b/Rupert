@@ -1,5 +1,6 @@
-//! Dev tool: index a folder into a throwaway database (read-only: the source
-//! is treated as local, so no catalog is written) and run sample searches.
+//! Dev tool: index a folder into a throwaway database and run sample
+//! searches. Read-only: the source is treated as local, so no catalog is
+//! written, unless `CATALOG=1` (treat it as a cloud folder and write one).
 //! Usage: cargo run --release -p rupert-core --example index_check -- <pdfium-dir> <folder> <db> [queries...]
 
 use std::sync::{Arc, Mutex};
@@ -42,7 +43,11 @@ fn main() {
         id: "test".into(),
         name: "test".into(),
         root: folder,
-        provider: Provider::Local,
+        provider: if std::env::var_os("CATALOG").is_some() {
+            Provider::OneDrive
+        } else {
+            Provider::Local
+        },
         show_all_types: false,
         download_online_only: false,
     }]));
