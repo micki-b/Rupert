@@ -4,6 +4,8 @@
   // computer by default; a cloud model only when chosen there).
   import { onMount, tick } from "svelte";
   import { api, onAssistantStep, type AssistantAction, type AssistantInfo, type AssistantStep } from "$lib/api";
+  import Icon from "$lib/Icon.svelte";
+  import RupertOwl, { type OwlMood } from "$lib/RupertOwl.svelte";
 
   let { onaction, onsettings }: { onaction: (a: AssistantAction) => void; onsettings: () => void } = $props();
 
@@ -20,6 +22,26 @@
   let live = $state<AssistantStep[]>([]);
   let list: HTMLDivElement | undefined = $state();
   let input: HTMLTextAreaElement | undefined = $state();
+  /** How Rupert looks between answers: happy for a moment, puzzled after an error. */
+  let after = $state<OwlMood>("idle");
+  let afterTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** What Rupert acts out while working, from the tool he's using. */
+  function moodFor(tool: string | undefined): OwlMood {
+    switch (tool) {
+      case undefined:
+        return "thinking";
+      case "read_document":
+        return "studying";
+      case "open_folder":
+      case "show_document":
+      case "show_results":
+        return "opening";
+      default:
+        return "searching";
+    }
+  }
+  const mood = $derived<OwlMood>(busy ? moodFor(live.at(-1)?.tool) : after);
 
   async function refreshInfo() {
     info = await api.assistantInfo().catch(() => null);
@@ -71,6 +93,8 @@
     if (!text || busy) return;
     draft = "";
     messages = [...messages, { role: "user", text }];
+    clearTimeout(afterTimer);
+    after = "idle";
     busy = true;
     live = [];
     scrollDown();
@@ -87,8 +111,11 @@
           model: reply.model,
         },
       ];
+      after = "happy";
+      afterTimer = setTimeout(() => (after = "idle"), 2500);
     } catch (e) {
       messages = [...messages, { role: "error", text: String(e) }];
+      after = "puzzled";
     } finally {
       busy = false;
       live = [];
@@ -101,6 +128,7 @@
   async function reset() {
     await api.assistantReset();
     messages = [];
+    after = "idle";
     await refreshInfo();
   }
 
@@ -127,6 +155,7 @@
 {#if open}
   <div class="panel" role="dialog" aria-label="Assistant">
     <header>
+      <RupertOwl {mood} size={44} />
       <div class="title">
         <strong>Ask Rupert</strong>
         {#if info}
@@ -135,14 +164,27 @@
           </span>
         {/if}
       </div>
-      <button class="icon" onclick={onsettings} title="Assistant settings" aria-label="Assistant settings">⚙︎</button>
-      <button class="icon" onclick={reset} disabled={busy || !messages.length} title="New conversation" aria-label="New conversation">↺</button>
-      <button class="icon" onclick={() => (open = false)} title="Close (Esc)" aria-label="Close">✕</button>
+      <button class="icon" onclick={onsettings} title="Assistant settings" aria-label="Assistant settings">
+        <Icon name="gear" size={20} />
+      </button>
+      <button
+        class="icon"
+        onclick={reset}
+        disabled={busy || !messages.length}
+        title="New conversation"
+        aria-label="New conversation"
+      >
+        <Icon name="new-chat" size={20} />
+      </button>
+      <button class="icon" onclick={() => (open = false)} title="Close (Esc)" aria-label="Close">
+        <Icon name="close" size={20} />
+      </button>
     </header>
 
     <div class="messages" bind:this={list}>
       {#if !messages.length}
         <div class="hello">
+          <div class="hello-owl"><RupertOwl mood={busy ? mood : "idle"} size={120} /></div>
           <p>Ask for documents, or tell me what to show. For example:</p>
           <ul>
             <li>“Find the impeller invoice from last spring”</li>
@@ -177,7 +219,6 @@
       {/each}
       {#if busy}
         <div class="working">
-          <span class="spinner"></span>
           {live.length ? live[live.length - 1].summary + "…" : "Thinking…"}
         </div>
       {/if}
@@ -242,8 +283,8 @@
   header {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 10px 10px 8px 14px;
+    gap: 6px;
+    padding: 8px 10px 8px 10px;
     border-bottom: 1px solid var(--border);
     background: var(--panel);
   }
@@ -264,13 +305,19 @@
   .model.cloud {
     color: var(--cloud);
   }
+  .title strong {
+    font-size: 15px;
+  }
   .icon {
     border: 0;
     background: none;
     color: var(--muted);
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    flex: none;
   }
   .icon:hover:not(:disabled) {
     background: var(--hover);
@@ -291,6 +338,12 @@
     color: var(--muted);
     font-size: 13px;
     line-height: 1.45;
+  }
+  .hello-owl {
+    display: flex;
+    justify-content: center;
+    color: var(--text);
+    margin: 4px 0 10px;
   }
   .hello ul {
     margin: 4px 0 8px;
@@ -339,19 +392,6 @@
     font-size: 12px;
     color: var(--muted);
     padding: 4px;
-  }
-  .spinner {
-    width: 12px;
-    height: 12px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
   .compose {
     display: flex;
