@@ -6,6 +6,7 @@
 pub mod catalog;
 pub mod cloud;
 pub mod error;
+pub mod escl;
 pub mod file_kind;
 pub mod fileops;
 pub mod index;

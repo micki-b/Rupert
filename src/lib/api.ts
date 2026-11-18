@@ -210,6 +210,44 @@ export interface Filed {
   relPath: string;
 }
 
+export interface Scanner {
+  name: string;
+  /** eSCL root, e.g. http://192.168.1.20/eSCL */
+  url: string;
+}
+
+export interface SourceCaps {
+  colorModes: string[];
+  resolutions: number[];
+  formats: string[];
+  maxWidth: number;
+  maxHeight: number;
+}
+
+export interface Capabilities {
+  makeAndModel: string | null;
+  platen: SourceCaps | null;
+  feeder: SourceCaps | null;
+  duplex: boolean;
+}
+
+export type InputSource = "platen" | "feeder";
+export type PageSize = "letter" | "legal" | "a4" | "max";
+
+export interface ScanRequest {
+  source: InputSource;
+  duplex: boolean;
+  color: "color" | "gray";
+  resolution: number;
+  pageSize: PageSize;
+}
+
+export interface ScanDone {
+  sourceId: string | null;
+  relPath: string | null;
+  error: string | null;
+}
+
 export interface AppInfo {
   name: string;
   version: string;
@@ -254,12 +292,29 @@ export const api = {
   allFolders: () => invoke<FolderChoice[]>("all_folders"),
   fileDocument: (sourceId: string, relPath: string, filing: Filing) =>
     invoke<Filed>("file_document", { sourceId, relPath, filing }),
+  scannersDiscover: () => invoke<Scanner[]>("scanners_discover"),
+  scannerAt: (address: string) => invoke<Scanner>("scanner_at", { address }),
+  scannerCapabilities: (scanner: Scanner) => invoke<Capabilities>("scanner_capabilities", { scanner }),
+  scanStart: (scanner: Scanner, request: ScanRequest, name: string) =>
+    invoke<void>("scan_start", { scanner, request, name }),
   preview: (sourceId: string, relPath: string, page = 0) =>
     invoke<string | null>("preview", { sourceId, relPath, page }),
 };
 
 export function onIntakeChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("intake-changed", () => handler());
+}
+
+export function onScanProgress(handler: (pages: number) => void): Promise<UnlistenFn> {
+  return listen<number>("scan-progress", (e) => handler(e.payload));
+}
+
+export function onScanDone(handler: (done: ScanDone) => void): Promise<UnlistenFn> {
+  return listen<ScanDone>("scan-done", (e) => handler(e.payload));
+}
+
+export function onMenuScan(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-scan", () => handler());
 }
 
 export function onMenuSettings(handler: () => void): Promise<UnlistenFn> {

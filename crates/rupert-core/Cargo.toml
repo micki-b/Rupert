@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+mdns-sd = { version = "0.22.0", default-features = false }
 png = "0.18.1"
 ureq = { version = "3.4.0", default-features = false, features = ["json"] }
 flate2 = "1.1.11"

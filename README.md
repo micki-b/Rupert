@@ -6,7 +6,7 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux.
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.
 - OCR and AI filing suggestions run locally (AI via LM Studio).
 
-Status: **milestones 1–5**. Sources with live updates and online-only status; titles, tags, dates, notes and favorites saved inside PDFs (or a hidden sidecar); full-text search; an inbox that recognizes the text in new scans (Apple Vision on macOS, Tesseract elsewhere), asks a local LM Studio model how to file them, and renames and moves them once you agree; import from ScanSnap Home. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
+Status: **milestones 1–5, and 6 for network scanners**. Sources with live updates and online-only status; titles, tags, dates, notes and favorites saved inside PDFs (or a hidden sidecar); full-text search; an inbox that recognizes the text in new scans (Apple Vision on macOS, Tesseract elsewhere), asks a local LM Studio model how to file them, and renames and moves them once you agree; import from ScanSnap Home; scanning from network (eSCL/AirScan) scanners straight into the inbox. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
 
 ## Layout
 

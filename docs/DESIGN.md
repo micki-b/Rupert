@@ -125,10 +125,16 @@ Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, 
 
 - **Phase 1: watched inbox.** Any scanner or app that saves to a folder works, e.g. a ScanSnap Home "save to folder" profile or HP Smart.
 - **Phase 2: direct scanning.**
-  - **HP OfficeJet 250:** eSCL/AirScan over the network if the device supports it (to verify). eSCL is plain HTTP+XML, so one Rust implementation would cover all three OSes. Fallbacks: Windows WIA, macOS ImageCaptureCore, Linux SANE/HPLIP.
+  - **eSCL / AirScan (built, `escl.rs`):** File ▸ Scan… or **Scan…** in the inbox.
+    - Scanners are found over Bonjour (`_uscan._tcp`, via the `mdns-sd` crate) or added by address.
+    - Capabilities are read (flatbed/feeder, duplex, color modes, resolutions, maximum size). Pages are fetched as JPEG and embedded unchanged (no re-encoding) in a PDF that lands in the inbox. It's written under a hidden name and then renamed, so the intake never sees half a file; OCR and suggestions follow as for any new scan.
+    - Plain HTTP + XML, so it works the same on all three OSes.
+    - Tested against a simulated scanner (`escl::mock`, also `examples/escl_mock.rs`, bound to 127.0.0.1 and not announced on the network): feeder with duplex, flatbed, and the "nearest offered resolution" choice. The scanned PDF opens in PDFKit and OCRs normally.
+    - **Not yet tested with real hardware:** no eSCL scanner was on the network on 2026-11-18 (only a Brother HL-2270DW printer).
+  - **HP OfficeJet 250:** should work over eSCL when it's on Wi-Fi (to verify). Over USB, macOS exposes it through ImageCaptureCore instead (not built; nor are Windows WIA and Linux SANE).
   - **ScanSnap iX1600** (USB, scanned from the MacBook Pro): ScanSnap models don't support TWAIN or ISIS.
     - Phase 1: a ScanSnap Home profile saves to Rupert's inbox folder, or uses ScanSnap Home's "send to application" option to hand the file to Rupert. ScanSnap Home stays installed only as the scanner driver.
-    - Phase 2: the ScanSnap SDK (Windows/macOS, needs ScanSnap Home 3.3+, iX1600 listed as supported), through a small native macOS bridge.
+    - Phase 2: the ScanSnap SDK (Windows/macOS, needs ScanSnap Home 3.3+, iX1600 listed as supported), through a small native macOS bridge. **Blocked:** the SDK is a licensed download from PFU (registration, terms on redistribution), so it can't be fetched or bundled here. Until then, phase 1 is the way: a ScanSnap Home profile that saves PDFs to Rupert's inbox folder.
 
 ## Migrating from ScanSnap Home
 
@@ -166,9 +172,9 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 3. ✅ Search: text extraction (PDFium), FTS5 index, shared catalog, search bar, Favorites and Tags in the sidebar. Whole OneDrive (19,421 documents) walked in 32 s; searches take 4–30 ms.
 4. ✅ Intake: inbox, OCR (Apple Vision / Tesseract) with an invisible text layer, LM Studio suggestions, review screen, renaming and moving.
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
-6. Direct scanning (eSCL first, then ScanSnap).
+6. Direct scanning: ✅ eSCL/AirScan (network scanners, all OSes). ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
 7. Phone viewer.
 
 ## Dependencies (licenses)
 
-`notify` (CC0/Artistic), `rusqlite` + SQLite FTS5 (MIT/public domain), `lopdf` (MIT), `pdfium-render` + PDFium (MIT/Apache, BSD), pdf.js viewer (Apache-2.0), `ureq` (MIT/Apache, LM Studio client), `png` (MIT/Apache), `objc2-*` (MIT; Apple Vision, file eviction), Tesseract (Apache-2.0, optional, not bundled). Avoid MuPDF and Ghostscript (AGPL).
+`notify` (CC0/Artistic), `rusqlite` + SQLite FTS5 (MIT/public domain), `lopdf` (MIT), `pdfium-render` + PDFium (MIT/Apache, BSD), pdf.js viewer (Apache-2.0), `ureq` (MIT/Apache, LM Studio and eSCL client), `mdns-sd` (MIT/Apache, scanner discovery), `png` (MIT/Apache), `objc2-*` (MIT; Apple Vision, file eviction), Tesseract (Apache-2.0, optional, not bundled). Avoid MuPDF and Ghostscript (AGPL).

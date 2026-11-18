@@ -19,11 +19,13 @@
     settings,
     onfiled,
     onsettings,
+    onscan,
   }: {
     sources: Source[];
     settings: Settings;
     onfiled: (filed: Filed) => void;
     onsettings: () => void;
+    onscan: () => void;
   } = $props();
 
   type Form = {
@@ -204,7 +206,10 @@
     <!-- MARK: List -->
     <aside class="list">
       <header>
-        <h2>Inbox</h2>
+        <div class="title-row">
+          <h2>Inbox</h2>
+          <button class="scan-btn" onclick={onscan}>Scan…</button>
+        </div>
         <span class="muted small" title={settings.inbox.relPath}>
           {inboxSource.name}{settings.inbox.relPath ? "/" + settings.inbox.relPath : ""}
         </span>
@@ -399,6 +404,15 @@
     padding: 0 6px 8px;
     display: grid;
     gap: 2px;
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .scan-btn {
+    font-size: 12px;
+    padding: 2px 10px;
   }
   .item {
     display: grid;

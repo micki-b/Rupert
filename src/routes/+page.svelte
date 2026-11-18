@@ -9,6 +9,7 @@
     onIndexProgress,
     onIntakeChanged,
     onMenuImport,
+    onMenuScan,
     onMenuSettings,
     providerLabel,
     revealLabel,
@@ -30,6 +31,7 @@
   import Icon from "$lib/Icon.svelte";
   import ImportDialog from "$lib/ImportDialog.svelte";
   import Inbox from "$lib/Inbox.svelte";
+  import ScanDialog from "$lib/ScanDialog.svelte";
   import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
 
@@ -48,6 +50,7 @@
   let renameValue = $state("");
   let importing = $state(false);
   let settingsOpen = $state(false);
+  let scanOpen = $state(false);
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
   let inboxCount = $state(0);
@@ -137,6 +140,7 @@
       onDirChanged((batch) => changes.push(batch)),
       onMenuImport(() => (importing = true)),
       onMenuSettings(() => (settingsOpen = true)),
+      onMenuScan(() => (scanOpen = true)),
       onIntakeChanged(loadInboxCount),
       onIndexProgress((p) => (progress = p)),
       onIndexChanged(() => {
@@ -492,7 +496,13 @@
 
   {#if inboxOpen && appSettings}
     <main class="documents inbox-pane">
-      <Inbox {sources} settings={appSettings} onfiled={showFiled} onsettings={() => (settingsOpen = true)} />
+      <Inbox
+        {sources}
+        settings={appSettings}
+        onfiled={showFiled}
+        onsettings={() => (settingsOpen = true)}
+        onscan={() => (scanOpen = true)}
+      />
     </main>
   {:else}
   <!-- MARK: Documents -->
@@ -666,6 +676,21 @@
   </section>
   {/if}
 </div>
+
+{#if scanOpen}
+  <ScanDialog
+    hasInbox={!!appSettings?.inbox}
+    onclose={() => (scanOpen = false)}
+    onscanned={() => {
+      openInbox();
+      loadInboxCount();
+    }}
+    onsettings={() => {
+      scanOpen = false;
+      settingsOpen = true;
+    }}
+  />
+{/if}
 
 {#if settingsOpen}
   <SettingsDialog
