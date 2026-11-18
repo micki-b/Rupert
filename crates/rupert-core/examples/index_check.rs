@@ -22,7 +22,7 @@ fn main() {
     let start = Instant::now();
     let handle = rupert_core::indexer::spawn(
         db.clone(),
-        Some(lib),
+        rupert_core::text::TextExtractor::new(Some(&lib)),
         move |p| {
             if p.active {
                 *b.lock().unwrap() = true;

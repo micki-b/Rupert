@@ -11,6 +11,8 @@ Read `docs/DESIGN.md` first. It records the product decisions and the metadata l
 - **Never read the contents of online-only files** (iCloud/OneDrive placeholders). Any read starts a download. The one exception is a source with "download online-only files to index them" turned on (`indexer` download queue + `cloud.rs`), which downloads, indexes and then evicts.
 - **AI = local LM Studio only.** No cloud services for document content.
 - Logic goes in `crates/rupert-core` (testable, no Tauri). `src-tauri` commands stay thin.
+- PDFium is loaded once per process and lives on one service thread: create one `TextExtractor` and share clones; never call `TextExtractor::new` with a library path twice.
+- Never point a test at the user's live app data or inbox. Use copies, and for UI checks a separate instance (`tauri dev --config '{"identifier":"io.github.micki-b.rupert-test", …}'`).
 - Prefer permissive licenses. No AGPL (MuPDF, Ghostscript).
 - Use `// MARK: -` section dividers in Rust files.
 

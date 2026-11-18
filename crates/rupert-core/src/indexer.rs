@@ -90,7 +90,7 @@ impl IndexerHandle {
 /// changed, so the UI can refresh searches and tag lists.
 pub fn spawn(
     index_path: PathBuf,
-    pdfium_dir: Option<PathBuf>,
+    extractor: TextExtractor,
     on_progress: impl Fn(Progress) + Send + 'static,
     on_changed: impl Fn() + Send + 'static,
 ) -> Result<IndexerHandle> {
@@ -99,7 +99,6 @@ pub fn spawn(
     std::thread::Builder::new()
         .name("rupert-indexer".into())
         .spawn(move || {
-            let extractor = TextExtractor::new(pdfium_dir.as_deref());
             let mut worker = Worker {
                 index,
                 extractor,
@@ -929,7 +928,7 @@ mod tests {
         let (r, c) = (Arc::clone(&reports), Arc::clone(&changed));
         let handle = spawn(
             dir.path().join("index.sqlite"),
-            None,
+            TextExtractor::new(None),
             move |p| r.lock().unwrap().push(p),
             move || *c.lock().unwrap() += 1,
         )

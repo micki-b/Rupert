@@ -4,7 +4,11 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, IntakeItem};
+use rupert_core::llm::LmStudio;
 use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
+use rupert_core::settings::{Settings, SettingsStore};
+use rupert_core::text::TextExtractor;
 use rupert_core::{
     CloudState, DirChange, DocMeta, Entry, FileKind, FolderMeta, Hit, Index, IndexStats,
     IndexerHandle, Job, LibraryWatcher, MetaRecord, Progress, SearchQuery, Source, SourceStore,
@@ -24,6 +28,11 @@ const INDEX_CHANGED: &str = "index-changed";
 const IMPORT_PROGRESS: &str = "import-progress";
 /// ScanSnap Home import finished. Payload: `ImportReport`.
 const IMPORT_DONE: &str = "import-done";
+/// The inbox list or an item in it changed. No payload.
+const INTAKE_CHANGED: &str = "intake-changed";
+/// Rupert ▸ Settings… was chosen (macOS menu). No payload.
+#[cfg(target_os = "macos")]
+const MENU_SETTINGS: &str = "menu-settings";
 /// File ▸ Import from ScanSnap Home… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_IMPORT: &str = "menu-import-scansnap";
@@ -40,6 +49,9 @@ struct AppState {
     progress: Mutex<Progress>,
     /// The ScanSnap Home import last reviewed, waiting to be applied.
     import_plan: Mutex<Option<ImportPlan>>,
+    settings: Mutex<SettingsStore>,
+    intake: IntakeHandle,
+    extractor: TextExtractor,
 }
 
 impl AppState {
@@ -59,6 +71,12 @@ impl AppState {
 
     fn sources(&self) -> Vec<Source> {
         self.store.lock().unwrap().sources().to_vec()
+    }
+
+    /// Hands the intake the current settings and sources.
+    fn reconfigure_intake(&self) {
+        let settings = self.settings.lock().unwrap().get().clone();
+        self.intake.configure(settings, self.sources());
     }
 }
 
@@ -117,6 +135,7 @@ fn list_sources(state: State<AppState>) -> Vec<SourceView> {
 fn add_source(path: String, state: State<AppState>) -> CmdResult<SourceView> {
     let source = state.store.lock().unwrap().add(path, None).map_err(err)?;
     state.rewatch();
+    state.reconfigure_intake();
     state.indexer.send(Job::SyncSource(source.clone()));
     Ok(source.into())
 }
@@ -125,6 +144,7 @@ fn add_source(path: String, state: State<AppState>) -> CmdResult<SourceView> {
 fn remove_source(id: String, state: State<AppState>) -> CmdResult<()> {
     state.store.lock().unwrap().remove(&id).map_err(err)?;
     state.rewatch();
+    state.reconfigure_intake();
     state.indexer.send(Job::RemoveSource(id));
     Ok(())
 }
@@ -341,6 +361,146 @@ fn index_status(state: State<AppState>) -> CmdResult<IndexStatus> {
     })
 }
 
+// MARK: - Commands: settings
+
+#[tauri::command]
+fn get_settings(state: State<AppState>) -> Settings {
+    state.settings.lock().unwrap().get().clone()
+}
+
+#[tauri::command]
+fn set_settings(settings: Settings, state: State<AppState>) -> CmdResult<Settings> {
+    state
+        .settings
+        .lock()
+        .unwrap()
+        .set(settings.clone())
+        .map_err(err)?;
+    state.reconfigure_intake();
+    Ok(settings)
+}
+
+/// The OCR engine on this machine, if any (e.g. "Apple Vision").
+#[tauri::command]
+fn ocr_engine() -> Option<&'static str> {
+    rupert_core::ocr::Engine::detect().map(|e| e.name())
+}
+
+/// Chat models LM Studio offers at `url` (fails if it isn't running).
+#[tauri::command]
+async fn lm_models(url: String) -> CmdResult<Vec<String>> {
+    tauri::async_runtime::spawn_blocking(move || LmStudio { url, model: None }.models())
+        .await
+        .map_err(err)?
+        .map_err(err)
+}
+
+// MARK: - Commands: inbox
+
+#[tauri::command]
+fn inbox_items(state: State<AppState>) -> Vec<IntakeItem> {
+    state.intake.items()
+}
+
+#[tauri::command]
+fn inbox_redo(rel_path: String, state: State<AppState>) {
+    state.intake.redo(rel_path);
+}
+
+/// Every folder in the sources that holds documents, for the folder picker.
+#[tauri::command]
+fn all_folders(state: State<AppState>) -> CmdResult<Vec<FolderChoice>> {
+    let sources = state.sources();
+    let folders = state.index.lock().unwrap().folders().map_err(err)?;
+    Ok(folders
+        .into_iter()
+        .filter_map(|(id, dir)| {
+            let source = sources.iter().find(|s| s.id == id)?;
+            Some(intake::folder_choice(source, &dir))
+        })
+        .collect())
+}
+
+/// Writes the reviewed details, then renames and moves the document.
+#[tauri::command]
+async fn file_document(
+    source_id: String,
+    rel_path: String,
+    filing: Filing,
+    app: AppHandle,
+) -> CmdResult<Filed> {
+    let state = app.state::<AppState>();
+    let sources = state.sources();
+    let (sid, rel, f) = (source_id.clone(), rel_path.clone(), filing.clone());
+    let filed = tauri::async_runtime::spawn_blocking(move || {
+        intake::file_document(&sources, &sid, &rel, &f)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    // Re-index where it was and where it is now.
+    let parent = |p: &str| {
+        p.rsplit_once('/')
+            .map(|(d, _)| d.to_string())
+            .unwrap_or_default()
+    };
+    for (id, dir) in [
+        (source_id, parent(&rel_path)),
+        (filed.source_id.clone(), parent(&filed.rel_path)),
+    ] {
+        if let Ok(source) = state.source(&id) {
+            state.indexer.send(Job::SyncDir {
+                source,
+                rel_dir: dir,
+            });
+        }
+    }
+    state.intake.refresh();
+    Ok(filed)
+}
+
+/// A page image for the review: a `data:` URL, or `None` if there's
+/// nothing to show without downloading the file.
+#[tauri::command]
+async fn preview(
+    source_id: String,
+    rel_path: String,
+    page: Option<usize>,
+    app: AppHandle,
+) -> CmdResult<Option<String>> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let extractor = state.extractor.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        let image = intake::preview(&extractor, &path, page.unwrap_or(0)).map_err(err)?;
+        Ok(image.map(|(bytes, mime)| format!("data:{mime};base64,{}", base64(&bytes))))
+    })
+    .await
+    .map_err(err)?
+}
+
+fn base64(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            *chunk.get(1).unwrap_or(&0),
+            *chunk.get(2).unwrap_or(&0),
+        ];
+        let n = (b[0] as u32) << 16 | (b[1] as u32) << 8 | b[2] as u32;
+        for i in 0..4 {
+            if i <= chunk.len() {
+                out.push(TABLE[(n >> (18 - 6 * i) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
 // MARK: - Commands: ScanSnap Home import
 
 /// ScanSnap Home's library folder, if it's in the usual place.
@@ -426,18 +586,26 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    for item in menu.items()? {
-        if let Some(sub) = item.as_submenu()
-            && sub.text()? == "File"
-        {
+    let settings = MenuItem::with_id(app, MENU_SETTINGS, "Settings…", true, Some("CmdOrCtrl+,"))?;
+    for (i, item) in menu.items()?.into_iter().enumerate() {
+        let Some(sub) = item.as_submenu() else {
+            continue;
+        };
+        if i == 0 {
+            // The app menu: Settings… after "About Rupert".
+            sub.insert(&PredefinedMenuItem::separator(app)?, 1)?;
+            sub.insert(&settings, 2)?;
+        } else if sub.text()? == "File" {
             sub.prepend(&PredefinedMenuItem::separator(app)?)?;
             sub.prepend(&import)?;
         }
     }
     app.set_menu(menu)?;
     app.on_menu_event(|app, event| {
-        if event.id() == MENU_IMPORT {
-            let _ = app.emit(MENU_IMPORT, ());
+        for id in [MENU_IMPORT, MENU_SETTINGS] {
+            if event.id() == id {
+                let _ = app.emit(id, ());
+            }
         }
     });
     Ok(())
@@ -468,9 +636,12 @@ pub fn run() {
             // Indexer first: it creates the database the read connection uses.
             let progress_handle = app.handle().clone();
             let changed_handle = app.handle().clone();
+            // PDFium lives on one service thread; everyone shares this handle.
+            let extractor = TextExtractor::new(pdfium_dir(app).as_deref());
+            let settings = SettingsStore::load(config_dir.join("settings.json"))?;
             let indexer = rupert_core::indexer::spawn(
                 index_path.clone(),
-                pdfium_dir(app),
+                extractor.clone(),
                 move |p: Progress| {
                     if let Some(state) = progress_handle.try_state::<AppState>() {
                         *state.progress.lock().unwrap() = p.clone();
@@ -483,10 +654,29 @@ pub fn run() {
             )?;
             let index = Index::open(&index_path)?;
 
+            let intake_handle = app.handle().clone();
+            let intake = intake::spawn(
+                index_path.clone(),
+                data_dir.join("intake.json"),
+                extractor.clone(),
+                move || {
+                    let _ = intake_handle.emit(INTAKE_CHANGED, ());
+                },
+            )?;
+
             // Watcher: tell the UI, and re-index the changed folders.
             let handle = app.handle().clone();
             let watcher = LibraryWatcher::new(move |changes: Vec<DirChange>| {
                 if let Some(state) = handle.try_state::<AppState>() {
+                    // New scans in the inbox?
+                    let inbox = state.settings.lock().unwrap().get().inbox.clone();
+                    if let Some(inbox) = inbox
+                        && changes
+                            .iter()
+                            .any(|c| c.source_id == inbox.source_id && c.rel_dir == inbox.rel_path)
+                    {
+                        state.intake.refresh();
+                    }
                     for change in &changes {
                         if let Ok(source) = state.source(&change.source_id) {
                             state.indexer.send(Job::SyncDir {
@@ -508,8 +698,12 @@ pub fn run() {
                 indexer,
                 progress: Mutex::new(Progress::default()),
                 import_plan: Mutex::new(None),
+                settings: Mutex::new(settings),
+                intake,
+                extractor,
             };
             state.rewatch();
+            state.reconfigure_intake();
             state.indexer.send(Job::SyncAll(state.sources()));
             app.manage(state);
             Ok(())
@@ -532,6 +726,15 @@ pub fn run() {
             scansnap_library,
             scansnap_plan,
             scansnap_apply,
+            get_settings,
+            set_settings,
+            ocr_engine,
+            lm_models,
+            inbox_items,
+            inbox_redo,
+            all_folders,
+            file_document,
+            preview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");

@@ -83,7 +83,7 @@ fn existing_xmp(doc: &Document) -> Option<(Option<ObjectId>, String)> {
 
 /// Encrypted or signed PDFs are left untouched; their metadata goes to a
 /// sidecar instead.
-fn unwritable_reason(doc: &Document) -> Option<String> {
+pub(crate) fn unwritable_reason(doc: &Document) -> Option<String> {
     if doc.trailer.has(b"Encrypt") || doc.encryption_state.is_some() {
         return Some("the PDF is encrypted, so details are kept in a sidecar file".into());
     }
@@ -230,7 +230,7 @@ fn verify(updated: &[u8], meta: &DocMeta) -> Result<()> {
 }
 
 /// Appends `tail` to the file, restoring the original length on failure.
-fn append(path: &Path, original_len: u64, tail: &[u8]) -> Result<()> {
+pub(crate) fn append(path: &Path, original_len: u64, tail: &[u8]) -> Result<()> {
     let mut file = OpenOptions::new().append(true).open(path)?;
     let result = file.write_all(tail).and_then(|_| file.sync_all());
     if let Err(e) = result {
@@ -253,6 +253,11 @@ fn utc_now() -> String {
         .map(|d| d.as_secs())
         .unwrap_or(0);
     format_utc(secs)
+}
+
+/// Today's date (UTC) as `YYYY-MM-DD`.
+pub(crate) fn utc_today() -> String {
+    utc_now()[..10].to_string()
 }
 
 fn format_utc(secs: u64) -> String {

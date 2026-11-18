@@ -106,10 +106,20 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 
 ### Pipeline
 
-Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, document date, tags and destination folder → user reviews and accepts → file is renamed, metadata written, file moved.
+Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, document date, tags and destination folder → user reviews and accepts → file is renamed, metadata written, file moved. **Built in milestone 4.**
 
-- **OCR** adds an invisible text layer to the PDF, so other programs can search it too. Engine: Tesseract (Apache-2.0), bundled. ScanSnap output already includes OCR text.
-- **LM Studio** offers an OpenAI-compatible server on `localhost:1234`. If it isn't running, suggestions are turned off and nothing else breaks.
+- **Inbox:** a folder inside one of the sources (Settings; e.g. the folder a ScanSnap Home profile saves to). A background thread (`intake.rs`) processes new files one at a time and caches the results by size and modification time in the app's data folder, so nothing is redone after a restart.
+- **OCR** (`ocr.rs`, `text_layer.rs`) adds an invisible text layer to every PDF page without text, so other programs can search it too. Scanned images get their recognized text in their sidecar instead.
+  - Engines, all local: **Apple Vision** on macOS (built in: nothing to bundle, better than Tesseract on scans, detects the language per text block), and the **`tesseract` command** on Windows and Linux when installed. This replaces the earlier plan of bundling Tesseract, whose native libraries are awkward to ship on all three platforms.
+  - Pages are rendered by PDFium at up to 300 dpi; word boxes are mapped back to PDF coordinates with PDFium's own pixel-to-page transform, so rotated and cropped pages work.
+  - The layer uses a "glyphless" font as Tesseract does: Type 0, Identity-H (UTF-16 code units), an embedded 600-byte TrueType program whose glyphs are empty, fixed widths and a ToUnicode map. A Type 3 font was tried first; PDFium and Poppler read it but **PDFKit (Preview, Spotlight) ignores Type 3 text**, so it was replaced.
+  - Written as an incremental update like metadata, checked before writing (the updated file must parse and PDFium must read back ≥ 90 % of the words). Tested on real ScanSnap scans: original bytes intact, pages render identically, text found by PDFKit, PDFium and Poppler, selection boxes line up with the printed words.
+  - PDFium can be loaded once per process and is then tied to its thread, so it lives on one service thread (`text.rs`); the indexer and the intake share a handle.
+- **LM Studio** (`llm.rs`) via its OpenAI-compatible server on `localhost:1234`, with a JSON schema for the answer. If it isn't running, the review simply has no suggestion.
+  - The model sees the start of the text, the file name, the current year (not today's date, which models copy as the document date), the tags in use, and up to 12 **folders where similar documents live** — found by a full-text OR query of the document's most telling words against the index — so the prompt stays small even with 1,200+ folders. It may only pick one of those folders.
+  - Some reasoning models return the JSON in `reasoning_content` instead of `content`; both are read.
+  - With qwen3.6-35b-a3b: 1–5 s per document; titles, dates and folders were right on 7 of 8 real scans.
+- **Review and filing:** the inbox view shows the list, a page preview and a form prefilled from the suggestion (title, date, tags, folder, file name from a pattern, default `{date} {title}`). **File** writes the details into the file, then renames and moves it (`fileops.rs`: sidecar moves along, never overwrites — " (2)" is added — copy + delete across volumes).
 
 ### Scanners
 
@@ -154,11 +164,11 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 1. ✅ Sources: add folders, browse trees, watch for changes, show online-only status. Folders are listed lazily (one level at a time), so there is no full index yet; that arrives with search in milestone 3.
 2. ✅ Metadata: read/write XMP + Info dict, sidecars, tags, `rupert:id` identity. Tested on 26 real PDFs (Poppler, PDFKit and Spotlight read the results; original bytes and rendering unchanged). Finder-tag sync deferred until after milestone 3.
 3. ✅ Search: text extraction (PDFium), FTS5 index, shared catalog, search bar, Favorites and Tags in the sidebar. Whole OneDrive (19,421 documents) walked in 32 s; searches take 4–30 ms.
-4. Intake: inbox, OCR, LM Studio suggestions, review screen.
+4. ✅ Intake: inbox, OCR (Apple Vision / Tesseract) with an invisible text layer, LM Studio suggestions, review screen, renaming and moving.
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
 6. Direct scanning (eSCL first, then ScanSnap).
 7. Phone viewer.
 
 ## Dependencies (licenses)
 
-`notify` (CC0/Artistic), `rusqlite` + SQLite FTS5 (MIT/public domain), `lopdf` (MIT), `pdfium-render` + PDFium (MIT/Apache, BSD), pdf.js viewer (Apache-2.0), Tesseract (Apache-2.0). Avoid MuPDF and Ghostscript (AGPL).
+`notify` (CC0/Artistic), `rusqlite` + SQLite FTS5 (MIT/public domain), `lopdf` (MIT), `pdfium-render` + PDFium (MIT/Apache, BSD), pdf.js viewer (Apache-2.0), `ureq` (MIT/Apache, LM Studio client), `png` (MIT/Apache), `objc2-*` (MIT; Apple Vision, file eviction), Tesseract (Apache-2.0, optional, not bundled). Avoid MuPDF and Ghostscript (AGPL).

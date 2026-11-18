@@ -1,6 +1,6 @@
 <script lang="ts">
   // Small stroke icons (24×24 grid), colored with currentColor.
-  type Name = "chevron" | "folder" | "file" | "pdf" | "cloud" | "plus" | "more" | "warning";
+  type Name = "chevron" | "folder" | "file" | "pdf" | "cloud" | "plus" | "more" | "warning" | "inbox";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
@@ -12,6 +12,7 @@
     plus: "M12 5v14M5 12h14",
     more: "M5 12h.01M12 12h.01M19 12h.01",
     warning: "M12 9v4M12 17h.01M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z",
+    inbox: "M3 13h5l1.5 3h5L16 13h5M5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z",
   };
 </script>
 

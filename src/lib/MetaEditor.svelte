@@ -333,7 +333,12 @@
   }
   /* WebKit draws today's date in an empty date field; hide it until focused
      so an unset date doesn't look like a real one. */
-  input.unset:not(:focus)::-webkit-datetime-edit {
+  input.unset:not(:focus)::-webkit-datetime-edit,
+  input.unset:not(:focus)::-webkit-datetime-edit-fields-wrapper,
+  input.unset:not(:focus)::-webkit-datetime-edit-month-field,
+  input.unset:not(:focus)::-webkit-datetime-edit-day-field,
+  input.unset:not(:focus)::-webkit-datetime-edit-year-field,
+  input.unset:not(:focus)::-webkit-datetime-edit-text {
     color: transparent;
   }
   .beside {

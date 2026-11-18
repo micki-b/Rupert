@@ -450,6 +450,93 @@ impl Index {
             .map_err(db)
     }
 
+    /// Folders that hold documents similar to `text` (sharing its most
+    /// telling words), best first, as (source id, folder, matching
+    /// documents). Folders under `exclude` (source id, folder) are skipped,
+    /// e.g. the inbox itself.
+    pub fn similar_folders(
+        &self,
+        text: &str,
+        exclude: Option<(&str, &str)>,
+        limit: usize,
+    ) -> Result<Vec<(String, String, usize)>> {
+        let words = telling_words(text, 40);
+        if words.is_empty() {
+            return Ok(Vec::new());
+        }
+        let query = words
+            .iter()
+            .map(|w| format!("\"{w}\""))
+            .collect::<Vec<_>>()
+            .join(" OR ");
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT d.source_id, d.dir FROM fts JOIN docs d ON d.id = fts.rowid
+                 WHERE fts MATCH ?1 ORDER BY bm25(fts, 8.0, 10.0, 6.0, 3.0, 1.0) LIMIT 60",
+            )
+            .map_err(db)?;
+        let rows: Vec<(String, String)> = stmt
+            .query_map([query], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(db)?
+            .collect::<std::result::Result<_, _>>()
+            .map_err(db)?;
+        let mut counts: Vec<(String, String, usize)> = Vec::new();
+        for (source, dir) in rows {
+            if let Some((xs, xd)) = exclude
+                && source == xs
+                && (dir == xd || dir.starts_with(&format!("{xd}/")) || xd.is_empty())
+            {
+                continue;
+            }
+            match counts
+                .iter_mut()
+                .find(|(s, d, _)| *s == source && *d == dir)
+            {
+                Some(entry) => entry.2 += 1,
+                None => counts.push((source, dir, 1)),
+            }
+        }
+        // Stable sort keeps rank order among equal counts.
+        counts.sort_by_key(|a| std::cmp::Reverse(a.2));
+        counts.truncate(limit);
+        Ok(counts)
+    }
+
+    /// Every folder that holds documents, and the folders above them, as
+    /// (source id, folder), sorted.
+    pub fn folders(&self) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT DISTINCT source_id, dir FROM docs")
+            .map_err(db)?;
+        let rows: Vec<(String, String)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(db)?
+            .collect::<std::result::Result<_, _>>()
+            .map_err(db)?;
+        let mut all = std::collections::BTreeSet::new();
+        for (source, dir) in rows {
+            let mut d = dir.as_str();
+            loop {
+                all.insert((source.clone(), d.to_string()));
+                match d.rsplit_once('/') {
+                    Some((parent, _)) => d = parent,
+                    None if !d.is_empty() => d = "",
+                    None => break,
+                }
+            }
+        }
+        Ok(all.into_iter().collect())
+    }
+
+    /// Tags by how often they're used, most used first.
+    pub fn top_tags(&self, limit: usize) -> Result<Vec<String>> {
+        let mut tags = self.tags()?;
+        tags.sort_by_key(|a| std::cmp::Reverse(a.count));
+        Ok(tags.into_iter().take(limit).map(|t| t.tag).collect())
+    }
+
     /// Documents of exactly `size` bytes, as (source id, relative path).
     /// Used to find files that were moved or renamed outside Rupert.
     pub fn find_by_size(&self, size: u64) -> Result<Vec<(String, String)>> {
@@ -581,6 +668,95 @@ fn searchable_name(name: &str) -> String {
 
 /// Turns what the user typed into an FTS5 query: every word must match, the
 /// last one as a prefix (search-as-you-type). `None` for an empty query.
+/// The words of `text` most likely to identify what it's about: longer
+/// words that aren't numbers or common filler, most frequent first.
+fn telling_words(text: &str, n: usize) -> Vec<String> {
+    const STOP: &[&str] = &[
+        "this",
+        "that",
+        "with",
+        "from",
+        "your",
+        "have",
+        "will",
+        "they",
+        "their",
+        "there",
+        "which",
+        "were",
+        "been",
+        "what",
+        "when",
+        "where",
+        "would",
+        "could",
+        "should",
+        "about",
+        "these",
+        "those",
+        "other",
+        "into",
+        "than",
+        "then",
+        "them",
+        "page",
+        "date",
+        "please",
+        "thank",
+        "dear",
+        "sincerely",
+        "regards",
+        "total",
+        "amount",
+        "number",
+        "phone",
+        "email",
+        "only",
+        "also",
+        "more",
+        "such",
+        "each",
+        "upon",
+        "must",
+        "does",
+        "Sehr",
+        "geehrte",
+        "nicht",
+        "eine",
+        "einen",
+        "einer",
+        "oder",
+        "sind",
+        "wird",
+        "werden",
+        "para",
+        "como",
+        "esta",
+        "este",
+        "pero",
+        "sobre",
+    ];
+    let mut counts: Vec<(String, usize)> = Vec::new();
+    for raw in text.split(|c: char| !c.is_alphanumeric()) {
+        let w = raw.to_lowercase();
+        if w.chars().count() < 4
+            || w.chars().any(|c| c.is_ascii_digit())
+            || STOP.iter().any(|s| s.eq_ignore_ascii_case(&w))
+        {
+            continue;
+        }
+        match counts.iter_mut().find(|(x, _)| *x == w) {
+            Some(e) => e.1 += 1,
+            None => counts.push((w, 1)),
+        }
+        if counts.len() > 2000 {
+            break;
+        }
+    }
+    counts.sort_by_key(|a| std::cmp::Reverse(a.1));
+    counts.into_iter().take(n).map(|(w, _)| w).collect()
+}
+
 pub fn fts_query(text: &str) -> Option<String> {
     let words: Vec<String> = text
         .split(|c: char| !c.is_alphanumeric())

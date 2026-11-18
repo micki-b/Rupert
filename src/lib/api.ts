@@ -145,6 +145,71 @@ export interface ImportReport {
   failed: { sourceId: string; relPath: string; error: string }[];
 }
 
+export interface InboxLocation {
+  sourceId: string;
+  relPath: string;
+}
+
+export interface Settings {
+  inbox: InboxLocation | null;
+  ocr: boolean;
+  suggestions: boolean;
+  lmStudioUrl: string;
+  lmStudioModel: string | null;
+  /** `{date}` and `{title}` are replaced. */
+  namePattern: string;
+}
+
+export interface FolderChoice {
+  sourceId: string;
+  dir: string;
+  /** "Source/dir" */
+  label: string;
+}
+
+export interface Suggestion {
+  title: string | null;
+  documentDate: string | null;
+  tags: string[];
+  folder: string | null;
+  reason: string | null;
+  model: string;
+}
+
+export type Stage = "waiting" | "recognizing" | "suggesting" | "ready";
+
+export interface IntakeItem {
+  sourceId: string;
+  relPath: string;
+  name: string;
+  size: number;
+  modifiedMs: number | null;
+  cloud: CloudState;
+  stage: Stage;
+  progress: [number, number] | null;
+  ocr: string | null;
+  suggestion: Suggestion | null;
+  suggestedFolder: FolderChoice | null;
+  folders: FolderChoice[];
+  note: string | null;
+}
+
+export interface Filing {
+  title: string | null;
+  documentDate: string | null;
+  tags: string[];
+  notes: string | null;
+  favorite: boolean;
+  destSourceId: string;
+  destDir: string;
+  fileName: string;
+}
+
+export interface Filed {
+  sourceId: string;
+  relPath: string;
+}
+
 export interface AppInfo {
   name: string;
   version: string;
@@ -180,7 +245,37 @@ export const api = {
   scansnapLibrary: () => invoke<string | null>("scansnap_library"),
   scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),
   scansnapApply: () => invoke<void>("scansnap_apply"),
+  getSettings: () => invoke<Settings>("get_settings"),
+  setSettings: (settings: Settings) => invoke<Settings>("set_settings", { settings }),
+  ocrEngine: () => invoke<string | null>("ocr_engine"),
+  lmModels: (url: string) => invoke<string[]>("lm_models", { url }),
+  inboxItems: () => invoke<IntakeItem[]>("inbox_items"),
+  inboxRedo: (relPath: string) => invoke<void>("inbox_redo", { relPath }),
+  allFolders: () => invoke<FolderChoice[]>("all_folders"),
+  fileDocument: (sourceId: string, relPath: string, filing: Filing) =>
+    invoke<Filed>("file_document", { sourceId, relPath, filing }),
+  preview: (sourceId: string, relPath: string, page = 0) =>
+    invoke<string | null>("preview", { sourceId, relPath, page }),
 };
+
+export function onIntakeChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("intake-changed", () => handler());
+}
+
+export function onMenuSettings(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-settings", () => handler());
+}
+
+/** The file name (without extension) from the naming pattern. */
+export function fileNameFor(pattern: string, date: string | null, title: string): string {
+  return pattern
+    .replace("{date}", date ?? "")
+    .replace("{title}", title)
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(" ")
+    .replace(/^[\s_-]+|[\s_-]+$/g, "");
+}
 
 export function onImportProgress(handler: (p: ImportProgress) => void): Promise<UnlistenFn> {
   return listen<ImportProgress>("import-progress", (e) => handler(e.payload));

@@ -232,7 +232,7 @@ pub fn sha256(file: &Path) -> Result<String> {
 /// Dot-folders are already hidden on macOS and Linux; Windows needs the
 /// hidden attribute.
 #[cfg(windows)]
-fn hide(dir: &Path) {
+pub(crate) fn hide(dir: &Path) {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_ATTRIBUTE_HIDDEN, GetFileAttributesW, INVALID_FILE_ATTRIBUTES, SetFileAttributesW,
@@ -247,7 +247,7 @@ fn hide(dir: &Path) {
 }
 
 #[cfg(not(windows))]
-fn hide(_dir: &Path) {}
+pub(crate) fn hide(_dir: &Path) {}
 
 // MARK: - Tests
 

@@ -1,0 +1,138 @@
+//! App settings that aren't about a single source: the inbox, OCR and
+//! suggestion preferences, and how filed documents are named. Saved as
+//! JSON in the app's config folder.
+
+use std::fs;
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+
+use crate::error::Result;
+use crate::llm;
+
+/// The inbox: a folder inside one of the sources where new scans arrive.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InboxLocation {
+    pub source_id: String,
+    pub rel_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Settings {
+    pub inbox: Option<InboxLocation>,
+    /// Add a text layer to scans in the inbox.
+    pub ocr: bool,
+    /// Ask LM Studio for a title, date, tags and folder.
+    pub suggestions: bool,
+    pub lm_studio_url: String,
+    /// `None` = whichever chat model LM Studio lists first.
+    pub lm_studio_model: Option<String>,
+    /// How filed documents are named: `{date}` and `{title}` are replaced.
+    pub name_pattern: String,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            inbox: None,
+            ocr: true,
+            suggestions: true,
+            lm_studio_url: llm::DEFAULT_URL.into(),
+            lm_studio_model: None,
+            name_pattern: "{date} {title}".into(),
+        }
+    }
+}
+
+impl Settings {
+    /// The file name (without extension) for a document, from the pattern.
+    pub fn file_name(&self, date: Option<&str>, title: &str) -> String {
+        self.name_pattern
+            .replace("{date}", date.unwrap_or(""))
+            .replace("{title}", title)
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .trim_matches(|c: char| c == '-' || c == '_' || c.is_whitespace())
+            .to_string()
+    }
+}
+
+/// The saved settings. Every change is written to disk immediately.
+#[derive(Debug)]
+pub struct SettingsStore {
+    path: PathBuf,
+    settings: Settings,
+}
+
+impl SettingsStore {
+    pub fn load(path: impl Into<PathBuf>) -> Result<Self> {
+        let path = path.into();
+        let settings = match fs::read(&path) {
+            Ok(bytes) => serde_json::from_slice(&bytes)?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Settings::default(),
+            Err(e) => return Err(e.into()),
+        };
+        Ok(Self { path, settings })
+    }
+
+    pub fn get(&self) -> &Settings {
+        &self.settings
+    }
+
+    pub fn set(&mut self, settings: Settings) -> Result<()> {
+        if let Some(dir) = self.path.parent() {
+            fs::create_dir_all(dir)?;
+        }
+        let tmp = self.path.with_extension("json.tmp");
+        fs::write(&tmp, serde_json::to_vec_pretty(&settings)?)?;
+        fs::rename(&tmp, &self.path)?;
+        self.settings = settings;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names_from_pattern() {
+        let s = Settings::default();
+        assert_eq!(
+            s.file_name(Some("2026-04-29"), "Safeco auto policy"),
+            "2026-04-29 Safeco auto policy"
+        );
+        assert_eq!(
+            s.file_name(None, "Safeco auto policy"),
+            "Safeco auto policy"
+        );
+        let dashed = Settings {
+            name_pattern: "{title} - {date}".into(),
+            ..Default::default()
+        };
+        assert_eq!(dashed.file_name(None, "Lease"), "Lease");
+    }
+
+    #[test]
+    fn round_trip_and_defaults() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        let mut store = SettingsStore::load(&path).unwrap();
+        assert!(store.get().ocr && store.get().suggestions);
+        let mut s = store.get().clone();
+        s.inbox = Some(InboxLocation {
+            source_id: "a".into(),
+            rel_path: "Scans".into(),
+        });
+        store.set(s.clone()).unwrap();
+        assert_eq!(SettingsStore::load(&path).unwrap().get(), &s);
+        // Older or partial files get defaults for missing fields.
+        fs::write(&path, r#"{"ocr": false}"#).unwrap();
+        let loaded = SettingsStore::load(&path).unwrap();
+        assert!(!loaded.get().ocr);
+        assert_eq!(loaded.get().name_pattern, "{date} {title}");
+    }
+}

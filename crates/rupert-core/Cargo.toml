@@ -8,6 +8,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+png = "0.18.1"
+ureq = { version = "3.4.0", default-features = false, features = ["json"] }
 flate2 = "1.1.11"
 lopdf = "0.47.0"
 notify-debouncer-mini = "0.7.0"
@@ -29,4 +31,6 @@ windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 [target."cfg(target_os = \"macos\")".dependencies]
 libc = "0.2.191"
 objc2 = "0.6.5"
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSFileManager", "NSURL", "NSError", "NSString"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSDictionary", "NSFileManager", "NSURL", "NSError", "NSString", "NSRange", "NSValue"] }
+objc2-vision = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "VNRequest", "VNRequestHandler", "VNRecognizeTextRequest", "VNObservation", "VNTypes"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFCGTypes"] }

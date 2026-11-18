@@ -7,11 +7,15 @@
     onDirChanged,
     onIndexChanged,
     onIndexProgress,
+    onIntakeChanged,
     onMenuImport,
+    onMenuSettings,
     providerLabel,
     revealLabel,
     snippetParts,
     type AppInfo,
+    type Filed,
+    type Settings,
     type Entry,
     type Hit,
     type IndexStats,
@@ -25,6 +29,8 @@
   import FolderNode from "$lib/FolderNode.svelte";
   import Icon from "$lib/Icon.svelte";
   import ImportDialog from "$lib/ImportDialog.svelte";
+  import Inbox from "$lib/Inbox.svelte";
+  import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
 
   type Folder = { sourceId: string; relPath: string };
@@ -41,6 +47,10 @@
   let renaming = $state<string | null>(null);
   let renameValue = $state("");
   let importing = $state(false);
+  let settingsOpen = $state(false);
+  let appSettings = $state<Settings | null>(null);
+  let inboxOpen = $state(false);
+  let inboxCount = $state(0);
 
   // Search & library filters
   let query = $state("");
@@ -106,6 +116,7 @@
   }
 
   function selectFolder(sourceId: string, relPath: string) {
+    inboxOpen = false;
     query = "";
     tagFilter = null;
     favoritesOnly = false;
@@ -119,10 +130,14 @@
     api.appInfo().then((i) => (info = i));
     loadSources();
     loadIndexInfo();
+    api.getSettings().then((s) => (appSettings = s));
+    loadInboxCount();
 
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
       onMenuImport(() => (importing = true)),
+      onMenuSettings(() => (settingsOpen = true)),
+      onIntakeChanged(loadInboxCount),
       onIndexProgress((p) => (progress = p)),
       onIndexChanged(() => {
         indexTick++;
@@ -136,6 +151,7 @@
     const shortcuts = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         e.preventDefault();
+        inboxOpen = false;
         searchInput?.focus();
         searchInput?.select();
       }
@@ -185,6 +201,7 @@
 
   // Sidebar filters start a fresh view; typing afterwards searches within them.
   function filterTag(tag: string) {
+    inboxOpen = false;
     query = "";
     tagFilter = tagFilter === tag ? null : tag;
     favoritesOnly = false;
@@ -192,6 +209,7 @@
   }
 
   function filterFavorites() {
+    inboxOpen = false;
     query = "";
     favoritesOnly = !favoritesOnly;
     tagFilter = null;
@@ -202,6 +220,24 @@
     query = "";
     tagFilter = null;
     favoritesOnly = false;
+  }
+
+  function openInbox() {
+    inboxOpen = true;
+    selected = null;
+  }
+
+  /** After filing from the inbox: show the document where it went. */
+  function showFiled(filed: Filed) {
+    const name = filed.relPath.slice(filed.relPath.lastIndexOf("/") + 1);
+    showInFolder({
+      sourceId: filed.sourceId,
+      entry: { name, relPath: filed.relPath, isDir: false, kind: null, size: 0, modifiedMs: null, cloud: "local" },
+    });
+  }
+
+  async function loadInboxCount() {
+    inboxCount = (await api.inboxItems()).length;
   }
 
   function showInFolder(sel: Selected) {
@@ -309,12 +345,17 @@
   }
 </script>
 
-<div class="shell">
+<div class="shell" class:inbox-mode={inboxOpen}>
   <!-- MARK: Sidebar -->
   <aside class="sources">
     <header>
       <h2>Library</h2>
     </header>
+    <button class="lib-item" class:active={inboxOpen} onclick={openInbox}>
+      <span class="lib-icon inbox-icon"><Icon name="inbox" size={14} /></span>
+      <span class="label">Inbox</span>
+      {#if !appSettings?.inbox}<span class="count">Set up</span>{:else if inboxCount}<span class="count">{inboxCount}</span>{/if}
+    </button>
     <button class="lib-item" class:active={favoritesOnly} onclick={filterFavorites}>
       <span class="lib-icon star">★</span>
       <span class="label">Favorites</span>
@@ -449,6 +490,11 @@
     {#each list ?? [] as t (t)}<span class="chip">{t}</span>{/each}
   {/snippet}
 
+  {#if inboxOpen && appSettings}
+    <main class="documents inbox-pane">
+      <Inbox {sources} settings={appSettings} onfiled={showFiled} onsettings={() => (settingsOpen = true)} />
+    </main>
+  {:else}
   <!-- MARK: Documents -->
   <main class="documents">
     <div class="searchbar">
@@ -618,14 +664,29 @@
       <p class="empty">Select a document.</p>
     {/if}
   </section>
+  {/if}
 </div>
+
+{#if settingsOpen}
+  <SettingsDialog
+    {sources}
+    onclose={() => (settingsOpen = false)}
+    onsaved={(s) => {
+      appSettings = s;
+      loadInboxCount();
+    }}
+  />
+{/if}
 
 {#if importing}
   <ImportDialog {sources} onclose={() => (importing = false)} onsourceadded={() => loadSources()} />
 {/if}
 
 <footer>
-  <span>{#if info}{info.name} {info.version}{/if}</span>
+  <span>
+    {#if info}{info.name} {info.version}{/if}
+    <button class="footer-btn" onclick={() => (settingsOpen = true)} title="Settings">Settings</button>
+  </span>
   <span class="status">
     {statusText()}
     {#if progress && !progress.pdfText}· PDF text search unavailable (PDFium missing){/if}
@@ -633,6 +694,21 @@
 </footer>
 
 <style>
+  .shell.inbox-mode {
+    grid-template-columns: 260px 1fr;
+  }
+  .inbox-pane {
+    padding: 0;
+    overflow: hidden;
+  }
+  .footer-btn {
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    padding: 0 0 0 10px;
+    text-decoration: underline;
+  }
   .shell {
     height: calc(100vh - 22px);
     display: grid;
