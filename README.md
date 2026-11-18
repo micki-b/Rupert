@@ -6,7 +6,7 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux.
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.
 - OCR and AI filing suggestions run locally (AI via LM Studio).
 
-Status: **milestone 0** (app skeleton). See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
+Status: **milestone 1**. You can add folders as sources, browse them, see changes made on disk live, and see which files are online-only. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
 
 ## Layout
 

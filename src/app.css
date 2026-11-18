@@ -1,0 +1,55 @@
+:root {
+  --bg: #faf8f5;
+  --panel: #f1ede6;
+  --text: #2b2723;
+  --muted: #7a7168;
+  --border: #ddd5ca;
+  --hover: rgba(60, 45, 30, 0.06);
+  --accent: #8a5a2b;
+  --accent-soft: rgba(138, 90, 43, 0.14);
+  --accent-strong: #6b4320;
+  --folder: #b07d45;
+  --cloud: #4a7fb5;
+  --danger: #b3412f;
+  --danger-soft: rgba(179, 65, 47, 0.1);
+
+  font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1c1a;
+    --panel: #262321;
+    --text: #ece6de;
+    --muted: #9a9087;
+    --border: #3a3531;
+    --hover: rgba(255, 240, 220, 0.06);
+    --accent: #d4a373;
+    --accent-soft: rgba(212, 163, 115, 0.18);
+    --accent-strong: #e8c39e;
+    --folder: #d4a373;
+    --cloud: #7fb0e0;
+    --danger: #e07a68;
+    --danger-soft: rgba(224, 122, 104, 0.14);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}

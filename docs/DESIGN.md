@@ -118,8 +118,8 @@ The importer matches items by folder path + filename and writes document date, f
 
 ## Milestones
 
-0. Tauri skeleton, CI builds for all three OSes.
-1. Sources: add folders, browse trees, watch for changes, show online-only status.
+0. ✅ Tauri skeleton, CI builds for all three OSes.
+1. ✅ Sources: add folders, browse trees, watch for changes, show online-only status. Folders are listed lazily (one level at a time), so there is no full index yet; that arrives with search in milestone 3.
 2. Metadata: read/write XMP + Info dict, sidecars, tags, `rupert:id` identity.
 3. Search: text extraction (pdfium), FTS5, shared catalog.
 4. Intake: inbox, OCR, LM Studio suggestions, review screen.
