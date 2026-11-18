@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use rusqlite::{Connection, OptionalExtension, params};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
@@ -100,9 +100,30 @@ pub struct Stamp {
 pub struct SearchQuery {
     pub text: String,
     pub source_id: Option<String>,
-    pub tag: Option<String>,
+    /// Documents with these tags (ignoring case), as `tag_mode` says.
+    pub tags: Vec<String>,
+    pub tag_mode: TagMode,
     pub favorites_only: bool,
     pub limit: usize,
+}
+
+/// How several selected tags combine.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TagMode {
+    /// At least one of the tags.
+    #[default]
+    Any,
+    /// Every one of the tags.
+    All,
+}
+
+/// A page of tags for the tag filter, and how many matched in all.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TagList {
+    pub tags: Vec<TagCount>,
+    pub matching: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -364,10 +385,9 @@ impl Index {
         if q.source_id.is_some() {
             sql.push_str(" AND d.source_id = :source");
         }
-        if q.tag.is_some() {
-            sql.push_str(
-                " AND EXISTS (SELECT 1 FROM json_each(d.tags) WHERE value = :tag COLLATE NOCASE)",
-            );
+        let (tags_json, tag_count) = tag_set(&q.tags);
+        if tag_count > 0 {
+            sql.push_str(&tag_condition(q.tag_mode));
         }
         if q.favorites_only {
             sql.push_str(" AND d.favorite = 1");
@@ -390,8 +410,11 @@ impl Index {
         if let Some(s) = &q.source_id {
             named.push((":source", s));
         }
-        if let Some(t) = &q.tag {
-            named.push((":tag", t));
+        if tag_count > 0 {
+            named.push((":tags", &tags_json));
+            if q.tag_mode == TagMode::All {
+                named.push((":ntags", &tag_count));
+            }
         }
         let rows = stmt.query_map(named.as_slice(), hit).map_err(db)?;
         rows.collect::<std::result::Result<_, _>>().map_err(db)
@@ -480,6 +503,62 @@ impl Index {
             )
             .optional()
             .map_err(db)
+    }
+
+    /// Tags for the tag filter: those matching `filter` (tags starting with
+    /// it first, then a word in them starting with it, then containing it;
+    /// more-used first), leaving out the selected ones. With `All` and a
+    /// selection, the counts are of documents that also have every
+    /// selected tag, and tags no such document has are left out.
+    pub fn tag_suggestions(
+        &self,
+        filter: &str,
+        selected: &[String],
+        mode: TagMode,
+        limit: usize,
+    ) -> Result<TagList> {
+        let (tags_json, tag_count) = tag_set(selected);
+        let narrowed = mode == TagMode::All && tag_count > 0;
+        let mut sql = String::from(
+            "SELECT MIN(t.value), COUNT(DISTINCT d.id) FROM docs d, json_each(d.tags) t WHERE 1",
+        );
+        if narrowed {
+            sql.push_str(&tag_condition(TagMode::All));
+        }
+        sql.push_str(" GROUP BY lower(t.value)");
+        let mut stmt = self.conn.prepare(&sql).map_err(db)?;
+        let mut named: Vec<(&str, &dyn rusqlite::ToSql)> = Vec::new();
+        if narrowed {
+            named.push((":tags", &tags_json));
+            named.push((":ntags", &tag_count));
+        }
+        let all = stmt
+            .query_map(named.as_slice(), |r| {
+                Ok(TagCount {
+                    tag: r.get(0)?,
+                    count: r.get(1)?,
+                })
+            })
+            .map_err(db)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(db)?;
+
+        let chosen: Vec<String> = selected.iter().map(|t| t.to_lowercase()).collect();
+        let needle = filter.trim().to_lowercase();
+        let mut ranked: Vec<(u8, TagCount)> = all
+            .into_iter()
+            .filter(|t| !chosen.contains(&t.tag.to_lowercase()))
+            .filter_map(|t| tag_rank(&t.tag, &needle).map(|rank| (rank, t)))
+            .collect();
+        ranked.sort_by(|(ra, a), (rb, b)| {
+            ra.cmp(rb)
+                .then(b.count.cmp(&a.count))
+                .then_with(|| a.tag.to_lowercase().cmp(&b.tag.to_lowercase()))
+        });
+        Ok(TagList {
+            matching: ranked.len(),
+            tags: ranked.into_iter().take(limit).map(|(_, t)| t).collect(),
+        })
     }
 
     pub fn tags(&self) -> Result<Vec<TagCount>> {
@@ -867,6 +946,53 @@ fn parse_kind(s: &str) -> FileKind {
     }
 }
 
+/// Selected tags as a JSON array for SQL (lowercased, without repeats),
+/// and how many there are.
+fn tag_set(tags: &[String]) -> (String, i64) {
+    let mut set: Vec<String> = tags
+        .iter()
+        .map(|t| t.trim().to_lowercase())
+        .filter(|t| !t.is_empty())
+        .collect();
+    set.sort();
+    set.dedup();
+    let n = set.len() as i64;
+    (
+        serde_json::to_string(&set).unwrap_or_else(|_| "[]".into()),
+        n,
+    )
+}
+
+/// SQL limiting `d` to documents with the tags in `:tags` (`:ntags` of them).
+fn tag_condition(mode: TagMode) -> String {
+    let matching =
+        "FROM json_each(d.tags) WHERE lower(value) IN (SELECT value FROM json_each(:tags))";
+    match mode {
+        TagMode::Any => format!(" AND EXISTS (SELECT 1 {matching})"),
+        TagMode::All => format!(" AND (SELECT COUNT(DISTINCT lower(value)) {matching}) = :ntags"),
+    }
+}
+
+/// How well a tag matches the filter text (lower is better), or `None`.
+fn tag_rank(tag: &str, needle: &str) -> Option<u8> {
+    if needle.is_empty() {
+        return Some(0);
+    }
+    let tag = tag.to_lowercase();
+    if tag.starts_with(needle) {
+        Some(0)
+    } else if tag
+        .match_indices(needle)
+        .any(|(i, _)| tag[..i].ends_with(|c: char| !c.is_alphanumeric()))
+    {
+        Some(1)
+    } else if tag.contains(needle) {
+        Some(2)
+    } else {
+        None
+    }
+}
+
 /// A search-style row: source_id, rel_path, name, kind, size, mtime_ms,
 /// cloud, title, tags, document_date, favorite, snippet.
 fn hit(r: &rusqlite::Row) -> rusqlite::Result<Hit> {
@@ -1047,7 +1173,7 @@ mod tests {
 
         let by_tag = idx
             .search(&SearchQuery {
-                tag: Some("TAX".into()),
+                tags: vec!["TAX".into()],
                 ..Default::default()
             })
             .unwrap();
@@ -1066,6 +1192,91 @@ mod tests {
                 .collect::<Vec<_>>(),
             [("2025".into(), 1), ("tax".into(), 2)]
         );
+    }
+
+    fn tagged(idx: &Index, tags: &[&str], mode: TagMode) -> Vec<String> {
+        let mut found: Vec<String> = idx
+            .search(&SearchQuery {
+                tags: tags.iter().map(|t| t.to_string()).collect(),
+                tag_mode: mode,
+                ..Default::default()
+            })
+            .unwrap()
+            .into_iter()
+            .map(|h| h.rel_path)
+            .collect();
+        found.sort();
+        found
+    }
+
+    fn library() -> Index {
+        let idx = Index::open_in_memory().unwrap();
+        for (p, tags) in [
+            ("hull.pdf", &["Boat", "Insurance"][..]),
+            ("engine.pdf", &["boat", "Receipts"][..]),
+            ("home.pdf", &["Home Insurance"][..]),
+            ("car.pdf", &["Insurance", "Car"][..]),
+            ("w2.pdf", &["Taxes"][..]),
+        ] {
+            idx.upsert(&row(p, None, tags, false), None).unwrap();
+        }
+        idx
+    }
+
+    #[test]
+    fn several_tags_any_or_all() {
+        let idx = library();
+        assert_eq!(
+            tagged(&idx, &["boat", "insurance"], TagMode::Any),
+            ["car.pdf", "engine.pdf", "hull.pdf"]
+        );
+        assert_eq!(
+            tagged(&idx, &["BOAT", "Insurance"], TagMode::All),
+            ["hull.pdf"]
+        );
+        assert_eq!(
+            tagged(&idx, &["Boat", "boat"], TagMode::All).len(),
+            2,
+            "repeats count once"
+        );
+        assert!(tagged(&idx, &["Boat", "Taxes"], TagMode::All).is_empty());
+    }
+
+    #[test]
+    fn tag_suggestions_rank_limit_and_narrow() {
+        let idx = library();
+        let names = |l: &TagList| l.tags.iter().map(|t| t.tag.clone()).collect::<Vec<_>>();
+
+        // No filter: most used first, limited, total reported.
+        let all = idx.tag_suggestions("", &[], TagMode::Any, 3).unwrap();
+        assert_eq!(all.matching, 6);
+        assert_eq!(all.tags[0].count, 2); // Boat or Insurance
+        assert_eq!(all.tags.len(), 3);
+
+        // Prefix before word start before substring.
+        let ins = idx.tag_suggestions("ins", &[], TagMode::Any, 10).unwrap();
+        assert_eq!(names(&ins), ["Insurance", "Home Insurance"]);
+        let sur = idx.tag_suggestions("sur", &[], TagMode::Any, 10).unwrap();
+        assert_eq!(sur.matching, 2);
+
+        // Selected tags are left out; Any keeps plain counts.
+        let any = idx
+            .tag_suggestions("", &["boat".into()], TagMode::Any, 10)
+            .unwrap();
+        assert!(!names(&any).iter().any(|t| t.eq_ignore_ascii_case("boat")));
+        assert_eq!(any.matching, 5);
+
+        // All: only tags that occur together with the selection, counted so.
+        let narrowed = idx
+            .tag_suggestions("", &["Boat".into()], TagMode::All, 10)
+            .unwrap();
+        let mut got: Vec<(String, u32)> = narrowed
+            .tags
+            .iter()
+            .map(|t| (t.tag.clone(), t.count))
+            .collect();
+        got.sort();
+        assert_eq!(got, [("Insurance".into(), 1), ("Receipts".into(), 1)]);
     }
 
     #[test]

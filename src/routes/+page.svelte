@@ -24,6 +24,7 @@
     type Progress,
     type Source,
     type TagCount,
+    type TagMode,
   } from "$lib/api";
   import { changes } from "$lib/changes.svelte";
   import { formatDate, formatSize, kindLabel } from "$lib/format";
@@ -31,6 +32,7 @@
   import Icon from "$lib/Icon.svelte";
   import ImportDialog from "$lib/ImportDialog.svelte";
   import Inbox from "$lib/Inbox.svelte";
+  import TagFilter from "$lib/TagFilter.svelte";
   import ScanDialog from "$lib/ScanDialog.svelte";
   import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
@@ -57,7 +59,8 @@
 
   // Search & library filters
   let query = $state("");
-  let tagFilter = $state<string | null>(null);
+  let selectedTags = $state<string[]>([]);
+  let tagMode = $state<TagMode>("any");
   let favoritesOnly = $state(false);
   let hits = $state<Hit[]>([]);
   let searchedOnce = $state(false);
@@ -68,7 +71,7 @@
   let indexTick = $state(0);
   let searchInput: HTMLInputElement | undefined = $state();
 
-  const searching = $derived(query.trim() !== "" || tagFilter !== null || favoritesOnly);
+  const searching = $derived(query.trim() !== "" || selectedTags.length > 0 || favoritesOnly);
   const source = $derived(sources.find((s) => s.id === folder?.sourceId) ?? null);
   const sourceName = (id: string) => sources.find((s) => s.id === id)?.name ?? "";
   const crumbs = $derived.by(() => {
@@ -121,7 +124,7 @@
   function selectFolder(sourceId: string, relPath: string) {
     inboxOpen = false;
     query = "";
-    tagFilter = null;
+    selectedTags = [];
     favoritesOnly = false;
     folder = { sourceId, relPath };
     selected = null;
@@ -186,7 +189,7 @@
 
   let searchSeq = 0;
   $effect(() => {
-    const args = { text: query, tag: tagFilter, favoritesOnly };
+    const args = { text: query, tags: [...selectedTags], tagMode, favoritesOnly };
     indexTick; // re-run when the index changes
     if (!searching) {
       hits = [];
@@ -203,26 +206,37 @@
     return () => clearTimeout(timer);
   });
 
-  // Sidebar filters start a fresh view; typing afterwards searches within them.
-  function filterTag(tag: string) {
+  // Sidebar filters start a fresh view; typing afterwards searches within
+  // them, and further tags narrow or widen the selection.
+  let tagsBefore = 0;
+  function tagsChanged() {
     inboxOpen = false;
-    query = "";
-    tagFilter = tagFilter === tag ? null : tag;
-    favoritesOnly = false;
+    if (tagsBefore === 0 && selectedTags.length > 0) {
+      query = "";
+      favoritesOnly = false;
+    }
+    tagsBefore = selectedTags.length;
     selected = null;
+  }
+
+  function removeTag(tag: string) {
+    selectedTags = selectedTags.filter((t) => t !== tag);
+    tagsBefore = selectedTags.length;
   }
 
   function filterFavorites() {
     inboxOpen = false;
     query = "";
     favoritesOnly = !favoritesOnly;
-    tagFilter = null;
+    selectedTags = [];
+    tagsBefore = 0;
     selected = null;
   }
 
   function clearSearch() {
     query = "";
-    tagFilter = null;
+    selectedTags = [];
+    tagsBefore = 0;
     favoritesOnly = false;
   }
 
@@ -371,14 +385,9 @@
       {#if tags.length}<span class="count">{tags.length}</span>{/if}
     </button>
     {#if tagsOpen}
-      {#each tags as t (t.tag)}
-        <button class="lib-item tag-item" class:active={tagFilter === t.tag} onclick={() => filterTag(t.tag)}>
-          <span class="label"># {t.tag}</span>
-          <span class="count">{t.count}</span>
-        </button>
-      {:else}
-        <p class="empty small">No tags yet.</p>
-      {/each}
+      <div class="tag-filter-wrap">
+        <TagFilter bind:selected={selectedTags} bind:mode={tagMode} refresh={indexTick} onchange={tagsChanged} />
+      </div>
     {/if}
 
     <header class="sources-header">
@@ -517,8 +526,18 @@
           if (e.key === "Escape") clearSearch();
         }}
       />
-      {#if tagFilter}
-        <button class="filter-chip" onclick={() => (tagFilter = null)} title="Remove filter"># {tagFilter} ×</button>
+      {#each selectedTags as t, i (t)}
+        {#if i > 0}<span class="tag-join">{tagMode === "all" ? "and" : "or"}</span>{/if}
+        <button class="filter-chip" onclick={() => removeTag(t)} title="Remove filter"># {t} ×</button>
+      {/each}
+      {#if selectedTags.length > 1}
+        <button
+          class="filter-chip mode-chip"
+          onclick={() => (tagMode = tagMode === "all" ? "any" : "all")}
+          title="Switch between documents with any or all of these tags"
+        >
+          {tagMode === "all" ? "All tags" : "Any tag"}
+        </button>
       {/if}
       {#if favoritesOnly}
         <button class="filter-chip" onclick={() => (favoritesOnly = false)} title="Remove filter">★ Favorites ×</button>
@@ -844,9 +863,15 @@
     color: var(--muted);
     font-size: 12px;
   }
-  .tag-item {
-    padding-left: 30px;
+  .tag-filter-wrap {
+    padding: 0 0 6px 18px;
+  }
+  .tag-join {
+    color: var(--muted);
     font-size: 12px;
+  }
+  .mode-chip {
+    font-style: italic;
   }
   .count {
     font-size: 11px;

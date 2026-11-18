@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { Entry, Hit, IndexStats, Progress, Provider, TagCount } from "$lib/api";
+import type { Entry, Hit, IndexStats, Progress, Provider, TagCount, TagMode } from "$lib/api";
 
 export type { Entry, Hit, Progress, TagCount };
 
@@ -63,8 +63,8 @@ export const phone = {
   removeFolder: (id: string) => invoke<void>("remove_folder", { id }),
   chooseInbox: () => invoke<boolean>("choose_inbox"),
   listDir: (sourceId: string, relPath: string) => invoke<Listed[]>("list_dir", { sourceId, relPath }),
-  search: (text: string, tag: string | null, favoritesOnly: boolean) =>
-    invoke<Hit[]>("search", { query: { text, tag, favoritesOnly } }),
+  search: (text: string, tags: string[], tagMode: TagMode, favoritesOnly: boolean) =>
+    invoke<Hit[]>("search", { query: { text, tags, tagMode, favoritesOnly } }),
   tags: () => invoke<TagCount[]>("list_tags"),
   document: (sourceId: string, relPath: string) => invoke<DocInfo | null>("document", { sourceId, relPath }),
   open: (sourceId: string, relPath: string) => invoke<void>("open_document", { sourceId, relPath }),

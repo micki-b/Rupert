@@ -32,7 +32,9 @@ pub mod xmp;
 
 pub use error::{Error, Result};
 pub use file_kind::{FileKind, is_ignored_name};
-pub use index::{DocInfo, FolderMeta, Hit, Index, IndexStats, SearchQuery, TagCount};
+pub use index::{
+    DocInfo, FolderMeta, Hit, Index, IndexStats, SearchQuery, TagCount, TagList, TagMode,
+};
 pub use indexer::{IndexerHandle, Job, Mode, Options, Progress};
 pub use listing::{CloudState, Entry, cloud_state, list_dir, resolve};
 pub use meta::{DocMeta, MetaRecord, Storage, read_meta, write_meta};

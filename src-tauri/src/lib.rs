@@ -13,7 +13,7 @@ use rupert_core::text::TextExtractor;
 use rupert_core::{
     CloudState, DirChange, DocMeta, Entry, FileKind, FolderMeta, Hit, Index, IndexStats,
     IndexerHandle, Job, LibraryWatcher, MetaRecord, Progress, SearchQuery, Source, SourceStore,
-    TagCount,
+    TagCount, TagList, TagMode,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -332,7 +332,10 @@ struct SearchArgs {
     #[serde(default)]
     text: String,
     source_id: Option<String>,
-    tag: Option<String>,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    tag_mode: TagMode,
     #[serde(default)]
     favorites_only: bool,
 }
@@ -342,11 +345,29 @@ async fn search(query: SearchArgs, state: State<'_, AppState>) -> CmdResult<Vec<
     let q = SearchQuery {
         text: query.text,
         source_id: query.source_id,
-        tag: query.tag,
+        tags: query.tags,
+        tag_mode: query.tag_mode,
         favorites_only: query.favorites_only,
         limit: 300,
     };
     state.index.lock().unwrap().search(&q).map_err(err)
+}
+
+/// Tags for the tag filter (see `Index::tag_suggestions`).
+#[tauri::command]
+fn tag_suggestions(
+    filter: String,
+    selected: Vec<String>,
+    mode: TagMode,
+    limit: usize,
+    state: State<AppState>,
+) -> CmdResult<TagList> {
+    state
+        .index
+        .lock()
+        .unwrap()
+        .tag_suggestions(&filter, &selected, mode, limit.clamp(1, 500))
+        .map_err(err)
 }
 
 #[tauri::command]
@@ -816,6 +837,7 @@ pub fn run() {
             write_meta,
             search,
             list_tags,
+            tag_suggestions,
             index_status,
             scansnap_library,
             scansnap_plan,

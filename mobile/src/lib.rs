@@ -26,7 +26,7 @@ use rupert_core::indexer::{self, Mode, Options, PrepareHidden};
 use rupert_core::text::TextExtractor;
 use rupert_core::{
     DocInfo, Entry, FolderMeta, Hit, Index, IndexStats, IndexerHandle, Job, Progress, Provider,
-    SearchQuery, Source, SourceStore, TagCount,
+    SearchQuery, Source, SourceStore, TagCount, TagList, TagMode,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Wry};
@@ -370,7 +370,10 @@ fn list_remote(source_id: &str, rel_path: &str, state: &AppState) -> CmdResult<V
 #[serde(rename_all = "camelCase")]
 struct SearchArgs {
     text: String,
-    tag: Option<String>,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    tag_mode: TagMode,
     #[serde(default)]
     favorites_only: bool,
 }
@@ -380,11 +383,29 @@ fn search(query: SearchArgs, state: State<AppState>) -> CmdResult<Vec<Hit>> {
     let q = SearchQuery {
         text: query.text,
         source_id: None,
-        tag: query.tag,
+        tags: query.tags,
+        tag_mode: query.tag_mode,
         favorites_only: query.favorites_only,
         limit: 200,
     };
     state.index.lock().unwrap().search(&q).map_err(err)
+}
+
+/// Tags for the tag filter (see `Index::tag_suggestions`).
+#[tauri::command]
+fn tag_suggestions(
+    filter: String,
+    selected: Vec<String>,
+    mode: TagMode,
+    limit: usize,
+    state: State<AppState>,
+) -> CmdResult<TagList> {
+    state
+        .index
+        .lock()
+        .unwrap()
+        .tag_suggestions(&filter, &selected, mode, limit.clamp(1, 500))
+        .map_err(err)
 }
 
 #[tauri::command]
@@ -715,6 +736,7 @@ pub fn run() {
             list_dir,
             search,
             list_tags,
+            tag_suggestions,
             document,
             open_document,
             scan,

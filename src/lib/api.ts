@@ -69,11 +69,21 @@ export interface IndexStats {
   favorites: number;
 }
 
+/** How several selected tags combine: documents with any of them, or all. */
+export type TagMode = "any" | "all";
+
 export interface SearchArgs {
   text?: string;
   sourceId?: string | null;
-  tag?: string | null;
+  tags?: string[];
+  tagMode?: TagMode;
   favoritesOnly?: boolean;
+}
+
+/** A page of tags for the tag filter, and how many matched in all. */
+export interface TagList {
+  tags: TagCount[];
+  matching: number;
 }
 
 export interface DirChange {
@@ -279,6 +289,10 @@ export const api = {
     invoke<MetaRecord>("write_meta", { sourceId, relPath, meta }),
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
   listTags: () => invoke<TagCount[]>("list_tags"),
+  /** Tags matching `filter`, best first, without the selected ones (with
+   * "all", only those that occur together with the selection). */
+  tagSuggestions: (filter: string, selected: string[], mode: TagMode, limit: number) =>
+    invoke<TagList>("tag_suggestions", { filter, selected, mode, limit }),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
   scansnapLibrary: () => invoke<string | null>("scansnap_library"),
   scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),

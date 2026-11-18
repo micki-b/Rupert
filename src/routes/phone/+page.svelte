@@ -3,7 +3,8 @@
   // scan paper into the inbox folder. Read-only for the library itself.
   import { onMount } from "svelte";
   import Icon from "$lib/Icon.svelte";
-  import { snippetParts } from "$lib/api";
+  import TagFilter from "$lib/TagFilter.svelte";
+  import { snippetParts, type TagMode } from "$lib/api";
   import { formatSize } from "$lib/format";
   import {
     formatDocDate,
@@ -38,7 +39,10 @@
   let listError = $state<string | null>(null);
 
   let query = $state("");
-  let tag = $state<string | null>(null);
+  let selectedTags = $state<string[]>([]);
+  let tagMode = $state<TagMode>("any");
+  let tagSheet = $state(false);
+  let indexTick = $state(0);
   let favoritesOnly = $state(false);
   let hits = $state<Hit[]>([]);
   let tags = $state<TagCount[]>([]);
@@ -121,7 +125,7 @@
   function runSearch() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(async () => {
-      hits = await phone.search(query, tag, favoritesOnly).catch(() => []);
+      hits = await phone.search(query, [...selectedTags], tagMode, favoritesOnly).catch(() => []);
     }, 150);
   }
 
@@ -133,6 +137,7 @@
       if (here) loadFolder();
       if (tab === "search") runSearch();
       phone.tags().then((t) => (tags = t));
+      indexTick++;
     }, 300);
   }
 
@@ -388,13 +393,23 @@
         <button class="chip" class:on={favoritesOnly} onclick={() => ((favoritesOnly = !favoritesOnly), runSearch())}>
           <Icon name="star" size={12} /> Favorites
         </button>
-        {#each tags.slice(0, 30) as t (t.tag)}
-          <button class="chip" class:on={tag === t.tag} onclick={() => ((tag = tag === t.tag ? null : t.tag), runSearch())}>
-            {t.tag}
+        {#if tags.length}
+          <button class="chip" class:on={selectedTags.length > 0} onclick={() => (tagSheet = true)}>
+            # Tags{selectedTags.length ? ` · ${selectedTags.length}` : ""}
+          </button>
+        {/if}
+        {#each selectedTags as t, i (t)}
+          {#if i > 0}<span class="join">{tagMode === "all" ? "and" : "or"}</span>{/if}
+          <button
+            class="chip on"
+            onclick={() => ((selectedTags = selectedTags.filter((x) => x !== t)), runSearch())}
+            aria-label="Remove tag {t}"
+          >
+            {t} ✕
           </button>
         {/each}
       </div>
-      {#if hits.length === 0 && (query || tag || favoritesOnly)}
+      {#if hits.length === 0 && (query || selectedTags.length || favoritesOnly)}
         <p class="note">Nothing found.</p>
       {/if}
       <ul class="list">
@@ -574,6 +589,32 @@
       </button>
     {/each}
   </nav>
+
+  {#if tagSheet}
+    <div class="backdrop" role="presentation" onclick={() => ((tagSheet = false), runSearch())}></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="Tags">
+      <div class="grabber"></div>
+      <div class="chooser-head">
+        <h2 class="doc-title">Tags</h2>
+      </div>
+      <div class="tag-sheet-body">
+        <TagFilter
+          bind:selected={selectedTags}
+          bind:mode={tagMode}
+          refresh={indexTick}
+          limit={15}
+          variant="sheet"
+          onchange={runSearch}
+        />
+      </div>
+      <div class="sheet-actions">
+        <span></span>
+        <button class="primary" onclick={() => ((tagSheet = false), runSearch())}>
+          {selectedTags.length ? "Show documents" : "Done"}
+        </button>
+      </div>
+    </div>
+  {/if}
 
   {#if chooser}
     <div class="backdrop" role="presentation" onclick={() => (chooser = null)}></div>
@@ -976,6 +1017,17 @@
     border-radius: 16px 16px 0 0;
     padding: 8px 20px calc(env(safe-area-inset-bottom) + 16px);
     box-shadow: 0 -8px 30px rgb(0 0 0 / 0.2);
+  }
+  .tag-sheet-body {
+    margin: 8px -8px 12px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .join {
+    flex: none;
+    align-self: center;
+    color: var(--muted);
+    font-size: 12px;
   }
   .chooser-head {
     display: flex;
