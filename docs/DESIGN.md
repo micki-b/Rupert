@@ -172,7 +172,9 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 - **Downloads:** documents are fetched only when opened (`NSFileCoordinator`), then shown in Quick Look with sharing and printing. Rupert's own `.rupert/` folders are fetched before they're read (old-style iCloud `.name.icloud` placeholders included); a fetch that takes more than 90 s, e.g. offline, is skipped.
 - **Online-only files** are recognized like on the Mac (dataless files, `.icloud` placeholders).
 - **Scanning:** the system document camera (VisionKit: edge detection, perspective correction, filters). Pages are JPEGs of at most 3,300 px, embedded as is into one PDF sized so the longer side is 11 inches (camera pages carry no resolution). The PDF is copied with a coordinated write into the inbox folder chosen on the phone, which should be the Mac's inbox. OCR and filing suggestions happen there; the phone runs no AI.
-- **Tested in the iOS Simulator** on a made-up library (catalog written by the Mac engine): browsing, search with snippets, details from sidecars, Quick Look, scanning (the simulator has no camera, so it returns a generated page) into the inbox, and Apple Vision OCR of the result on the Mac. **Not yet tested on an iPhone with real iCloud Drive or OneDrive folders**, so how File Provider folders list and fetch on iOS is still open (see below).
+- **Tested in the iOS Simulator** on a made-up library (catalog written by the Mac engine): browsing, search with snippets, details from sidecars, Quick Look, scanning (the simulator has no camera, so it returns a generated page) into the inbox, and Apple Vision OCR of the result on the Mac.
+- **Tested on the iPhone 16 Pro (2026-11-18)** with the real library: iCloud Drive ~/Documents through Files, 5,936 documents, 2,577 searchable by text (the Mac: 5,936 / 2,582); OneDrive/Boating through Graph, 948 documents, 540 searchable (the Mac: 948 / 540, an exact match); search and opening a OneDrive PDF work. Fetching the big iCloud `.rupert/catalog` folder took longer than the 90 s limit, so the first pass went on without waiting for it; it still came out complete.
+- The Microsoft sign-in uses a private (ephemeral) browser session: with Safari's shared cookies it failed with AADSTS165000 ("missing session context cookie").
 - Debug builds accept `SIMCTL_CHILD_RUPERT_TEST_FOLDER`, `…_INBOX` and `…_JS` to set up and drive a simulator, because the Files picker can't be scripted.
 
 ## Still to verify
@@ -180,7 +182,7 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 - iCloud Drive and OneDrive sync `.rupert/` dot-folders on all platforms.
 - Finder-tag writes on online-only files don't trigger downloads; whether OneDrive keeps Finder tags.
 - HP OfficeJet 250 supports eSCL/AirScan.
-- OneDrive via Graph on the real account: delta listing of a big folder, catalog paths matching (Unicode normalization of names between macOS and OneDrive), token refresh.
+- OneDrive via Graph: token refresh after the first hour (not yet observed), and folders bigger than Boating.
 - On an iPhone: listing big iCloud Drive folders through the picked bookmarks, fetching `.rupert/` folders, and that no document is downloaded until it is opened.
 - ScanSnap Home can save to a folder (or send to an app) without also cataloging the file.
 
@@ -193,7 +195,7 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 4. ✅ Intake: inbox, OCR (Apple Vision / Tesseract) with an invisible text layer, LM Studio suggestions, review screen, renaming and moving.
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
 6. Direct scanning: ✅ eSCL/AirScan (network scanners, all OSes). ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
-7. ✅ iPhone app: browse and search the same folders (read-only), open documents in Quick Look, scan with the camera into the inbox. Tested in the simulator; not yet on a phone.
+7. ✅ iPhone app: browse and search the same folders (read-only; OneDrive through Microsoft Graph), open documents in Quick Look, scan with the camera into the inbox. Tested on an iPhone 16 Pro with the real library; camera scanning on the phone not yet tried.
 
 ## Dependencies (licenses)
 
