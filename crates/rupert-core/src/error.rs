@@ -41,6 +41,10 @@ pub enum Error {
     /// Rupert deliberately won't modify this file (e.g. encrypted or signed PDF).
     #[error("{0}")]
     Unsupported(String),
+
+    /// The user stopped it.
+    #[error("stopped")]
+    Cancelled,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

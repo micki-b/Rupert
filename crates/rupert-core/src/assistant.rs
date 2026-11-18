@@ -15,6 +15,9 @@
 //! asks for) is sent to that provider; the UI says so.
 
 use std::cell::RefCell;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::Duration;
 
 use serde::Serialize;
@@ -166,6 +169,63 @@ pub struct Reply {
 
 // MARK: - Chat
 
+// MARK: - Stopping
+
+/// Stops an answer in progress: hand a clone to whoever may cancel. The
+/// answer ends within a moment, before the next tool call or as soon as
+/// it is cancelled while waiting for the model.
+#[derive(Debug, Clone, Default)]
+pub struct Cancel(Arc<AtomicBool>);
+
+impl Cancel {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn cancel(&self) {
+        self.0.store(true, Ordering::SeqCst);
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.0.load(Ordering::SeqCst)
+    }
+
+    fn check(&self) -> Result<()> {
+        if self.is_cancelled() {
+            Err(Error::Cancelled)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// Sends a request on its own thread, so waiting for the model can be
+/// cancelled. A cancelled request is left to finish (or time out) in the
+/// background and its answer is dropped.
+fn post_json(
+    cancel: &Cancel,
+    req: ureq::RequestBuilder<ureq::typestate::WithBody>,
+    body: Value,
+) -> Result<Value> {
+    cancel.check()?;
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(req.send_json(&body).map_err(ai_err).and_then(read_json));
+    });
+    loop {
+        match rx.recv_timeout(Duration::from_millis(100)) {
+            Ok(answer) => {
+                cancel.check()?;
+                return answer;
+            }
+            Err(RecvTimeoutError::Timeout) => cancel.check()?,
+            Err(RecvTimeoutError::Disconnected) => {
+                return Err(ai_err("the request ended unexpectedly"));
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Format {
     OpenAi,
@@ -194,13 +254,15 @@ impl Chat {
     }
 
     /// Sends a message and runs tool calls until the model answers.
-    /// `on_step` is told about each tool call as it happens. On an error
-    /// the conversation is left as it was before the message.
+    /// `on_step` is told about each tool call as it happens. On an error,
+    /// or when stopped with `cancel` (`Error::Cancelled`), the
+    /// conversation is left as it was before the message.
     pub fn send(
         &mut self,
         backend: &Backend,
         tools: &dyn ToolBox,
         text: &str,
+        cancel: &Cancel,
         on_step: &mut dyn FnMut(&Step),
     ) -> Result<Reply> {
         if self.format != Some(backend.format()) {
@@ -213,12 +275,20 @@ impl Chat {
                 base_url,
                 model,
                 api_key,
-            } => self.send_openai(base_url, model, api_key.as_deref(), tools, text, on_step),
+            } => self.send_openai(
+                base_url,
+                model,
+                api_key.as_deref(),
+                tools,
+                text,
+                cancel,
+                on_step,
+            ),
             Backend::Anthropic {
                 base_url,
                 model,
                 auth,
-            } => self.send_anthropic(base_url, model, auth, tools, text, on_step),
+            } => self.send_anthropic(base_url, model, auth, tools, text, cancel, on_step),
         };
         if result.is_err() {
             self.history.truncate(mark);
@@ -230,24 +300,27 @@ impl Chat {
         tools: &dyn ToolBox,
         calls: &[(String, String, Value)],
         steps: &mut Vec<Step>,
+        cancel: &Cancel,
         on_step: &mut dyn FnMut(&Step),
-    ) -> Vec<(String, String)> {
+    ) -> Result<Vec<(String, String)>> {
         calls
             .iter()
             .map(|(id, name, input)| {
+                cancel.check()?;
                 let step = Step {
                     tool: name.clone(),
                     summary: describe_call(name, input),
                 };
                 on_step(&step);
                 steps.push(step);
-                (id.clone(), tools.call(name, input))
+                Ok((id.clone(), tools.call(name, input)))
             })
             .collect()
     }
 
     // MARK: Anthropic
 
+    #[allow(clippy::too_many_arguments)]
     fn send_anthropic(
         &mut self,
         base_url: &str,
@@ -255,6 +328,7 @@ impl Chat {
         auth: &AnthropicAuth,
         tools: &dyn ToolBox,
         text: &str,
+        cancel: &Cancel,
         on_step: &mut dyn FnMut(&Step),
     ) -> Result<Reply> {
         let http = agent(Duration::from_secs(300));
@@ -299,7 +373,7 @@ impl Chat {
             if !betas.is_empty() {
                 req = req.header("anthropic-beta", &betas.join(","));
             }
-            let resp = read_json(req.send_json(&body).map_err(ai_err)?)?;
+            let resp = post_json(cancel, req, body)?;
             if let Some(m) = resp.get("model").and_then(Value::as_str) {
                 served_by = m.to_string();
             }
@@ -348,10 +422,12 @@ impl Chat {
                 .collect();
             if stop == "tool_use" && !calls.is_empty() {
                 // All results in one user message (keeps parallel calls working).
-                let results: Vec<Value> = Self::run_tools(tools, &calls, &mut steps, on_step)
-                    .into_iter()
-                    .map(|(id, out)| json!({"type": "tool_result", "tool_use_id": id, "content": out}))
-                    .collect();
+                let results: Vec<Value> = Self::run_tools(
+                    tools, &calls, &mut steps, cancel, on_step,
+                )?
+                .into_iter()
+                .map(|(id, out)| json!({"type": "tool_result", "tool_use_id": id, "content": out}))
+                .collect();
                 self.history
                     .push(json!({"role": "user", "content": results}));
                 continue;
@@ -378,6 +454,7 @@ impl Chat {
 
     // MARK: OpenAI-compatible
 
+    #[allow(clippy::too_many_arguments)]
     fn send_openai(
         &mut self,
         base_url: &str,
@@ -385,6 +462,7 @@ impl Chat {
         api_key: Option<&str>,
         tools: &dyn ToolBox,
         text: &str,
+        cancel: &Cancel,
         on_step: &mut dyn FnMut(&Step),
     ) -> Result<Reply> {
         let http = agent(Duration::from_secs(300));
@@ -412,7 +490,7 @@ impl Chat {
             if let Some(k) = api_key {
                 req = req.header("authorization", &format!("Bearer {k}"));
             }
-            let resp = read_json(req.send_json(&body).map_err(ai_err)?)?;
+            let resp = post_json(cancel, req, body)?;
             let msg = resp
                 .pointer("/choices/0/message")
                 .cloned()
@@ -471,7 +549,7 @@ impl Chat {
                     model: model.to_string(),
                 });
             }
-            for (id, out) in Self::run_tools(tools, &calls, &mut steps, on_step) {
+            for (id, out) in Self::run_tools(tools, &calls, &mut steps, cancel, on_step)? {
                 self.history
                     .push(json!({"role": "tool", "tool_call_id": id, "content": out}));
             }
@@ -1147,6 +1225,7 @@ mod tests {
                 &backend,
                 &tools,
                 "where is the impeller invoice?",
+                &Cancel::new(),
                 &mut |s| progress.push(s.summary.clone()),
             )
             .unwrap();
@@ -1193,7 +1272,13 @@ mod tests {
         };
         let mut chat = Chat::new("sys");
         let reply = chat
-            .send(&backend, &tools, "show boat stuff", &mut |_| {})
+            .send(
+                &backend,
+                &tools,
+                "show boat stuff",
+                &Cancel::new(),
+                &mut |_| {},
+            )
             .unwrap();
         assert_eq!(reply.text, "Here are your boat documents.");
         assert_eq!(tools.take_actions().len(), 1);
@@ -1211,7 +1296,67 @@ mod tests {
             model: "qwen".into(),
             api_key: None,
         };
-        assert!(chat.send(&dead, &tools, "again", &mut |_| {}).is_err());
+        assert!(
+            chat.send(&dead, &tools, "again", &Cancel::new(), &mut |_| {})
+                .is_err()
+        );
         assert_eq!(chat.history.len(), before);
+    }
+
+    #[test]
+    fn stop_while_waiting_for_the_model() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        // A model that never answers.
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/v1", listener.local_addr().unwrap());
+        std::thread::spawn(move || {
+            let _held: Vec<_> = listener.incoming().collect();
+        });
+        let backend = Backend::OpenAiCompatible {
+            base_url: url,
+            model: "qwen".into(),
+            api_key: None,
+        };
+        let cancel = Cancel::new();
+        let stopper = cancel.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            stopper.cancel();
+        });
+        let started = std::time::Instant::now();
+        let mut chat = Chat::new("sys");
+        let result = chat.send(&backend, &tools, "hello?", &cancel, &mut |_| {});
+        assert!(matches!(result, Err(Error::Cancelled)));
+        assert!(started.elapsed() < Duration::from_secs(2));
+        assert!(chat.is_empty());
+    }
+
+    #[test]
+    fn stop_between_tool_calls() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        let (url, seen) = mock(vec![
+            json!({"choices": [{"message": {"role": "assistant", "content": "", "tool_calls": [
+                {"id": "c1", "type": "function", "function": {"name": "search_documents", "arguments": "{\"query\":\"boat\"}"}},
+                {"id": "c2", "type": "function", "function": {"name": "show_results", "arguments": "{\"tags\":[\"Boat\"]}"}}
+            ]}}]}),
+            json!({"choices": [{"message": {"role": "assistant", "content": "never sent"}}]}),
+        ]);
+        let backend = Backend::OpenAiCompatible {
+            base_url: format!("{url}/v1"),
+            model: "qwen".into(),
+            api_key: None,
+        };
+        let cancel = Cancel::new();
+        let mut chat = Chat::new("sys");
+        let result = chat.send(&backend, &tools, "boat things", &cancel, &mut |_| {
+            cancel.cancel()
+        });
+        assert!(matches!(result, Err(Error::Cancelled)));
+        // The first tool ran; the second and the next round didn't.
+        assert!(tools.take_actions().is_empty());
+        assert_eq!(seen.lock().unwrap().len(), 1);
+        assert!(chat.is_empty());
     }
 }

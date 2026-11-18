@@ -6,10 +6,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 
-use rupert_core::Index;
-use rupert_core::assistant::{self, AnthropicAuth, Backend, Chat, LibraryTools, Step, UiAction};
+use rupert_core::assistant::{
+    self, AnthropicAuth, Backend, Cancel, Chat, LibraryTools, Step, UiAction,
+};
 use rupert_core::llm::LmStudio;
 use rupert_core::settings::{AssistantProvider, Settings};
+use rupert_core::{Error, Index};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -22,12 +24,15 @@ const OPENAI_URL: &str = "https://api.openai.com/v1";
 
 pub struct AssistantState {
     chat: Mutex<Chat>,
+    /// Stops the answer in progress, if any.
+    cancel: Mutex<Cancel>,
 }
 
 impl AssistantState {
     pub fn new() -> Self {
         Self {
             chat: Mutex::new(new_chat()),
+            cancel: Mutex::new(Cancel::new()),
         }
     }
 }
@@ -265,10 +270,15 @@ pub struct AssistantReply {
     actions: Vec<UiAction>,
     model: String,
     cloud: bool,
+    /// The user stopped it; nothing was answered or shown.
+    stopped: bool,
 }
 
 #[tauri::command]
 pub async fn assistant_send(text: String, app: AppHandle) -> CmdResult<AssistantReply> {
+    // Set up before anything else, so an early Stop isn't lost.
+    let cancel = Cancel::new();
+    *app.state::<AssistantState>().cancel.lock().unwrap() = cancel.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let settings = state.settings.lock().unwrap().get().clone();
@@ -280,26 +290,44 @@ pub async fn assistant_send(text: String, app: AppHandle) -> CmdResult<Assistant
         let tools = LibraryTools::new(&index, &sources);
         let assistant = app.state::<AssistantState>();
         let mut chat = assistant.chat.lock().unwrap();
-        let reply = chat
-            .send(&backend, &tools, &text, &mut |step| {
-                let _ = app.emit(ASSISTANT_STEP, step);
-            })
-            .map_err(err)?;
-        Ok(AssistantReply {
-            text: reply.text,
-            steps: reply.steps,
-            actions: tools.take_actions(),
-            model: reply.model,
-            cloud: is_cloud(&settings),
-        })
+        let result = chat.send(&backend, &tools, &text, &cancel, &mut |step| {
+            let _ = app.emit(ASSISTANT_STEP, step);
+        });
+        let cloud = is_cloud(&settings);
+        match result {
+            Ok(reply) => Ok(AssistantReply {
+                text: reply.text,
+                steps: reply.steps,
+                actions: tools.take_actions(),
+                model: reply.model,
+                cloud,
+                stopped: false,
+            }),
+            Err(Error::Cancelled) => Ok(AssistantReply {
+                text: String::new(),
+                steps: Vec::new(),
+                actions: Vec::new(),
+                model: backend.model().to_string(),
+                cloud,
+                stopped: true,
+            }),
+            Err(e) => Err(err(e)),
+        }
     })
     .await
     .map_err(err)?
 }
 
-/// Starts a new conversation.
+/// Stops the answer in progress (it returns `stopped` at once).
+#[tauri::command]
+pub fn assistant_cancel(assistant: State<AssistantState>) {
+    assistant.cancel.lock().unwrap().cancel();
+}
+
+/// Starts a new conversation, stopping any answer in progress.
 #[tauri::command]
 pub fn assistant_reset(assistant: State<AssistantState>) {
+    assistant.cancel.lock().unwrap().cancel();
     *assistant.chat.lock().unwrap() = new_chat();
 }
 

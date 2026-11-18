@@ -12,13 +12,16 @@
   type Message =
     | { role: "user"; text: string }
     | { role: "assistant"; text: string; steps: AssistantStep[]; shown: string[]; model: string }
-    | { role: "error"; text: string };
+    | { role: "error"; text: string }
+    | { role: "stopped" };
 
   let open = $state(false);
   let info = $state<AssistantInfo | null>(null);
   let messages = $state<Message[]>([]);
   let draft = $state("");
   let busy = $state(false);
+  /** Stop was pressed; waiting for the answer to end. */
+  let stopping = $state(false);
   let live = $state<AssistantStep[]>([]);
   let list: HTMLDivElement | undefined = $state();
   let input: HTMLTextAreaElement | undefined = $state();
@@ -100,6 +103,12 @@
     scrollDown();
     try {
       const reply = await api.assistantSend(text);
+      if (reply.stopped) {
+        messages = [...messages, { role: "stopped" }];
+        // Back in the box to change and ask again.
+        if (!draft.trim()) draft = text;
+        return;
+      }
       for (const a of reply.actions) onaction(a);
       messages = [
         ...messages,
@@ -118,11 +127,19 @@
       after = "puzzled";
     } finally {
       busy = false;
+      stopping = false;
       live = [];
       scrollDown();
       await tick();
       input?.focus();
     }
+  }
+
+  /** Stops the answer in progress: nothing more is looked up or shown. */
+  function stop() {
+    if (!busy || stopping) return;
+    stopping = true;
+    api.assistantCancel().catch(() => {});
   }
 
   async function reset() {
@@ -144,8 +161,10 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
       e.preventDefault();
       toggle();
-    } else if (e.key === "Escape" && open && !busy) {
-      open = false;
+    } else if (e.key === "Escape" && open) {
+      // Esc stops Rupert first, then closes the panel.
+      if (busy) stop();
+      else open = false;
     }
   }
 </script>
@@ -210,6 +229,8 @@
             {#each boldParts(m.text) as p, j (j)}{#if p.bold}<strong>{p.text}</strong>{:else}{p.text}{/if}{/each}
           </div>
           {#if m.shown.length}<div class="shown">{m.shown.join(" · ")}</div>{/if}
+        {:else if m.role === "stopped"}
+          <div class="stopped">Stopped</div>
         {:else}
           <div class="msg error">
             {m.text}
@@ -219,7 +240,7 @@
       {/each}
       {#if busy}
         <div class="working">
-          {live.length ? live[live.length - 1].summary + "…" : "Thinking…"}
+          {stopping ? "Stopping…" : live.length ? live[live.length - 1].summary + "…" : "Thinking…"}
         </div>
       {/if}
     </div>
@@ -233,7 +254,13 @@
         placeholder="Ask about your documents…"
         disabled={busy}
       ></textarea>
-      <button class="send" onclick={send} disabled={busy || !draft.trim()} aria-label="Send">↑</button>
+      {#if busy}
+        <button class="send stop" onclick={stop} disabled={stopping} title="Stop (Esc)" aria-label="Stop">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="currentColor" /></svg>
+        </button>
+      {:else}
+        <button class="send" onclick={send} disabled={!draft.trim()} aria-label="Send">↑</button>
+      {/if}
     </div>
   </div>
 {/if}
@@ -419,6 +446,18 @@
   }
   .send:disabled {
     opacity: 0.45;
+  }
+  .send.stop {
+    display: grid;
+    place-items: center;
+    background: var(--text);
+    color: var(--bg);
+  }
+  .stopped {
+    align-self: flex-end;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 4px;
   }
   .link {
     border: 0;

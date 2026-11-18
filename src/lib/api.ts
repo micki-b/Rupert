@@ -235,6 +235,8 @@ export interface AssistantReply {
   actions: AssistantAction[];
   model: string;
   cloud: boolean;
+  /** Stopped by the user: nothing was answered or shown. */
+  stopped: boolean;
 }
 
 export interface FolderChoice {
@@ -363,6 +365,7 @@ export const api = {
   assistantInfo: () => invoke<AssistantInfo>("assistant_info"),
   assistantSend: (text: string) => invoke<AssistantReply>("assistant_send", { text }),
   assistantReset: () => invoke<void>("assistant_reset"),
+  assistantCancel: () => invoke<void>("assistant_cancel"),
   assistantSetKey: (provider: AssistantProvider, key: string | null) =>
     invoke<void>("assistant_set_key", { provider, key }),
   assistantHasKey: (provider: AssistantProvider) => invoke<boolean>("assistant_has_key", { provider }),

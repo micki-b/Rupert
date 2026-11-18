@@ -1024,6 +1024,7 @@ pub fn run() {
             assistant::assistant_info,
             assistant::assistant_send,
             assistant::assistant_reset,
+            assistant::assistant_cancel,
             assistant::assistant_set_key,
             assistant::assistant_has_key,
             assistant::assistant_cli_status,
