@@ -25,6 +25,7 @@ const IMPORT_PROGRESS: &str = "import-progress";
 /// ScanSnap Home import finished. Payload: `ImportReport`.
 const IMPORT_DONE: &str = "import-done";
 /// File ▸ Import from ScanSnap Home… was chosen (macOS menu). No payload.
+#[cfg(target_os = "macos")]
 const MENU_IMPORT: &str = "menu-import-scansnap";
 
 // MARK: - State
