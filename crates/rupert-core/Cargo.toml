@@ -1,0 +1,11 @@
+[package]
+name = "rupert-core"
+description = "Rupert's document library engine: sources, indexing, metadata. No UI or Tauri dependency."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
