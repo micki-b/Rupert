@@ -2,8 +2,9 @@
 //! open documents, and scan paper into the inbox folder.
 //!
 //! The phone only reads the library. Folders come from the Files picker
-//! (iCloud Drive, OneDrive, On My iPhone) and are reopened at launch from
-//! bookmarks. Text and details come from the shared catalog and sidecars
+//! (iCloud Drive, On My iPhone) and are reopened at launch from bookmarks;
+//! OneDrive folders, which the Files app can't hand to other apps, are read
+//! through Microsoft Graph (`onedrive`). Text and details come from the shared catalog and sidecars
 //! that Rupert on a computer writes; documents are downloaded only when
 //! opened. Scans go to the inbox folder, where Rupert on the computer runs
 //! OCR and suggests how to file them.
@@ -15,6 +16,10 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::time::Duration;
+
+mod onedrive;
+
+use onedrive::{OneDrive, RemoteFolder, RemoteInbox};
 
 use rupert_core::camera;
 use rupert_core::indexer::{self, Mode, Options, PrepareHidden};
@@ -30,7 +35,7 @@ use tauri_plugin_rupert_ios::{Device, Error as DeviceError};
 /// Indexing progress. Payload: `Progress`.
 const INDEX_PROGRESS: &str = "index-progress";
 /// The index changed; refresh lists. No payload.
-const INDEX_CHANGED: &str = "index-changed";
+pub(crate) const INDEX_CHANGED: &str = "index-changed";
 /// Saved folders were reopened (or couldn't be). No payload.
 const FOLDERS_READY: &str = "folders-ready";
 /// Waiting longer than this for the sync service to fetch a hidden folder
@@ -46,6 +51,12 @@ struct Saved {
     /// Source id → bookmark.
     bookmarks: HashMap<String, String>,
     inbox: Option<SavedFolder>,
+    /// Library folders read through OneDrive's web API.
+    #[serde(default)]
+    remote: Vec<RemoteFolder>,
+    /// Scans go here instead of `inbox` when set.
+    #[serde(default)]
+    onedrive_inbox: Option<RemoteInbox>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,7 +67,7 @@ struct SavedFolder {
     bookmark: String,
 }
 
-struct SavedStore {
+pub(crate) struct SavedStore {
     path: PathBuf,
     saved: Saved,
 }
@@ -84,9 +95,10 @@ impl SavedStore {
 
 // MARK: - State
 
-struct AppState {
+pub(crate) struct AppState {
     store: Mutex<SourceStore>,
     saved: Mutex<SavedStore>,
+    index_path: PathBuf,
     /// Read connection for lists and searches (the indexer has its own).
     index: Mutex<Index>,
     indexer: IndexerHandle,
@@ -104,8 +116,17 @@ impl AppState {
         self.store.lock().unwrap().sources().to_vec()
     }
 
-    fn sync_all(&self) {
-        self.indexer.send(Job::SyncAll(self.sources()));
+    /// Local folders only; OneDrive folders are synced by `onedrive`. (Not
+    /// `Job::SyncAll`, which would drop the OneDrive folders' entries.)
+    fn sync_local(&self) {
+        for source in self.sources() {
+            self.indexer.send(Job::SyncSource(source));
+        }
+    }
+
+    fn remote(&self, id: &str) -> Option<RemoteFolder> {
+        let saved = self.saved.lock().unwrap();
+        saved.saved.remote.iter().find(|f| f.id == id).cloned()
     }
 
     /// The source (and relative folder) a path lies in, if any.
@@ -117,18 +138,18 @@ impl AppState {
     }
 }
 
-type CmdResult<T> = Result<T, String>;
+pub(crate) type CmdResult<T> = Result<T, String>;
 
-fn err(e: impl std::fmt::Display) -> String {
+pub(crate) fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
 
-fn device(app: &AppHandle) -> tauri::State<'_, Device<Wry>> {
+pub(crate) fn device(app: &AppHandle) -> tauri::State<'_, Device<Wry>> {
     app.state::<Device<Wry>>()
 }
 
 /// Runs blocking work (iOS calls, file reads) off the main thread.
-async fn blocking<T: Send + 'static>(
+pub(crate) async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> CmdResult<T> + Send + 'static,
 ) -> CmdResult<T> {
     tauri::async_runtime::spawn_blocking(f).await.map_err(err)?
@@ -152,40 +173,49 @@ struct Overview {
     sources: Vec<SourceView>,
     /// Name of the folder scans are saved to.
     inbox: Option<String>,
+    inbox_on_onedrive: bool,
     stats: IndexStats,
     progress: Progress,
 }
 
 #[tauri::command]
-fn overview(state: State<AppState>) -> CmdResult<Overview> {
+fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> {
+    let saved = state.saved.lock().unwrap();
+    let mut sources: Vec<SourceView> = state
+        .sources()
+        .into_iter()
+        .map(|s| SourceView {
+            available: s.is_available(),
+            id: s.id,
+            name: s.name,
+            provider: s.provider,
+        })
+        .collect();
+    sources.extend(saved.saved.remote.iter().map(|f| SourceView {
+        id: f.id.clone(),
+        name: f.name.clone(),
+        provider: Provider::OneDrive,
+        available: od.is_signed_in(),
+    }));
+    let (inbox, inbox_on_onedrive) = match (&saved.saved.onedrive_inbox, &saved.saved.inbox) {
+        (Some(r), _) => (Some(r.name.clone()), true),
+        (None, Some(f)) => (Some(f.name.clone()), false),
+        (None, None) => (None, false),
+    };
     Ok(Overview {
         ready: state.ready.load(Ordering::SeqCst),
-        sources: state
-            .sources()
-            .into_iter()
-            .map(|s| SourceView {
-                available: s.is_available(),
-                id: s.id,
-                name: s.name,
-                provider: s.provider,
-            })
-            .collect(),
-        inbox: state
-            .saved
-            .lock()
-            .unwrap()
-            .saved
-            .inbox
-            .as_ref()
-            .map(|f| f.name.clone()),
+        sources,
+        inbox,
+        inbox_on_onedrive,
         stats: state.index.lock().unwrap().stats().map_err(err)?,
         progress: state.progress.lock().unwrap().clone(),
     })
 }
 
 #[tauri::command]
-fn refresh(state: State<AppState>) {
-    state.sync_all();
+fn refresh(app: AppHandle, state: State<AppState>) {
+    state.sync_local();
+    onedrive::start_sync(&app);
 }
 
 // MARK: - Commands: folders
@@ -218,10 +248,13 @@ async fn add_folder(app: AppHandle, state: State<'_, AppState>) -> CmdResult<boo
 /// Removes a folder from the library (nothing on disk changes).
 #[tauri::command]
 fn remove_folder(id: String, state: State<AppState>) -> CmdResult<()> {
-    state.store.lock().unwrap().remove(&id).map_err(err)?;
+    if state.remote(&id).is_none() {
+        state.store.lock().unwrap().remove(&id).map_err(err)?;
+    }
     {
         let mut saved = state.saved.lock().unwrap();
         saved.saved.bookmarks.remove(&id);
+        saved.saved.remote.retain(|f| f.id != id);
         saved.save();
     }
     state.indexer.send(Job::RemoveSource(id));
@@ -241,6 +274,7 @@ async fn choose_inbox(app: AppHandle, state: State<'_, AppState>) -> CmdResult<b
         path: picked.path.into(),
         bookmark: picked.bookmark,
     });
+    saved.saved.onedrive_inbox = None;
     saved.save();
     Ok(true)
 }
@@ -261,6 +295,9 @@ async fn list_dir(
     rel_path: String,
     state: State<'_, AppState>,
 ) -> CmdResult<Vec<ListedEntry>> {
+    if state.remote(&source_id).is_some() {
+        return list_remote(&source_id, &rel_path, &state);
+    }
     let source = state.source(&source_id)?;
     let rel = rel_path.clone();
     let entries = blocking(move || {
@@ -280,6 +317,53 @@ async fn list_dir(
             entry,
         })
         .collect())
+}
+
+/// A OneDrive folder's contents, from the index (nothing is on the phone).
+fn list_remote(source_id: &str, rel_path: &str, state: &AppState) -> CmdResult<Vec<ListedEntry>> {
+    let (dirs, docs) = state
+        .index
+        .lock()
+        .unwrap()
+        .list_folder(source_id, rel_path)
+        .map_err(err)?;
+    let join = |name: &str| {
+        if rel_path.is_empty() {
+            name.to_string()
+        } else {
+            format!("{rel_path}/{name}")
+        }
+    };
+    let folders = dirs.into_iter().map(|name| ListedEntry {
+        entry: Entry {
+            rel_path: join(&name),
+            name,
+            is_dir: true,
+            kind: None,
+            size: 0,
+            modified_ms: None,
+            cloud: rupert_core::CloudState::CloudOnly,
+        },
+        meta: None,
+    });
+    let files = docs.into_iter().map(|h| ListedEntry {
+        meta: Some(FolderMeta {
+            title: h.title,
+            tags: h.tags,
+            favorite: h.favorite,
+            document_date: h.document_date,
+        }),
+        entry: Entry {
+            name: h.name,
+            rel_path: h.rel_path,
+            is_dir: false,
+            kind: Some(h.kind),
+            size: h.size,
+            modified_ms: h.modified_ms,
+            cloud: h.cloud,
+        },
+    });
+    Ok(folders.chain(files).collect())
 }
 
 #[derive(Deserialize)]
@@ -331,6 +415,21 @@ async fn open_document(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> CmdResult<()> {
+    if let Some(folder) = state.remote(&source_id) {
+        let size = state
+            .index
+            .lock()
+            .unwrap()
+            .document(&source_id, &rel_path)
+            .map_err(err)?
+            .map(|d| d.hit.size)
+            .unwrap_or(0);
+        return blocking(move || {
+            let path = onedrive::fetch_document(&app, &folder, &rel_path, size)?;
+            device(&app).preview(&path.to_string_lossy()).map_err(err)
+        })
+        .await;
+    }
     let source = state.source(&source_id)?;
     let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
     let path = path.to_string_lossy().into_owned();
@@ -356,14 +455,16 @@ async fn scan(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> CmdResult<Option<String>> {
-    let inbox = state
-        .saved
-        .lock()
-        .unwrap()
-        .saved
-        .inbox
-        .clone()
-        .ok_or("Choose the inbox folder first.")?;
+    let (inbox, remote_inbox) = {
+        let saved = state.saved.lock().unwrap();
+        (
+            saved.saved.inbox.clone(),
+            saved.saved.onedrive_inbox.clone(),
+        )
+    };
+    if inbox.is_none() && remote_inbox.is_none() {
+        return Err("Choose the inbox folder first.".into());
+    }
     let handle = app.clone();
     let placed = blocking(move || {
         let device = device(&handle);
@@ -377,6 +478,20 @@ async fn scan(
             .collect::<std::io::Result<Vec<_>>>()
             .map_err(err)?;
         let pdf = camera::pages_to_pdf(&jpegs).map_err(err)?;
+        let tmp_dir = Path::new(first).parent().map(Path::to_path_buf);
+        if let Some(remote) = remote_inbox {
+            let result = onedrive::upload_scan(&handle, &remote, &name, &pdf);
+            if let Some(dir) = tmp_dir {
+                let _ = fs::remove_dir_all(dir);
+            }
+            return result.map(|name| {
+                Some(tauri_plugin_rupert_ios::Placed {
+                    path: String::new(),
+                    name,
+                })
+            });
+        }
+        let inbox = inbox.expect("checked above");
         let tmp = Path::new(first).with_file_name("scan.pdf");
         fs::write(&tmp, pdf).map_err(err)?;
         let placed = device
@@ -450,7 +565,10 @@ fn open_saved_folders(app: &AppHandle) {
     }
     state.ready.store(true, Ordering::SeqCst);
     let _ = app.emit(FOLDERS_READY, ());
-    state.sync_all();
+    state.sync_local();
+    app.state::<OneDrive>().restore(app);
+    onedrive::start_sync(app);
+    onedrive::tidy_cache(app);
 }
 
 /// Lets the sync service fetch one of Rupert's hidden folders (sidecars,
@@ -481,11 +599,12 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let saved = SavedStore::load(config_dir.join("phone.json"));
     let index_path = data_dir.join("index.sqlite");
     let index = Index::open(&index_path)?;
+    app.manage(OneDrive::default());
 
     let progress_handle = app.handle().clone();
     let changed_handle = app.handle().clone();
     let indexer = indexer::spawn_with(
-        index_path,
+        index_path.clone(),
         // No PDFium on the phone: text comes from the catalog and sidecars.
         TextExtractor::new(None),
         Options {
@@ -506,6 +625,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(AppState {
         store: Mutex::new(store),
         saved: Mutex::new(saved),
+        index_path,
         index: Mutex::new(index),
         indexer,
         progress: Mutex::new(Progress::default()),
@@ -583,6 +703,12 @@ pub fn run() {
             document,
             open_document,
             scan,
+            onedrive::onedrive_status,
+            onedrive::onedrive_sign_in,
+            onedrive::onedrive_sign_out,
+            onedrive::onedrive_folders,
+            onedrive::add_onedrive_folder,
+            onedrive::set_onedrive_inbox,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");

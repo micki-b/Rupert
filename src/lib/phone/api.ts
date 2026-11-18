@@ -19,6 +19,7 @@ export interface Overview {
   sources: PhoneSource[];
   /** Name of the folder scans go to. */
   inbox: string | null;
+  inboxOnOnedrive: boolean;
   stats: IndexStats;
   progress: Progress;
 }
@@ -30,6 +31,21 @@ export interface Listed extends Entry {
 export interface DocInfo extends Hit {
   notes: string | null;
   textState: "extracted" | "catalog" | "sidecar" | "empty" | "cloudOnly" | "unsupported" | "failed";
+}
+
+export interface OneDriveStatus {
+  /** This build has the app's Microsoft registration. */
+  configured: boolean;
+  signedIn: boolean;
+  account: string | null;
+  /** The last indexing problem, if any. */
+  error: string | null;
+  progress: Progress;
+}
+
+export interface OneDriveFolder {
+  id: string;
+  name: string;
 }
 
 export const phone = {
@@ -46,11 +62,21 @@ export const phone = {
   open: (sourceId: string, relPath: string) => invoke<void>("open_document", { sourceId, relPath }),
   /** The saved file name, or null if the scan was cancelled. */
   scan: (name: string) => invoke<string | null>("scan", { name }),
+  onedriveStatus: () => invoke<OneDriveStatus>("onedrive_status"),
+  /** `false` if cancelled. */
+  onedriveSignIn: () => invoke<boolean>("onedrive_sign_in"),
+  onedriveSignOut: () => invoke<void>("onedrive_sign_out"),
+  /** Subfolders; `null` for the top level. */
+  onedriveFolders: (id: string | null) => invoke<OneDriveFolder[]>("onedrive_folders", { id }),
+  addOnedriveFolder: (itemId: string, name: string) => invoke<void>("add_onedrive_folder", { itemId, name }),
+  setOnedriveInbox: (itemId: string, name: string) => invoke<void>("set_onedrive_inbox", { itemId, name }),
 };
 
 export const onProgress = (f: (p: Progress) => void): Promise<UnlistenFn> =>
   listen<Progress>("index-progress", (e) => f(e.payload));
 export const onIndexChanged = (f: () => void): Promise<UnlistenFn> => listen("index-changed", () => f());
+export const onRemoteProgress = (f: (p: Progress) => void): Promise<UnlistenFn> =>
+  listen<Progress>("remote-progress", (e) => f(e.payload));
 export const onFoldersReady = (f: () => void): Promise<UnlistenFn> => listen("folders-ready", () => f());
 
 /** "Scan 2026-11-18 15.04.12", in local time (same as the desktop). */

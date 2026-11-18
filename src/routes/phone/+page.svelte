@@ -10,12 +10,16 @@
     onFoldersReady,
     onIndexChanged,
     onProgress,
+    onRemoteProgress,
     phone,
     scanName,
     type DocInfo,
     type Hit,
     type Listed,
+    type OneDriveFolder,
+    type OneDriveStatus,
     type Overview,
+    type Progress,
     type TagCount,
   } from "$lib/phone/api";
 
@@ -47,11 +51,24 @@
   let scanError = $state<string | null>(null);
 
   let confirmRemove = $state<string | null>(null);
+  let od = $state<OneDriveStatus | null>(null);
+  let remoteProgress = $state<Progress | null>(null);
+  /** The OneDrive folder chooser: what it's for, and where it is. */
+  type Chooser = {
+    purpose: "library" | "inbox";
+    path: OneDriveFolder[];
+    folders: OneDriveFolder[];
+    loading: boolean;
+    error: string | null;
+  };
+  let chooser = $state<Chooser | null>(null);
   let busy = $state(false);
   let settingsError = $state<string | null>(null);
 
   const here = $derived(stack.at(-1) ?? null);
   const progress = $derived(overview?.progress);
+  const busyIndexing = $derived(Boolean(progress?.active || remoteProgress?.active));
+  const shownProgress = $derived(remoteProgress?.active ? remoteProgress : progress);
   const title = $derived(
     tab === "library" ? (here?.name ?? "Library") : tab === "search" ? "Search" : tab === "scan" ? "Scan" : "Settings",
   );
@@ -60,6 +77,7 @@
 
   async function loadOverview() {
     overview = await phone.overview();
+    od = await phone.onedriveStatus().catch(() => null);
   }
 
   async function loadFolder() {
@@ -105,6 +123,10 @@
         if (overview) overview.progress = p;
       }),
       onIndexChanged(indexChanged),
+      onRemoteProgress((p) => {
+        remoteProgress = p;
+        if (!p.active) loadOverview();
+      }),
       onFoldersReady(loadOverview),
     ];
     return () => unlisten.forEach((u) => u.then((f) => f()));
@@ -190,6 +212,49 @@
     }
   }
 
+  // MARK: OneDrive
+
+  async function openChooser(purpose: "library" | "inbox") {
+    chooser = { purpose, path: [], folders: [], loading: true, error: null };
+    await loadChooser();
+  }
+
+  async function loadChooser() {
+    if (!chooser) return;
+    chooser.loading = true;
+    chooser.error = null;
+    try {
+      chooser.folders = await phone.onedriveFolders(chooser.path.at(-1)?.id ?? null);
+    } catch (e) {
+      chooser.error = String(e);
+      chooser.folders = [];
+    } finally {
+      if (chooser) chooser.loading = false;
+    }
+  }
+
+  function chooserInto(f: OneDriveFolder) {
+    if (!chooser) return;
+    chooser.path = [...chooser.path, f];
+    loadChooser();
+  }
+
+  function chooserBack() {
+    if (!chooser) return;
+    chooser.path = chooser.path.slice(0, -1);
+    loadChooser();
+  }
+
+  async function chooserUse() {
+    const c = chooser;
+    const here = c?.path.at(-1);
+    if (!c || !here) return;
+    chooser = null;
+    await act(() =>
+      c.purpose === "library" ? phone.addOnedriveFolder(here.id, here.name) : phone.setOnedriveInbox(here.id, here.name),
+    );
+  }
+
   const providerName: Record<string, string> = {
     icloud: "iCloud Drive",
     onedrive: "OneDrive",
@@ -214,9 +279,9 @@
       <button class="back" onclick={back} aria-label="Back"><Icon name="back" size={22} /></button>
     {/if}
     <h1>{title}</h1>
-    {#if progress?.active}
-      <span class="indexing" title={progress.current ?? ""}>
-        <span class="spinner"></span>{progress.total ? `${progress.done} / ${progress.total}` : ""}
+    {#if busyIndexing && shownProgress}
+      <span class="indexing" title={shownProgress.current ?? ""}>
+        <span class="spinner"></span>{shownProgress.total ? `${shownProgress.done} / ${shownProgress.total}` : ""}
       </span>
     {/if}
   </header>
@@ -231,6 +296,11 @@
               OneDrive or on this iPhone.
             </p>
             <button class="primary" disabled={busy} onclick={() => act(phone.addFolder)}>Add a folder…</button>
+            {#if od?.signedIn}
+              <button class="primary" disabled={busy} onclick={() => openChooser("library")}>Add a OneDrive folder…</button>
+            {:else if od?.configured}
+              <p class="note small">OneDrive folders need a sign-in first: Settings ▸ OneDrive.</p>
+            {/if}
             {#if settingsError}<p class="error">{settingsError}</p>{/if}
           </div>
         {:else if overview}
@@ -333,14 +403,19 @@
             Scans are saved as PDFs to your Rupert inbox folder. Rupert on your computer then reads them and suggests
             names and folders. Choose the same inbox folder here, in iCloud Drive or OneDrive.
           </p>
-          <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>Choose the inbox folder…</button>
+          <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>Choose in Files…</button>
+          {#if od?.signedIn}
+            <button class="primary" disabled={busy} onclick={() => openChooser("inbox")}>Choose in OneDrive…</button>
+          {/if}
           {#if settingsError}<p class="error">{settingsError}</p>{/if}
         {:else if overview}
           <button class="big" onclick={scan} disabled={scanning}>
             <Icon name="camera" size={44} />
             <span>{scanning ? "Saving…" : "Scan a document"}</span>
           </button>
-          <p class="note">Pages are saved to <strong>{overview.inbox}</strong> as one PDF.</p>
+          <p class="note">
+            Pages are saved to <strong>{overview.inboxOnOnedrive ? "OneDrive ▸ " : ""}{overview.inbox}</strong> as one PDF.
+          </p>
           {#if lastScan}<p class="ok">Saved “{lastScan}”.</p>{/if}
           {#if scanError}<p class="error">{scanError}</p>{/if}
         {/if}
@@ -370,6 +445,13 @@
               <Icon name="plus" /> Add a folder…
             </button>
           </li>
+          {#if od?.signedIn}
+            <li class="setting">
+              <button class="plain add" disabled={busy} onclick={() => openChooser("library")}>
+                <Icon name="plus" /> Add a OneDrive folder…
+              </button>
+            </li>
+          {/if}
         </ul>
         <p class="note small">Removing a folder only removes it from Rupert on this iPhone. Nothing is deleted.</p>
       </section>
@@ -377,12 +459,43 @@
         <h2>Inbox for scans</h2>
         <ul class="list boxed">
           <li class="setting">
-            <span class="main"><span class="name">{overview.inbox ?? "Not chosen"}</span></span>
-            <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>
-              {overview.inbox ? "Change…" : "Choose…"}
-            </button>
+            <span class="main">
+              <span class="name">{overview.inbox ?? "Not chosen"}</span>
+              {#if overview.inbox}<span class="sub">{overview.inboxOnOnedrive ? "OneDrive" : "Files"}</span>{/if}
+            </span>
+            <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>In Files…</button>
+            {#if od?.signedIn}
+              <button class="plain" disabled={busy} onclick={() => openChooser("inbox")}>In OneDrive…</button>
+            {/if}
           </li>
         </ul>
+      </section>
+      <section>
+        <h2>OneDrive</h2>
+        <ul class="list boxed">
+          <li class="setting">
+            {#if !od?.configured}
+              <span class="main"><span class="sub wrap">This copy of Rupert isn't registered with Microsoft yet.</span></span>
+            {:else if od.signedIn}
+              <span class="main">
+                <span class="name">{od.account ?? "Signed in"}</span>
+                {#if remoteProgress?.active}
+                  <span class="sub">Reading {remoteProgress.current ?? "OneDrive"}…</span>
+                {:else if od.error}
+                  <span class="sub error">{od.error}</span>
+                {/if}
+              </span>
+              <button class="plain" disabled={busy} onclick={() => act(phone.onedriveSignOut)}>Sign out</button>
+            {:else}
+              <span class="main"><span class="name">Not signed in</span></span>
+              <button class="plain" disabled={busy} onclick={() => act(phone.onedriveSignIn)}>Sign in…</button>
+            {/if}
+          </li>
+        </ul>
+        <p class="note small left">
+          OneDrive folders can't be opened through Files, so Rupert reads them directly from OneDrive. It reads only
+          its own small catalog files, downloads a document when you open it, and adds scans to the inbox.
+        </p>
       </section>
       <section>
         <h2>Index</h2>
@@ -391,7 +504,7 @@
           searched by their text. Text comes from Rupert on your computer, through the hidden catalog in each folder.
           Documents stay in the cloud until you open them.
         </p>
-        <button class="plain add" onclick={() => phone.refresh()} disabled={progress?.active}>Check folders again</button>
+        <button class="plain add" onclick={() => phone.refresh()} disabled={busyIndexing}>Check folders again</button>
       </section>
       {#if settingsError}<p class="error pad">{settingsError}</p>{/if}
     {/if}
@@ -405,6 +518,43 @@
       </button>
     {/each}
   </nav>
+
+  {#if chooser}
+    <div class="backdrop" role="presentation" onclick={() => (chooser = null)}></div>
+    <div class="sheet chooser" role="dialog" aria-modal="true" aria-label="Choose a OneDrive folder">
+      <div class="grabber"></div>
+      <div class="chooser-head">
+        {#if chooser.path.length}
+          <button class="back" onclick={chooserBack} aria-label="Back"><Icon name="back" size={22} /></button>
+        {/if}
+        <h2 class="doc-title">{chooser.path.at(-1)?.name ?? "OneDrive"}</h2>
+      </div>
+      <p class="sub">
+        {chooser.purpose === "library" ? "Choose a folder for the library." : "Choose the inbox folder for scans."}
+      </p>
+      {#if chooser.error}<p class="error">{chooser.error}</p>{/if}
+      <ul class="list chooser-list">
+        {#each chooser.folders as f (f.id)}
+          <li>
+            <button class="row" onclick={() => chooserInto(f)}>
+              <span class="icon folder"><Icon name="folder" size={22} /></span>
+              <span class="main"><span class="name">{f.name}</span></span>
+              <Icon name="chevron" />
+            </button>
+          </li>
+        {/each}
+        {#if !chooser.loading && chooser.folders.length === 0 && !chooser.error}
+          <li class="note">No folders in here.</li>
+        {/if}
+      </ul>
+      <div class="sheet-actions">
+        <button class="plain" onclick={() => (chooser = null)}>Cancel</button>
+        <button class="primary" onclick={chooserUse} disabled={!chooser.path.length}>
+          {chooser.path.length ? `Use “${chooser.path.at(-1)?.name}”` : "Open a folder"}
+        </button>
+      </div>
+    </div>
+  {/if}
 
   {#if sheet}
     <div class="backdrop" role="presentation" onclick={() => (sheet = null)}></div>
@@ -740,6 +890,20 @@
     border-radius: 16px 16px 0 0;
     padding: 8px 20px calc(env(safe-area-inset-bottom) + 16px);
     box-shadow: 0 -8px 30px rgb(0 0 0 / 0.2);
+  }
+  .chooser-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .chooser-list {
+    margin: 8px -20px 12px;
+    border-top: 1px solid var(--border);
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .sub.wrap {
+    white-space: normal;
   }
   .grabber {
     width: 36px;

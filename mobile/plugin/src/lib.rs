@@ -1,6 +1,6 @@
 //! iOS services for Rupert's phone app (Swift in `ios/`): folder access
 //! through the Files picker with bookmarks, fetching files from the sync
-//! service, Quick Look and the document camera.
+//! service, Quick Look, the document camera, web sign-in and the Keychain.
 //!
 //! Every call blocks until iOS answers, so call from a background thread.
 //! Elsewhere every call fails with [`Error::Unsupported`].
@@ -160,6 +160,63 @@ impl<R: Runtime> Device<R> {
             name: &'a str,
         }
         self.call("place", Args { from, folder, name })
+    }
+}
+
+impl<R: Runtime> Device<R> {
+    /// Shows a web sign-in page; the redirect URL, or `None` if cancelled.
+    pub fn sign_in(&self, url: &str, callback_scheme: &str) -> Result<Option<String>> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Args<'a> {
+            url: &'a str,
+            callback_scheme: &'a str,
+        }
+        #[derive(Deserialize)]
+        struct Answer {
+            url: Option<String>,
+        }
+        Ok(self
+            .call::<Answer>(
+                "signIn",
+                Args {
+                    url,
+                    callback_scheme,
+                },
+            )?
+            .url)
+    }
+
+    pub fn keychain_get(&self, key: &str) -> Result<Option<String>> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            key: &'a str,
+        }
+        #[derive(Deserialize)]
+        struct Value {
+            value: Option<String>,
+        }
+        Ok(self.call::<Value>("keychainGet", Args { key })?.value)
+    }
+
+    /// Stored for this device only, readable after the first unlock.
+    pub fn keychain_set(&self, key: &str, value: &str) -> Result<()> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            key: &'a str,
+            value: &'a str,
+        }
+        self.call::<serde_json::Value>("keychainSet", Args { key, value })
+            .map(drop)
+    }
+
+    pub fn keychain_delete(&self, key: &str) -> Result<()> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            key: &'a str,
+        }
+        self.call::<serde_json::Value>("keychainDelete", Args { key })
+            .map(drop)
     }
 }
 

@@ -17,7 +17,10 @@ pub mod listing;
 pub mod llm;
 pub mod meta;
 pub mod ocr;
+#[cfg(feature = "onedrive")]
+pub mod onedrive;
 pub mod pdf_meta;
+pub mod remote;
 pub mod scansnap;
 pub mod settings;
 pub mod sidecar;

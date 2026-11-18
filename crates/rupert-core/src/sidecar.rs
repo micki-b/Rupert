@@ -84,23 +84,32 @@ pub fn path_for(file: &Path) -> Result<PathBuf> {
 pub fn read(file: &Path) -> Result<Option<Sidecar>> {
     let path = path_for(file)?;
     match fs::read(&path) {
-        Ok(bytes) => {
-            let f: SidecarFile = serde_json::from_slice(&bytes)?;
-            Ok(Some(Sidecar {
-                meta: f.meta,
-                pending: f.pending,
-                text: f.text,
-                text_source: f.text_source,
-            }))
-        }
+        Ok(bytes) => parse(&bytes).map(Some),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e.into()),
     }
 }
 
-/// Writes the sidecar atomically, or removes it if `sidecar` is empty.
-/// Hashes the file only if `hash_contents` (never for online-only files:
-/// reading them would download them).
+/// Decodes a sidecar fetched by other means (e.g. downloaded from OneDrive).
+pub fn parse(bytes: &[u8]) -> Result<Sidecar> {
+    let f: SidecarFile = serde_json::from_slice(bytes)?;
+    Ok(Sidecar {
+        meta: f.meta,
+        pending: f.pending,
+        text: f.text,
+        text_source: f.text_source,
+    })
+}
+
+/// Where the sidecar of the document at `rel_path` lives, relative to the
+/// source root (`dir/.rupert/name.json`).
+pub fn rel_path_for(rel_path: &str) -> String {
+    match rel_path.rsplit_once('/') {
+        Some((dir, name)) => format!("{dir}/{DIR_NAME}/{name}.json"),
+        None => format!("{DIR_NAME}/{rel_path}.json"),
+    }
+}
+
 pub fn write(file: &Path, sidecar: &Sidecar, hash_contents: bool) -> Result<()> {
     if sidecar.is_empty() {
         return remove(file);

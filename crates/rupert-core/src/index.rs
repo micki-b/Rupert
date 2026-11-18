@@ -393,30 +393,55 @@ impl Index {
         if let Some(t) = &q.tag {
             named.push((":tag", t));
         }
-        let rows = stmt
-            .query_map(named.as_slice(), |r| {
-                let tags: String = r.get(8)?;
-                Ok(Hit {
-                    source_id: r.get(0)?,
-                    rel_path: r.get(1)?,
-                    name: r.get(2)?,
-                    kind: parse_kind(&r.get::<_, String>(3)?),
-                    size: r.get::<_, i64>(4)? as u64,
-                    modified_ms: r.get(5)?,
-                    cloud: if r.get::<_, i64>(6)? != 0 {
-                        CloudState::CloudOnly
-                    } else {
-                        CloudState::Local
-                    },
-                    title: r.get(7)?,
-                    tags: serde_json::from_str(&tags).unwrap_or_default(),
-                    document_date: r.get(9)?,
-                    favorite: r.get::<_, i64>(10)? != 0,
-                    snippet: r.get(11)?,
-                })
-            })
-            .map_err(db)?;
+        let rows = stmt.query_map(named.as_slice(), hit).map_err(db)?;
         rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// A folder as the index knows it: its subfolder names (only those
+    /// holding documents) and the documents directly in it. For sources
+    /// the phone reads through a web API, where nothing is on disk.
+    pub fn list_folder(&self, source_id: &str, rel_dir: &str) -> Result<(Vec<String>, Vec<Hit>)> {
+        let rel_dir = rel_dir.trim_matches('/');
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT source_id, rel_path, name, kind, size, mtime_ms, cloud,
+                        title, tags, document_date, favorite, NULL
+                 FROM docs WHERE source_id = ?1 AND dir = ?2 ORDER BY name COLLATE NOCASE",
+            )
+            .map_err(db)?;
+        let docs = stmt
+            .query_map(params![source_id, rel_dir], hit)
+            .map_err(db)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(db)?;
+
+        let (lo, hi) = prefix_range(rel_dir);
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT DISTINCT dir FROM docs WHERE source_id = ?1 AND dir >= ?2 AND dir < ?3",
+            )
+            .map_err(db)?;
+        let dirs = stmt
+            .query_map(params![source_id, lo, hi], |r| r.get::<_, String>(0))
+            .map_err(db)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(db)?;
+        let prefix = if rel_dir.is_empty() {
+            String::new()
+        } else {
+            format!("{rel_dir}/")
+        };
+        let mut subfolders: Vec<String> = dirs
+            .iter()
+            .filter_map(|d| d.strip_prefix(&prefix))
+            .filter(|rest| !rest.is_empty())
+            .map(|rest| rest.split('/').next().unwrap_or(rest).to_string())
+            .collect();
+        subfolders.sort_by_key(|n| n.to_lowercase());
+        subfolders.dedup();
+        Ok((subfolders, docs))
     }
 
     /// One document's indexed details, if it's in the index.
@@ -842,6 +867,30 @@ fn parse_kind(s: &str) -> FileKind {
     }
 }
 
+/// A search-style row: source_id, rel_path, name, kind, size, mtime_ms,
+/// cloud, title, tags, document_date, favorite, snippet.
+fn hit(r: &rusqlite::Row) -> rusqlite::Result<Hit> {
+    let tags: String = r.get(8)?;
+    Ok(Hit {
+        source_id: r.get(0)?,
+        rel_path: r.get(1)?,
+        name: r.get(2)?,
+        kind: parse_kind(&r.get::<_, String>(3)?),
+        size: r.get::<_, i64>(4)? as u64,
+        modified_ms: r.get(5)?,
+        cloud: if r.get::<_, i64>(6)? != 0 {
+            CloudState::CloudOnly
+        } else {
+            CloudState::Local
+        },
+        title: r.get(7)?,
+        tags: serde_json::from_str(&tags).unwrap_or_default(),
+        document_date: r.get(9)?,
+        favorite: r.get::<_, i64>(10)? != 0,
+        snippet: r.get(11)?,
+    })
+}
+
 fn storage_str(s: Storage) -> &'static str {
     match s {
         Storage::Embedded => "embedded",
@@ -886,6 +935,28 @@ mod tests {
             text: text.into(),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn lists_a_folder_from_the_index() {
+        let idx = Index::open_in_memory().unwrap();
+        for p in [
+            "Boat/Engine/a.pdf",
+            "Boat/Engine/Oil/b.pdf",
+            "Boat/c.pdf",
+            "Boats/d.pdf",
+            "e.pdf",
+        ] {
+            idx.upsert(&row(p, None, &[], false), None).unwrap();
+        }
+        let (dirs, docs) = idx.list_folder("s", "").unwrap();
+        assert_eq!(dirs, ["Boat", "Boats"]);
+        assert_eq!(names(&docs), ["e.pdf"]);
+        let (dirs, docs) = idx.list_folder("s", "Boat").unwrap();
+        assert_eq!(dirs, ["Engine"]);
+        assert_eq!(names(&docs), ["Boat/c.pdf"]);
+        let (dirs, _) = idx.list_folder("s", "Boat/Engine").unwrap();
+        assert_eq!(dirs, ["Oil"]);
     }
 
     #[test]

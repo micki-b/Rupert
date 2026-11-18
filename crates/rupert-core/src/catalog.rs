@@ -121,19 +121,27 @@ fn entry_path(root: &Path, rel_path: &str) -> PathBuf {
 // MARK: - Read / write
 
 pub fn read(root: &Path, rel_path: &str) -> Result<Option<CatalogEntry>> {
-    let path = entry_path(root, rel_path);
-    let file = match fs::File::open(&path) {
-        Ok(f) => f,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(e.into()),
-    };
-    let mut json = Vec::new();
-    if GzDecoder::new(file).read_to_end(&mut json).is_err() {
-        return Ok(None); // half-synced or damaged: treat as missing
+    match fs::read(entry_path(root, rel_path)) {
+        Ok(bytes) => Ok(parse(&bytes, rel_path)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.into()),
     }
-    Ok(serde_json::from_slice::<CatalogEntry>(&json)
+}
+
+/// Decodes an entry fetched by other means (e.g. downloaded from OneDrive).
+/// `None` if it is damaged or half-synced, or describes another document.
+pub fn parse(bytes: &[u8], rel_path: &str) -> Option<CatalogEntry> {
+    let mut json = Vec::new();
+    GzDecoder::new(bytes).read_to_end(&mut json).ok()?;
+    serde_json::from_slice::<CatalogEntry>(&json)
         .ok()
-        .filter(|e| e.rel_path == rel_path))
+        .filter(|e| e.rel_path == rel_path)
+}
+
+/// Where a document's entry lives, relative to the source root.
+pub fn entry_rel_path(rel_path: &str) -> String {
+    let k = key(rel_path);
+    format!("{}/catalog/{}/{k}.{EXT}", sidecar::DIR_NAME, &k[..2])
 }
 
 /// Writes the entry unless an identical one is already there (so machines

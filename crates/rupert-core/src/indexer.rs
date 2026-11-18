@@ -33,7 +33,7 @@ use crate::file_kind::FileKind;
 use crate::index::{DocRow, Index, Stamp, TextState};
 use crate::listing::{CloudState, Entry, cloud_state, list_dir};
 use crate::meta::{self, DocMeta, PartialMeta, Storage};
-use crate::sidecar;
+use crate::sidecar::{self, Sidecar};
 use crate::source::{Provider, Source};
 use crate::text::TextExtractor;
 
@@ -403,41 +403,9 @@ impl Worker {
 
         let (meta, storage, text_state, body) = if e.cloud == CloudState::CloudOnly {
             // Never read online-only files. Use the catalog if it's current.
-            let (mut meta, mut storage, mut state, mut body) =
-                match catalog::read(&source.root, &f.rel_path)?
-                    .filter(|c| c.matches(e.size, e.modified_ms))
-                {
-                    Some(c) => {
-                        // An entry without text means a machine read the
-                        // file and found none.
-                        let state = if c.text.as_deref().is_some_and(|t| !t.is_empty()) {
-                            TextState::Catalog
-                        } else {
-                            TextState::Empty
-                        };
-                        (c.meta, c.storage.into(), state, c.text)
-                    }
-                    None => (
-                        DocMeta::default(),
-                        Storage::None,
-                        TextState::CloudOnly,
-                        None,
-                    ),
-                };
-            if let Some(s) = &side
-                && let Some(m) = &s.meta
-            {
-                meta = if s.pending {
-                    PartialMeta::merge(m.clone(), meta)
-                } else {
-                    m.clone()
-                };
-                storage = Storage::Sidecar;
-            }
-            if state != TextState::Catalog && side_text.is_some() {
-                (state, body) = (TextState::Sidecar, side_text);
-            }
-            (meta, storage, state, body)
+            let entry = catalog::read(&source.root, &f.rel_path)?
+                .filter(|c| c.matches(e.size, e.modified_ms));
+            online_only_details(entry, side.as_ref())
         } else {
             let record = meta::read_meta(&path)?;
             let (mut state, mut body) = match self.extractor.extract(&path) {
@@ -694,6 +662,48 @@ impl Worker {
 
 // MARK: - Helpers
 
+/// What is known about a document without reading it: its current catalog
+/// entry (an entry without text means a machine read the file and found
+/// none) and its sidecar, whose details and text win.
+pub(crate) fn online_only_details(
+    entry: Option<CatalogEntry>,
+    side: Option<&Sidecar>,
+) -> (DocMeta, Storage, TextState, Option<String>) {
+    let (mut meta, mut storage, mut state, mut body) = match entry {
+        Some(c) => {
+            let state = if c.text.as_deref().is_some_and(|t| !t.is_empty()) {
+                TextState::Catalog
+            } else {
+                TextState::Empty
+            };
+            (c.meta, c.storage.into(), state, c.text)
+        }
+        None => (
+            DocMeta::default(),
+            Storage::None,
+            TextState::CloudOnly,
+            None,
+        ),
+    };
+    if let Some(s) = side
+        && let Some(m) = &s.meta
+    {
+        meta = if s.pending {
+            PartialMeta::merge(m.clone(), meta)
+        } else {
+            m.clone()
+        };
+        storage = Storage::Sidecar;
+    }
+    let side_text = side
+        .and_then(|s| s.text.clone())
+        .filter(|t| !t.trim().is_empty());
+    if state != TextState::Catalog && side_text.is_some() {
+        (state, body) = (TextState::Sidecar, side_text);
+    }
+    (meta, storage, state, body)
+}
+
 /// Cloud sources share a catalog so other machines can search online-only
 /// files; a purely local folder has no one to share with.
 fn shares_catalog(source: &Source) -> bool {
@@ -751,7 +761,7 @@ fn coalesce(jobs: Vec<Job>) -> Vec<Job> {
 // MARK: - Tests
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::index::SearchQuery;
     use crate::meta::DocMeta;
@@ -783,6 +793,13 @@ mod tests {
             mode: Mode::Library,
             prepare_hidden: None,
         }
+    }
+
+    /// Indexes `root` as a computer would for a cloud source, writing its
+    /// catalog (for tests of readers elsewhere).
+    pub(crate) fn index_as_cloud(root: &Path) {
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.sync(&source(root, Provider::OneDrive), "", true).unwrap();
     }
 
     fn search(w: &Worker, text: &str) -> Vec<String> {

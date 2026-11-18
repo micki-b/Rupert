@@ -161,7 +161,12 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 
 A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mobile/plugin/ios`), on the same `rupert-core`. The UI is the `/phone` route of the shared SvelteKit front end. Android isn't planned: OneDrive and iCloud Drive there don't expose folders the app could read in place.
 
-- **Library:** the user picks folders in the Files picker (iCloud Drive, OneDrive, On My iPhone), the same folders Rupert uses on the computer. Access is kept with bookmarks, which are resolved at every launch because iOS paths can change.
+- **Library:** the user picks folders in the Files picker (iCloud Drive, On My iPhone), the same folders Rupert uses on the computer. Access is kept with bookmarks, which are resolved at every launch because iOS paths can change.
+- **OneDrive** can't be used that way: its iOS file provider doesn't let other apps pick folders (they show greyed out; a long-standing limitation of third-party providers). So OneDrive folders are read through **Microsoft Graph** (decided 2026-11-18, phone only; the desktop still uses the synced folders):
+  - Sign-in with OAuth 2.0 + PKCE as a public client (personal accounts, `consumers` authority), shown with `ASWebAuthenticationSession`; the refresh token is kept in the Keychain (this device only), the access token only in memory. Scopes: `Files.ReadWrite offline_access` (write is only used to add scans to the inbox, never replacing a file).
+  - The app's Microsoft registration (client id) is read at build time from `mobile/onedrive-client-id`; without it the app builds with OneDrive turned off. Redirect URI `msauth.io.github.micki-b.rupert://auth`.
+  - A folder's complete listing comes from `delta` (paths rebuilt from parent ids); `remote::sync` indexes it from the catalog entries and sidecars, which are fetched as files (only Rupert's own; never documents). Unchanged documents aren't fetched again. Browsing a OneDrive folder uses the index.
+  - Opening a document downloads it into the app's cache (kept 14 days), then Quick Look. Scans upload into a OneDrive inbox folder (upload session above 4 MB).
 - **Read-only.** The indexer runs in viewer mode (`indexer::Mode::Viewer`): it reads the shared catalog and sidecars of every folder (the provider isn't visible from iOS paths) and never writes, prunes or downloads. Quick Look's markup is turned off.
 - **Text:** there's no PDFium on the phone, so body text comes from the catalog and sidecars that Rupert on a computer writes. Any machine that can't read a file's text now uses a matching catalog entry for it and leaves the entry alone; before, it erased the other machine's text.
 - **Downloads:** documents are fetched only when opened (`NSFileCoordinator`), then shown in Quick Look with sharing and printing. Rupert's own `.rupert/` folders are fetched before they're read (old-style iCloud `.name.icloud` placeholders included); a fetch that takes more than 90 s, e.g. offline, is skipped.
@@ -175,7 +180,8 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 - iCloud Drive and OneDrive sync `.rupert/` dot-folders on all platforms.
 - Finder-tag writes on online-only files don't trigger downloads; whether OneDrive keeps Finder tags.
 - HP OfficeJet 250 supports eSCL/AirScan.
-- On an iPhone: listing big iCloud Drive and OneDrive folders through the picked bookmarks, fetching `.rupert/` folders, and that no document is downloaded until it is opened.
+- OneDrive via Graph on the real account: delta listing of a big folder, catalog paths matching (Unicode normalization of names between macOS and OneDrive), token refresh.
+- On an iPhone: listing big iCloud Drive folders through the picked bookmarks, fetching `.rupert/` folders, and that no document is downloaded until it is opened.
 - ScanSnap Home can save to a folder (or send to an app) without also cataloging the file.
 
 ## Milestones

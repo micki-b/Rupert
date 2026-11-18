@@ -7,8 +7,12 @@
 //   (sidecars and the shared catalog), never documents.
 // - `scan` runs the system document camera and returns JPEG pages; Rust
 //   turns them into a PDF and `place` copies it into the inbox folder.
+// - `signIn` shows a web sign-in page (Microsoft, for OneDrive) and returns
+//   the redirect; tokens are kept with the `keychain*` commands.
 
+import AuthenticationServices
 import Foundation
+import Security
 import QuickLook
 import SwiftRs
 import Tauri
@@ -67,6 +71,29 @@ struct PlaceResult: Encodable {
   let name: String
 }
 
+struct SignInArgs: Decodable {
+  let url: String
+  let callbackScheme: String
+}
+
+struct SignInResult: Encodable {
+  /// The redirect with the answer; `nil` if the user cancelled.
+  let url: String?
+}
+
+struct KeyArgs: Decodable {
+  let key: String
+}
+
+struct KeyValueArgs: Decodable {
+  let key: String
+  let value: String
+}
+
+struct KeyValue: Encodable {
+  let value: String?
+}
+
 // MARK: - Plugin
 
 class RupertPlugin: Plugin {
@@ -75,6 +102,8 @@ class RupertPlugin: Plugin {
   private var previewSource: PreviewSource?
   /// Folders whose security-scoped access is open for the app's lifetime.
   private var accessed: [URL] = []
+  private var authSession: ASWebAuthenticationSession?
+  private var authAnchor: AuthAnchor?
 
   // MARK: Folders
 
@@ -324,6 +353,101 @@ class RupertPlugin: Plugin {
     }
     try? fm.removeItem(at: source.deletingLastPathComponent())
     invoke.resolve(PlaceResult(path: target.path, name: name))
+  }
+}
+
+// MARK: - Sign-in and Keychain
+
+extension RupertPlugin {
+  @objc public func signIn(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(SignInArgs.self)
+    guard let url = URL(string: args.url) else {
+      invoke.reject("Bad sign-in address.")
+      return
+    }
+    DispatchQueue.main.async {
+      let session = ASWebAuthenticationSession(
+        url: url, callbackURLScheme: args.callbackScheme
+      ) { callback, error in
+        self.authSession = nil
+        if let callback = callback {
+          invoke.resolve(SignInResult(url: callback.absoluteString))
+        } else if let e = error as? ASWebAuthenticationSessionError, e.code == .canceledLogin {
+          invoke.resolve(SignInResult(url: nil))
+        } else {
+          invoke.reject(error?.localizedDescription ?? "Sign-in failed.")
+        }
+      }
+      let anchor = AuthAnchor(self.manager.viewController?.view.window)
+      self.authAnchor = anchor
+      session.presentationContextProvider = anchor
+      self.authSession = session
+      if !session.start() {
+        self.authSession = nil
+        invoke.reject("Couldn't show the sign-in page.")
+      }
+    }
+  }
+
+  private static let keychainService = "io.github.micki-b.rupert"
+
+  private func keychainQuery(_ key: String) -> [String: Any] {
+    [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: Self.keychainService,
+      kSecAttrAccount as String: key,
+    ]
+  }
+
+  @objc public func keychainGet(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(KeyArgs.self)
+    var query = keychainQuery(args.key)
+    query[kSecReturnData as String] = true
+    query[kSecMatchLimit as String] = kSecMatchLimitOne
+    var result: AnyObject?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    switch status {
+    case errSecSuccess:
+      let value = (result as? Data).flatMap { String(data: $0, encoding: .utf8) }
+      invoke.resolve(KeyValue(value: value))
+    case errSecItemNotFound:
+      invoke.resolve(KeyValue(value: nil))
+    default:
+      invoke.reject("Keychain error \(status)")
+    }
+  }
+
+  @objc public func keychainSet(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(KeyValueArgs.self)
+    let query = keychainQuery(args.key)
+    SecItemDelete(query as CFDictionary)
+    var add = query
+    add[kSecValueData as String] = Data(args.value.utf8)
+    add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    let status = SecItemAdd(add as CFDictionary, nil)
+    if status == errSecSuccess {
+      invoke.resolve()
+    } else {
+      invoke.reject("Keychain error \(status)")
+    }
+  }
+
+  @objc public func keychainDelete(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(KeyArgs.self)
+    SecItemDelete(keychainQuery(args.key) as CFDictionary)
+    invoke.resolve()
+  }
+}
+
+class AuthAnchor: NSObject, ASWebAuthenticationPresentationContextProviding {
+  private let window: UIWindow?
+
+  init(_ window: UIWindow?) {
+    self.window = window
+  }
+
+  func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    window ?? ASPresentationAnchor()
   }
 }
 
