@@ -73,7 +73,26 @@
   let hits = $state<Hit[]>([]);
   let searchedOnce = $state(false);
   let tags = $state<TagCount[]>([]);
-  let tagsOpen = $state(true);
+  /** The lower part of the sidebar: source folders or the tag filter. */
+  const VIEW_KEY = "rupert.sidebarView";
+  let sidebarView = $state<"folders" | "tags">(loadSidebarView());
+
+  function loadSidebarView(): "folders" | "tags" {
+    try {
+      return localStorage.getItem(VIEW_KEY) === "tags" ? "tags" : "folders";
+    } catch {
+      return "folders";
+    }
+  }
+
+  function setSidebarView(v: "folders" | "tags") {
+    sidebarView = v;
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* not essential */
+    }
+  }
   let stats = $state<IndexStats | null>(null);
   let progress = $state<Progress | null>(null);
   let indexTick = $state(0);
@@ -454,18 +473,37 @@
         <span class="label">{f.name}</span>
       </button>
     {/each}
-    <button class="lib-item" onclick={() => (tagsOpen = !tagsOpen)} aria-expanded={tagsOpen}>
-      <span class="lib-icon disclosure" class:open={tagsOpen}><Icon name="chevron" size={12} /></span>
-      <span class="label">Tags</span>
-      {#if tags.length}<span class="count">{tags.length}</span>{/if}
-    </button>
-    {#if tagsOpen}
-      <div class="tag-filter-wrap">
-        <TagFilter bind:selected={selectedTags} bind:mode={tagMode} refresh={indexTick} onchange={tagsChanged} />
-        <button class="manage-tags" onclick={() => (tagManagerOpen = true)}>Manage tags…</button>
-      </div>
-    {/if}
+    <div class="view-switch" role="tablist" aria-label="Show in the sidebar">
+      <button
+        role="tab"
+        aria-selected={sidebarView === "folders"}
+        class:on={sidebarView === "folders"}
+        onclick={() => setSidebarView("folders")}>Folders</button
+      >
+      <button
+        role="tab"
+        aria-selected={sidebarView === "tags"}
+        class:on={sidebarView === "tags"}
+        onclick={() => setSidebarView("tags")}
+      >
+        Tags{#if selectedTags.length}&nbsp;<span class="badge">{selectedTags.length}</span>{/if}
+      </button>
+    </div>
 
+    {#if sidebarView === "tags"}
+      <div class="tag-pane" role="tabpanel">
+        <TagFilter
+          bind:selected={selectedTags}
+          bind:mode={tagMode}
+          refresh={indexTick}
+          limit={25}
+          onchange={tagsChanged}
+        />
+        <button class="manage-tags" onclick={() => (tagManagerOpen = true)}>
+          Manage tags…{#if tags.length}&nbsp;<span class="count">{tags.length} in all</span>{/if}
+        </button>
+      </div>
+    {:else}
     <header class="sources-header">
       <h2>Sources</h2>
       <button class="icon-btn" onclick={addSource} title="Add a folder" aria-label="Add a folder">
@@ -548,6 +586,7 @@
     <button class="lib-item import" onclick={() => (importing = true)}>
       <span class="label">Import from ScanSnap Home…</span>
     </button>
+    {/if}
   </aside>
 
   {#snippet menu(s: Source)}
@@ -630,7 +669,7 @@
 
     {#if searching}
       <p class="result-count muted">
-        {#if !searchedOnce}Searching…{:else if hits.length === 0}No matching documents.{:else}{hits.length}{hits.length >= 300 ? "+" : ""} documents{/if}
+        {#if !searchedOnce}Searching…{:else if hits.length === 0}No matching documents.{:else}{hits.length}{hits.length >= 300 ? "+" : ""} document{hits.length === 1 ? "" : "s"}{/if}
       </p>
       <ul class="results">
         {#each hits as h (h.sourceId + "\n" + h.relPath)}
@@ -912,7 +951,7 @@
     padding: 0 4px 6px 8px;
   }
   .sources-header {
-    margin-top: 14px;
+    margin-top: 2px;
   }
   .lib-item {
     display: flex;
@@ -962,19 +1001,46 @@
   .lib-icon.star {
     color: #d9a520;
   }
-  .disclosure {
-    transition: transform 0.12s;
-  }
-  .disclosure.open {
-    transform: rotate(90deg);
-  }
   .lib-item.import {
     margin-top: 14px;
     color: var(--muted);
     font-size: 12px;
   }
-  .tag-filter-wrap {
-    padding: 0 0 6px 18px;
+  .view-switch {
+    display: flex;
+    margin: 12px 4px 8px;
+    padding: 2px;
+    border-radius: 7px;
+    background: var(--hover);
+  }
+  .view-switch button {
+    flex: 1;
+    border: 0;
+    background: none;
+    border-radius: 5px;
+    padding: 3px 0;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .view-switch button.on {
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 8px;
+    padding: 0 5px;
+  }
+  .tag-pane {
+    padding: 0 0 6px 4px;
   }
   .manage-tags {
     border: 0;
