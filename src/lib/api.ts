@@ -31,6 +31,29 @@ export interface DirChange {
   relDir: string;
 }
 
+export interface DocMeta {
+  id: string | null;
+  title: string | null;
+  tags: string[];
+  notes: string | null;
+  /** YYYY-MM-DD, the date on the paper. */
+  documentDate: string | null;
+  favorite: boolean;
+}
+
+export type Storage = "embedded" | "sidecar" | "none";
+
+export interface MetaRecord {
+  meta: DocMeta;
+  storage: Storage;
+  note: string | null;
+}
+
+export interface MetaResponse {
+  available: boolean;
+  record: MetaRecord | null;
+}
+
 export interface AppInfo {
   name: string;
   version: string;
@@ -53,6 +76,10 @@ export const api = {
     invoke<void>("open_entry", { sourceId, relPath }),
   revealEntry: (sourceId: string, relPath: string) =>
     invoke<void>("reveal_entry", { sourceId, relPath }),
+  readMeta: (sourceId: string, relPath: string, allowDownload = false) =>
+    invoke<MetaResponse>("read_meta", { sourceId, relPath, allowDownload }),
+  writeMeta: (sourceId: string, relPath: string, meta: DocMeta) =>
+    invoke<MetaRecord>("write_meta", { sourceId, relPath, meta }),
 };
 
 export function onDirChanged(handler: (changes: DirChange[]) => void): Promise<UnlistenFn> {

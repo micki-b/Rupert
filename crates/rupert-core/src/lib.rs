@@ -6,12 +6,17 @@
 pub mod error;
 pub mod file_kind;
 pub mod listing;
+pub mod meta;
+pub mod pdf_meta;
+pub mod sidecar;
 pub mod source;
 pub mod watch;
+pub mod xmp;
 
 pub use error::{Error, Result};
 pub use file_kind::{FileKind, is_ignored_name};
-pub use listing::{CloudState, Entry, list_dir, resolve};
+pub use listing::{CloudState, Entry, cloud_state, list_dir, resolve};
+pub use meta::{DocMeta, MetaRecord, Storage, read_meta, write_meta};
 pub use source::{Provider, Source, SourceStore};
 pub use watch::{DirChange, LibraryWatcher};
 

@@ -3,7 +3,10 @@
 
 use std::sync::Mutex;
 
-use rupert_core::{DirChange, Entry, LibraryWatcher, Source, SourceStore};
+use rupert_core::{
+    CloudState, DirChange, DocMeta, Entry, FileKind, LibraryWatcher, MetaRecord, Source,
+    SourceStore,
+};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
@@ -165,6 +168,66 @@ fn reveal_entry(
     app.opener().reveal_item_in_dir(path).map_err(err)
 }
 
+// MARK: - Commands: metadata
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MetaResponse {
+    /// `false` when the details live inside an online-only file and the
+    /// caller didn't allow downloading it.
+    available: bool,
+    record: Option<MetaRecord>,
+}
+
+/// Reads a document's metadata. For online-only PDFs this would download
+/// the file, so it only happens when `allow_download` is set.
+#[tauri::command]
+async fn read_meta(
+    source_id: String,
+    rel_path: String,
+    allow_download: bool,
+    state: State<'_, AppState>,
+) -> CmdResult<MetaResponse> {
+    let source = state.source(&source_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        let needs_file = FileKind::from_path(&path) == FileKind::Pdf;
+        if needs_file
+            && !allow_download
+            && rupert_core::cloud_state(&path).map_err(err)? == CloudState::CloudOnly
+        {
+            return Ok(MetaResponse {
+                available: false,
+                record: None,
+            });
+        }
+        let record = rupert_core::read_meta(&path).map_err(err)?;
+        Ok(MetaResponse {
+            available: true,
+            record: Some(record),
+        })
+    })
+    .await
+    .map_err(err)?
+}
+
+#[tauri::command]
+async fn write_meta(
+    source_id: String,
+    rel_path: String,
+    meta: DocMeta,
+    state: State<'_, AppState>,
+) -> CmdResult<MetaRecord> {
+    let source = state.source(&source_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        let local = rupert_core::cloud_state(&path).map_err(err)? == CloudState::Local;
+        rupert_core::write_meta(&path, meta, local).map_err(err)
+    })
+    .await
+    .map_err(err)?
+}
+
 // MARK: - Entry point
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -201,6 +264,8 @@ pub fn run() {
             list_dir,
             open_entry,
             reveal_entry,
+            read_meta,
+            write_meta,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");

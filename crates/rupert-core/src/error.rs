@@ -27,6 +27,17 @@ pub enum Error {
 
     #[error("invalid path: {0}")]
     InvalidPath(String),
+
+    #[error("{0}")]
+    InvalidValue(String),
+
+    /// The PDF couldn't be parsed or the update didn't verify.
+    #[error("PDF problem: {0}")]
+    Pdf(String),
+
+    /// Rupert deliberately won't modify this file (e.g. encrypted or signed PDF).
+    #[error("{0}")]
+    Unsupported(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

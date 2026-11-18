@@ -149,6 +149,37 @@ pub fn list_dir(root: &Path, rel: &str, show_all_types: bool) -> Result<Vec<Entr
     Ok(entries)
 }
 
+/// Whether a single file is online-only, read from its parent's directory
+/// listing (the same no-download path `list_dir` uses).
+pub fn cloud_state(path: &Path) -> Result<CloudState> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| Error::InvalidPath(path.display().to_string()))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| Error::InvalidPath(path.display().to_string()))?;
+    for item in fs::read_dir(parent)?.flatten() {
+        let raw = item.file_name();
+        if raw == name {
+            let meta = item.metadata()?;
+            return Ok(if is_cloud_only(&meta) {
+                CloudState::CloudOnly
+            } else {
+                CloudState::Local
+            });
+        }
+        if icloud_placeholder_name(&raw.to_string_lossy()).as_deref()
+            == Some(&*name.to_string_lossy())
+        {
+            return Ok(CloudState::CloudOnly);
+        }
+    }
+    Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        format!("{} not found", path.display()),
+    )))
+}
+
 // MARK: - Platform attributes
 //
 // The decoders are compiled on every platform so their tests run in CI

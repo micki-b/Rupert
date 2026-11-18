@@ -44,6 +44,7 @@ Layers 1 and 2 are the truth. Layers 4 and 5 can be deleted at any time and will
 
 ### Finder tags (macOS only)
 
+- **Status: not built yet.** Planned after milestone 3: a correct two-way sync has to tell whether the Finder side or the file changed last, which needs the index.
 - When Rupert writes tags, it also writes Finder tags. When a Finder tag changes (FSEvents reports xattr changes), Rupert copies the change into the file's metadata, so Windows and Linux see it too.
 - Finder tag colors are kept in the Finder only. Rupert tags have no color.
 - **To verify:** that setting xattrs on online-only (dataless) files doesn't trigger a download, and whether OneDrive preserves Finder tags. (iCloud Drive syncs them between Macs.) If the sync can't be made reliable, Rupert leaves Finder tags alone; consistent metadata across platforms comes first.
@@ -55,14 +56,20 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 | Field | XMP | PDF Info dict |
 |---|---|---|
 | Title | `dc:title` | `/Title` |
-| Tags | `dc:subject` (bag) | `/Keywords` (comma-separated) |
+| Tags | `dc:subject` (bag) + `pdf:Keywords` | `/Keywords` (comma-separated) |
 | Notes | `dc:description` | `/Subject` |
-| Document date (date on the paper) | `rupert:documentDate` (+ `dc:date`) | — |
-| Rupert document ID (stable UUID) | `rupert:id` | — |
+| Document date (date on the paper) | `rupert:documentDate` (`YYYY-MM-DD`) | — |
+| Rupert document ID (stable UUID, assigned on first save) | `rupert:id` | — |
+| Favorite | `rupert:favorite` | — |
+| (bookkeeping) | `xmp:MetadataDate` updated on every save | — |
 | Favorite, source, scan info | `rupert:*` | — |
 
 - Prefer **incremental updates** (appending to the PDF rather than rewriting it). This keeps the original bytes intact and doesn't break digital signatures.
 - The embedded `rupert:id` lets Rupert recognize a document after it has been moved or renamed outside the app.
+- Rupert's XMP namespace is `https://github.com/micki-b/Rupert/ns/1.0/` (prefix `rupert`).
+- Saving removes every property Rupert manages from the existing XMP (wherever it appears) and appends one `rdf:Description` with the new values; everything else other software wrote is kept. Clearing a field in Rupert removes it from the file.
+- Before anything is appended, the complete updated file is built in memory, parsed again and checked to read back the same values. If the file changed on disk in the meantime (e.g. a sync), the save is refused. A failed append is truncated back to the original length.
+- Writing an online-only file downloads it first (the OS does this when Rupert reads it). Reading details of an online-only PDF only happens when the user asks.
 - Writing metadata changes the file, so the sync client re-uploads it. To write to an online-only file, Rupert has to download it first.
 
 ### Sidecars (formats that can't hold metadata)
@@ -120,7 +127,7 @@ The importer matches items by folder path + filename and writes document date, f
 
 0. ✅ Tauri skeleton, CI builds for all three OSes.
 1. ✅ Sources: add folders, browse trees, watch for changes, show online-only status. Folders are listed lazily (one level at a time), so there is no full index yet; that arrives with search in milestone 3.
-2. Metadata: read/write XMP + Info dict, sidecars, tags, `rupert:id` identity.
+2. ✅ Metadata: read/write XMP + Info dict, sidecars, tags, `rupert:id` identity. Tested on 26 real PDFs (Poppler, PDFKit and Spotlight read the results; original bytes and rendering unchanged). Finder-tag sync deferred until after milestone 3.
 3. Search: text extraction (pdfium), FTS5, shared catalog.
 4. Intake: inbox, OCR, LM Studio suggestions, review screen.
 5. ScanSnap Home import.

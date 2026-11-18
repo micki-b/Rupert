@@ -15,6 +15,7 @@
   import { formatDate, formatSize, kindLabel } from "$lib/format";
   import FolderNode from "$lib/FolderNode.svelte";
   import Icon from "$lib/Icon.svelte";
+  import MetaEditor from "$lib/MetaEditor.svelte";
 
   type Folder = { sourceId: string; relPath: string };
 
@@ -337,6 +338,10 @@
     <h2>Details</h2>
     {#if entry}
       <div class="detail-name">{entry.name}</div>
+      {#if !entry.isDir && folder}
+        <MetaEditor sourceId={folder.sourceId} {entry} />
+        <hr />
+      {/if}
       <dl>
         <dt>Kind</dt>
         <dd>{entry.isDir ? "Folder" : kindLabel[entry.kind ?? "other"]}</dd>
@@ -642,6 +647,11 @@
     font-size: 14px;
     word-break: break-word;
     margin-bottom: 10px;
+  }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
   }
   dl {
     display: grid;

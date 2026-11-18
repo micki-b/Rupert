@@ -1,0 +1,339 @@
+<script lang="ts">
+  // Editable details for one document. Saving writes into the file (PDF) or
+  // its sidecar, so it only happens when the user presses Save.
+  import { api, type DocMeta, type Entry, type MetaRecord } from "./api";
+  import Icon from "./Icon.svelte";
+
+  let { sourceId, entry }: { sourceId: string; entry: Entry } = $props();
+
+  type Form = { title: string; documentDate: string; tags: string[]; notes: string; favorite: boolean };
+
+  let record = $state<MetaRecord | null>(null);
+  let available = $state(true);
+  let loading = $state(false);
+  let saving = $state(false);
+  let error = $state<string | null>(null);
+  let form = $state<Form>(empty());
+  let saved = $state<Form>(empty());
+  let tagDraft = $state("");
+
+  const dirty = $derived(JSON.stringify(form) !== JSON.stringify(saved) || tagDraft.trim() !== "");
+
+  function empty(): Form {
+    return { title: "", documentDate: "", tags: [], notes: "", favorite: false };
+  }
+
+  function toForm(m: DocMeta): Form {
+    return {
+      title: m.title ?? "",
+      documentDate: m.documentDate ?? "",
+      tags: [...m.tags],
+      notes: m.notes ?? "",
+      favorite: m.favorite,
+    };
+  }
+
+  function apply(r: MetaRecord) {
+    record = r;
+    form = toForm(r.meta);
+    saved = toForm(r.meta);
+    tagDraft = "";
+  }
+
+  async function load(allowDownload = false) {
+    const key = entry.relPath;
+    loading = true;
+    error = null;
+    try {
+      const res = await api.readMeta(sourceId, key, allowDownload);
+      if (key !== entry.relPath) return; // selection moved on
+      available = res.available;
+      if (res.record) apply(res.record);
+      else {
+        record = null;
+        form = empty();
+        saved = empty();
+      }
+    } catch (e) {
+      error = String(e);
+    } finally {
+      loading = false;
+    }
+  }
+
+  // Reload only when a different file is selected, not when the folder
+  // listing refreshes (which replaces the `entry` object).
+  let loadedFor = "";
+  $effect(() => {
+    const key = `${sourceId}\n${entry.relPath}`;
+    if (key !== loadedFor) {
+      loadedFor = key;
+      load();
+    }
+  });
+
+  function addTag() {
+    const parts = tagDraft.split(",").map((t) => t.trim()).filter(Boolean);
+    for (const t of parts) {
+      if (!form.tags.some((x) => x.toLowerCase() === t.toLowerCase())) form.tags.push(t);
+    }
+    tagDraft = "";
+  }
+
+  function removeTag(i: number) {
+    form.tags.splice(i, 1);
+  }
+
+  async function save() {
+    addTag();
+    saving = true;
+    error = null;
+    try {
+      const meta: DocMeta = {
+        id: record?.meta.id ?? null,
+        title: form.title || null,
+        tags: form.tags,
+        notes: form.notes || null,
+        documentDate: form.documentDate || null,
+        favorite: form.favorite,
+      };
+      apply(await api.writeMeta(sourceId, entry.relPath, meta));
+      available = true;
+    } catch (e) {
+      error = String(e);
+    } finally {
+      saving = false;
+    }
+  }
+
+  function revert() {
+    form = JSON.parse(JSON.stringify(saved));
+    tagDraft = "";
+  }
+
+  function onkeydown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+      e.preventDefault();
+      if (dirty && !saving) save();
+    }
+  }
+
+  const storageText = $derived(
+    record?.storage === "embedded"
+      ? "Stored inside the PDF"
+      : record?.storage === "sidecar"
+        ? "Stored in a hidden sidecar file"
+        : "No details saved yet",
+  );
+</script>
+
+{#if !available}
+  <div class="offline">
+    <Icon name="cloud" size={16} />
+    <p>This PDF is online-only. Its details are stored inside it, so showing them downloads the file.</p>
+    <button onclick={() => load(true)} disabled={loading}>
+      {loading ? "Downloading…" : "Download and show details"}
+    </button>
+  </div>
+{:else}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <form class="meta" onsubmit={(e) => { e.preventDefault(); save(); }} {onkeydown}>
+    <div class="title-row">
+      <label class="field grow">
+        <span>Title</span>
+        <input bind:value={form.title} placeholder={entry.name} disabled={loading} />
+      </label>
+      <button
+        type="button"
+        class="star"
+        class:on={form.favorite}
+        title={form.favorite ? "Remove from favorites" : "Mark as favorite"}
+        aria-pressed={form.favorite}
+        onclick={() => (form.favorite = !form.favorite)}>{form.favorite ? "★" : "☆"}</button
+      >
+    </div>
+
+    <label class="field">
+      <span>Document date</span>
+      <input type="date" bind:value={form.documentDate} disabled={loading} />
+    </label>
+
+    <div class="field">
+      <span id="tags-label">Tags</span>
+      <div class="tags" role="group" aria-labelledby="tags-label">
+        {#each form.tags as tag, i (tag)}
+          <span class="tag">
+            {tag}
+            <button type="button" aria-label="Remove tag {tag}" onclick={() => removeTag(i)}>×</button>
+          </span>
+        {/each}
+        <input
+          class="tag-input"
+          bind:value={tagDraft}
+          placeholder={form.tags.length ? "" : "Add tags…"}
+          disabled={loading}
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              addTag();
+            } else if (e.key === "Backspace" && !tagDraft && form.tags.length) {
+              form.tags.pop();
+            }
+          }}
+          onblur={addTag}
+        />
+      </div>
+    </div>
+
+    <label class="field">
+      <span>Notes</span>
+      <textarea bind:value={form.notes} rows="3" disabled={loading}></textarea>
+    </label>
+
+    {#if error}<p class="error">{error}</p>{/if}
+
+    <div class="actions">
+      <button type="submit" class="primary" disabled={!dirty || saving || loading}>
+        {saving ? "Saving…" : "Save"}
+      </button>
+      <button type="button" onclick={revert} disabled={!dirty || saving}>Revert</button>
+    </div>
+
+    <p class="storage">
+      {loading ? "Reading…" : storageText}
+      {#if record?.note}<br /><span class="note">{record.note}</span>{/if}
+    </p>
+  </form>
+{/if}
+
+<style>
+  .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .field > span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .grow {
+    flex: 1;
+    min-width: 0;
+  }
+  input,
+  textarea {
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 7px;
+    width: 100%;
+  }
+  input:focus,
+  textarea:focus,
+  .tags:focus-within {
+    outline: 2px solid var(--accent-soft);
+    border-color: var(--accent);
+  }
+  textarea {
+    resize: vertical;
+  }
+  .title-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+  .star {
+    border: 0;
+    background: none;
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px;
+    color: var(--muted);
+  }
+  .star.on {
+    color: #d9a520;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px 1px 8px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 12px;
+  }
+  .tag button {
+    border: 0;
+    background: none;
+    padding: 0 3px;
+    color: inherit;
+    line-height: 1;
+  }
+  .tag-input {
+    flex: 1;
+    min-width: 60px;
+    border: 0;
+    padding: 2px 4px;
+    outline: none !important;
+  }
+  .actions {
+    display: flex;
+    gap: 6px;
+  }
+  button {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button:disabled {
+    opacity: 0.5;
+  }
+  .storage {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .note {
+    font-style: italic;
+  }
+  .error {
+    margin: 0;
+    color: var(--danger);
+  }
+  .offline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--cloud);
+  }
+  .offline p {
+    margin: 0;
+    color: var(--text);
+  }
+  .offline button {
+    align-self: flex-start;
+  }
+</style>
