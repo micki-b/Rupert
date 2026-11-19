@@ -159,10 +159,18 @@ jobs:
       - name: Check the Windows signatures
         if: runner.os == 'Windows' && vars.AZURE_SIGNING_ACCOUNT != ''
         shell: pwsh
+        # The installers, and what's inside them: Tauri signs rupert.exe before
+        # packing it, then resets the copy in target/release (unsigned again).
         run: |
-          $files = Get-ChildItem -Recurse -Path target/release/bundle -Include *-setup.exe, *.msi
-          $files += Get-ChildItem -Path target/release -Filter rupert.exe
-          $files += Get-Item src-tauri/pdfium/pdfium.dll
+          $files = @(Get-ChildItem -Recurse -Path target/release/bundle -Include *-setup.exe, *.msi)
+          $out = Join-Path $env:RUNNER_TEMP 'unpacked'
+          $msi = $files | Where-Object Extension -eq '.msi' | Select-Object -First 1
+          Start-Process msiexec.exe -Wait -ArgumentList '/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$out\msi`""
+          $nsis = $files | Where-Object Name -like '*-setup.exe' | Select-Object -First 1
+          7z x $nsis.FullName "-o$out\nsis" -y | Out-Null
+          $inside = @(Get-ChildItem -Recurse -Path $out -Include rupert.exe, pdfium.dll)
+          if (($inside | Where-Object Name -eq 'rupert.exe').Count -lt 2) { throw 'rupert.exe not found in both installers' }
+          $files += $inside
           foreach ($f in $files) {
             $s = Get-AuthenticodeSignature $f.FullName
             Write-Output "$($f.Name): $($s.Status) $($s.SignerCertificate.Subject)"

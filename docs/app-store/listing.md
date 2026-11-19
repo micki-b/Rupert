@@ -14,7 +14,7 @@ Draft texts and answers for App Store Connect. Character limits in brackets.
 - **Copyright:** © 2026 Micki Braun
 - **Support URL:** https://github.com/micki-b/Rupert/issues
 - **Marketing URL:** https://github.com/micki-b/Rupert
-- **Privacy policy URL:** https://github.com/micki-b/Rupert/blob/main/PRIVACY.md (once the repository is public; or its GitHub Pages copy)
+- **Privacy policy URL:** https://github.com/micki-b/Rupert/blob/main/PRIVACY.md
 
 ## Promotional text [170]
 
