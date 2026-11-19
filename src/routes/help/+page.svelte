@@ -278,6 +278,11 @@
         <b>Suggest again</b> asks LM Studio for a new suggestion.
       </p>
       <p>
+        To get rid of a scan instead, click <b>{windows ? "Delete…" : "Move to Trash…"}</b> under the form, right-click
+        it in the list, or press <kbd>{mac ? "⌘⌫" : "Delete"}</kbd>. Rupert asks first, since a new scan may not be saved
+        anywhere else yet; it goes to the {windows ? "Recycle Bin" : "Trash"}, where you can get it back.
+      </p>
+      <p>
         The file name follows the pattern in <b>Settings ▸ File names</b>: <code>{"{date}"}</code> and
         <code>{"{title}"}</code> are filled in, so the default <code>{"{date} {title}"}</code> gives names like
         “2026-04-29 Car insurance renewal.pdf”. If a file with that name exists, Rupert adds “(2)”; it never overwrites.
@@ -426,7 +431,7 @@
         </li>
         <li>
           In <b>Settings ▸ Assistant</b>, choose <b>LM Studio on this computer</b>. The assistant uses the same server and
-          model as the suggestions. Click <b>Save</b>.
+          model as the suggestions. Changes in Settings apply right away; click <b>Done</b> when you're finished.
         </li>
       </ol>
       <p class="tip">
@@ -532,7 +537,7 @@
           Click <b>Sign in with ChatGPT…</b>. Your browser opens OpenAI's sign-in page; sign in and allow Rupert to use your
           ChatGPT plan. The page then says you can close it, and Settings shows your account.
         </li>
-        <li>Pick a <b>Model</b>: the list shows what your plan offers other apps. Click <b>Save</b>.</li>
+        <li>Pick a <b>Model</b>: the list shows what your plan offers other apps.</li>
       </ol>
       <p>
         Rupert keeps the sign-in in {keychain}. It doesn't see your ChatGPT conversations, and nothing it sends is saved at
@@ -568,7 +573,7 @@
           <b>Save key</b>. It's kept in {keychain}.
         </dd>
       </dl>
-      <p>Click <b>Save</b>, then open the chat. Its header shows the model with <span class="cloud">☁</span>.</p>
+      <p>Open the chat: its header shows the model with <span class="cloud">☁</span>.</p>
     </section>
 
     <!-- MARK: Troubleshooting AI -->

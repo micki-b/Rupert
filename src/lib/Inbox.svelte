@@ -2,10 +2,12 @@
   // The inbox: new scans, their recognized text and LM Studio's suggestion,
   // reviewed and filed one at a time.
   import { onMount, untrack } from "svelte";
+  import { ask } from "@tauri-apps/plugin-dialog";
   import {
     api,
     fileNameFor,
     onIntakeChanged,
+    revealLabel,
     type Filed,
     type FolderChoice,
     type IntakeItem,
@@ -50,6 +52,11 @@
   let filing = $state(false);
   let error = $state<string | null>(null);
   let lastFiled = $state<{ filed: Filed; label: string } | null>(null);
+  let os = $state<string | undefined>();
+  /** The right-click menu on a scan in the list. */
+  let menu = $state<{ x: number; y: number; item: IntakeItem } | null>(null);
+  const trashLabel = $derived(os === "windows" ? "Delete" : "Move to Trash");
+  const binName = $derived(os === "windows" ? "Recycle Bin" : "Trash");
 
   const selected = $derived(items.find((i) => i.relPath === selectedRel) ?? null);
   const inboxSource = $derived(sources.find((s) => s.id === settings.inbox?.sourceId) ?? null);
@@ -71,6 +78,7 @@
 
   onMount(() => {
     load();
+    api.appInfo().then((i) => (os = i.os));
     api.allFolders().then((f) => (allFolders = f));
     const unlisten = onIntakeChanged(load);
     return () => {
@@ -182,15 +190,60 @@
     }
   }
 
+  // MARK: Deleting
+
+  /** Sends a scan to the Trash / Recycle Bin, after asking: a new scan may
+   * not be saved anywhere else yet. Then the next one is selected. */
+  async function trash(item: IntakeItem) {
+    menu = null;
+    const ok = await ask(
+      `Move “${item.name}” to the ${binName}?\n\nIt may not be saved anywhere else yet. You can get it back from the ${binName}.`,
+      { title: trashLabel, kind: "warning", okLabel: trashLabel },
+    );
+    if (!ok) return;
+    try {
+      error = null;
+      await api.trashEntry(item.sourceId, item.relPath);
+      const next = items.findIndex((i) => i.relPath === item.relPath);
+      items = items.filter((i) => i.relPath !== item.relPath);
+      if (selectedRel === item.relPath) {
+        selectedRel = items[Math.min(next, items.length - 1)]?.relPath ?? null;
+        formFor = null;
+      }
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  function openMenu(item: IntakeItem, e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    selectedRel = item.relPath;
+    // Keep it inside the window (the menu is about 200 × 120).
+    menu = { x: Math.min(e.clientX, window.innerWidth - 210), y: Math.min(e.clientY, window.innerHeight - 130), item };
+  }
+
   function onkeydown(e: KeyboardEvent) {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && folderChoice && !filing) {
+    const typing =
+      e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
+    if (e.key === "Escape" && menu) {
+      menu = null;
+    } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && folderChoice && !filing) {
       e.preventDefault();
       file();
+    } else if (
+      !typing &&
+      selected &&
+      !filing &&
+      (os === "macos" ? e.metaKey && e.key === "Backspace" : e.key === "Delete")
+    ) {
+      e.preventDefault();
+      trash(selected);
     }
   }
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} onclick={() => (menu = null)} />
 
 {#if !settings.inbox || !inboxSource}
   <div class="empty-state">
@@ -222,7 +275,12 @@
         </div>
       {/if}
       {#each items as i (i.relPath)}
-        <button class="item" class:selected={i.relPath === selectedRel} onclick={() => (selectedRel = i.relPath)}>
+        <button
+          class="item"
+          class:selected={i.relPath === selectedRel}
+          onclick={() => (selectedRel = i.relPath)}
+          oncontextmenu={(e) => openMenu(i, e)}
+        >
           <span class="name">{i.name}</span>
           <span class="state muted" class:busy={i.stage !== "ready"}>{stageText(i)}</span>
         </button>
@@ -349,12 +407,34 @@
           <button onclick={() => api.inboxRedo(selected!.relPath)} disabled={selected.stage !== "ready"}
             >Suggest again</button
           >
+          <span class="spacer"></span>
+          <button class="danger" onclick={() => trash(selected!)} disabled={filing}>{trashLabel}…</button>
         </div>
         <p class="muted small">
           Writes the details into the file, renames it and moves it to the folder.
         </p>
       {/if}
     </section>
+  </div>
+{/if}
+
+{#if menu}
+  {@const m = menu}
+  <div
+    class="menu"
+    role="menu"
+    tabindex="-1"
+    style:left="{m.x}px"
+    style:top="{m.y}px"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={() => {}}
+  >
+    <button role="menuitem" onclick={() => ((menu = null), api.openEntry(m.item.sourceId, m.item.relPath))}>Open</button>
+    <button role="menuitem" onclick={() => ((menu = null), api.revealEntry(m.item.sourceId, m.item.relPath))}
+      >{revealLabel(os)}</button
+    >
+    <hr />
+    <button role="menuitem" class="danger" onclick={() => trash(m.item)}>{trashLabel}…</button>
   </div>
 {/if}
 
@@ -590,6 +670,40 @@
     display: flex;
     gap: 6px;
     margin-top: 4px;
+  }
+  .spacer {
+    flex: 1;
+  }
+  button.danger {
+    color: var(--danger);
+  }
+  /* The right-click menu on a scan. */
+  .menu {
+    position: fixed;
+    z-index: 30;
+    min-width: 190px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+  }
+  .menu button {
+    border: 0;
+    background: none;
+    text-align: left;
+    padding: 5px 8px;
+    border-radius: 5px;
+  }
+  .menu button:hover {
+    background: var(--hover);
+  }
+  .menu hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
   }
   button {
     border: 1px solid var(--border);
