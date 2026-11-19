@@ -22,12 +22,27 @@ Repository ▸ Settings ▸ Secrets and variables ▸ Actions. Each one is optio
 | `APPLE_API_ISSUER` | secret | App Store Connect ▸ Users and Access ▸ Integrations ▸ App Store Connect API: the Issuer ID. |
 | `APPLE_API_KEY` | secret | The key's Key ID (role: Developer). |
 | `APPLE_API_KEY_P8` | secret | The contents of the downloaded `AuthKey_<id>.p8` (it can be downloaded only once). |
-| `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` | secrets | An Azure app registration allowed to sign ("Trusted Signing Certificate Profile Signer" role on the signing account). |
-| `AZURE_SIGNING_ENDPOINT` | variable | The Trusted Signing account's endpoint, e.g. `https://eus.codesigning.azure.net`. |
-| `AZURE_SIGNING_ACCOUNT` | variable | The Trusted Signing account name. |
-| `AZURE_SIGNING_PROFILE` | variable | The certificate profile name. |
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` | secrets of the `release` environment | The Azure app registration that may sign. No password: see "Windows signing". |
+| `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` | variables | `https://wus2.codesigning.azure.net`, `mickibraun`, `prelease`. |
 
 **Keep `~/.tauri/rupert-updater.key` and its password safe** (e.g. in a password manager). If it's lost, installed copies can't verify new updates and have to be reinstalled by hand.
+
+## Windows signing (Azure Artifact Signing)
+
+Without it the Windows installers are unsigned and SmartScreen warns about an "unknown publisher". Rupert uses the Azure Artifact Signing account set up for 2ndPressing (account `mickibraun`, Public Trust certificate profile `prelease`, region West US 2, endpoint `https://wus2.codesigning.azure.net`); the certificates are issued in the developer's name, so one profile signs any number of apps. Setting up a new account from scratch: [Microsoft's quickstart](https://learn.microsoft.com/azure/artifact-signing/quickstart) (individuals must live in the US or Canada).
+
+**How it signs.** The release workflow's "Windows signing setup" step fetches Microsoft's SignTool plug-in (`Microsoft.ArtifactSigning.Client`, pinned) and writes its `metadata.json`; `tauri build` then calls `scripts/windows-sign.ps1` for `rupert.exe`, the uninstaller and both installers (PDFium's DLL is signed before the build). Sign-in uses no password: each signature fetches a fresh GitHub OIDC token for the run, which Azure accepts through a federated credential on the app registration. The workflow fails if any of those files isn't validly signed.
+
+**One-time setup:**
+
+1. **Azure** ([portal](https://portal.azure.com)) ▸ Microsoft Entra ID ▸ App registrations ▸ `github-secondpressing-signing` (the 2ndPressing app, which already has the **Artifact Signing Certificate Profile Signer** role on `prelease`) ▸ Certificates & secrets ▸ **Federated credentials** ▸ Add credential:
+   - Scenario: **GitHub Actions deploying Azure resources**
+   - Organization `micki-b`, repository `Rupert`, entity type **Environment**, environment `release`
+   - Name `rupert-release`, audience `api://AzureADTokenExchange` (default)
+   - The subject must read `repo:micki-b@163963902/Rupert@1462436924:environment:release` (the repository uses GitHub's immutable subject format with numeric IDs; if the portal shows `repo:micki-b/Rupert:environment:release`, pick the custom "Other issuer" scenario, issuer `https://token.actions.githubusercontent.com`, and enter the subject by hand).
+2. **GitHub:** environment `release` with secrets `AZURE_CLIENT_ID` (the app's Application (client) ID) and `AZURE_TENANT_ID` (Directory (tenant) ID), and the three `AZURE_SIGNING_*` variables above.
+
+Then a tagged release signs the Windows files. SmartScreen can still warn for a while after the first signed release, until the signed downloads build up reputation. Windows shows the certificate's name (the validated legal name) as the publisher.
 
 ## Mac App Store edition (in preparation)
 

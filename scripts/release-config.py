@@ -4,10 +4,9 @@
 
 - `createUpdaterArtifacts`: signed update bundles for the updater (needs
   TAURI_SIGNING_PRIVATE_KEY and its password in the environment).
-- Windows: code signing with Azure Trusted Signing (`trusted-signing-cli`)
-  when AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT and
-  AZURE_SIGNING_PROFILE are set; the service's sign-in comes from
-  AZURE_CLIENT_ID / AZURE_CLIENT_SECRET / AZURE_TENANT_ID.
+- Windows: code signing with Azure Artifact Signing (scripts/windows-sign.ps1)
+  when the release workflow has set up SignTool and the signing plug-in
+  (RUPERT_SIGN_METADATA set).
 
 macOS signing and notarization need no file: Tauri reads APPLE_CERTIFICATE,
 APPLE_SIGNING_IDENTITY and APPLE_API_* from the environment.
@@ -20,16 +19,12 @@ from pathlib import Path
 
 conf: dict = {"bundle": {"createUpdaterArtifacts": True}}
 
-endpoint = os.environ.get("AZURE_SIGNING_ENDPOINT")
-account = os.environ.get("AZURE_SIGNING_ACCOUNT")
-profile = os.environ.get("AZURE_SIGNING_PROFILE")
-if platform.system() == "Windows" and endpoint and account and profile:
-    conf["bundle"]["windows"] = {
-        "signCommand": f"trusted-signing-cli -e {endpoint} -a {account} -c {profile} -d Rupert %1"
-    }
-    print("Windows builds will be signed with Azure Trusted Signing")
+if platform.system() == "Windows" and os.environ.get("RUPERT_SIGN_METADATA"):
+    script = Path(__file__).resolve().parent / "windows-sign.ps1"
+    conf["bundle"]["windows"] = {"signCommand": f"pwsh -NoProfile -File {script} %1"}
+    print("Windows builds will be signed with Azure Artifact Signing")
 elif platform.system() == "Windows":
-    print("Windows builds will NOT be signed (Azure Trusted Signing isn't configured)")
+    print("Windows builds will NOT be signed (Azure Artifact Signing isn't configured)")
 
 out = Path(__file__).resolve().parent.parent / "target" / "release.conf.json"
 out.parent.mkdir(exist_ok=True)

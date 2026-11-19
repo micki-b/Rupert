@@ -10,8 +10,10 @@
 #   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD,
 #   APPLE_SIGNING_IDENTITY ("Developer ID Application: …")          macOS signing
 #   APPLE_API_ISSUER, APPLE_API_KEY, APPLE_API_KEY_P8 (key file contents)  notarization
-#   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID           Windows signing sign-in
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID                                Windows signing (no password:
+#                                                                   GitHub's OIDC token, see docs/RELEASING.md)
 # Variables: AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE
+# The build jobs run in the `release` environment: Azure trusts exactly that.
 
 name: Release
 
@@ -41,6 +43,10 @@ jobs:
             rust-targets: ""
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 75
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # Windows signing signs in to Azure with GitHub's token
     steps:
       - uses: actions/checkout@v4
       - name: Free disk space
@@ -67,9 +73,44 @@ jobs:
         run: ./scripts/fetch-pdfium.sh
         env:
           PDFIUM_TARGET: ${{ runner.os == 'macOS' && 'universal' || '' }}
-      - name: Windows signing tool
+      # SignTool with Microsoft's Artifact Signing plug-in; scripts/windows-sign.ps1
+      # uses them for every file `tauri build` signs, and here for PDFium.
+      - name: Windows signing setup
         if: runner.os == 'Windows' && vars.AZURE_SIGNING_ACCOUNT != ''
-        run: cargo install trusted-signing-cli --locked
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'signing'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $pkg = Join-Path $dir 'dlib.zip'
+          Invoke-WebRequest -Uri 'https://www.nuget.org/api/v2/package/Microsoft.ArtifactSigning.Client/1.0.151' -OutFile $pkg
+          Expand-Archive $pkg -DestinationPath (Join-Path $dir 'dlib')
+          $dlib = Join-Path $dir 'dlib/bin/x64/Azure.CodeSigning.Dlib.dll'
+          if (!(Test-Path $dlib)) { throw "No signing plug-in at $dlib" }
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/signtool.exe" |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending | Select-Object -First 1
+          if (!$signtool) { throw 'Windows SDK SignTool not found' }
+          Write-Output "SignTool: $($signtool.FullName)"
+          # Only the GitHub token (workload identity): no other sign-in is tried.
+          $metadata = Join-Path $dir 'metadata.json'
+          @{
+            Endpoint = '${{ vars.AZURE_SIGNING_ENDPOINT }}'
+            CodeSigningAccountName = '${{ vars.AZURE_SIGNING_ACCOUNT }}'
+            CertificateProfileName = '${{ vars.AZURE_SIGNING_PROFILE }}'
+            ExcludeCredentials = @('EnvironmentCredential', 'ManagedIdentityCredential',
+              'SharedTokenCacheCredential', 'VisualStudioCredential', 'VisualStudioCodeCredential',
+              'AzureCliCredential', 'AzurePowerShellCredential', 'AzureDeveloperCliCredential',
+              'InteractiveBrowserCredential')
+          } | ConvertTo-Json | Set-Content $metadata
+          "RUPERT_SIGNTOOL=$($signtool.FullName)" >> $env:GITHUB_ENV
+          "RUPERT_SIGN_DLIB=$dlib" >> $env:GITHUB_ENV
+          "RUPERT_SIGN_METADATA=$metadata" >> $env:GITHUB_ENV
+          $env:RUPERT_SIGNTOOL = $signtool.FullName
+          $env:RUPERT_SIGN_DLIB = $dlib
+          $env:RUPERT_SIGN_METADATA = $metadata
+          ./scripts/windows-sign.ps1 src-tauri/pdfium/pdfium.dll
       - name: Notarization key
         if: runner.os == 'macOS'
         shell: bash
@@ -82,10 +123,6 @@ jobs:
           fi
       - name: Release configuration
         shell: bash
-        env:
-          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
         run: python3 scripts/release-config.py
       - run: npm ci
       - name: Build
@@ -102,7 +139,6 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       # Tauri notarizes the app; the disk image around it needs its own
       # ticket too, or macOS warns when it's opened.
@@ -119,6 +155,19 @@ jobs:
             xcrun stapler staple "$dmg"
             spctl -a -vv -t open --context context:primary-signature "$dmg"
           done
+      # With signing set up, an unsigned installer is a failed release.
+      - name: Check the Windows signatures
+        if: runner.os == 'Windows' && vars.AZURE_SIGNING_ACCOUNT != ''
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Recurse -Path target/release/bundle -Include *-setup.exe, *.msi
+          $files += Get-ChildItem -Path target/release -Filter rupert.exe
+          $files += Get-Item src-tauri/pdfium/pdfium.dll
+          foreach ($f in $files) {
+            $s = Get-AuthenticodeSignature $f.FullName
+            Write-Output "$($f.Name): $($s.Status) $($s.SignerCertificate.Subject)"
+            if ($s.Status -ne 'Valid') { exit 1 }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ runner.os }}
