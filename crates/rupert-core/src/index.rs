@@ -12,8 +12,9 @@ use crate::folder_info::FolderInfo;
 use crate::listing::CloudState;
 use crate::meta::{DocMeta, Storage};
 
-/// Bump to throw away and rebuild every user's index on schema changes.
-const SCHEMA_VERSION: i32 = 4;
+/// Bump to throw away and rebuild every user's index on schema changes
+/// (or add a step to `upgrade` when the tables can stay).
+const SCHEMA_VERSION: i32 = 5;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
@@ -202,7 +203,7 @@ impl Index {
         let version: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .map_err(db)?;
-        if version != SCHEMA_VERSION {
+        if version != SCHEMA_VERSION && !upgrade(&conn, version)? {
             conn.execute_batch(
                 "DROP TABLE IF EXISTS docs; DROP TABLE IF EXISTS fts; DROP TABLE IF EXISTS folders;",
             )
@@ -212,6 +213,15 @@ impl Index {
                 .map_err(db)?;
         }
         Ok(Self { conn })
+    }
+
+    #[cfg(test)]
+    fn open_at_version(path: &Path, version: i32) -> Result<Self> {
+        let idx = Self::open(path)?;
+        idx.conn
+            .pragma_update(None, "user_version", version)
+            .map_err(db)?;
+        Ok(idx)
     }
 
     pub fn open_in_memory() -> Result<Self> {
@@ -921,6 +931,29 @@ impl Index {
     }
 }
 
+/// Brings an index at `version` up to date without throwing it away, when
+/// the tables haven't changed. `false` if it has to be rebuilt.
+fn upgrade(conn: &Connection, version: i32) -> Result<bool> {
+    match version {
+        // 4 → 5: text extraction no longer cuts off pages shown turned
+        // (`/Rotate`). Marking every local PDF as changed makes the next
+        // pass read them again (and refresh their catalog entries); search
+        // keeps working meanwhile. Online-only PDFs can't be read; theirs
+        // stays as the catalog has it.
+        4 => {
+            conn.execute(
+                "UPDATE docs SET mtime_ms = -1 WHERE kind = 'pdf' AND cloud = 0",
+                [],
+            )
+            .map_err(db)?;
+            conn.pragma_update(None, "user_version", SCHEMA_VERSION)
+                .map_err(db)?;
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
+}
+
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS docs (
     id INTEGER PRIMARY KEY,
@@ -1503,6 +1536,35 @@ mod tests {
             fts_query("PG&E bill").as_deref(),
             Some("\"PG\" \"E\" \"bill\"*")
         );
+    }
+
+    #[test]
+    fn upgrading_from_4_rereads_local_pdfs_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("index.sqlite");
+        {
+            let idx = Index::open_at_version(&path, 4).unwrap();
+            idx.upsert(&row("local.pdf", Some("Kept"), &[], false), Some("text"))
+                .unwrap();
+            let mut online = row("online.pdf", None, &[], false);
+            online.cloud = CloudState::CloudOnly;
+            idx.upsert(&online, None).unwrap();
+            let mut note = row("note.txt", None, &[], false);
+            note.kind = FileKind::Text;
+            idx.upsert(&note, Some("hi")).unwrap();
+        }
+        let idx = Index::open(&path).unwrap();
+        let version: i32 = idx
+            .conn
+            .pragma_query_value(None, "user_version", |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
+        let stamps = idx.stamps_under("s", "").unwrap();
+        assert_eq!(stamps["local.pdf"].modified_ms, Some(-1));
+        assert_eq!(stamps["online.pdf"].modified_ms, Some(1));
+        assert_eq!(stamps["note.txt"].modified_ms, Some(1));
+        // Nothing else is lost meanwhile.
+        assert_eq!(idx.stats().unwrap().documents, 3);
     }
 
     #[test]
