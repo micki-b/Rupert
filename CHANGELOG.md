@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (first public release)
+## 0.1.0 — 2026-11-19 (first public release)
 
 The first release for macOS, Windows, Linux and iPhone.
 
