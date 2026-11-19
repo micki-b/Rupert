@@ -1059,7 +1059,15 @@
     border-color: transparent;
     color: var(--accent-strong);
   }
-  button.primary,
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+  }
   button:disabled {
     opacity: 0.55;
   }

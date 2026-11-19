@@ -8,5 +8,8 @@
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<!-- Only standard encryption (HTTPS): answers App Store export compliance. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

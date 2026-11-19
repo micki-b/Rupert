@@ -13,6 +13,8 @@ settingGroups:
       PRODUCT_NAME: Rupert
       PRODUCT_BUNDLE_IDENTIFIER: io.github.micki-b.rupert
       DEVELOPMENT_TEAM: 9FP28N8GW3
+      # iPhone only for now (the phone layout isn't made for iPad).
+      TARGETED_DEVICE_FAMILY: "1"
 targetTemplates:
   app:
     type: application
