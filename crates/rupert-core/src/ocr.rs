@@ -91,11 +91,18 @@ pub struct OcrReport {
     /// Pages that had no text and were recognized.
     pub pages_recognized: usize,
     pub words: usize,
+    /// The recognized words, a line per page.
+    pub text: String,
+    /// Why the text layer couldn't be added to the PDF, if it couldn't.
+    /// The recognized text is still in `text`, to be kept elsewhere.
+    pub layer_error: Option<String>,
 }
 
 /// Adds a text layer to every page of the PDF that has none (up to
 /// [`MAX_OCR_PAGES`]). Pages that already have text are left alone, so
 /// running it again does nothing. `on_page(done, total)` reports progress.
+/// If the layer can't be written, the report says why and still carries
+/// the recognized text.
 pub fn ocr_pdf(
     path: &Path,
     pdf: &TextExtractor,
@@ -143,7 +150,20 @@ pub fn ocr_pdf(
     if pages.is_empty() {
         return Ok(report);
     }
-    text_layer::add(path, &pages, |bytes| pdf.extract_pdf_bytes(bytes))?;
+    report.text = pages
+        .iter()
+        .map(|p| {
+            p.words
+                .iter()
+                .map(|w| w.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if let Err(e) = text_layer::add(path, &pages, |bytes| pdf.extract_pdf_bytes(bytes)) {
+        report.layer_error = Some(e.to_string());
+    }
     Ok(report)
 }
 

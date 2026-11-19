@@ -18,6 +18,9 @@ fn main() {
         let t = Instant::now();
         match ocr::ocr_pdf(&path, &pdf, &engine, |_, _| {}) {
             Ok(r) => {
+                if let Some(e) = &r.layer_error {
+                    println!("  text layer not written: {e}");
+                }
                 let text = pdf.extract(&path).unwrap().unwrap_or_default();
                 println!(
                     "{}: {} pages, {} recognized, {} words in {:.1}s\n  {}",

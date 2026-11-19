@@ -74,6 +74,7 @@ enum Request {
     Extract(PathBuf, Sender<Result<String>>),
     ExtractBytes(Vec<u8>, Sender<Result<String>>),
     PageTextLengths(PathBuf, Sender<Result<Vec<usize>>>),
+    PageCount(PathBuf, Sender<Result<usize>>),
     Render {
         path: PathBuf,
         page: usize,
@@ -158,6 +159,11 @@ impl TextExtractor {
         self.ask(|reply| Request::PageTextLengths(path.to_path_buf(), reply))
     }
 
+    /// How many pages a PDF has.
+    pub fn page_count(&self, path: &Path) -> Result<usize> {
+        self.ask(|reply| Request::PageCount(path.to_path_buf(), reply))
+    }
+
     /// Renders one page (0-based), at most `max_scale` pixels per point and
     /// `max_side` pixels on the longest side.
     pub fn render_page(
@@ -211,13 +217,16 @@ fn serve(pdfium: &Pdfium, request: Request) {
                 doc.pages()
                     .iter()
                     .map(|p| {
-                        p.text()
-                            .map(|t| t.all().chars().filter(|c| !c.is_whitespace()).count())
+                        page_text(&p)
+                            .map(|t| t.chars().filter(|c| !c.is_whitespace()).count())
                             .unwrap_or(0)
                     })
                     .collect()
             });
             let _ = reply.send(result);
+        }
+        Request::PageCount(path, reply) => {
+            let _ = reply.send(open(pdfium, &path).map(|doc| doc.pages().len() as usize));
         }
         Request::Render {
             path,
@@ -242,14 +251,29 @@ fn pdf_err(e: impl std::fmt::Display) -> Error {
     Error::Pdf(e.to_string())
 }
 
+/// All of a page's text. pdfium-render's `PdfPageText::all` only takes the
+/// text inside the page's *displayed* size, which on a page shown turned
+/// (`/Rotate 90` or `270`) has width and height swapped, so whatever lies
+/// beyond the shorter side was cut off. The media box, in the page's own
+/// coordinates, holds everything that can be seen.
+fn page_text(page: &PdfPage) -> Option<String> {
+    let text = page.text().ok()?;
+    let bounds = page
+        .boundaries()
+        .media()
+        .map(|b| b.bounds)
+        .unwrap_or_else(|_| PdfRect::new_from_values(-1.0e5, -1.0e5, 1.0e5, 1.0e5));
+    Some(text.inside_rect(bounds))
+}
+
 fn document_text(doc: &PdfDocument) -> Result<String> {
     let mut out = String::new();
     for (i, page) in doc.pages().iter().enumerate() {
         if i as i32 >= MAX_PAGES || out.len() >= MAX_CHARS {
             break;
         }
-        if let Ok(text) = page.text() {
-            push_normalized(&mut out, &text.all());
+        if let Some(text) = page_text(&page) {
+            push_normalized(&mut out, &text);
             out.push('\n');
         }
     }

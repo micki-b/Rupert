@@ -358,7 +358,7 @@ fn glyphless_ttf() -> Vec<u8> {
     let mut maxp = Vec::new();
     be32(&mut maxp, 0x0001_0000);
     be16(&mut maxp, 2); // numGlyphs
-    for v in [0u16, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0] {
+    for v in [2u16, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0] {
         be16(&mut maxp, v); // maxPoints … maxComponentDepth (maxZones = 2)
     }
 
@@ -368,10 +368,29 @@ fn glyphless_ttf() -> Vec<u8> {
         be16(&mut hmtx, 0);
     }
 
-    // Both glyphs are empty: all loca offsets 0. A little padding keeps
-    // strict parsers from rejecting a zero-length glyf table.
-    let glyf = vec![0u8; 4];
-    let loca = vec![0u8; 6];
+    // Glyph 0 (.notdef) is empty. Glyph 1, the one every code draws, is a
+    // single line from corner to corner of the cell: it encloses no area,
+    // so it paints nothing even where invisible text were drawn, but it
+    // gives the glyph a real bounding box. Without one, text whose baseline
+    // runs up or down the page (a page shown turned, `/Rotate`) has no
+    // width, and PDFium leaves it out of the page's text.
+    let mut glyf = Vec::new();
+    be16(&mut glyf, 1); // numberOfContours
+    for v in [0i16, -200, 500, 800] {
+        be16(&mut glyf, i16(v)); // xMin, yMin, xMax, yMax
+    }
+    be16(&mut glyf, 1); // endPtsOfContours: points 0 and 1
+    be16(&mut glyf, 0); // instructionLength
+    glyf.extend_from_slice(&[1, 1]); // flags: both on the curve, 16-bit deltas
+    for v in [0i16, 500, -200, 1000] {
+        be16(&mut glyf, i16(v)); // x deltas, then y deltas
+    }
+    debug_assert_eq!(glyf.len(), 24);
+    // Short offsets (in units of 2 bytes): .notdef 0..0, glyph 1 0..24.
+    let mut loca = Vec::new();
+    for v in [0u16, 0, 12] {
+        be16(&mut loca, v);
+    }
 
     let mut cmap = Vec::new();
     be16(&mut cmap, 0); // version
@@ -646,5 +665,66 @@ mod tests {
         let err = add(&path, &pages, |_| Ok(String::new())).unwrap_err();
         assert!(err.to_string().contains("didn't read back"), "{err}");
         assert_eq!(fs::read(&path).unwrap(), original, "file untouched");
+    }
+
+    /// A page shown turned (`/Rotate 270`, e.g. a landscape scan turned in
+    /// Preview): its words run down the page in PDF space, and must still
+    /// read back as words.
+    #[test]
+    fn rotated_page_reads_back() {
+        let Some(pdfium) = crate::text::tests::shared_pdfium() else {
+            return;
+        };
+        for rotate in [0, 90, 180, 270] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = dir.path().join("turned.pdf");
+            crate::pdf_meta::tests::make_pdf(&path, None);
+            let mut doc = Document::load(&path).unwrap();
+            let page_id = doc.get_pages()[&1];
+            doc.get_object_mut(page_id)
+                .and_then(Object::as_dict_mut)
+                .unwrap()
+                .set("Rotate", rotate);
+            doc.save(&path).unwrap();
+
+            // Lines of words as OCR on the turned page places them.
+            let names = [
+                "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf",
+            ];
+            let mut words = Vec::new();
+            for line in 0..6 {
+                let mut along = 40.0;
+                for n in names {
+                    let len = n.len() as f64 * 6.0;
+                    let across = 100.0 + line as f64 * 16.0;
+                    let h = 10.0;
+                    // Display direction → PDF space for each rotation.
+                    let pt = |a: f64, c: f64| match rotate {
+                        90 => (c, a), // text runs up the page
+                        180 => (500.0 - a, 700.0 - c),
+                        270 => (500.0 - c, 700.0 - a), // runs down
+                        _ => (a, 700.0 - c),
+                    };
+                    let bl = pt(along, across);
+                    let br = pt(along + len, across);
+                    let tl = pt(along, across - h);
+                    let tr = pt(along + len, across - h);
+                    words.push(PlacedWord {
+                        text: format!("{n}{line}"),
+                        quad: [tl, tr, br, bl],
+                    });
+                    along += len + 5.0;
+                }
+            }
+            let result = add(&path, &[PageWords { index: 0, words }], |b| {
+                pdfium.extract_pdf_bytes(b)
+            });
+            let text = pdfium.extract(&path).unwrap().unwrap_or_default();
+            result.unwrap_or_else(|e| panic!("rotate {rotate}: {e}\n{text}"));
+            assert!(
+                text.contains("alpha0") && text.contains("golf5"),
+                "rotate {rotate}: {text}"
+            );
+        }
     }
 }
