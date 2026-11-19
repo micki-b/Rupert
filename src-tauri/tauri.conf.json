@@ -45,8 +45,7 @@
     "category": "Productivity",
     "shortDescription": "The librarian for your scanned documents",
     "longDescription": "Rupert finds, files and searches your scanned documents and PDFs right where they are: in folders on your computer, iCloud Drive or OneDrive. Titles, tags and dates are stored inside the files.",
-    "license": "MIT",
-    "licenseFile": "../LICENSE"
+    "license": "MIT"
   },
   "plugins": {
     "updater": {

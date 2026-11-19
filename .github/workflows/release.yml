@@ -104,6 +104,21 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      # Tauri notarizes the app; the disk image around it needs its own
+      # ticket too, or macOS warns when it's opened.
+      - name: Notarize the disk image
+        if: runner.os == 'macOS' && env.APPLE_API_KEY_PATH != ''
+        shell: bash
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          for dmg in target/*/release/bundle/dmg/*.dmg; do
+            xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY_PATH" \
+              --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER" --wait
+            xcrun stapler staple "$dmg"
+            spctl -a -vv -t open --context context:primary-signature "$dmg"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ runner.os }}
