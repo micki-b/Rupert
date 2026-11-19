@@ -70,4 +70,6 @@ Inbox: Settings ▸ Inbox, choose a folder, then put a PDF in it. Rupert reads i
 
 Ask Rupert (the speech bubble, bottom right) also uses LM Studio by default; cloud models (Claude, ChatGPT) are optional in Settings ▸ Assistant and need the user's own key or account.
 
+Network server entitlement (com.apple.security.network.server): Rupert receives incoming connections in two places. (1) Scanning from network scanners (File ▸ Scan…): Rupert finds AirScan/eSCL scanners with Bonjour (mDNS), which binds UDP port 5353 and receives the scanners' multicast replies. (2) "Sign in with ChatGPT…" (Settings ▸ Assistant ▸ ChatGPT, with your plan): OpenAI's sign-in redirects the browser to http://127.0.0.1:1455/auth/callback, so Rupert listens on the loopback address for that one request and stops listening right after. Nothing else in the app accepts incoming connections.
+
 Rupert is free and open source: https://github.com/micki-b/Rupert
