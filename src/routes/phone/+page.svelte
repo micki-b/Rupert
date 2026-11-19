@@ -808,7 +808,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
+    /* Left/right insets: the Dynamic Island in landscape, and the iPhone
+       Duo's outer screen, whose status cluster sits at the right. */
+    padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 16px) 8px
+      calc(env(safe-area-inset-left) + 16px);
     border-bottom: 1px solid var(--border);
     background: var(--panel);
     min-height: 52px;
@@ -850,13 +853,13 @@
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 12px;
+    padding: 0 env(safe-area-inset-right) 12px env(safe-area-inset-left);
   }
   nav {
     display: flex;
     border-top: 1px solid var(--border);
     background: var(--panel);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   nav button {
     flex: 1;
@@ -1185,7 +1188,8 @@
     overflow-y: auto;
     background: var(--bg);
     border-radius: 16px 16px 0 0;
-    padding: 8px 20px calc(env(safe-area-inset-bottom) + 16px);
+    padding: 8px calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 16px)
+      calc(env(safe-area-inset-left) + 20px);
     box-shadow: 0 -8px 30px rgb(0 0 0 / 0.2);
   }
   .tag-sheet-body {
