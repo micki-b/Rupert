@@ -44,7 +44,7 @@ Without it the Windows installers are unsigned and SmartScreen warns about an "u
 
 Then a tagged release signs the Windows files. SmartScreen can still warn for a while after the first signed release, until the signed downloads build up reputation. Windows shows the certificate's name (the validated legal name) as the publisher.
 
-## Mac App Store edition (in preparation)
+## Mac App Store edition
 
 A second macOS edition for the Mac App Store, built from the same code with the `app-store` feature (`src-tauri/tauri.appstore.conf.json`): it runs in the App Sandbox (`src-tauri/AppStore.entitlements`), keeps access to the folders the user picked with security-scoped bookmarks, has no self-updater (the App Store updates it) and no "Anthropic account through the `ant` command" sign-in (API keys work). It shares the iPhone app's App Store record and bundle ID (universal purchase). The DMG from GitHub stays the main Mac release; a Mac should have one edition or the other.
 
@@ -52,10 +52,14 @@ Try it locally (sandboxed "Rupert Test", its own container, signed with your App
 
 ### One-time setup for submission
 
-1. **App Store Connect:** in the Rupert app record, add the **macOS** platform (App Information ▸ the platform list).
-2. **Certificates** (developer.apple.com ▸ Certificates): create an **Apple Distribution** certificate and a **Mac Installer Distribution** certificate, and install both (double-click) on the release Mac.
-3. **Provisioning profile** (Profiles ▸ +): **Mac App Store Connect**, App ID `io.github.micki-b.rupert`, the Apple Distribution certificate. Download it.
-4. For uploading: copy the API key file to `~/.appstoreconnect/private_keys/AuthKey_<Key ID>.p8` (where `altool` looks).
+1. **App Store Connect:** the Rupert record already has the **macOS** platform. Rename its version from 1.0 to the app's version (e.g. 0.1.0), as for iPhone.
+2. **Certificates**, easiest from Xcode: Xcode ▸ Settings ▸ Accounts ▸ your Apple ID ▸ the team ▸ **Manage Certificates…** ▸ **+**:
+   - **Apple Distribution** (signs the app; the same certificate works for iPhone and Mac);
+   - **Mac Installer Distribution** (signs the `.pkg`; shows in Keychain Access as "3rd Party Mac Developer Installer: …").
+
+   Xcode creates them and puts them with their private keys in the login keychain. Check: `security find-identity -v` lists both. (Without Xcode: developer.apple.com ▸ Certificates ▸ +, with a request made in Keychain Access ▸ Certificate Assistant ▸ Request a Certificate from a Certificate Authority, then double-click the downloaded certificate.) Back them up: Keychain Access ▸ My Certificates ▸ export both as `.p12` into the password manager.
+3. **Provisioning profile:** developer.apple.com ▸ Certificates, IDs & Profiles ▸ Profiles ▸ **+** ▸ Distribution ▸ **Mac App Store Connect** ▸ platform **macOS** ▸ App ID `io.github.micki-b.rupert` ▸ the Apple Distribution certificate ▸ name it "Rupert Mac App Store" ▸ Generate ▸ **Download**. Keep the `.provisionprofile` somewhere stable (e.g. `~/Library/MobileDevice/Provisioning Profiles/`); the build script takes its path.
+4. **Upload key:** copy the App Store Connect API key file to `~/.appstoreconnect/private_keys/AuthKey_<Key ID>.p8` (where `altool` looks). Or upload the `.pkg` with the Transporter app instead and skip this.
 
 ### Building and uploading
 
@@ -65,13 +69,13 @@ APPLE_API_KEY=<Key ID> APPLE_API_ISSUER=<Issuer ID> \
 scripts/build-app-store.sh --upload
 ```
 
-It builds the universal sandboxed app with the profile and a new build number, packages `target/Rupert-<version>-<build>.pkg` signed with the installer certificate, and uploads it. The build then appears in App Store Connect under the macOS version, for TestFlight or review.
+It builds the universal sandboxed app with the profile and a new build number, packages `target/Rupert-<version>-<build>.pkg` signed with the installer certificate, and uploads it. Without `--upload` (and without the API key file), upload the `.pkg` with Apple's **Transporter** app instead: sign in, drag it in, Deliver. The first upload (0.1.0, build 2611191002) went that way. The build then appears in App Store Connect under the macOS version, for TestFlight or review.
 
 Notes for users moving between editions: each edition keeps its own settings, index and keychain items (the App Store edition lives in its sandbox container), so folders are added again and API keys or sign-ins entered again. The documents and their details are in the folders and stay as they are.
 
 ## iPhone
 
-App Store Connect record: "Rupert - The Librarian", bundle ID `io.github.micki-b.rupert`, SKU `rupert`, platforms iOS and macOS (the Mac App Store edition shares it). Listing text, privacy answers and screenshots: `docs/app-store/`.
+App Store Connect record: "Rupert - The Librarian", bundle ID `io.github.micki-b.rupert`, SKU `rupert`, platforms iOS and macOS (the Mac App Store edition shares it). Listing text, privacy answers, screenshots and artwork: `docs/app-store/ios/` (iPhone) and `docs/app-store/macos/` (Mac App Store edition).
 
 1. Archive (each upload needs a higher build number; a UTC timestamp does that):
 

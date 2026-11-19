@@ -84,7 +84,7 @@ Rupert is free and open source: https://github.com/micki-b/Rupert
 
 Made in the iPhone 17 Pro Max simulator with a made-up sample library: a folder, search with snippets, a document, Scan. Upload them in that order. PNG without transparency (App Store Connect refuses alpha channels).
 
-- `docs/app-store/screenshots/medium/` (1206 × 2622): **iPhone with Dynamic Island (medium display)**, the required slot.
-- `docs/app-store/screenshots/large/` (1320 × 2868): **iPhone with Dynamic Island (large display)**, optional; without it the medium set is scaled up.
+- `docs/app-store/ios/screenshots/medium/` (1206 × 2622): **iPhone with Dynamic Island (medium display)**, the required slot.
+- `docs/app-store/ios/screenshots/large/` (1320 × 2868): **iPhone with Dynamic Island (large display)**, optional; without it the medium set is scaled up.
 
 Sizes per slot: [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications).

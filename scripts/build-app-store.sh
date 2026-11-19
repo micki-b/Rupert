@@ -30,6 +30,8 @@ mkdir -p "$OUT"
 # Notarization is for the DMG edition; Tauri would try it with these set.
 unset APPLE_ID APPLE_PASSWORD
 export TAURI_APP_PATH=src-tauri
+# Rust from Homebrew's rustup, which isn't on every shell's PATH.
+[ -d /opt/homebrew/opt/rustup/bin ] && export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
 
 identity() { # pattern
   security find-identity -v | sed -n "s/.*\"\(.*$1.*\)\"/\1/p" | head -1
@@ -70,8 +72,9 @@ PKG_SIGN="$(identity "3rd Party Mac Developer Installer")"
 # Entitlements for submission: the sandbox ones plus the app and team ids.
 ENT="$OUT/AppStore.submit.entitlements"
 cp src-tauri/AppStore.entitlements "$ENT"
-plutil -insert com.apple.application-identifier -string "$TEAM.$BUNDLE_ID" "$ENT"
-plutil -insert com.apple.developer.team-identifier -string "$TEAM" "$ENT"
+# PlistBuddy, not plutil: plutil reads the dots in these keys as a path.
+/usr/libexec/PlistBuddy -c "Add :com.apple.application-identifier string $TEAM.$BUNDLE_ID" \
+  -c "Add :com.apple.developer.team-identifier string $TEAM" "$ENT"
 
 # Every upload needs a higher build number.
 BUILD="$(date -u +%y%m%d%H%M)"

@@ -1,0 +1,7 @@
+{
+  "identifier": "io.github.micki-b.rupert-test",
+  "productName": "Rupert",
+  "build": { "features": ["app-store"] },
+  "bundle": { "createUpdaterArtifacts": false },
+  "app": { "windows": [{ "title": "Rupert", "theme": "Light", "width": 1440, "height": 900, "minWidth": 800, "minHeight": 500 }] }
+}

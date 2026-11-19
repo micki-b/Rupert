@@ -453,8 +453,25 @@ async fn write_meta(
 /// Runs `RUPERT_TEST_JS` in the page once it has loaded, so a test
 /// instance can be driven without clicking (macOS won't bring a window
 /// forward while another app is in use).
+///
+/// `RUPERT_TEST_WINDOW_SIZE=<width>x<height>` sets the window's outer size
+/// in points first (title bar included), for App Store screenshots and
+/// previews at exact pixel sizes.
 #[cfg(debug_assertions)]
 fn run_test_script(app: &AppHandle) {
+    if let Ok(size) = std::env::var("RUPERT_TEST_WINDOW_SIZE")
+        && let Some((w, h)) = size.split_once('x')
+        && let (Ok(w), Ok(h)) = (w.parse::<f64>(), h.parse::<f64>())
+        && let Some(win) = app.get_webview_window("main")
+    {
+        let scale = win.scale_factor().unwrap_or(1.0);
+        let (outer, inner) = (win.outer_size(), win.inner_size());
+        let bar = match (outer, inner) {
+            (Ok(o), Ok(i)) => f64::from(o.height.saturating_sub(i.height)) / scale,
+            _ => 0.0,
+        };
+        let _ = win.set_size(tauri::LogicalSize::new(w, h - bar));
+    }
     let Ok(js) = std::env::var("RUPERT_TEST_JS") else {
         return;
     };
