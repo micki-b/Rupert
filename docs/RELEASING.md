@@ -2,7 +2,7 @@
 
 ## Desktop (macOS, Windows, Linux)
 
-1. Set the version in `src-tauri/tauri.conf.json`, `mobile/tauri.conf.json`, `Cargo.toml` (`[workspace.package] version`) and `package.json`, and move the changelog's "Unreleased" entries under the new version.
+1. Set the version: `scripts/set-version.py 1.0.0`. It writes it into `Cargo.toml` (`[workspace.package] version`), `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json` and `mobile/tauri.conf.json`, and refreshes `Cargo.lock`. Then move the changelog's "Unreleased" entries under the new version. Use a patch version (0.1.1) for bug fixes only, a minor one (0.2.0) for new features.
 2. If dependencies changed: `python3 scripts/third-party-notices.py` and commit `THIRD_PARTY_NOTICES.md`.
 3. Commit, then tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
 4. The **Release** workflow (`.github/workflows/release.yml`) builds a universal macOS app (DMG), Windows installers (`-setup.exe` and MSI) and Linux packages (AppImage, deb, rpm), signs what it can, and creates a **draft** GitHub release with them, the signed update bundles and `latest.json`.
