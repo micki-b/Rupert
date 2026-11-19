@@ -18,6 +18,7 @@ pub mod indexer;
 pub mod intake;
 pub mod listing;
 pub mod llm;
+pub mod markdown;
 pub mod meta;
 pub mod oauth;
 pub mod ocr;

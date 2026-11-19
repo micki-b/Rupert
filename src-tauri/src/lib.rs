@@ -283,6 +283,28 @@ async fn trash_entry(source_id: String, rel_path: String, app: AppHandle) -> Cmd
     Ok(())
 }
 
+/// A Markdown document's text for the reader (or its first `limit` bytes,
+/// for a tile), or `None` for an online-only file.
+#[tauri::command]
+async fn read_markdown(
+    source_id: String,
+    rel_path: String,
+    limit: Option<usize>,
+    app: AppHandle,
+) -> CmdResult<Option<String>> {
+    let source = app.state::<AppState>().source(&source_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        if !rupert_core::markdown::is_markdown(&path) {
+            return Err("Not a Markdown file.".to_string());
+        }
+        rupert_core::markdown::read(&path, limit.unwrap_or(rupert_core::markdown::MAX_BYTES))
+            .map_err(err)
+    })
+    .await
+    .map_err(err)?
+}
+
 /// How many pages a document has (for the gallery), or `None` for an
 /// online-only file.
 #[tauri::command]
@@ -1099,6 +1121,7 @@ pub fn run() {
             reveal_entry,
             trash_entry,
             page_count,
+            read_markdown,
             test_log,
             read_meta,
             write_meta,

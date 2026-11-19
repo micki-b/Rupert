@@ -5,6 +5,8 @@
   import { tick } from "svelte";
   import Icon from "$lib/Icon.svelte";
   import Thumb, { thumbUrl } from "$lib/Thumb.svelte";
+  import MarkdownView from "$lib/MarkdownView.svelte";
+  import { isMarkdown } from "$lib/markdown";
   import { api, type ListedEntry } from "$lib/api";
   import { formatDate } from "$lib/format";
 
@@ -121,7 +123,11 @@
         title={e.title ?? e.name}
       >
         <span class="pic">
-          <Thumb {sourceId} entry={e} side={320} iconSize={48} />
+          {#if isMarkdown(e) && e.cloud !== "cloudOnly"}
+            <span class="md-page"><MarkdownView {sourceId} relPath={e.relPath} compact /></span>
+          {:else}
+            <Thumb {sourceId} entry={e} side={320} iconSize={48} />
+          {/if}
           {#if e.cloud === "cloudOnly"}
             <span class="badge" title="Online-only: opening it downloads it"><Icon name="cloud" size={13} /></span>
           {/if}
@@ -139,8 +145,14 @@
       oncontextmenu={(ev) => current && onmenu(current, ev)}
     >
       {#if current}
-        <div class="big">
-          <Thumb {sourceId} entry={current} {page} side={BIG} iconSize={96} eager />
+        <div class="big" class:md-big={isMarkdown(current) && current.cloud !== "cloudOnly"}>
+          {#if isMarkdown(current) && current.cloud !== "cloudOnly"}
+            {#key current.relPath}
+              <div class="md-sheet"><MarkdownView {sourceId} relPath={current.relPath} /></div>
+            {/key}
+          {:else}
+            <Thumb {sourceId} entry={current} {page} side={BIG} iconSize={96} eager />
+          {/if}
           {#if pages && pages > 1}
             <button class="flip prev" onclick={() => flip(-1)} disabled={page === 0} title="Previous page (↑)" aria-label="Previous page">
               <Icon name="back" size={20} />
@@ -208,6 +220,17 @@
     position: relative;
     width: 110px;
     height: 140px;
+  }
+  /* A Markdown file's tile: the start of it on a little page. */
+  .md-page {
+    position: absolute;
+    inset: 4px 8px;
+    overflow: hidden;
+    padding: 6px 7px;
+    border-radius: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
   }
   .badge {
     position: absolute;
@@ -289,6 +312,21 @@
   }
   .flip.next {
     right: 6px;
+  }
+  /* The gallery shows a Markdown file as a scrollable page. */
+  .big.md-big {
+    display: flex;
+    justify-content: center;
+  }
+  .md-sheet {
+    width: min(720px, 100%);
+    height: 100%;
+    overflow-y: auto;
+    padding: 18px 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
   }
   .caption {
     display: flex;

@@ -130,11 +130,20 @@
         in {fileManager}.
       </p>
       <p>The two buttons above the sources switch the sidebar between your <b>folders</b> and your <b>tags</b>.</p>
+      <p>
+        <b>Markdown files</b> (<code>.md</code>) open in Rupert's own reader, formatted with headings, lists, tables and
+        pictures. Links to other Markdown files open there too (<b>Back</b> returns), web links open in your browser, and
+        <b>Open in default app</b> hands the file to your usual editor. Online-only Markdown files open in your usual app,
+        which downloads them.
+      </p>
       <h3 id="views">Views</h3>
       <p>The three buttons at the right end of the folder path change how folders are shown, for all folders:</p>
       <ul>
         <li><b>List</b>: names, kinds, sizes and dates.</li>
-        <li><b>Large icons</b>: a picture of each document's first page. Use the arrow keys to move between them.</li>
+        <li>
+          <b>Large icons</b>: a picture of each document's first page (the start of the text for Markdown files). Use the
+          arrow keys to move between them.
+        </li>
         <li>
           <b>Gallery</b>: the selected document large, with a strip of all documents below. <kbd>←</kbd> and
           <kbd>→</kbd> move to the previous or next document; <kbd>↑</kbd> and <kbd>↓</kbd> (or the arrow buttons on the

@@ -41,6 +41,8 @@
   import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
   import PictureView from "$lib/PictureView.svelte";
+  import MarkdownReader from "$lib/MarkdownReader.svelte";
+  import { isMarkdown } from "$lib/markdown";
   import RupertOwl from "$lib/RupertOwl.svelte";
 
   type Folder = { sourceId: string; relPath: string };
@@ -467,8 +469,12 @@
 
   // MARK: - Entry actions
 
+  /** The Markdown document open in the reader. */
+  let reader = $state<{ sourceId: string; relPath: string } | null>(null);
+
   function activate(sourceId: string, e: Entry) {
     if (e.isDir) selectFolder(sourceId, e.relPath);
+    else if (isMarkdown(e) && e.cloud !== "cloudOnly") reader = { sourceId, relPath: e.relPath };
     else run(() => api.openEntry(sourceId, e.relPath));
   }
 
@@ -946,6 +952,10 @@
   </section>
   {/if}
 </div>
+
+{#if reader}
+  <MarkdownReader sourceId={reader.sourceId} relPath={reader.relPath} onclose={() => (reader = null)} />
+{/if}
 
 {#if itemMenu}
   {@const m = itemMenu}

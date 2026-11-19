@@ -362,6 +362,9 @@ export const api = {
     invoke<void>("open_entry", { sourceId, relPath }),
   /** Moves a document (with its sidecar) or a folder to the Trash / Recycle Bin. */
   trashEntry: (sourceId: string, relPath: string) => invoke<void>("trash_entry", { sourceId, relPath }),
+  /** A Markdown file's text (its first `limit` bytes if given); null when it's online-only. */
+  readMarkdown: (sourceId: string, relPath: string, limit?: number) =>
+    invoke<string | null>("read_markdown", { sourceId, relPath, limit: limit ?? null }),
   /** Pages in a document (1 for non-PDFs); null for online-only files. */
   pageCount: (sourceId: string, relPath: string) => invoke<number | null>("page_count", { sourceId, relPath }),
   revealEntry: (sourceId: string, relPath: string) =>
