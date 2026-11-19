@@ -78,6 +78,63 @@ impl Credentials {
     }
 }
 
+// MARK: - Keychain parts
+
+/// The longest value one keychain entry takes, in UTF-16 units. Windows
+/// Credential Manager holds 2,560 bytes per entry and `keyring` stores text
+/// there as UTF-16 (1,280 units); the tokens of a sign-in together take
+/// several times that. Kept under the limit with room to spare.
+pub const KEYCHAIN_PART_LEN: usize = 1000;
+
+/// What the first entry holds when a sign-in is saved in parts.
+#[derive(Serialize, Deserialize)]
+struct PartsHeader {
+    parts: usize,
+}
+
+/// The values to save for `c`: first a header naming how many parts follow,
+/// then the parts, each short enough for any system keychain.
+pub fn keychain_parts(c: &Credentials) -> Result<Vec<String>> {
+    let json = serde_json::to_string(c).map_err(err)?;
+    let mut parts = Vec::new();
+    let (mut part, mut len) = (String::new(), 0);
+    for ch in json.chars() {
+        if len + ch.len_utf16() > KEYCHAIN_PART_LEN {
+            parts.push(std::mem::take(&mut part));
+            len = 0;
+        }
+        part.push(ch);
+        len += ch.len_utf16();
+    }
+    if !part.is_empty() {
+        parts.push(part);
+    }
+    let header = serde_json::to_string(&PartsHeader { parts: parts.len() }).map_err(err)?;
+    Ok(std::iter::once(header).chain(parts).collect())
+}
+
+/// How many parts follow the header `first`, if it is one.
+pub fn keychain_part_count(first: &str) -> Option<usize> {
+    serde_json::from_str::<PartsHeader>(first).ok().map(|h| h.parts)
+}
+
+/// Reads a saved sign-in back: `first` is the first entry's value and
+/// `part(i)` reads part `i` (from 1). Also reads a sign-in saved whole in the
+/// first entry, as Rupert 0.1.0 did. `None` if anything is missing.
+pub fn from_keychain_parts(
+    first: &str,
+    mut part: impl FnMut(usize) -> Option<String>,
+) -> Option<Credentials> {
+    let Some(count) = keychain_part_count(first) else {
+        return serde_json::from_str(first).ok();
+    };
+    let mut json = String::new();
+    for i in 1..=count {
+        json.push_str(&part(i)?);
+    }
+    serde_json::from_str(&json).ok()
+}
+
 /// An opaque, stable id for this computer (`urn:uuid:…`), made once.
 pub fn new_host_id() -> String {
     format!("urn:uuid:{}", uuid::Uuid::new_v4())
@@ -518,6 +575,59 @@ mod tests {
         let mut other = good;
         other["sub"] = json!("user-2");
         assert!(credentials(answer(other, SCOPES), "oaiapp_1", "h", None, Some(&c)).is_err());
+    }
+
+    /// A sign-in the size of a real one: OpenAI's tokens run to a few
+    /// thousand characters each.
+    fn large_credentials() -> Credentials {
+        Credentials {
+            email: Some("zoë@example.com".into()),
+            subject: "user-1".into(),
+            client_id: "oaiapp_1".into(),
+            host_id: "urn:uuid:h".into(),
+            id_token: "i".repeat(1800),
+            access_token: "a".repeat(2500),
+            refresh_token: "r".repeat(900),
+            expires_at: 1_900_000_000,
+            scopes: SCOPES.into(),
+        }
+    }
+
+    #[test]
+    fn keychain_parts_fit_windows_and_round_trip() {
+        let c = large_credentials();
+        let parts = keychain_parts(&c).unwrap();
+        assert!(parts.len() > 2, "a large sign-in is split");
+        assert_eq!(keychain_part_count(&parts[0]), Some(parts.len() - 1));
+        // Windows Credential Manager: 2,560 bytes, stored as UTF-16.
+        for p in &parts {
+            assert!(p.encode_utf16().count() * 2 <= 2560);
+        }
+        let back = from_keychain_parts(&parts[0], |i| parts.get(i).cloned()).unwrap();
+        assert_eq!(back, c);
+    }
+
+    #[test]
+    fn keychain_parts_split_on_characters() {
+        let mut c = large_credentials();
+        c.email = Some("🦉".repeat(700)); // two UTF-16 units each
+        let parts = keychain_parts(&c).unwrap();
+        for p in &parts[1..] {
+            assert!(p.encode_utf16().count() <= KEYCHAIN_PART_LEN);
+        }
+        assert_eq!(from_keychain_parts(&parts[0], |i| parts.get(i).cloned()), Some(c));
+    }
+
+    #[test]
+    fn keychain_reads_a_whole_saved_sign_in_and_missing_parts() {
+        let c = large_credentials();
+        // Rupert 0.1.0 saved the sign-in whole in one entry.
+        let whole = serde_json::to_string(&c).unwrap();
+        assert_eq!(keychain_part_count(&whole), None);
+        assert_eq!(from_keychain_parts(&whole, |_| None), Some(c.clone()));
+        // A part gone missing: signed out rather than garbage.
+        let parts = keychain_parts(&c).unwrap();
+        assert_eq!(from_keychain_parts(&parts[0], |i| (i != 2).then(|| parts[i].clone())), None);
     }
 
     #[test]
