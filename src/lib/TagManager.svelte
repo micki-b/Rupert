@@ -252,7 +252,7 @@
     background: rgb(0 0 0 / 0.3);
     display: grid;
     place-items: center;
-    z-index: 10;
+    z-index: 40; /* above the chat panel (20) and menus (30) */
   }
   .dialog {
     width: min(760px, calc(100vw - 32px));

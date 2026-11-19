@@ -58,6 +58,8 @@
   let renameValue = $state("");
   let importing = $state(false);
   let settingsOpen = $state(false);
+  /** A section of Settings to show first (e.g. from the chat's gear). */
+  let settingsSection = $state<"assistant" | null>(null);
   let scanOpen = $state(false);
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
@@ -966,7 +968,14 @@
   </div>
 {/if}
 
-<Assistant bind:this={assistant} onaction={assistantAction} onsettings={() => (settingsOpen = true)} />
+<Assistant
+  bind:this={assistant}
+  onaction={assistantAction}
+  onsettings={() => {
+    settingsSection = "assistant";
+    settingsOpen = true;
+  }}
+/>
 
 {#if tagManagerOpen}
   <TagManager
@@ -997,7 +1006,11 @@
 {#if settingsOpen}
   <SettingsDialog
     {sources}
-    onclose={() => (settingsOpen = false)}
+    section={settingsSection}
+    onclose={() => {
+      settingsOpen = false;
+      settingsSection = null;
+    }}
     onsaved={(s) => {
       appSettings = s;
       loadInboxCount();

@@ -1,19 +1,29 @@
 <script lang="ts">
   // Settings: the inbox, text recognition, LM Studio suggestions, naming,
   // and the chat assistant's model.
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
+  import Icon from "$lib/Icon.svelte";
   import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "$lib/api";
 
-  let { sources, onclose, onsaved }: { sources: Source[]; onclose: () => void; onsaved: (s: Settings) => void } =
-    $props();
+  let {
+    sources,
+    section = null,
+    onclose,
+    onsaved,
+  }: {
+    sources: Source[];
+    /** A section to scroll to when opening. */
+    section?: "assistant" | null;
+    onclose: () => void;
+    onsaved: (s: Settings) => void;
+  } = $props();
 
   let settings = $state<Settings | null>(null);
   let engine = $state<string | null | undefined>(undefined);
   let models = $state<string[]>([]);
   let lmStatus = $state<"checking" | "ok" | "down">("checking");
   let error = $state<string | null>(null);
-  let saving = $state(false);
   // Assistant: keys go straight to the keychain, never into settings.
   let hasKey = $state<Record<string, boolean>>({});
   let newKey = $state("");
@@ -30,6 +40,10 @@
 
   onMount(async () => {
     settings = await api.getSettings();
+    if (section) {
+      await tick();
+      document.getElementById(`settings-${section}`)?.scrollIntoView({ block: "start" });
+    }
     engine = await api.ocrEngine();
     checkLm();
     for (const p of ["anthropic", "openai"] as AssistantProvider[]) {
@@ -131,21 +145,50 @@
     settings.inbox = { sourceId: source.id, relPath: path.slice(norm(source.root).length).replace(/^\//, "") };
   }
 
-  async function save() {
+  // MARK: Saving
+  // Changes apply as they're made (as in other Mac apps): a moment after
+  // the last one, so typing in a field doesn't save every keystroke.
+
+  let lastSaved = ""; // the settings as last saved, as JSON
+  let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => {
     if (!settings) return;
-    saving = true;
+    const snap = $state.snapshot(settings);
+    const json = JSON.stringify(snap);
+    if (!lastSaved) {
+      lastSaved = json; // as loaded
+      return;
+    }
+    if (json === lastSaved) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => persist(snap, json), 600);
+  });
+
+  async function persist(snap: Settings, json: string) {
+    saveTimer = undefined;
     try {
-      onsaved(await api.setSettings($state.snapshot(settings)));
-      onclose();
+      onsaved(await api.setSettings(snap));
+      lastSaved = json;
+      error = null;
     } catch (e) {
       error = String(e);
-    } finally {
-      saving = false;
     }
   }
 
+  /** Saves anything still waiting, then closes. */
+  async function done() {
+    clearTimeout(saveTimer);
+    if (settings) {
+      const snap = $state.snapshot(settings);
+      const json = JSON.stringify(snap);
+      if (lastSaved && json !== lastSaved) await persist(snap, json);
+    }
+    onclose();
+  }
+
   function onkeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") onclose();
+    if (e.key === "Escape") done();
   }
 </script>
 
@@ -153,7 +196,15 @@
 
 <div class="backdrop" role="presentation">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <h1 id="settings-title">Settings</h1>
+    <header class="head">
+      <div>
+        <h1 id="settings-title">Settings</h1>
+        <p class="muted small">Changes apply right away.</p>
+      </div>
+      <button class="close" onclick={done} title="Close (Esc)" aria-label="Close settings">
+        <Icon name="close" size={18} />
+      </button>
+    </header>
     {#if settings}
       <section>
         <h2>Inbox</h2>
@@ -220,7 +271,7 @@
       </section>
 
       <section>
-        <h2>Assistant</h2>
+        <h2 id="settings-assistant">Assistant</h2>
         <div class="grid">
           <label for="ai-provider">Model</label>
           <select
@@ -355,11 +406,6 @@
       </section>
 
       {#if error}<p class="error">{error}</p>{/if}
-      <div class="actions">
-        <span class="spacer"></span>
-        <button onclick={onclose}>Cancel</button>
-        <button class="primary" disabled={saving} onclick={save}>Save</button>
-      </div>
     {:else}
       <p class="muted">Loading…</p>
     {/if}
@@ -373,7 +419,7 @@
     background: rgb(0 0 0 / 0.3);
     display: grid;
     place-items: center;
-    z-index: 10;
+    z-index: 40; /* above the chat panel (20) and menus (30) */
   }
   .dialog {
     width: min(560px, calc(100vw - 32px));
@@ -388,9 +434,39 @@
   }
   h1 {
     font-size: 16px;
-    margin: 0 0 6px;
+    margin: 0;
+  }
+  /* Title and close button, kept in view while the settings scroll. */
+  .head {
+    position: sticky;
+    top: -18px;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -18px -20px 0;
+    padding: 18px 14px 6px 20px;
+    background: var(--bg);
+  }
+  button.close {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+  }
+  button.close:hover {
+    background: var(--hover);
+    color: var(--text);
   }
   h2 {
+    scroll-margin-top: 64px; /* clear of the title bar above */
     font-size: 11px;
     margin: 16px 0 6px;
     color: var(--muted);
@@ -454,25 +530,12 @@
   .status.down {
     color: #c0392b;
   }
-  .actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 18px;
-  }
-  .spacer {
-    flex: 1;
-  }
   button {
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text);
     border-radius: 6px;
     padding: 4px 12px;
-  }
-  button.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
   }
   .stack {
     display: flex;
