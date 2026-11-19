@@ -25,7 +25,7 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 | Auto-naming / filing | Yes, using only a local model via LM Studio. |
 | Chat assistant | Local LM Studio by default; a cloud model (Claude, or OpenAI-compatible) only if the user picks one (decided 2026-11-18). |
 | Page editing | Out of scope (no rotate/reorder/merge/split). |
-| File operations | Rename/move change the real file right away; delete goes to the system Trash. |
+| File operations | Rename/move change the real file right away; delete goes to the system Trash / Recycle Bin (built: right-click ▸ Move to Trash, ⌘⌫ / Delete), taking the sidecar along. |
 | Migration | Import from ScanSnap Home. |
 | License | Personal first, likely open source, so prefer permissive dependencies. |
 
@@ -115,6 +115,13 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - API keys are kept in the system keychain (`keyring`), never in `settings.json`.
 - **Privacy:** with a cloud model, the question and whatever the tools return (titles, tags, folder names, the text of documents the model reads) go to that service. The panel shows "☁" and the model name whenever a cloud model is active, the first screen says what is sent, and Settings repeats it. Inbox suggestions and OCR stay on LM Studio and the local OCR engine regardless.
 
+## Views and deleting (desktop)
+
+- **Views** (one choice for all folders, kept in the window's local storage): list; large icons; gallery (the selected document large with page flipping, a filmstrip below). Search results stay a list.
+- **Thumbnails** (`thumbs.rs`, served by the `thumb:` URL scheme in `src-tauri/src/thumbs.rs`): a PDF page rendered by PDFium, cached as PNG in the app's cache folder (keyed by path, size, modification time, page and size; trimmed to 150 MB when it passes 200 MB); images are served as they are. Online-only files get none, so nothing is downloaded; the view shows an icon. The scheme only serves files inside a source (`resolve`).
+- **Trash** (`fileops::trash`, the `trash` crate): macOS uses `NSFileManager trashItemAtURL` (no Finder automation prompt; "Put Back" isn't offered), Windows the Recycle Bin, Linux the freedesktop Trash. A document's sidecar goes too, and an emptied `.rupert/` folder is removed. Folders go whole, after a confirmation. A source root can't be trashed. The index catches up with a single-file job (or a folder pass for folders). Not on the phone, which stays read-only.
+- **To verify:** trashing an online-only file in iCloud Drive and OneDrive moves it to the service's deleted items without downloading it first.
+
 ## Favorite folders
 
 - A folder's own details (for now: favorite) live in its hidden `.rupert/.folder.json` (`folder_info.rs`), so they follow the folder when it's renamed or moved anywhere and sync to other machines with it. The leading dot keeps the name apart from document sidecars, which are named after documents (never hidden). Unfavoriting removes the file, and the `.rupert` folder if it's then empty.
@@ -138,6 +145,8 @@ Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, 
   - Engines, all local: **Apple Vision** on macOS (built in: nothing to bundle, better than Tesseract on scans, detects the language per text block), and the **`tesseract` command** on Windows and Linux when installed. This replaces the earlier plan of bundling Tesseract, whose native libraries are awkward to ship on all three platforms.
   - Pages are rendered by PDFium at up to 300 dpi; word boxes are mapped back to PDF coordinates with PDFium's own pixel-to-page transform, so rotated and cropped pages work.
   - The layer uses a "glyphless" font as Tesseract does: Type 0, Identity-H (UTF-16 code units), an embedded 600-byte TrueType program whose glyphs are empty, fixed widths and a ToUnicode map. A Type 3 font was tried first; PDFium and Poppler read it but **PDFKit (Preview, Spotlight) ignores Type 3 text**, so it was replaced.
+  - **Pages shown turned** (`/Rotate`, e.g. a landscape scan turned in Preview), fixed 2026-11-18 after a scan failed the check (74 of 200 words): (1) pdfium-render's `PdfPageText::all()` only returns text inside the page's *displayed* size, which has width and height swapped on a turned page, so text beyond the shorter side was cut off, for every rotated PDF the indexer read; `text.rs` now asks for the text inside the media box. (2) The glyphless font's glyph had no outline, so text running up or down the page had zero width and PDFium dropped it; the glyph is now a single corner-to-corner line (a real bounding box, no area, so it paints nothing). A test covers 0/90/180/270°. Rotated PDFs indexed before the fix keep their clipped text until they change or the index is rebuilt.
+  - If the text layer still can't be written, the recognized text goes into the sidecar (searchable) and the suggestion uses it.
   - Written as an incremental update like metadata, checked before writing (the updated file must parse and PDFium must read back ≥ 90 % of the words). Tested on real ScanSnap scans: original bytes intact, pages render identically, text found by PDFKit, PDFium and Poppler, selection boxes line up with the printed words.
   - PDFium can be loaded once per process and is then tied to its thread, so it lives on one service thread (`text.rs`); the indexer and the intake share a handle.
 - **LM Studio** (`llm.rs`) via its OpenAI-compatible server on `localhost:1234`, with a JSON schema for the answer. If it isn't running, the review simply has no suggestion.

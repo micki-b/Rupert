@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::file_kind::FileKind;
+use crate::file_kind::{FileKind, image_mime};
 use crate::fileops;
 use crate::index::Index;
 use crate::listing::{CloudState, cloud_state, list_dir, relative, resolve};
@@ -335,7 +335,7 @@ impl Worker {
 
         // 1. OCR.
         let mut ocr_summary = None;
-        let mut image_text = None;
+        let mut ocr_text = None;
         if self.settings.ocr
             && let Some(engine) = self.engine.clone()
         {
@@ -352,7 +352,21 @@ impl Worker {
                                 r.pages_recognized,
                                 r.pages,
                                 engine.name()
-                            ))
+                            ));
+                            // The PDF couldn't take a text layer: keep the
+                            // text beside it (searchable) and suggest from it.
+                            if let Some(e) = r.layer_error {
+                                match sidecar::write_text(&path, &r.text, OCR_TEXT_SOURCE, true) {
+                                    Ok(_) => notes.push(format!(
+                                        "The text couldn't be added to the PDF itself ({e}); \
+                                         Rupert keeps it beside the file, so it can still be searched."
+                                    )),
+                                    Err(e2) => notes.push(format!(
+                                        "Text recognition worked, but the text couldn't be saved: {e}; {e2}"
+                                    )),
+                                }
+                                ocr_text = Some(r.text);
+                            }
                         }
                         Ok(_) => {}
                         Err(e) => notes.push(format!("Text recognition failed: {e}")),
@@ -375,7 +389,7 @@ impl Worker {
                                 notes.push(format!("Couldn't save the recognized text: {e}"));
                             }
                             ocr_summary = Some(format!("Text recognized ({})", engine.name()));
-                            image_text = Some(text);
+                            ocr_text = Some(text);
                         }
                         Ok(_) => {}
                         Err(e) => notes.push(format!("Text recognition failed: {e}")),
@@ -386,7 +400,7 @@ impl Worker {
         }
 
         // 2. Suggestion.
-        let text = image_text.unwrap_or_else(|| {
+        let text = ocr_text.unwrap_or_else(|| {
             self.extractor
                 .extract(&path)
                 .ok()
@@ -606,22 +620,10 @@ pub fn preview(
             let rendered = extractor.render_page(path, page, 1400, 2.0, true)?;
             Ok(Some((rendered.to_png()?, "image/png")))
         }
-        FileKind::Image => {
-            let ext = path
-                .extension()
-                .map(|e| e.to_string_lossy().to_lowercase())
-                .unwrap_or_default();
-            let mime = match ext.as_str() {
-                "jpg" | "jpeg" => "image/jpeg",
-                "png" => "image/png",
-                "gif" => "image/gif",
-                "webp" => "image/webp",
-                "heic" => "image/heic",
-                "tif" | "tiff" => "image/tiff",
-                _ => return Ok(None),
-            };
-            Ok(Some((fs::read(path)?, mime)))
-        }
+        FileKind::Image => match image_mime(path) {
+            Some(mime) => Ok(Some((fs::read(path)?, mime))),
+            None => Ok(None),
+        },
         _ => Ok(None),
     }
 }

@@ -66,6 +66,12 @@
     list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }
 
+  /** Opens the panel (from elsewhere in the window, e.g. the welcome screen). */
+  export async function show() {
+    if (open) input?.focus();
+    else await toggle();
+  }
+
   async function toggle() {
     open = !open;
     if (open) {

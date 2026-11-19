@@ -47,6 +47,22 @@ impl FileKind {
     }
 }
 
+/// The MIME type of an image file a web view can usually show, by its
+/// extension; `None` for other files.
+pub fn image_mime(path: impl AsRef<Path>) -> Option<&'static str> {
+    let ext = path.as_ref().extension()?.to_str()?.to_ascii_lowercase();
+    Some(match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "heic" | "heif" => "image/heic",
+        "tif" | "tiff" => "image/tiff",
+        _ => return None,
+    })
+}
+
 // MARK: - Ignored names
 
 /// Names Rupert never shows or indexes, regardless of filters: its own

@@ -255,6 +255,9 @@
             </div>
           {/if}
         </div>
+        <p class="small">
+          <button class="link" onclick={() => api.openHelp("ai-models")}>How to set up each kind of model</button>
+        </p>
         {#if provider === "local"}
           <p class="muted small">Uses the LM Studio server and model above. Nothing leaves this computer.</p>
         {:else}
@@ -407,6 +410,13 @@
   }
   .cloud-note {
     color: var(--cloud);
+  }
+  button.link {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--accent);
+    text-decoration: underline;
   }
   .error {
     color: #c0392b;

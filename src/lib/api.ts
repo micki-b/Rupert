@@ -350,6 +350,10 @@ export const api = {
     invoke<ListedEntry[]>("list_dir", { sourceId, relPath }),
   openEntry: (sourceId: string, relPath: string) =>
     invoke<void>("open_entry", { sourceId, relPath }),
+  /** Moves a document (with its sidecar) or a folder to the Trash / Recycle Bin. */
+  trashEntry: (sourceId: string, relPath: string) => invoke<void>("trash_entry", { sourceId, relPath }),
+  /** Pages in a document (1 for non-PDFs); null for online-only files. */
+  pageCount: (sourceId: string, relPath: string) => invoke<number | null>("page_count", { sourceId, relPath }),
   revealEntry: (sourceId: string, relPath: string) =>
     invoke<void>("reveal_entry", { sourceId, relPath }),
   readMeta: (sourceId: string, relPath: string, allowDownload = false) =>
@@ -366,6 +370,8 @@ export const api = {
   assistantSend: (text: string) => invoke<AssistantReply>("assistant_send", { text }),
   assistantReset: () => invoke<void>("assistant_reset"),
   assistantCancel: () => invoke<void>("assistant_cancel"),
+  /** Opens the help window, at a section of it if given. */
+  openHelp: (section?: string) => invoke<void>("open_help", { section: section ?? null }),
   assistantSetKey: (provider: AssistantProvider, key: string | null) =>
     invoke<void>("assistant_set_key", { provider, key }),
   assistantHasKey: (provider: AssistantProvider) => invoke<boolean>("assistant_has_key", { provider }),

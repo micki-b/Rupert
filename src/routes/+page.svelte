@@ -40,6 +40,8 @@
   import ScanDialog from "$lib/ScanDialog.svelte";
   import SettingsDialog from "$lib/SettingsDialog.svelte";
   import MetaEditor from "$lib/MetaEditor.svelte";
+  import PictureView from "$lib/PictureView.svelte";
+  import RupertOwl from "$lib/RupertOwl.svelte";
 
   type Folder = { sourceId: string; relPath: string };
   type Selected = { sourceId: string; entry: Entry };
@@ -60,6 +62,8 @@
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
   let inboxCount = $state(0);
+  /** The chat panel, to open it from the welcome screen. */
+  let assistant: { show: () => Promise<void> } | undefined = $state();
 
   // Search & library filters
   let query = $state("");
@@ -93,12 +97,37 @@
       /* not essential */
     }
   }
+  /** How folders are shown: one choice for all folders, kept on this computer. */
+  type FolderMode = "list" | "icons" | "gallery";
+  const MODE_KEY = "rupert.folderView";
+  let folderMode = $state<FolderMode>(loadFolderMode());
+
+  function loadFolderMode(): FolderMode {
+    try {
+      const m = localStorage.getItem(MODE_KEY);
+      return m === "icons" || m === "gallery" ? m : "list";
+    } catch {
+      return "list";
+    }
+  }
+
+  function setFolderMode(m: FolderMode) {
+    folderMode = m;
+    try {
+      localStorage.setItem(MODE_KEY, m);
+    } catch {
+      /* not essential */
+    }
+  }
   let stats = $state<IndexStats | null>(null);
   let progress = $state<Progress | null>(null);
   let indexTick = $state(0);
   let searchInput: HTMLInputElement | undefined = $state();
 
   const searching = $derived(query.trim() !== "" || selectedTags.length > 0 || favoritesOnly);
+  /** The folder whose contents are on screen, for highlighting in the sidebar
+   * (none while searching or in the inbox). */
+  const shownFolder = $derived(searching || inboxOpen ? null : folder);
   const source = $derived(sources.find((s) => s.id === folder?.sourceId) ?? null);
   const sourceName = (id: string) => sources.find((s) => s.id === id)?.name ?? "";
   const crumbs = $derived.by(() => {
@@ -209,9 +238,27 @@
         if (focused) loadSources(true);
       }),
     ];
-    const closeMenu = () => (menuFor = null);
+    const closeMenu = () => {
+      menuFor = null;
+      itemMenu = null;
+    };
     const shortcuts = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+      const typing =
+        e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
+      if (e.key === "Escape" && itemMenu) {
+        itemMenu = null;
+      } else if (e.key === "F1") {
+        e.preventDefault();
+        api.openHelp();
+      } else if (
+        !typing &&
+        selected &&
+        !inboxOpen &&
+        (info?.os === "macos" ? e.metaKey && e.key === "Backspace" : e.key === "Delete")
+      ) {
+        e.preventDefault();
+        trashEntry(selected);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         e.preventDefault();
         inboxOpen = false;
         searchInput?.focus();
@@ -219,10 +266,12 @@
       }
     };
     window.addEventListener("click", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
     window.addEventListener("keydown", shortcuts);
     return () => {
       unlisten.forEach((p) => p.then((off) => off()));
       window.removeEventListener("click", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
       window.removeEventListener("keydown", shortcuts);
     };
   });
@@ -425,6 +474,54 @@
     run(() => api.revealEntry(sel.sourceId, sel.entry.relPath));
   }
 
+  // MARK: - Right-click menu and Trash
+
+  /** The right-click menu: where, for what, and whether it's a search result. */
+  let itemMenu = $state<{ x: number; y: number; sel: Selected; inSearch: boolean } | null>(null);
+  const trashLabel = $derived(info?.os === "windows" ? "Delete" : "Move to Trash");
+  const binName = $derived(info?.os === "windows" ? "Recycle Bin" : "Trash");
+
+  function openItemMenu(sel: Selected, ev: MouseEvent, inSearch = false) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    menuFor = null;
+    selected = sel;
+    // Keep it inside the window (the menu is about 220 × 150).
+    const x = Math.min(ev.clientX, window.innerWidth - 230);
+    const y = Math.min(ev.clientY, window.innerHeight - 160);
+    itemMenu = { x, y, sel, inSearch };
+  }
+
+  /** Sends a document (with its sidecar) or a folder to the Trash / Recycle Bin.
+   * Files go right away, as in the Finder; folders ask first. */
+  async function trashEntry(sel: Selected) {
+    itemMenu = null;
+    const e = sel.entry;
+    if (e.isDir) {
+      const ok = await ask(`Move “${e.name}” and everything in it to the ${binName}?`, {
+        title: trashLabel,
+        kind: "warning",
+        okLabel: trashLabel,
+      });
+      if (!ok) return;
+    }
+    // In the gallery, move on to the neighbor (handy when sorting out scans).
+    const at = entries.findIndex((x) => x.relPath === e.relPath);
+    const done = await run(async () => {
+      await api.trashEntry(sel.sourceId, e.relPath);
+      return true;
+    });
+    if (!done) return;
+    const gone = (x: Entry & { sourceId?: string }, sourceId: string) =>
+      sourceId === sel.sourceId && (x.relPath === e.relPath || x.relPath.startsWith(e.relPath + "/"));
+    hits = hits.filter((h) => !gone(h, h.sourceId));
+    if (folder?.sourceId === sel.sourceId) entries = entries.filter((x) => !gone(x, sel.sourceId));
+    if (selected && gone(selected.entry, selected.sourceId)) {
+      const next = folderMode === "gallery" && at >= 0 ? (entries[at] ?? entries[at - 1]) : undefined;
+      selected = next ? { sourceId: sel.sourceId, entry: next } : null;
+    }
+  }
+
   function dirOf(relPath: string) {
     return relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
   }
@@ -465,7 +562,7 @@
     {#each favoriteFolders as f (f.sourceId + "/" + f.relPath)}
       <button
         class="lib-item fav-folder"
-        class:active={!searching && folder?.sourceId === f.sourceId && folder?.relPath === f.relPath}
+        class:active={shownFolder?.sourceId === f.sourceId && shownFolder?.relPath === f.relPath}
         onclick={() => selectFolder(f.sourceId, f.relPath)}
         title="{f.sourceName}{f.relPath ? ' / ' + f.relPath : ''}"
       >
@@ -539,7 +636,7 @@
               relPath=""
               name={s.name}
               depth={0}
-              selected={searching ? null : folder}
+              selected={shownFolder}
               onselect={selectFolder}
               startExpanded
             >
@@ -637,7 +734,7 @@
     </main>
   {:else}
   <!-- MARK: Documents -->
-  <main class="documents">
+  <main class="documents" class:gallery-mode={!searching && folder && folderMode === "gallery" && entries.length > 0}>
     <div class="searchbar">
       <input
         bind:this={searchInput}
@@ -686,6 +783,7 @@
               class:selected={selected?.sourceId === h.sourceId && selected?.entry.relPath === h.relPath}
               onclick={() => (selected = { sourceId: h.sourceId, entry: h })}
               ondblclick={() => activate(h.sourceId, h)}
+              oncontextmenu={(ev) => openItemMenu({ sourceId: h.sourceId, entry: h }, ev, true)}
             >
               <div class="r-title">
                 <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
@@ -725,6 +823,13 @@
           title={folderFav ? "Remove this folder from Favorites" : "Add this folder to Favorites"}
           aria-pressed={folderFav}>{folderFav ? "★" : "☆"}</button
         >
+        <span class="view-switch" role="group" aria-label="View">
+          {#each [["list", "view-list", "List"], ["icons", "view-grid", "Large icons"], ["gallery", "view-gallery", "Gallery"]] as const as [m, icon, label] (m)}
+            <button class:on={folderMode === m} onclick={() => setFolderMode(m)} title={label} aria-label={label} aria-pressed={folderMode === m}>
+              <Icon name={icon} size={16} />
+            </button>
+          {/each}
+        </span>
       </nav>
 
       {#if entries.length === 0 && loading}
@@ -733,6 +838,16 @@
         <p class="empty center">
           {source.showAllTypes ? "This folder is empty." : "No documents in this folder."}
         </p>
+      {:else if folderMode !== "list"}
+        <PictureView
+          mode={folderMode}
+          sourceId={source.id}
+          {entries}
+          selectedRelPath={selected?.sourceId === source.id ? selected.entry.relPath : null}
+          onselect={(e) => (selected = { sourceId: source.id, entry: e })}
+          onactivate={(e) => activate(source.id, e)}
+          onmenu={(e, ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
+        />
       {:else}
         <table>
           <thead>
@@ -749,6 +864,7 @@
                 class:selected={selected?.entry.relPath === e.relPath}
                 onclick={() => (selected = { sourceId: source.id, entry: e })}
                 ondblclick={() => activate(source.id, e)}
+                oncontextmenu={(ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
               >
                 <td class="name">
                   <span class="file-icon" class:folder={e.isDir}>
@@ -773,7 +889,11 @@
       {/if}
     {:else}
       <div class="welcome">
-        <h1>Rupert</h1>
+        <h1 class="visually-hidden">Rupert</h1>
+        <button class="welcome-owl" onclick={() => assistant?.show()} title="Ask Rupert (⌘J)">
+          <RupertOwl size={132} />
+          <span>Ask Rupert</span>
+        </button>
         <p class="muted">The librarian for your scanned documents.</p>
         {#if sources.length === 0}
           <p>Add a folder to get started. Rupert shows it as it is on disk and never moves your files on its own.</p>
@@ -825,7 +945,28 @@
   {/if}
 </div>
 
-<Assistant onaction={assistantAction} onsettings={() => (settingsOpen = true)} />
+{#if itemMenu}
+  {@const m = itemMenu}
+  <div
+    class="menu item-menu"
+    role="menu"
+    tabindex="-1"
+    style:left="{m.x}px"
+    style:top="{m.y}px"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={() => {}}
+  >
+    <button role="menuitem" onclick={() => ((itemMenu = null), activate(m.sel.sourceId, m.sel.entry))}>Open</button>
+    <button role="menuitem" onclick={() => ((itemMenu = null), reveal(m.sel))}>{revealLabel(info?.os)}</button>
+    {#if m.inSearch}
+      <button role="menuitem" onclick={() => ((itemMenu = null), showInFolder(m.sel))}>Show in Rupert</button>
+    {/if}
+    <hr />
+    <button role="menuitem" class="danger" onclick={() => trashEntry(m.sel)}>{trashLabel}</button>
+  </div>
+{/if}
+
+<Assistant bind:this={assistant} onaction={assistantAction} onsettings={() => (settingsOpen = true)} />
 
 {#if tagManagerOpen}
   <TagManager
@@ -872,6 +1013,7 @@
   <span>
     {#if info}{info.name} {info.version}{/if}
     <button class="footer-btn" onclick={() => (settingsOpen = true)} title="Settings">Settings</button>
+    <button class="footer-btn" onclick={() => api.openHelp()} title="Rupert Help (F1)">Help</button>
   </span>
   <span class="status">
     {statusText()}
@@ -1146,6 +1288,41 @@
   .menu .check {
     width: 18px;
   }
+  .item-menu {
+    position: fixed;
+    right: auto;
+    z-index: 30;
+  }
+  .item-menu hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+  .view-switch {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 7px;
+    background: var(--panel);
+  }
+  .crumbs .view-switch button {
+    display: grid;
+    place-items: center;
+    padding: 3px 6px;
+    border-radius: 5px;
+    color: var(--muted);
+  }
+  .crumbs .view-switch button.on {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+  }
+  .documents.gallery-mode {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
   .menu-path {
     padding: 4px 8px 6px;
     font-size: 11px;
@@ -1310,9 +1487,36 @@
     margin: 80px auto 0;
     text-align: center;
   }
-  .welcome h1 {
-    margin: 0 0 4px;
-    font-size: 26px;
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .welcome-owl {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 10px 18px 8px;
+    border: 0;
+    border-radius: 14px;
+    background: none;
+    color: var(--accent);
+    font-weight: 600;
+    transition:
+      background 0.2s,
+      transform 0.2s;
+  }
+  .welcome-owl:hover {
+    background: var(--hover);
+    transform: translateY(-2px);
+  }
+  .welcome-owl:focus-visible {
+    outline: 2px solid var(--accent);
   }
 
   /* Results */

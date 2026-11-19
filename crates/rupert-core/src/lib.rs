@@ -30,6 +30,7 @@ pub mod source;
 pub mod tag_edit;
 pub mod text;
 pub mod text_layer;
+pub mod thumbs;
 pub mod watch;
 pub mod xmp;
 

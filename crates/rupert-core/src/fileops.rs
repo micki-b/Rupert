@@ -1,5 +1,5 @@
-//! File operations Rupert performs on the user's behalf: renaming and
-//! moving documents. They change the real files right away, take the
+//! File operations Rupert performs on the user's behalf: renaming, moving
+//! and trashing documents. They change the real files right away, take the
 //! document's sidecar along, and never overwrite anything.
 
 use std::fs;
@@ -127,6 +127,62 @@ pub fn clean_name(name: &str, ext: &str) -> String {
     s
 }
 
+// MARK: - Trash
+
+/// Moves the document at `rel_path` (with its sidecar), or a whole folder,
+/// to the system Trash / Recycle Bin. A source's own root can't be trashed
+/// (it's removed from Rupert instead). Nothing is read or downloaded: an
+/// online-only file is moved as it is, and its cloud service keeps it with
+/// its deleted items. Returns whether it was a folder.
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+pub fn trash(root: &Path, rel_path: &str) -> Result<bool> {
+    trash_with(root, rel_path, &|path| {
+        trash_context()
+            .delete(path)
+            .map_err(|e| Error::InvalidValue(format!("couldn't move it to the trash: {e}")))
+    })
+}
+
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+fn trash_context() -> trash::TrashContext {
+    #[allow(unused_mut)]
+    let mut ctx = trash::TrashContext::default();
+    // NSFileManager rather than asking the Finder: no automation prompt.
+    #[cfg(target_os = "macos")]
+    {
+        use trash::macos::{DeleteMethod, TrashContextExtMacos};
+        ctx.set_delete_method(DeleteMethod::NsFileManager);
+    }
+    ctx
+}
+
+/// [`trash`] with the deleting done by `delete` (tests use a stand-in).
+#[cfg_attr(any(target_os = "ios", target_os = "android"), allow(dead_code))]
+fn trash_with(root: &Path, rel_path: &str, delete: &dyn Fn(&Path) -> Result<()>) -> Result<bool> {
+    if rel_path.trim_matches('/').is_empty() {
+        return Err(Error::InvalidPath(
+            "a source itself can't be moved to the trash".into(),
+        ));
+    }
+    let path = crate::listing::resolve(root, rel_path)?;
+    // `symlink_metadata` only asks the file system; it doesn't open the file.
+    let is_dir = fs::symlink_metadata(&path)?.is_dir();
+    delete(&path)?;
+    if !is_dir {
+        // The sidecar follows its document. The document is already gone,
+        // so a sidecar that won't go is left (it reattaches if the file
+        // comes back) rather than reported.
+        let side = sidecar::path_for(&path)?;
+        if side.is_file()
+            && delete(&side).is_ok()
+            && let Some(dir) = side.parent()
+        {
+            let _ = fs::remove_dir(dir); // only if now empty
+        }
+    }
+    Ok(is_dir)
+}
+
 // MARK: - Tests
 
 #[cfg(test)]
@@ -187,5 +243,67 @@ mod tests {
             move_document(&moved, &dest, "Safeco notice (2)").unwrap(),
             moved
         );
+    }
+
+    /// Moves into `bin` instead of the real trash.
+    fn fake_trash(bin: &Path) -> impl Fn(&Path) -> Result<()> + '_ {
+        move |p: &Path| {
+            let to = bin.join(p.file_name().unwrap());
+            fs::rename(p, to)?;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn trash_takes_the_sidecar_along() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir(root.join("Boat")).unwrap();
+        fs::write(root.join("Boat/Quote.docx"), b"x").unwrap();
+        fs::write(root.join("Boat/Keep.docx"), b"y").unwrap();
+        let meta = DocMeta {
+            title: Some("Quote".into()),
+            ..Default::default()
+        };
+        for name in ["Quote.docx", "Keep.docx"] {
+            sidecar::write_meta(
+                &root.join("Boat").join(name),
+                Some(meta.clone()),
+                false,
+                false,
+            )
+            .unwrap();
+        }
+        let delete = fake_trash(bin.path());
+
+        assert!(!trash_with(root, "Boat/Quote.docx", &delete).unwrap());
+        assert!(!root.join("Boat/Quote.docx").exists());
+        assert!(bin.path().join("Quote.docx").is_file());
+        assert!(bin.path().join("Quote.docx.json").is_file());
+        // The other document's sidecar stays, and so does `.rupert/`.
+        assert!(root.join("Boat/.rupert/Keep.docx.json").is_file());
+
+        assert!(!trash_with(root, "Boat/Keep.docx", &delete).unwrap());
+        assert!(!root.join("Boat/.rupert").exists());
+    }
+
+    #[test]
+    fn trash_folders_but_not_the_source() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("Old/Inner")).unwrap();
+        fs::write(root.join("Old/Inner/a.pdf"), b"%PDF").unwrap();
+        fs::write(root.join("plain.txt"), b"t").unwrap();
+        let delete = fake_trash(bin.path());
+
+        assert!(trash_with(root, "Old", &delete).unwrap());
+        assert!(bin.path().join("Old/Inner/a.pdf").is_file());
+        assert!(!trash_with(root, "plain.txt", &delete).unwrap());
+        assert!(trash_with(root, "", &delete).is_err());
+        assert!(trash_with(root, "/", &delete).is_err());
+        assert!(trash_with(root, "../x", &delete).is_err());
+        assert!(trash_with(root, "missing.pdf", &delete).is_err());
     }
 }

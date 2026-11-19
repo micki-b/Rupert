@@ -2,9 +2,11 @@
 //! Keep logic in `rupert-core`; commands here should stay thin.
 
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 mod assistant;
+mod help;
+mod thumbs;
 
 use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
 use rupert_core::folder_info::{self, FolderInfo};
@@ -14,6 +16,7 @@ use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
 use rupert_core::settings::{Settings, SettingsStore};
 use rupert_core::tag_edit::{self, Preview, TagEdit};
 use rupert_core::text::TextExtractor;
+use rupert_core::thumbs::Thumbnails;
 use rupert_core::{
     CloudState, DirChange, DocMeta, Entry, FileKind, FolderMeta, Hit, Index, IndexStats,
     IndexerHandle, Job, LibraryWatcher, MetaRecord, Progress, SearchQuery, Source, SourceStore,
@@ -50,6 +53,9 @@ const MENU_SETTINGS: &str = "menu-settings";
 /// File ▸ Import from ScanSnap Home… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_IMPORT: &str = "menu-import-scansnap";
+/// Help ▸ Rupert Help (macOS menu); handled here, not in the window.
+#[cfg(target_os = "macos")]
+const MENU_HELP: &str = "menu-help";
 
 // MARK: - State
 
@@ -68,6 +74,8 @@ struct AppState {
     settings: Mutex<SettingsStore>,
     intake: IntakeHandle,
     extractor: TextExtractor,
+    /// Pictures for the large-icon and gallery views (`thumbs.rs`).
+    thumbs: Arc<Thumbnails>,
 }
 
 impl AppState {
@@ -251,6 +259,49 @@ fn open_entry(
         .map_err(err)
 }
 
+/// Moves a document (with its sidecar) or a folder to the Trash / Recycle
+/// Bin, then lets the index catch up.
+#[tauri::command]
+async fn trash_entry(source_id: String, rel_path: String, app: AppHandle) -> CmdResult<()> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let (root, rel) = (source.root.clone(), rel_path.clone());
+    let was_dir =
+        tauri::async_runtime::spawn_blocking(move || rupert_core::fileops::trash(&root, &rel))
+            .await
+            .map_err(err)?
+            .map_err(err)?;
+    if was_dir {
+        let rel_dir = rel_path
+            .rsplit_once('/')
+            .map(|(dir, _)| dir.to_string())
+            .unwrap_or_default();
+        state.indexer.send(Job::SyncDir { source, rel_dir });
+    } else {
+        state.indexer.send(Job::File { source, rel_path });
+    }
+    Ok(())
+}
+
+/// How many pages a document has (for the gallery), or `None` for an
+/// online-only file.
+#[tauri::command]
+async fn page_count(
+    source_id: String,
+    rel_path: String,
+    app: AppHandle,
+) -> CmdResult<Option<usize>> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let (thumbs, extractor) = (state.thumbs.clone(), state.extractor.clone());
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        thumbs.page_count(&extractor, &path).map_err(err)
+    })
+    .await
+    .map_err(err)?
+}
+
 #[tauri::command]
 fn reveal_entry(
     source_id: String,
@@ -349,6 +400,15 @@ fn run_test_script(app: &AppHandle) {
             let _ = w.eval(&js);
         }
     });
+}
+
+/// Test scripts (`RUPERT_TEST_JS`) report what they found through this, to
+/// the dev log. Release builds ignore it.
+#[tauri::command]
+fn test_log(message: String) {
+    if cfg!(debug_assertions) {
+        eprintln!("rupert-test: {message}");
+    }
 }
 
 // MARK: - Commands: favorite folders
@@ -863,9 +923,10 @@ fn scansnap_apply(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
 
 // MARK: - Setup
 
-/// macOS: the standard menu bar plus File ▸ Import from ScanSnap Home….
-/// (Windows and Linux keep their window chrome menu-free; the sidebar has
-/// the same action.)
+/// macOS: the standard menu bar plus File ▸ Scan… and Import from ScanSnap
+/// Home…, Rupert ▸ Settings… and Help ▸ Rupert Help. (Windows and Linux
+/// keep their window chrome menu-free; the window has the same actions,
+/// and F1 opens the help.)
 #[cfg(target_os = "macos")]
 fn install_menu(app: &tauri::App) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -879,6 +940,13 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
     )?;
     let settings = MenuItem::with_id(app, MENU_SETTINGS, "Settings…", true, Some("CmdOrCtrl+,"))?;
     let scan = MenuItem::with_id(app, MENU_SCAN, "Scan…", true, None::<&str>)?;
+    let help = MenuItem::with_id(
+        app,
+        MENU_HELP,
+        "Rupert Help",
+        true,
+        Some("CmdOrCtrl+Shift+/"),
+    )?;
     for (i, item) in menu.items()?.into_iter().enumerate() {
         let Some(sub) = item.as_submenu() else {
             continue;
@@ -891,10 +959,15 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
             sub.prepend(&PredefinedMenuItem::separator(app)?)?;
             sub.prepend(&import)?;
             sub.prepend(&scan)?;
+        } else if sub.id() == tauri::menu::HELP_SUBMENU_ID {
+            sub.prepend(&help)?;
         }
     }
     app.set_menu(menu)?;
     app.on_menu_event(|app, event| {
+        if event.id() == MENU_HELP {
+            let _ = help::show(app, None);
+        }
         for id in [MENU_IMPORT, MENU_SETTINGS, MENU_SCAN] {
             if event.id() == id {
                 let _ = app.emit(id, ());
@@ -917,6 +990,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .register_asynchronous_uri_scheme_protocol(thumbs::SCHEME, |ctx, request, responder| {
+            thumbs::serve(ctx.app_handle(), request, responder)
+        })
         .setup(|app| {
             #[cfg(target_os = "macos")]
             install_menu(app)?;
@@ -946,6 +1022,11 @@ pub fn run() {
                 },
             )?;
             let index = Index::open(&index_path)?;
+
+            // Thumbnails: a disposable cache, trimmed now and then.
+            let thumbs = Arc::new(Thumbnails::new(app.path().app_cache_dir()?.join("thumbs")));
+            let pruning = thumbs.clone();
+            std::thread::spawn(move || pruning.prune(200 << 20, 150 << 20));
 
             let intake_handle = app.handle().clone();
             let intake = intake::spawn(
@@ -995,6 +1076,7 @@ pub fn run() {
                 settings: Mutex::new(settings),
                 intake,
                 extractor,
+                thumbs: thumbs.clone(),
             };
             state.rewatch();
             state.reconfigure_intake();
@@ -1015,6 +1097,9 @@ pub fn run() {
             list_dir,
             open_entry,
             reveal_entry,
+            trash_entry,
+            page_count,
+            test_log,
             read_meta,
             write_meta,
             search,
@@ -1024,6 +1109,7 @@ pub fn run() {
             assistant::assistant_info,
             assistant::assistant_send,
             assistant::assistant_reset,
+            help::open_help,
             assistant::assistant_cancel,
             assistant::assistant_set_key,
             assistant::assistant_has_key,

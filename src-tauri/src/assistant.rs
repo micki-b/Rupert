@@ -108,7 +108,10 @@ fn ant() -> Option<PathBuf> {
             PathBuf::from("/opt/homebrew/bin"),
             PathBuf::from("/usr/local/bin"),
         ])
-        .chain(home.map(|h| h.join(".local/bin")))
+        .chain(
+            home.into_iter()
+                .flat_map(|h| [h.join(".local/bin"), h.join("go/bin")]),
+        )
         .map(|d| d.join(if cfg!(windows) { "ant.exe" } else { "ant" }))
         .find(|p| p.is_file())
 }

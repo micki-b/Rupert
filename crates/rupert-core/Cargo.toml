@@ -30,6 +30,10 @@ onedrive = ["ureq/rustls"]
 [dev-dependencies]
 tempfile = "3.27.0"
 
+# Moving files to the Trash / Recycle Bin (desktop only; the phone never deletes).
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+trash = { version = "5.4.0", default-features = false, features = ["freedesktop", "coinit_apartmentthreaded"] }
+
 [target."cfg(windows)".dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "help",
+  "description": "The help window: links open in the browser",
+  "windows": ["help"],
+  "permissions": ["core:default", "opener:allow-open-url", "opener:allow-default-urls"]
+}

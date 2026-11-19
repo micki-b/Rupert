@@ -15,6 +15,8 @@ Read `docs/DESIGN.md` first. It records the product decisions and the metadata l
 - Never point a test at the user's live app data or inbox. Use copies, and for UI checks a separate instance (`tauri dev --config '{"identifier":"io.github.micki-b.rupert-test", …}'`).
 - Prefer permissive licenses. No AGPL (MuPDF, Ghostscript).
 - Use `// MARK: -` section dividers in Rust files.
+- The desktop binary is `Rupert` (capital R, so the Dock says "Rupert" under `tauri dev`); bundles rename it to `rupert` (`mainBinaryName`). A `tauri build` on macOS renames `target/debug/Rupert` too (same file on a case-insensitive disk).
+- The user help (Help ▸ Rupert Help, F1) is `src/routes/help/+page.svelte`. When a feature, label or setting changes, update it there too.
 
 ## Commands
 
