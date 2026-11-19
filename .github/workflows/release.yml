@@ -1,0 +1,132 @@
+# Builds signed installers for macOS (universal), Windows and Linux when a
+# version tag is pushed (e.g. `git tag v1.0.0 && git push origin v1.0.0`),
+# and puts them on a draft GitHub release together with `latest.json` for
+# the updater. Review the draft, then publish it: the updater only sees
+# published releases.
+#
+# Secrets (Settings ▸ Secrets and variables ▸ Actions). Without them the
+# matching step is skipped and that installer is unsigned:
+#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD   update signing (required)
+#   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD,
+#   APPLE_SIGNING_IDENTITY ("Developer ID Application: …")          macOS signing
+#   APPLE_API_ISSUER, APPLE_API_KEY, APPLE_API_KEY_P8 (key file contents)  notarization
+#   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID           Windows signing sign-in
+# Variables: AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
+          # The oldest supported Ubuntu, so the AppImage runs on more systems.
+          - platform: ubuntu-22.04
+            args: ""
+            rust-targets: ""
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev librsvg2-dev patchelf
+      - name: Fetch PDFium
+        shell: bash
+        run: ./scripts/fetch-pdfium.sh
+        env:
+          PDFIUM_TARGET: ${{ runner.os == 'macOS' && 'universal' || '' }}
+      - name: Windows signing tool
+        if: runner.os == 'Windows' && vars.AZURE_SIGNING_ACCOUNT != ''
+        run: cargo install trusted-signing-cli --locked
+      - name: Notarization key
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          if [ -n "$APPLE_API_KEY_P8" ]; then
+            printf '%s' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+            echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
+          fi
+      - name: Release configuration
+        shell: bash
+        env:
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+        run: python3 scripts/release-config.py
+      - run: npm ci
+      - name: Build
+        shell: bash
+        run: npm run tauri build -- ${{ matrix.args }} --config target/release.conf.json
+        env:
+          # The repo also holds the phone app (mobile/); build the desktop one.
+          TAURI_APP_PATH: src-tauri
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ runner.os }}
+          path: |
+            target/**/release/bundle/dmg/*.dmg
+            target/**/release/bundle/macos/*.app.tar.gz*
+            target/**/release/bundle/msi/*.msi*
+            target/**/release/bundle/nsis/*-setup.exe*
+            target/**/release/bundle/deb/*.deb
+            target/**/release/bundle/rpm/*.rpm
+            target/**/release/bundle/appimage/*.AppImage*
+          if-no-files-found: error
+
+  # One draft release with every installer, the update bundles and latest.json.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Collect files and write latest.json
+        run: python3 scripts/release-manifest.py artifacts "${{ github.ref_name }}" dist
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/* --draft \
+            --title "Rupert ${{ github.ref_name }}" \
+            --notes "Installers for macOS (Apple silicon and Intel), Windows and Linux are below. See CHANGELOG.md for what's new."

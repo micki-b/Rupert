@@ -228,7 +228,7 @@ def js_components() -> list[dict]:
 
 def pdfium_component() -> dict:
     folder = ROOT / "src-tauri" / "pdfium"
-    version = (folder / "VERSION").read_text().strip() if (folder / "VERSION").exists() else "?"
+    version = (folder / "VERSION").read_text().strip().split("-")[0] if (folder / "VERSION").exists() else "?"
     texts = []
     main = folder / "LICENSE-pdfium.txt"
     if main.exists():

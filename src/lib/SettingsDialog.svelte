@@ -4,6 +4,7 @@
   import { onMount, tick } from "svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import Icon from "$lib/Icon.svelte";
+  import { updates } from "$lib/updates.svelte";
   import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "$lib/api";
 
   let {
@@ -14,7 +15,7 @@
   }: {
     sources: Source[];
     /** A section to scroll to when opening. */
-    section?: "assistant" | null;
+    section?: "assistant" | "updates" | null;
     onclose: () => void;
     onsaved: (s: Settings) => void;
   } = $props();
@@ -395,6 +396,32 @@
       </section>
 
       <section>
+        <h2 id="settings-updates">Updates</h2>
+        <label class="check">
+          <input type="checkbox" bind:checked={settings.checkUpdates} />
+          Check for updates automatically
+        </label>
+        <div class="row update-row">
+          <button onclick={() => updates.check(true)} disabled={updates.status === "checking" || updates.status === "downloading"}>
+            {updates.status === "checking" ? "Checking…" : "Check now"}
+          </button>
+          {#if updates.status === "none"}
+            <span class="muted small">Rupert is up to date.</span>
+          {:else if updates.status === "available"}
+            <span class="small">Version {updates.version} is available.</span>
+            <button onclick={() => updates.install()}>Install and restart</button>
+          {:else if updates.status === "downloading"}
+            <span class="muted small">
+              Downloading{updates.progress !== null ? ` (${Math.round(updates.progress * 100)} %)` : ""}…
+            </span>
+          {:else if updates.status === "error"}
+            <span class="small error">Couldn't check for updates: {updates.problem}</span>
+          {/if}
+        </div>
+        <p class="muted small">Rupert looks for new versions on GitHub, where it's published. Nothing else is sent.</p>
+      </section>
+
+      <section>
         <h2>File names</h2>
         <div class="grid">
           <label for="pattern">Pattern</label>
@@ -545,6 +572,10 @@
   .label {
     font-size: 12px;
     color: var(--muted);
+  }
+  .update-row {
+    margin: 6px 0 2px;
+    flex-wrap: wrap;
   }
   .cloud-note {
     color: var(--cloud);

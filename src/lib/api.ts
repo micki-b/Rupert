@@ -197,6 +197,8 @@ export interface Settings {
   /** `{date}` and `{title}` are replaced. */
   namePattern: string;
   assistant: AssistantSettings;
+  /** Desktop: look for a new version on GitHub now and then. */
+  checkUpdates: boolean;
 }
 
 /** Which model the chat assistant uses. Keys live in the keychain. */
@@ -439,6 +441,10 @@ export function onMenuScan(handler: () => void): Promise<UnlistenFn> {
 
 export function onMenuSettings(handler: () => void): Promise<UnlistenFn> {
   return listen("menu-settings", () => handler());
+}
+
+export function onMenuCheckUpdates(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-check-updates", () => handler());
 }
 
 /** The file name (without extension) from the naming pattern. */

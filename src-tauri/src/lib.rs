@@ -56,6 +56,9 @@ const MENU_IMPORT: &str = "menu-import-scansnap";
 /// Help ▸ Rupert Help (macOS menu); handled here, not in the window.
 #[cfg(target_os = "macos")]
 const MENU_HELP: &str = "menu-help";
+/// Rupert ▸ Check for Updates… was chosen (macOS menu). No payload.
+#[cfg(target_os = "macos")]
+const MENU_UPDATES: &str = "menu-check-updates";
 
 // MARK: - State
 
@@ -962,6 +965,7 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
     )?;
     let settings = MenuItem::with_id(app, MENU_SETTINGS, "Settings…", true, Some("CmdOrCtrl+,"))?;
     let scan = MenuItem::with_id(app, MENU_SCAN, "Scan…", true, None::<&str>)?;
+    let updates = MenuItem::with_id(app, MENU_UPDATES, "Check for Updates…", true, None::<&str>)?;
     let help = MenuItem::with_id(
         app,
         MENU_HELP,
@@ -974,9 +978,10 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
             continue;
         };
         if i == 0 {
-            // The app menu: Settings… after "About Rupert".
-            sub.insert(&PredefinedMenuItem::separator(app)?, 1)?;
-            sub.insert(&settings, 2)?;
+            // The app menu: Check for Updates… and Settings… after "About Rupert".
+            sub.insert(&updates, 1)?;
+            sub.insert(&PredefinedMenuItem::separator(app)?, 2)?;
+            sub.insert(&settings, 3)?;
         } else if sub.text()? == "File" {
             sub.prepend(&PredefinedMenuItem::separator(app)?)?;
             sub.prepend(&import)?;
@@ -990,7 +995,7 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
         if event.id() == MENU_HELP {
             let _ = help::show(app, None);
         }
-        for id in [MENU_IMPORT, MENU_SETTINGS, MENU_SCAN] {
+        for id in [MENU_IMPORT, MENU_SETTINGS, MENU_SCAN, MENU_UPDATES] {
             if event.id() == id {
                 let _ = app.emit(id, ());
             }
@@ -1012,6 +1017,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .register_asynchronous_uri_scheme_protocol(thumbs::SCHEME, |ctx, request, responder| {
             thumbs::serve(ctx.app_handle(), request, responder)
         })

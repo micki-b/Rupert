@@ -9,6 +9,12 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux,
 
 Status: **milestones 1–7** (6 for network scanners). Sources with live updates and online-only status; titles, tags, dates, notes and favorites saved inside PDFs (or a hidden sidecar); full-text search; an inbox that recognizes the text in new scans (Apple Vision on macOS, Tesseract elsewhere), asks a local LM Studio model how to file them, and renames and moves them once you agree; import from ScanSnap Home; scanning from network (eSCL/AirScan) scanners straight into the inbox; an iPhone app that browses and searches the same folders and scans with the camera into the inbox. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
 
+## Install
+
+Download the installer for your system from the [latest release](https://github.com/micki-b/Rupert/releases/latest): a `.dmg` for macOS (Apple silicon and Intel), the `-setup.exe` for Windows, or an `.AppImage` / `.deb` / `.rpm` for Linux. Rupert updates itself from there. Optional: [LM Studio](https://lmstudio.ai) for filing suggestions and the chat assistant, and on Windows and Linux [Tesseract](https://github.com/tesseract-ocr/tesseract) for text recognition.
+
+Rupert is free and open source ([MIT](LICENSE)). It collects nothing about you; see the [privacy policy](PRIVACY.md). The open-source components it includes are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Layout
 
 | Path | What |

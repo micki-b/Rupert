@@ -730,6 +730,11 @@
         <a href="{REPO}/blob/main/LICENSE">MIT license</a>, © 2026 Micki Braun.
       </p>
       <ul>
+        <li>
+          <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ Updates</b>). When one is
+          out, <b>Update to …</b> appears in the status bar; click it to install, and Rupert restarts.{#if mac}
+            Or choose <b>Rupert ▸ Check for Updates…</b>.{/if}
+        </li>
         <li><a href={REPO}>Source code, releases and issues</a> on GitHub</li>
         <li>
           <a href="{REPO}/blob/main/PRIVACY.md">Privacy policy</a>: Rupert collects nothing about you; optional cloud

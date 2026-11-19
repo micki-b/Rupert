@@ -11,6 +11,7 @@
     onMenuImport,
     onMenuScan,
     onMenuSettings,
+    onMenuCheckUpdates,
     providerLabel,
     revealLabel,
     snippetParts,
@@ -43,6 +44,7 @@
   import PictureView from "$lib/PictureView.svelte";
   import MarkdownReader from "$lib/MarkdownReader.svelte";
   import { isMarkdown } from "$lib/markdown";
+  import { checkNowAndThen, updates } from "$lib/updates.svelte";
   import RupertOwl from "$lib/RupertOwl.svelte";
 
   type Folder = { sourceId: string; relPath: string };
@@ -61,7 +63,7 @@
   let importing = $state(false);
   let settingsOpen = $state(false);
   /** A section of Settings to show first (e.g. from the chat's gear). */
-  let settingsSection = $state<"assistant" | null>(null);
+  let settingsSection = $state<"assistant" | "updates" | null>(null);
   let scanOpen = $state(false);
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
@@ -224,13 +226,23 @@
     api.appInfo().then((i) => (info = i));
     loadSources();
     loadIndexInfo();
-    api.getSettings().then((s) => (appSettings = s));
+    api.getSettings().then((s) => {
+      appSettings = s;
+      checkNowAndThen(s.checkUpdates);
+    });
+    // A window left open for days still hears about new versions.
+    const updateTimer = setInterval(() => checkNowAndThen(appSettings?.checkUpdates ?? false), 6 * 60 * 60 * 1000);
     loadInboxCount();
 
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
       onMenuImport(() => (importing = true)),
       onMenuSettings(() => (settingsOpen = true)),
+      onMenuCheckUpdates(() => {
+        settingsSection = "updates";
+        settingsOpen = true;
+        updates.check(true);
+      }),
       onMenuScan(() => (scanOpen = true)),
       onIntakeChanged(loadInboxCount),
       onIndexProgress((p) => (progress = p)),
@@ -277,6 +289,7 @@
       window.removeEventListener("click", closeMenu);
       window.removeEventListener("scroll", closeMenu, true);
       window.removeEventListener("keydown", shortcuts);
+      clearInterval(updateTimer);
     };
   });
 
@@ -1039,6 +1052,15 @@
     <button class="footer-btn" onclick={() => api.openHelp()} title="Rupert Help (F1)">Help</button>
   </span>
   <span class="status">
+    {#if updates.status === "available"}
+      <button class="footer-btn update" onclick={() => updates.install()} title="Download, install and restart">
+        Update to {updates.version}
+      </button> ·
+    {:else if updates.status === "downloading"}
+      Downloading the update{updates.progress !== null ? ` (${Math.round(updates.progress * 100)} %)` : ""}… ·
+    {:else if updates.status === "restarting"}
+      Restarting… ·
+    {/if}
     {statusText()}
     {#if progress && !progress.pdfText}· PDF text search unavailable (PDFium missing){/if}
   </span>
@@ -1051,6 +1073,11 @@
   .inbox-pane {
     padding: 0;
     overflow: hidden;
+  }
+  .footer-btn.update {
+    padding: 0;
+    color: var(--accent);
+    font-weight: 600;
   }
   .footer-btn {
     border: 0;

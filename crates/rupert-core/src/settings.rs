@@ -34,6 +34,8 @@ pub struct Settings {
     /// The chat assistant. (API keys are kept in the system's keychain,
     /// never here.)
     pub assistant: AssistantSettings,
+    /// Desktop: look for a new version on GitHub now and then.
+    pub check_updates: bool,
 }
 
 /// Which model the assistant talks to.
@@ -75,6 +77,7 @@ impl Default for Settings {
             lm_studio_model: None,
             name_pattern: "{date} {title}".into(),
             assistant: AssistantSettings::default(),
+            check_updates: true,
         }
     }
 }
