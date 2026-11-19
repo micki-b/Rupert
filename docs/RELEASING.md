@@ -71,4 +71,16 @@ Notes for users moving between editions: each edition keeps its own settings, in
 
 ## iPhone
 
-App Store builds are made with Xcode from `mobile/gen/apple` (Product ▸ Archive, then upload to App Store Connect), after `npm run phone -- ios build`. The App Store listing text and privacy answers are in `docs/app-store/`.
+App Store Connect record: "Rupert - The Librarian", bundle ID `io.github.micki-b.rupert`, SKU `rupert`, platforms iOS and macOS (the Mac App Store edition shares it). Listing text, privacy answers and screenshots: `docs/app-store/`.
+
+1. Archive (each upload needs a higher build number; a UTC timestamp does that):
+
+   ```sh
+   BUILD="$(date -u +%y%m%d%H%M)"
+   HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_UPGRADE=1 npm run phone -- ios build \
+     --export-method app-store-connect --config "{\"bundle\":{\"iOS\":{\"bundleVersion\":\"$BUILD\"}}}"
+   ```
+
+   The archive lands in `mobile/gen/apple/build/rupert-mobile_iOS.xcarchive`. The command's own export step needs an Apple account visible to `xcodebuild` and may fail with "No Accounts"; the archive is fine either way.
+2. Upload: `open mobile/gen/apple/build/rupert-mobile_iOS.xcarchive` (Xcode's Organizer) ▸ Distribute App ▸ App Store Connect, automatic signing. Xcode makes the distribution certificate and profile with your account.
+3. App Store Connect processes the build (10–30 minutes, with an email); choose it on the version page, then Add for Review.

@@ -4,10 +4,10 @@ Draft texts and answers for App Store Connect. Character limits in brackets.
 
 ## App information
 
-- **Name** [30]: `Rupert` (if taken: `Rupert – Document Librarian`)
+- **Name** [30]: `Rupert - The Librarian` ("Rupert" alone was taken)
 - **Subtitle** [30]: `Your scanned documents, found`
 - **Bundle ID:** `io.github.micki-b.rupert`
-- **SKU:** `rupert-ios`
+- **SKU:** `rupert` (one record for iPhone and the Mac App Store edition)
 - **Primary category:** Productivity. **Secondary:** Business.
 - **Price:** Free. No in-app purchases.
 - **Devices:** iPhone (iOS 16 or later).
@@ -68,12 +68,23 @@ The app uses only standard encryption (HTTPS through the system and rustls). `IT
 
 ## Notes for App Review
 
+Sign-in required: no (untick it). Attachment: none.
+
 Rupert organizes PDF documents that the user already keeps in Files (iCloud Drive or On My iPhone) or OneDrive. No account is needed.
 
-To try it: Settings tab ▸ Add folder…, choose any folder with PDF files (for example in On My iPhone). The Library tab then lists them; Search finds them by name. Scan tab: choose an inbox folder the same way, then tap Rupert to scan a page with the camera; it's saved there as a PDF.
+To try it with PDFs already on the device: Library tab ▸ "Add a folder…", choose any folder with PDF files. The Library tab lists them, and the Search tab finds them by name and by the text inside them.
 
-OneDrive is optional (Settings ▸ Sign in to OneDrive) and needs a personal Microsoft account.
+To try it without any PDFs: Scan tab ▸ "Choose in Files…", choose or create a folder (for example in On My iPhone) as the inbox. Tap Rupert the owl to scan a page with the camera; it's saved there as a PDF. Then Library tab ▸ "Add a folder…" and choose that same folder to see the scan in the library.
+
+OneDrive is optional (Settings ▸ OneDrive) and needs a personal Microsoft account.
+
+Rupert is free and open source: https://github.com/micki-b/Rupert
 
 ## Screenshots
 
-6.9-inch iPhone (1320 × 2868), made in the iPhone 17 Pro Max simulator with a made-up sample library: `docs/app-store/screenshots/` (a folder, search with snippets, a document, Scan). Upload them in that order.
+Made in the iPhone 17 Pro Max simulator with a made-up sample library: a folder, search with snippets, a document, Scan. Upload them in that order. PNG without transparency (App Store Connect refuses alpha channels).
+
+- `docs/app-store/screenshots/medium/` (1206 × 2622): **iPhone with Dynamic Island (medium display)**, the required slot.
+- `docs/app-store/screenshots/large/` (1320 × 2868): **iPhone with Dynamic Island (large display)**, optional; without it the medium set is scaled up.
+
+Sizes per slot: [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications).
