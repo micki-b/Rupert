@@ -3,6 +3,7 @@
   // scan paper into the inbox folder. Read-only for the library itself.
   import { onMount } from "svelte";
   import Icon from "$lib/Icon.svelte";
+  import RupertOwl, { type OwlMood } from "$lib/RupertOwl.svelte";
   import TagFilter from "$lib/TagFilter.svelte";
   import { snippetParts, type TagMode } from "$lib/api";
   import { formatSize } from "$lib/format";
@@ -76,6 +77,22 @@
   }
   let lastScan = $state<string | null>(null);
   let scanError = $state<string | null>(null);
+  /** Rupert, the scan button: happy for a moment after a scan, puzzled after an error. */
+  let afterScan = $state<"ready" | "saved" | "error">("ready");
+  let afterScanTimer: ReturnType<typeof setTimeout> | undefined;
+  const scanState = $derived(scanning ? "saving" : afterScan);
+  const scanMood: Record<typeof scanState, OwlMood> = {
+    ready: "idle",
+    saving: "opening", // the folder badge: he's filing it
+    saved: "happy",
+    error: "puzzled",
+  };
+  const scanSays: Record<typeof scanState, string> = {
+    ready: "Scan a document?",
+    saving: "Filing it…",
+    saved: "Got it!",
+    error: "That didn't work",
+  };
 
   let confirmRemove = $state<string | null>(null);
   let od = $state<OneDriveStatus | null>(null);
@@ -256,12 +273,19 @@
   async function scan() {
     scanning = true;
     scanError = null;
+    clearTimeout(afterScanTimer);
+    afterScan = "ready";
     try {
       saveScanSettings();
       const saved = await phone.scan(scanName(), $state.snapshot(scanSettings));
-      if (saved) lastScan = saved;
+      if (saved) {
+        lastScan = saved;
+        afterScan = "saved";
+        afterScanTimer = setTimeout(() => (afterScan = "ready"), 2500);
+      }
     } catch (e) {
       scanError = String(e);
+      afterScan = "error";
     } finally {
       scanning = false;
     }
@@ -563,9 +587,13 @@
               300 dpi gives the best text recognition.
             </p>
           </div>
-          <button class="big" onclick={scan} disabled={scanning}>
-            <Icon name="camera" size={44} />
-            <span>{scanning ? "Saving…" : "Scan a document"}</span>
+          <!-- Rupert is the scan button, and says what's happening. -->
+          <button class="owl-scan" onclick={scan} disabled={scanning} aria-label={scanning ? "Saving the scan" : "Scan a document"}>
+            <span class="bubble" aria-hidden="true">
+              {#if scanState === "ready"}<Icon name="camera" size={16} />{/if}
+              {scanSays[scanState]}
+            </span>
+            <RupertOwl mood={scanMood[scanState]} size={150} />
           </button>
           <p class="note">
             Pages are saved to <strong>{overview.inboxOnOnedrive ? "OneDrive ▸ " : ""}{overview.inbox}</strong> as one PDF.
@@ -1032,26 +1060,58 @@
     color: var(--accent-strong);
   }
   button.primary,
-  button.big {
-    background: var(--accent);
-    color: #fff;
-    border: 0;
-    border-radius: 12px;
-    padding: 12px 20px;
-    font-size: 16px;
-    font-weight: 600;
+  button:disabled {
+    opacity: 0.55;
   }
-  button.big {
+  /* MARK: Rupert, the scan button */
+  button.owl-scan {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 28px 40px;
-    border-radius: 20px;
-    margin-top: 8px;
+    margin: 6px auto 0;
+    padding: 4px 24px 8px;
+    border: 0;
+    background: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s;
   }
-  button:disabled {
-    opacity: 0.55;
+  button.owl-scan:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  button.owl-scan:disabled {
+    opacity: 1; /* keep him visible while the scan is saved */
+  }
+  .bubble {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1.5px solid var(--accent);
+    border-radius: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+  }
+  .bubble :global(svg) {
+    color: var(--accent);
+  }
+  /* The tail, pointing down at Rupert. */
+  .bubble::after {
+    content: "";
+    position: absolute;
+    left: calc(50% - 6px);
+    bottom: -7px;
+    width: 11px;
+    height: 11px;
+    background: var(--bg);
+    border-right: 1.5px solid var(--accent);
+    border-bottom: 1.5px solid var(--accent);
+    transform: rotate(45deg);
   }
   button.plain {
     border: 0;
