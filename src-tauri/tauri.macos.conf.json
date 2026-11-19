@@ -9,7 +9,8 @@
     "macOS": {
       "frameworks": [
         "pdfium/libpdfium.dylib"
-      ]
+      ],
+      "minimumSystemVersion": "13.0"
     }
   }
 }

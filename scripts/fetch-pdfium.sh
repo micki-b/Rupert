@@ -41,6 +41,18 @@ else
   fetch "$ASSET" x
   cp "$TMP/x/$LIB" "$DEST/"
 fi
+# macOS: PDFium must not need a newer macOS than Rupert says it runs on
+# (minimumSystemVersion in src-tauri/tauri.macos.conf.json).
+if [ "$(uname -s)" = Darwin ]; then
+  APP_MIN="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["bundle"]["macOS"]["minimumSystemVersion"])' \
+    "$(dirname "$DEST")/tauri.macos.conf.json")"
+  for LIB_MIN in $(vtool -show-build "$DEST/libpdfium.dylib" | awk '/minos/{print $2}'); do
+    if [ "$(printf '%s\n%s\n' "$LIB_MIN" "$APP_MIN" | sort -V | tail -1)" != "$APP_MIN" ]; then
+      echo "PDFium $VERSION needs macOS $LIB_MIN, but Rupert's minimum is $APP_MIN (src-tauri/tauri.macos.conf.json)" >&2
+      rm -rf "${DEST:?}"; exit 1
+    fi
+  done
+fi
 cp "$TMP/x/LICENSE" "$DEST/LICENSE-pdfium.txt"
 [ -d "$TMP/x/licenses" ] && cp -R "$TMP/x/licenses" "$DEST/licenses"
 echo "$STAMP" > "$DEST/VERSION"

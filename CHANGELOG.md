@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **macOS 13 (Ventura) or later** is now stated as the requirement, so older Macs are told before installing. Rupert's PDF engine already needed it.
+
 ## 0.1.0 — 2026-11-19 (first public release)
 
 The first release for macOS, Windows, Linux and iPhone.
