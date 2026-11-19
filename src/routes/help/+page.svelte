@@ -4,6 +4,7 @@
   // for developers. Keep it in step with the app's labels.
   import { onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { invoke } from "@tauri-apps/api/core";
 
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const mac = /Mac/.test(ua);
@@ -33,10 +34,16 @@
     { id: "iphone", title: "The iPhone app" },
     { id: "storage", title: "Where Rupert keeps things" },
     { id: "keys", title: "Keyboard shortcuts" },
+    { id: "about", title: "About Rupert" },
   ];
   let current = $state("start");
+  let version = $state("");
+  const REPO = "https://github.com/micki-b/Rupert";
 
   onMount(() => {
+    invoke<{ version: string }>("app_info")
+      .then((i) => (version = i.version))
+      .catch(() => {});
     const start = (window as unknown as { __rupertHelpSection?: string }).__rupertHelpSection;
     const target = start || location.hash.slice(1);
     if (target) document.getElementById(target)?.scrollIntoView();
@@ -714,6 +721,25 @@
           <tr><td><kbd>F1</kbd>{#if mac} or <kbd>⇧⌘/</kbd>{/if}</td><td>This help</td></tr>
         </tbody>
       </table>
+    </section>
+    <!-- MARK: About -->
+    <section id="about">
+      <h2>About Rupert</h2>
+      <p>
+        Rupert{version ? ` ${version}` : ""}, the librarian for your scanned documents. Free and open source under the
+        <a href="{REPO}/blob/main/LICENSE">MIT license</a>, © 2026 Micki Braun.
+      </p>
+      <ul>
+        <li><a href={REPO}>Source code, releases and issues</a> on GitHub</li>
+        <li>
+          <a href="{REPO}/blob/main/PRIVACY.md">Privacy policy</a>: Rupert collects nothing about you; optional cloud
+          features are listed there with exactly what they send.
+        </li>
+        <li>
+          <a href="{REPO}/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>: the open-source components Rupert is
+          built with, and their licenses (also included with the app).
+        </li>
+      </ul>
     </section>
   </main>
 </div>

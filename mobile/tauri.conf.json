@@ -4,9 +4,15 @@
   "version": "0.1.0",
   "identifier": "io.github.micki-b.rupert",
   "build": {
-    "beforeDevCommand": { "script": "npm run dev", "cwd": ".." },
+    "beforeDevCommand": {
+      "script": "npm run dev",
+      "cwd": ".."
+    },
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": { "script": "npm run build", "cwd": ".." },
+    "beforeBuildCommand": {
+      "script": "npm run build",
+      "cwd": ".."
+    },
     "frontendDist": "../build"
   },
   "app": {
@@ -34,6 +40,18 @@
     "iOS": {
       "developmentTeam": "9FP28N8GW3",
       "minimumSystemVersion": "16.0"
+    },
+    "publisher": "Micki Braun",
+    "copyright": "© 2026 Micki Braun. MIT license.",
+    "homepage": "https://github.com/micki-b/Rupert",
+    "category": "Productivity",
+    "shortDescription": "The librarian for your scanned documents",
+    "longDescription": "Rupert finds, files and searches your scanned documents and PDFs right where they are: in folders on your computer, iCloud Drive or OneDrive. Titles, tags and dates are stored inside the files.",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "resources": {
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
+      "../LICENSE": "LICENSE"
     }
   }
 }

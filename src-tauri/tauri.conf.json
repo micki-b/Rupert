@@ -34,8 +34,18 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "pdfium/**/*"
-    ]
+    "resources": {
+      "pdfium/**/*": "pdfium/",
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
+      "../LICENSE": "LICENSE"
+    },
+    "publisher": "Micki Braun",
+    "copyright": "© 2026 Micki Braun. MIT license.",
+    "homepage": "https://github.com/micki-b/Rupert",
+    "category": "Productivity",
+    "shortDescription": "The librarian for your scanned documents",
+    "longDescription": "Rupert finds, files and searches your scanned documents and PDFs right where they are: in folders on your computer, iCloud Drive or OneDrive. Titles, tags and dates are stored inside the files.",
+    "license": "MIT",
+    "licenseFile": "../LICENSE"
   }
 }
