@@ -43,6 +43,11 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space
+        if: runner.os == 'Linux'
+        # The hosted Linux runners ship toolkits Rupert doesn't use; the
+        # workspace's debug builds need the room.
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
       - uses: actions/setup-node@v4
         with:
           node-version: 22
