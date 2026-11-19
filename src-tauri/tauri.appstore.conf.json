@@ -1,0 +1,11 @@
+{
+  "build": {
+    "features": ["app-store"]
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "entitlements": "AppStore.entitlements"
+    }
+  }
+}

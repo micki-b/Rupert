@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::bookmark;
 use crate::error::{Error, Result};
 
 // MARK: - Provider
@@ -70,13 +71,20 @@ pub struct Source {
     /// space again (see [`crate::cloud`]).
     #[serde(default)]
     pub download_online_only: bool,
+    /// macOS: a security-scoped bookmark (base64) for the folder, so a
+    /// sandboxed app keeps access across launches and a moved folder is
+    /// found again (see [`crate::bookmark`]). Not used on the phone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bookmark: Option<String>,
 }
 
 impl Source {
-    /// Whether the root folder is currently reachable (e.g. not on an
-    /// unmounted drive or a signed-out sync folder).
+    /// Whether the root folder can be read right now: not on an unmounted
+    /// drive or a signed-out sync folder, and (sandboxed) still allowed.
+    /// Reading, not just checking it's a folder: a sandbox lets an app see
+    /// that a folder exists without letting it look inside.
     pub fn is_available(&self) -> bool {
-        self.root.is_dir()
+        fs::read_dir(&self.root).is_ok()
     }
 }
 
@@ -146,6 +154,12 @@ impl SourceStore {
         if !root.is_dir() {
             return Err(Error::NotADirectory(root));
         }
+        if let Err(e) = fs::read_dir(&root) {
+            return Err(Error::InvalidValue(format!(
+                "Rupert can't open “{}”: {e}",
+                root.display()
+            )));
+        }
         let key = comparable(&root);
         for existing in &self.sources {
             let other = comparable(&existing.root);
@@ -168,6 +182,7 @@ impl SourceStore {
             provider,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         };
         self.sources.push(source.clone());
         self.save()?;
@@ -223,6 +238,62 @@ impl SourceStore {
             self.save()?;
         }
         Ok(())
+    }
+
+    // MARK: Folder access (macOS)
+
+    /// At launch: opens every source's bookmark (starting access, which a
+    /// sandboxed app needs), follows folders that moved, saves refreshed
+    /// bookmarks, and quietly makes bookmarks for sources that have none
+    /// but are reachable. Returns the sources that couldn't be opened, with
+    /// why; they show as unavailable until the user picks them again.
+    pub fn open_bookmarks(&mut self) -> Vec<(String, Error)> {
+        let mut failed = Vec::new();
+        let mut changed = false;
+        for source in &mut self.sources {
+            match source.bookmark.as_deref().map(bookmark::open) {
+                Some(Ok(opened)) => {
+                    if opened.path != source.root {
+                        source.root = opened.path;
+                        changed = true;
+                    }
+                    if let Some(fresh) = opened.refreshed {
+                        source.bookmark = Some(fresh);
+                        changed = true;
+                    }
+                }
+                Some(Err(e)) => failed.push((source.id.clone(), e)),
+                None if source.root.is_dir() => {
+                    if let Ok(Some(mark)) = bookmark::create(&source.root) {
+                        source.bookmark = Some(mark);
+                        changed = true;
+                    }
+                }
+                None => {}
+            }
+        }
+        if changed {
+            let _ = self.save();
+        }
+        let _ = self.redetect_providers();
+        failed
+    }
+
+    /// Records the user's pick of `root` for a source: its bookmark, and the
+    /// new place if it moved. Used for new sources and for "Allow access…".
+    pub fn remember_pick(&mut self, id: &str, root: impl Into<PathBuf>) -> Result<Source> {
+        let root = root.into();
+        let mark = bookmark::create(&root)?;
+        let source = self
+            .sources
+            .iter_mut()
+            .find(|s| s.id == id)
+            .ok_or(Error::UnknownSource)?;
+        source.root = root;
+        source.bookmark = mark;
+        let source = source.clone();
+        self.save()?;
+        Ok(source)
     }
 
     /// Writes atomically (temp file + rename) so a crash never leaves a
@@ -359,5 +430,41 @@ mod tests {
         let mut store = SourceStore::load(dir.path().join("sources.json")).unwrap();
         store.add(dir.path().join("Tax"), None).unwrap();
         store.add(dir.path().join("Taxes"), None).unwrap();
+    }
+
+    /// macOS: a source without a bookmark gets one at launch; a moved
+    /// folder is followed; a new pick is remembered.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn bookmarks_follow_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("sources.json");
+        let boat = dir.path().join("Boat");
+        fs::create_dir(&boat).unwrap();
+        let id = {
+            let mut store = SourceStore::load(&file).unwrap();
+            let s = store.add(&boat, None).unwrap();
+            assert!(s.bookmark.is_none());
+            assert!(store.open_bookmarks().is_empty());
+            assert!(store.get(&s.id).unwrap().bookmark.is_some(), "made quietly");
+            s.id
+        };
+
+        let moved = dir.path().join("Sailing");
+        fs::rename(&boat, &moved).unwrap();
+        let mut store = SourceStore::load(&file).unwrap();
+        assert!(store.open_bookmarks().is_empty());
+        assert_eq!(
+            store.get(&id).unwrap().root.canonicalize().unwrap(),
+            moved.canonicalize().unwrap()
+        );
+
+        let other = dir.path().join("Elsewhere");
+        fs::create_dir(&other).unwrap();
+        let picked = store.remember_pick(&id, &other).unwrap();
+        assert_eq!(picked.root, other);
+        assert!(picked.bookmark.is_some());
+        let reloaded = SourceStore::load(&file).unwrap();
+        assert_eq!(reloaded.get(&id).unwrap().root, other);
     }
 }

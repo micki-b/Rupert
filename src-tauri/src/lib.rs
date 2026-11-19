@@ -123,7 +123,20 @@ struct AppInfo {
     core_version: &'static str,
     os: &'static str,
     arch: &'static str,
+    /// "direct" (installers from GitHub, self-updating) or "app-store".
+    edition: &'static str,
 }
+
+// The App Store edition doesn't register the updater (the dependency
+// stays, so both editions build from one manifest).
+#[cfg(feature = "app-store")]
+use tauri_plugin_updater as _;
+
+const EDITION: &str = if cfg!(feature = "app-store") {
+    "app-store"
+} else {
+    "direct"
+};
 
 #[tauri::command]
 fn app_info() -> AppInfo {
@@ -133,6 +146,7 @@ fn app_info() -> AppInfo {
         core_version: rupert_core::VERSION,
         os: std::env::consts::OS,
         arch: std::env::consts::ARCH,
+        edition: EDITION,
     }
 }
 
@@ -147,8 +161,9 @@ struct SourceView {
 }
 
 impl From<Source> for SourceView {
-    fn from(source: Source) -> Self {
+    fn from(mut source: Source) -> Self {
         let available = source.is_available();
+        source.bookmark = None; // opaque, and the window doesn't need it
         Self { source, available }
     }
 }
@@ -160,7 +175,32 @@ fn list_sources(state: State<AppState>) -> Vec<SourceView> {
 
 #[tauri::command]
 fn add_source(path: String, state: State<AppState>) -> CmdResult<SourceView> {
-    let source = state.store.lock().unwrap().add(path, None).map_err(err)?;
+    let source = {
+        let mut store = state.store.lock().unwrap();
+        let added = store.add(&path, None).map_err(err)?;
+        // The user just picked it: remember access (macOS bookmark).
+        store.remember_pick(&added.id, &path).unwrap_or(added)
+    };
+    state.rewatch();
+    state.reconfigure_intake();
+    state.indexer.send(Job::SyncSource(source.clone()));
+    Ok(source.into())
+}
+
+/// The user picked an unavailable source's folder again (it moved, or a
+/// sandboxed app lost access): remember the pick and index it.
+#[tauri::command]
+fn relocate_source(id: String, path: String, state: State<AppState>) -> CmdResult<SourceView> {
+    let path = PathBuf::from(path);
+    if !path.is_dir() {
+        return Err(err(format!("not a folder: {}", path.display())));
+    }
+    let source = state
+        .store
+        .lock()
+        .unwrap()
+        .remember_pick(&id, &path)
+        .map_err(err)?;
     state.rewatch();
     state.reconfigure_intake();
     state.indexer.send(Job::SyncSource(source.clone()));
@@ -978,10 +1018,16 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
             continue;
         };
         if i == 0 {
-            // The app menu: Check for Updates… and Settings… after "About Rupert".
-            sub.insert(&updates, 1)?;
-            sub.insert(&PredefinedMenuItem::separator(app)?, 2)?;
-            sub.insert(&settings, 3)?;
+            // The app menu: Check for Updates… (not in the App Store
+            // edition, which the App Store updates) and Settings… after
+            // "About Rupert".
+            let mut at = 1;
+            if !cfg!(feature = "app-store") {
+                sub.insert(&updates, at)?;
+                at += 1;
+            }
+            sub.insert(&PredefinedMenuItem::separator(app)?, at)?;
+            sub.insert(&settings, at + 1)?;
         } else if sub.text()? == "File" {
             sub.prepend(&PredefinedMenuItem::separator(app)?)?;
             sub.prepend(&import)?;
@@ -1031,11 +1077,14 @@ fn has_pdfium(dir: &std::path::Path) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_process::init());
+    // The App Store updates its own edition.
+    #[cfg(not(feature = "app-store"))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    builder
         .register_asynchronous_uri_scheme_protocol(thumbs::SCHEME, |ctx, request, responder| {
             thumbs::serve(ctx.app_handle(), request, responder)
         })
@@ -1045,7 +1094,12 @@ pub fn run() {
             let config_dir = app.path().app_config_dir()?;
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
-            let store = SourceStore::load(config_dir.join("sources.json"))?;
+            let mut store = SourceStore::load(config_dir.join("sources.json"))?;
+            // Open the folders' bookmarks first: a sandboxed app (Mac App
+            // Store edition) can't reach them otherwise.
+            for (id, e) in store.open_bookmarks() {
+                eprintln!("rupert: source {id} needs to be picked again: {e}");
+            }
             let index_path = data_dir.join("index.sqlite");
 
             // Indexer first: it creates the database the read connection uses.
@@ -1137,6 +1191,7 @@ pub fn run() {
             app_info,
             list_sources,
             add_source,
+            relocate_source,
             remove_source,
             update_source,
             refresh_sources,

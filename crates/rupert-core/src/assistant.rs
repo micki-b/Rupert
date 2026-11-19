@@ -1320,6 +1320,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         }];
         (dir, idx, sources)
     }

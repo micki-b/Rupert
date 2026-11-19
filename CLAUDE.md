@@ -16,6 +16,7 @@ Read `docs/DESIGN.md` first. It records the product decisions and the metadata l
 - Prefer permissive licenses. No AGPL (MuPDF, Ghostscript).
 - Use `// MARK: -` section dividers in Rust files.
 - The desktop binary is `Rupert` (capital R, so the Dock says "Rupert" under `tauri dev`); bundles rename it to `rupert` (`mainBinaryName`). A `tauri build` on macOS renames `target/debug/Rupert` too (same file on a case-insensitive disk).
+- Two macOS editions from one code base: the DMG (default) and the Mac App Store edition (`--features app-store`, `src-tauri/tauri.appstore.conf.json`, sandboxed). Anything that reads outside folders the user picked, runs another program, or updates the app must work in (or be gated off for) the sandbox. Folders are kept with security-scoped bookmarks (`rupert_core::bookmark`, `Source::bookmark`). Lint both: `cargo clippy -p rupert --features app-store`.
 - The user help (Help ▸ Rupert Help, F1) is `src/routes/help/+page.svelte`. When a feature, label or setting changes, update it there too.
 
 ## Commands

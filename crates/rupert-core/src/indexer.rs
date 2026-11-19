@@ -816,6 +816,7 @@ pub(crate) mod tests {
             provider,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         }
     }
 
@@ -1130,6 +1131,7 @@ pub(crate) mod tests {
         fs::write(root.join("memo.md"), "anchor chain").unwrap();
         let src = Source {
             download_online_only: true,
+            bookmark: None,
             ..source(root, Provider::OneDrive)
         };
         let mut w = worker(Index::open_in_memory().unwrap());
@@ -1203,6 +1205,7 @@ pub(crate) mod tests {
         // Turning the setting off drops what's still queued.
         let off = Source {
             download_online_only: false,
+            bookmark: None,
             ..src.clone()
         };
         w.queue_downloads(&off).unwrap();
@@ -1254,6 +1257,7 @@ pub(crate) mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         };
         let dir = |d: &str| Job::SyncDir {
             source: s.clone(),

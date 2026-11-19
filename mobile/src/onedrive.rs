@@ -56,6 +56,7 @@ impl RemoteFolder {
             provider: Provider::OneDrive,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         }
     }
 }

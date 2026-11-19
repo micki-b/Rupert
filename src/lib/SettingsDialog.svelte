@@ -31,6 +31,8 @@
   let cli = $state<{ installed: boolean; signedIn: boolean } | null>(null);
   let cliBusy = $state(false);
   let chatgpt = $state<ChatGptStatus | null>(null);
+  /** The Mac App Store edition: no self-updater, no `ant` sign-in. */
+  let appStore = $state(false);
   let chatgptBusy = $state(false);
   const provider = $derived(settings?.assistant.provider ?? "local");
 
@@ -40,6 +42,7 @@
   );
 
   onMount(async () => {
+    api.appInfo().then((i) => (appStore = i.edition === "app-store"));
     settings = await api.getSettings();
     if (section) {
       await tick();
@@ -293,8 +296,8 @@
               value={settings.assistant.model ?? ""}
               oninput={(e) => (settings!.assistant.model = e.currentTarget.value.trim() || null)}
             />
-            <span class="label">Sign-in</span>
-            <div class="stack">
+            {#if !appStore}<span class="label">Sign-in</span>{/if}
+            <div class="stack" hidden={appStore}>
               <label class="check">
                 <input type="radio" name="ai-auth" checked={!settings.assistant.anthropicCliLogin} onchange={() => (settings!.assistant.anthropicCliLogin = false)} />
                 API key
@@ -348,7 +351,7 @@
               oninput={(e) => (settings!.assistant.model = e.currentTarget.value.trim() || null)}
             />
           {/if}
-          {#if provider !== "local" && !(provider === "anthropic" && settings.assistant.anthropicCliLogin)}
+          {#if provider !== "local" && !(provider === "anthropic" && settings.assistant.anthropicCliLogin && !appStore)}
             <label for="ai-key">API key</label>
             <div class="row">
               {#if hasKey[provider]}
@@ -360,7 +363,7 @@
               {/if}
             </div>
           {/if}
-          {#if provider === "anthropic" && settings.assistant.anthropicCliLogin}
+          {#if provider === "anthropic" && settings.assistant.anthropicCliLogin && !appStore}
             <span class="label">Account</span>
             <div class="row">
               {#if !cli?.installed}
@@ -395,7 +398,7 @@
         {/if}
       </section>
 
-      <section>
+      <section hidden={appStore}>
         <h2 id="settings-updates">Updates</h2>
         <label class="check">
           <input type="checkbox" bind:checked={settings.checkUpdates} />

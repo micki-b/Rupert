@@ -287,6 +287,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         };
         let index = index_as_local(root, &source);
         let merge = edit(
@@ -348,6 +349,7 @@ mod tests {
             provider: Provider::OneDrive,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         };
         // As if imported for an online-only PDF: details pending beside it.
         meta::write_meta_beside(

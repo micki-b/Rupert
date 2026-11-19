@@ -4,6 +4,7 @@
 //! reused by other front ends (mobile viewer, CLI). See `docs/DESIGN.md`.
 
 pub mod assistant;
+pub mod bookmark;
 pub mod camera;
 pub mod catalog;
 pub mod chatgpt;

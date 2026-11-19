@@ -105,6 +105,10 @@ pub fn assistant_has_key(provider: AssistantProvider) -> bool {
 /// The `ant` CLI. Apps started from the Finder get a short PATH, so the
 /// usual install places are tried too.
 fn ant() -> Option<PathBuf> {
+    // A sandboxed app (Mac App Store edition) can't run other programs.
+    if cfg!(feature = "app-store") {
+        return None;
+    }
     let home = std::env::var_os("HOME").map(PathBuf::from);
     std::env::var_os("PATH")
         .map(|p| std::env::split_paths(&p).collect::<Vec<_>>())
@@ -393,7 +397,8 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
             })
         }
         AssistantProvider::Anthropic => {
-            let auth = if a.anthropic_cli_login {
+            // The App Store edition has no `ant` sign-in: API key only.
+            let auth = if a.anthropic_cli_login && !cfg!(feature = "app-store") {
                 AnthropicAuth::OAuthToken(ant_token()?)
             } else {
                 AnthropicAuth::ApiKey(

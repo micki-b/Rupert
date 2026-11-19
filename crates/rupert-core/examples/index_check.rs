@@ -50,6 +50,7 @@ fn main() {
         },
         show_all_types: false,
         download_online_only: false,
+        bookmark: None,
     }]));
     while !*idle.lock().unwrap() {
         std::thread::sleep(Duration::from_millis(100));

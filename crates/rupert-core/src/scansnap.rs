@@ -899,6 +899,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         };
         Fixture {
             _tmp: tmp,
@@ -1070,6 +1071,7 @@ mod tests {
             provider: Provider::OneDrive,
             show_all_types: false,
             download_online_only: false,
+            bookmark: None,
         };
         let item = ImportItem {
             source_id: "s".into(),

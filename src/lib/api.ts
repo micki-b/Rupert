@@ -345,6 +345,8 @@ export interface AppInfo {
   coreVersion: string;
   os: string;
   arch: string;
+  /** "direct" (GitHub installers, self-updating) or "app-store". */
+  edition: "direct" | "app-store";
 }
 
 export const api = {
@@ -352,6 +354,8 @@ export const api = {
   listSources: () => invoke<Source[]>("list_sources"),
   refreshSources: () => invoke<Source[]>("refresh_sources"),
   addSource: (path: string) => invoke<Source>("add_source", { path }),
+  /** Picks an unavailable source's folder again (moved, or access lost). */
+  relocateSource: (id: string, path: string) => invoke<Source>("relocate_source", { id, path }),
   removeSource: (id: string) => invoke<void>("remove_source", { id }),
   updateSource: (
     id: string,
@@ -505,6 +509,13 @@ export const providerLabel: Record<Provider, string> = {
   googledrive: "Google Drive",
   dropbox: "Dropbox",
 };
+
+/** Which build someone runs, for support: "GitHub" (installers from
+ * GitHub releases), "App Store", or "development" (run from the source). */
+export function editionLabel(info: AppInfo | null): string {
+  if (import.meta.env.DEV) return "development";
+  return info?.edition === "app-store" ? "App Store" : "GitHub";
+}
 
 export function revealLabel(os: string | undefined): string {
   if (os === "macos") return "Show in Finder";

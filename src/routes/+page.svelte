@@ -14,6 +14,7 @@
     onMenuCheckUpdates,
     providerLabel,
     revealLabel,
+    editionLabel,
     snippetParts,
     type AppInfo,
     type Filed,
@@ -226,12 +227,17 @@
     api.appInfo().then((i) => (info = i));
     loadSources();
     loadIndexInfo();
-    api.getSettings().then((s) => {
+    // The App Store updates its own edition.
+    const selfUpdating = api.appInfo().then((i) => i.edition !== "app-store");
+    api.getSettings().then(async (s) => {
       appSettings = s;
-      checkNowAndThen(s.checkUpdates);
+      if (await selfUpdating) checkNowAndThen(s.checkUpdates);
     });
     // A window left open for days still hears about new versions.
-    const updateTimer = setInterval(() => checkNowAndThen(appSettings?.checkUpdates ?? false), 6 * 60 * 60 * 1000);
+    const updateTimer = setInterval(
+      async () => checkNowAndThen((await selfUpdating) && (appSettings?.checkUpdates ?? false)),
+      6 * 60 * 60 * 1000,
+    );
     loadInboxCount();
 
     const unlisten = [
@@ -423,6 +429,15 @@
     if (!added) return;
     await loadSources();
     selectFolder(added.id, "");
+  }
+
+  /** Picks an unavailable source's folder again: it moved, or (in the Mac
+   * App Store edition) access has to be granted once more. */
+  async function relocateSource(s: Source) {
+    const path = await open({ directory: true, multiple: false, defaultPath: s.root, title: `Choose “${s.name}”` });
+    if (typeof path !== "string") return;
+    const found = await run(() => api.relocateSource(s.id, path));
+    if (found) await loadSources(true);
   }
 
   async function removeSource(s: Source) {
@@ -684,7 +699,9 @@
             <div class="row">
               <Icon name="warning" size={14} />
               <span class="label">{s.name}</span>
-              <span class="provider">unavailable</span>
+              <button class="link-btn" onclick={() => relocateSource(s)} title="Choose this folder again ({s.root})">
+                {info?.os === "macos" ? "Allow access…" : "Locate…"}
+              </button>
               <button
                 class="icon-btn more"
                 aria-label="Source options"
@@ -1047,7 +1064,9 @@
 
 <footer>
   <span>
-    {#if info}{info.name} {info.version}{/if}
+    {#if info}
+      <span title="Version and edition (where it was installed from)">{info.name} {info.version} · {editionLabel(info)}</span>
+    {/if}
     <button class="footer-btn" onclick={() => (settingsOpen = true)} title="Settings">Settings</button>
     <button class="footer-btn" onclick={() => api.openHelp()} title="Rupert Help (F1)">Help</button>
   </span>
@@ -1295,6 +1314,15 @@
     height: 26px;
     padding: 0 8px;
     color: var(--muted);
+  }
+  .link-btn {
+    border: 0;
+    background: none;
+    padding: 0 4px;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: underline;
+    white-space: nowrap;
   }
   .unavailable .label {
     flex: 1;

@@ -72,9 +72,13 @@
       step = "review";
     });
 
+  // The folder picker opens at the suggested folder: adding a source is
+  // always the user's pick (a sandboxed app may only use picked folders).
   const addSource = (path: string) =>
     attempt(async () => {
-      await api.addSource(path);
+      const picked = await openDialog({ directory: true, defaultPath: path, title: "Add this folder to Rupert" });
+      if (typeof picked !== "string") return;
+      await api.addSource(picked);
       onsourceadded();
       summary = await api.scansnapPlan(library!);
     });

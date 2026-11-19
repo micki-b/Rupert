@@ -125,6 +125,14 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 - **Trash** (`fileops::trash`, the `trash` crate): macOS uses `NSFileManager trashItemAtURL` (no Finder automation prompt; "Put Back" isn't offered), Windows the Recycle Bin, Linux the freedesktop Trash. A document's sidecar goes too, and an emptied `.rupert/` folder is removed. Folders go whole, after a confirmation. A source root can't be trashed. The index catches up with a single-file job (or a folder pass for folders). Not on the phone, which stays read-only.
 - **To verify:** trashing an online-only file in iCloud Drive and OneDrive moves it to the service's deleted items without downloading it first.
 
+## Mac App Store edition (in preparation, 2026-11-19)
+
+- The DMG from GitHub is the Mac release. A second edition for the Mac App Store is built from the same code with the `app-store` feature and `src-tauri/tauri.appstore.conf.json`; it shares the iPhone app's App Store record and bundle ID.
+- **Sandbox:** access only to folders the user picked. Each source keeps a **security-scoped bookmark** (`bookmark.rs`, `Source::bookmark`, base64 in `sources.json`): made right after the pick, opened at every launch before watching and indexing (`SourceStore::open_bookmarks`, which also follows moved folders and quietly adds bookmarks to older sources, in both editions). A source that can't be opened shows **Allow access…** (macOS) / **Locate…** (elsewhere), a folder picker at its old place (`relocate_source`). The inbox lives inside a source; the ScanSnap import asks for ScanSnap Home's "Managed" folder (its automatic lookup points into the container); "Add as source" from the import goes through the folder picker.
+- **Gated off in that edition:** the self-updater (the App Store updates it) and the `ant` command sign-in (a sandboxed app can't run other programs); Claude with an API key works. `app_info` reports the edition; the window hides what's absent.
+- **macOS packaging (both editions):** PDFium ships in `Contents/Frameworks` (`tauri.macos.conf.json`), where it's signed with the app; in Resources it wasn't, and notarization refused it.
+- **To verify in the sandbox:** freeing iCloud/OneDrive space after indexing, Move to Trash, file watching, LM Studio, network scanners, the ChatGPT sign-in's local listener.
+
 ## Favorite folders
 
 - A folder's own details (for now: favorite) live in its hidden `.rupert/.folder.json` (`folder_info.rs`), so they follow the folder when it's renamed or moved anywhere and sync to other machines with it. The leading dot keeps the name apart from document sidecars, which are named after documents (never hidden). Unfavoriting removes the file, and the `.rupert` folder if it's then empty.

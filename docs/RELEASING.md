@@ -29,6 +29,31 @@ Repository ▸ Settings ▸ Secrets and variables ▸ Actions. Each one is optio
 
 **Keep `~/.tauri/rupert-updater.key` and its password safe** (e.g. in a password manager). If it's lost, installed copies can't verify new updates and have to be reinstalled by hand.
 
+## Mac App Store edition (in preparation)
+
+A second macOS edition for the Mac App Store, built from the same code with the `app-store` feature (`src-tauri/tauri.appstore.conf.json`): it runs in the App Sandbox (`src-tauri/AppStore.entitlements`), keeps access to the folders the user picked with security-scoped bookmarks, has no self-updater (the App Store updates it) and no "Anthropic account through the `ant` command" sign-in (API keys work). It shares the iPhone app's App Store record and bundle ID (universal purchase). The DMG from GitHub stays the main Mac release; a Mac should have one edition or the other.
+
+Try it locally (sandboxed "Rupert Test", its own container, signed with your Apple Development identity): `scripts/build-app-store.sh --test`, then open `target/debug/bundle/macos/Rupert Test.app`.
+
+### One-time setup for submission
+
+1. **App Store Connect:** in the Rupert app record, add the **macOS** platform (App Information ▸ the platform list).
+2. **Certificates** (developer.apple.com ▸ Certificates): create an **Apple Distribution** certificate and a **Mac Installer Distribution** certificate, and install both (double-click) on the release Mac.
+3. **Provisioning profile** (Profiles ▸ +): **Mac App Store Connect**, App ID `io.github.micki-b.rupert`, the Apple Distribution certificate. Download it.
+4. For uploading: copy the API key file to `~/.appstoreconnect/private_keys/AuthKey_<Key ID>.p8` (where `altool` looks).
+
+### Building and uploading
+
+```sh
+RUPERT_MAS_PROFILE=~/Downloads/Rupert_Mac_App_Store.provisionprofile \
+APPLE_API_KEY=<Key ID> APPLE_API_ISSUER=<Issuer ID> \
+scripts/build-app-store.sh --upload
+```
+
+It builds the universal sandboxed app with the profile and a new build number, packages `target/Rupert-<version>-<build>.pkg` signed with the installer certificate, and uploads it. The build then appears in App Store Connect under the macOS version, for TestFlight or review.
+
+Notes for users moving between editions: each edition keeps its own settings, index and keychain items (the App Store edition lives in its sandbox container), so folders are added again and API keys or sign-ins entered again. The documents and their details are in the folders and stay as they are.
+
 ## iPhone
 
 App Store builds are made with Xcode from `mobile/gen/apple` (Product ▸ Archive, then upload to App Store Connect), after `npm run phone -- ios build`. The App Store listing text and privacy answers are in `docs/app-store/`.

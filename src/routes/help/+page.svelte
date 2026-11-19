@@ -5,6 +5,7 @@
   import { onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { invoke } from "@tauri-apps/api/core";
+  import { editionLabel, type AppInfo } from "$lib/api";
 
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const mac = /Mac/.test(ua);
@@ -41,8 +42,8 @@
   const REPO = "https://github.com/micki-b/Rupert";
 
   onMount(() => {
-    invoke<{ version: string }>("app_info")
-      .then((i) => (version = i.version))
+    invoke<AppInfo>("app_info")
+      .then((i) => (version = `${i.version} (${editionLabel(i)} edition)`))
       .catch(() => {});
     const start = (window as unknown as { __rupertHelpSection?: string }).__rupertHelpSection;
     const target = start || location.hash.slice(1);
@@ -734,6 +735,11 @@
           <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ Updates</b>). When one is
           out, <b>Update to …</b> appears in the status bar; click it to install, and Rupert restarts.{#if mac}
             Or choose <b>Rupert ▸ Check for Updates…</b>.{/if}
+        </li>
+        <li>
+          <b>Asking for help:</b> mention the version and edition shown at the bottom left of the window (for example
+          “Rupert 0.1.0 · GitHub”). <b>GitHub</b> means installed from GitHub (it updates itself); <b>App Store</b> means
+          the Mac App Store edition (the App Store updates it).
         </li>
         <li><a href={REPO}>Source code, releases and issues</a> on GitHub</li>
         <li>

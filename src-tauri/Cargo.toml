@@ -21,6 +21,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 name = "Rupert"
 path = "src/main.rs"
 
+[features]
+# The Mac App Store edition (sandboxed; tauri.appstore.conf.json): no
+# self-updater (the App Store updates it) and no `ant` command sign-in
+# (a sandboxed app can't run other programs).
+app-store = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
