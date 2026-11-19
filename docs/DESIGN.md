@@ -98,7 +98,7 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
   - Entries are gzip'd JSON named by a hash of the document's relative path (`.rupert/catalog/ab/ab12….json.gz`) and are trusted only if size and modification time (±2 s) still match.
   - Written only for cloud sources (OneDrive, iCloud, Google Drive, Dropbox), only for documents with text or details, and only when the content changed — so two machines that agree never re-upload.
   - After a full pass, entries for deleted documents and sync-conflict copies are removed.
-- **Finding (2026-11-18):** on the MacBook Pro, 18,463 of 19,421 OneDrive documents are online-only. The catalog only helps if *some* machine has the files downloaded, so on this machine most documents are searchable by name and details only. **Built:** an opt-in per source, "Download online-only files to index them" (in the source's ⋯ menu, cloud sources only):
+- **Finding (2026-11-18):** in a large OneDrive library (about 19,000 documents) on a test Mac, 95 % were online-only. The catalog only helps if *some* machine has the files downloaded, so on that machine most documents were searchable by name and details only. **Built:** an opt-in per source, "Download online-only files to index them" (in the source's ⋯ menu, cloud sources only):
   - After regular indexing is done, the indexer downloads online-only PDFs and text files whose text is unknown, 6 at a time (a download is ~2–5 s of mostly waiting, so parallel fetches help), skipping files over 100 MB.
   - Each file is indexed and recorded in the catalog, even when it has no text, so no machine downloads it again. Then its space is freed again: macOS `NSFileManager.evictUbiquitousItem` (tested on iCloud Drive and OneDrive; the modification time is unchanged, so the catalog entry stays valid), Windows by setting `FILE_ATTRIBUTE_UNPINNED`, which OneDrive honors. Files in sources without a catalog stay downloaded.
   - Regular jobs always come first; each file is tried at most once per session; the status bar shows the progress.
@@ -148,7 +148,7 @@ Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, 
   - Engines, all local: **Apple Vision** on macOS (built in: nothing to bundle, better than Tesseract on scans, detects the language per text block), and the **`tesseract` command** on Windows and Linux when installed. This replaces the earlier plan of bundling Tesseract, whose native libraries are awkward to ship on all three platforms.
   - Pages are rendered by PDFium at up to 300 dpi; word boxes are mapped back to PDF coordinates with PDFium's own pixel-to-page transform, so rotated and cropped pages work.
   - The layer uses a "glyphless" font as Tesseract does: Type 0, Identity-H (UTF-16 code units), an embedded 600-byte TrueType program whose glyphs are empty, fixed widths and a ToUnicode map. A Type 3 font was tried first; PDFium and Poppler read it but **PDFKit (Preview, Spotlight) ignores Type 3 text**, so it was replaced.
-  - **Pages shown turned** (`/Rotate`, e.g. a landscape scan turned in Preview), fixed 2026-11-18 after a scan failed the check (74 of 200 words): (1) pdfium-render's `PdfPageText::all()` only returns text inside the page's *displayed* size, which has width and height swapped on a turned page, so text beyond the shorter side was cut off, for every rotated PDF the indexer read; `text.rs` now asks for the text inside the media box. (2) The glyphless font's glyph had no outline, so text running up or down the page had zero width and PDFium dropped it; the glyph is now a single corner-to-corner line (a real bounding box, no area, so it paints nothing). A test covers 0/90/180/270°. Index version 5 (an in-place upgrade from 4) marks every local PDF as changed, so each is read once more and its catalog entry refreshed: on this Mac 3,503 local PDFs in about 80 s, 39 of them with turned pages. Online-only PDFs keep the text their catalog entry has until some machine reads them again.
+  - **Pages shown turned** (`/Rotate`, e.g. a landscape scan turned in Preview), fixed 2026-11-18 after a scan failed the check (74 of 200 words): (1) pdfium-render's `PdfPageText::all()` only returns text inside the page's *displayed* size, which has width and height swapped on a turned page, so text beyond the shorter side was cut off, for every rotated PDF the indexer read; `text.rs` now asks for the text inside the media box. (2) The glyphless font's glyph had no outline, so text running up or down the page had zero width and PDFium dropped it; the glyph is now a single corner-to-corner line (a real bounding box, no area, so it paints nothing). A test covers 0/90/180/270°. Index version 5 (an in-place upgrade from 4) marks every local PDF as changed, so each is read once more and its catalog entry refreshed: on a test Mac about 3,500 local PDFs took about 80 s; about 1 % had turned pages. Online-only PDFs keep the text their catalog entry has until some machine reads them again.
   - If the text layer still can't be written, the recognized text goes into the sidecar (searchable) and the suggestion uses it.
   - Written as an incremental update like metadata, checked before writing (the updated file must parse and PDFium must read back ≥ 90 % of the words). Tested on real ScanSnap scans: original bytes intact, pages render identically, text found by PDFKit, PDFium and Poppler, selection boxes line up with the printed words.
   - PDFium can be loaded once per process and is then tied to its thread, so it lives on one service thread (`text.rs`); the indexer and the intake share a handle.
@@ -167,22 +167,22 @@ Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, 
     - Capabilities are read (flatbed/feeder, duplex, color modes, resolutions, maximum size). Pages are fetched as JPEG and embedded unchanged (no re-encoding) in a PDF that lands in the inbox. It's written under a hidden name and then renamed, so the intake never sees half a file; OCR and suggestions follow as for any new scan.
     - Plain HTTP + XML, so it works the same on all three OSes.
     - Tested against a simulated scanner (`escl::mock`, also `examples/escl_mock.rs`, bound to 127.0.0.1 and not announced on the network): feeder with duplex, flatbed, and the "nearest offered resolution" choice. The scanned PDF opens in PDFKit and OCRs normally.
-    - **Not yet tested with real hardware:** no eSCL scanner was on the network on 2026-11-18 (only a Brother HL-2270DW printer).
-  - **HP OfficeJet 250:** should work over eSCL when it's on Wi-Fi (to verify). Over USB, macOS exposes it through ImageCaptureCore instead (not built; nor are Windows WIA and Linux SANE).
-  - **ScanSnap iX1600** (USB, scanned from the MacBook Pro): ScanSnap models don't support TWAIN or ISIS.
+    - **Not yet tested with real hardware** (no eSCL scanner was available on 2026-11-18).
+  - **USB scanners:** macOS exposes them through ImageCaptureCore, Windows through WIA, Linux through SANE (none built). Many multifunction printers also offer eSCL over Wi-Fi.
+  - **ScanSnap** (e.g. iX1600 over USB): ScanSnap models don't support TWAIN or ISIS.
     - Phase 1: a ScanSnap Home profile saves to Rupert's inbox folder, or uses ScanSnap Home's "send to application" option to hand the file to Rupert. ScanSnap Home stays installed only as the scanner driver.
     - Phase 2: the ScanSnap SDK (Windows/macOS, needs ScanSnap Home 3.3+, iX1600 listed as supported), through a small native macOS bridge. **Blocked:** the SDK is a licensed download from PFU (registration, terms on redistribution), so it can't be fetched or bundled here. Until then, phase 1 is the way: a ScanSnap Home profile that saves PDFs to Rupert's inbox folder.
 
 ## Migrating from ScanSnap Home
 
-Source: `~/Library/Application Support/PFU/ScanSnap Home/Managed/ScanSnapHome.sqlite` (Core Data SQLite; read from a copy). Snapshot taken 2026-11-17:
+Source: `~/Library/Application Support/PFU/ScanSnap Home/Managed/ScanSnapHome.sqlite` (Core Data SQLite; read from a copy). What a real library of about 10,000 items (2026-11-17) showed:
 
-- 10,761 items in 1,242 folders. About 5,200 are PDFs; the rest are mixed (HTML, JPEG, ZIP, EXE/DLL, Office…).
-- **Titles:** almost always the filename (only 134 differ, mostly cut off at 64 characters). Nothing to migrate.
-- **Document date:** set on 10,753 items; 723 PDFs have a document date more than a day away from the file date. **This must migrate.**
-- **Labels / memos / comments:** unused (0).
-- **Favorites:** 11. **Receipt fields** (vendor, category, amount): 8 items.
-- **Trash:** 17 items.
+- About half are PDFs; the rest are mixed (HTML, JPEG, ZIP, EXE/DLL, Office…).
+- **Titles:** almost always the filename (the few that differ are mostly cut off at 64 characters). Nothing to migrate.
+- **Document date:** set on nearly every item, and on about 7 % of PDFs more than a day away from the file date. **This must migrate.**
+- **Labels / memos / comments:** unused.
+- **Favorites and receipt fields** (vendor, category, amount): a handful each.
+- **Trash:** a few items.
 
 Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://` URL), and document dates are stored as local midnight (read back with SQLite's `localtime`). The OCR text lives in `ScanSnapHomeSearch_V2.db` (`TextTbl`, joined on `contentId = ZCONTENTID`).
 
@@ -192,7 +192,7 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 - Finds each file by folder path + name. Renamed files are matched by size + type within the same folder, moved files by size + type across Rupert's index. A match must be unique, and never a file that ScanSnap Home knows under another name.
 - Local PDFs get the details embedded; other formats use their sidecar. Online-only files are never read: details go into the sidecar as pending, text into the sidecar.
 - A review screen comes first (counts, renamed matches, files not found, folders outside Rupert's sources with an "Add as source" button). It is reached from File ▸ Import from ScanSnap Home… on macOS, or the sidebar.
-- **Run on the real library 2026-11-18:** 1,498 documents in Documents and OneDrive/Boating; 223 PDFs updated (all still readable with Poppler); none of the online-only files were downloaded. 3 items couldn't be found. Content-searchable documents went from 1,211 to 3,122.
+- **Run on a real library 2026-11-18:** about 1,500 documents in iCloud Drive and OneDrive; about 220 PDFs updated (all still readable with Poppler); none of the online-only files were downloaded; 3 items couldn't be found. Documents searchable by content more than doubled.
 
 ## Phone app (iPhone)
 
@@ -214,7 +214,7 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
   - Options in the Scan tab, remembered: Color, Grayscale or Black & white; 150/200/300/400 dpi (the page's long side taken as 11 inches; never upscaled). Black & white evens out shading (each pixel divided by a heavily blurred copy) before thresholding, and is stored as a 1-bit Flate image (≈20 KB per page versus ≈300 KB for gray or color JPEG).
   - Several pages per scan; tapping the thumbnail removes the last page. The PDF is copied with a coordinated write into the inbox folder chosen on the phone (Files, or OneDrive through Graph), which should be the Mac's inbox. OCR and filing suggestions happen there; the phone runs no AI.
 - **Tested in the iOS Simulator** on a made-up library (catalog written by the Mac engine): browsing, search with snippets, details from sidecars, Quick Look, scanning (the simulator has no camera, so it returns a generated page) into the inbox, and Apple Vision OCR of the result on the Mac.
-- **Tested on the iPhone 16 Pro (2026-11-18)** with the real library: iCloud Drive ~/Documents through Files, 5,936 documents, 2,577 searchable by text (the Mac: 5,936 / 2,582); OneDrive/Boating through Graph, 948 documents, 540 searchable (the Mac: 948 / 540, an exact match); search and opening a OneDrive PDF work. Fetching the big iCloud `.rupert/catalog` folder took longer than the 90 s limit, so the first pass went on without waiting for it; it still came out complete.
+- **Tested on an iPhone (2026-11-18)** with a real library: an iCloud Drive folder through Files, about 6,000 documents, with the same number searchable by text as on the Mac (within 0.2 %); a OneDrive folder through Graph, about 950 documents, an exact match with the Mac; search and opening a OneDrive PDF work. Fetching the big iCloud `.rupert/catalog` folder took longer than the 90 s limit, so the first pass went on without waiting for it; it still came out complete.
 - The Microsoft sign-in uses a private (ephemeral) browser session: with Safari's shared cookies it failed with AADSTS165000 ("missing session context cookie").
 - Debug builds accept `SIMCTL_CHILD_RUPERT_TEST_FOLDER`, `…_INBOX` and `…_JS` to set up and drive a simulator, because the Files picker can't be scripted.
 
@@ -222,8 +222,8 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 
 - iCloud Drive and OneDrive sync `.rupert/` dot-folders on all platforms.
 - Finder-tag writes on online-only files don't trigger downloads; whether OneDrive keeps Finder tags.
-- HP OfficeJet 250 supports eSCL/AirScan.
-- OneDrive via Graph: token refresh after the first hour (not yet observed), and folders bigger than Boating.
+- A real eSCL/AirScan scanner.
+- OneDrive via Graph: token refresh after the first hour (not yet observed), and folders bigger than about 1,000 documents.
 - On an iPhone: listing big iCloud Drive folders through the picked bookmarks, fetching `.rupert/` folders, and that no document is downloaded until it is opened.
 - ScanSnap Home can save to a folder (or send to an app) without also cataloging the file.
 
@@ -232,11 +232,11 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 0. ✅ Tauri skeleton, CI builds for all three OSes.
 1. ✅ Sources: add folders, browse trees, watch for changes, show online-only status. Folders are listed lazily (one level at a time), so there is no full index yet; that arrives with search in milestone 3.
 2. ✅ Metadata: read/write XMP + Info dict, sidecars, tags, `rupert:id` identity. Tested on 26 real PDFs (Poppler, PDFKit and Spotlight read the results; original bytes and rendering unchanged). Finder-tag sync deferred until after milestone 3.
-3. ✅ Search: text extraction (PDFium), FTS5 index, shared catalog, search bar, Favorites and Tags in the sidebar. Whole OneDrive (19,421 documents) walked in 32 s; searches take 4–30 ms.
+3. ✅ Search: text extraction (PDFium), FTS5 index, shared catalog, search bar, Favorites and Tags in the sidebar. A 19,000-document OneDrive walked in 32 s; searches take 4–30 ms.
 4. ✅ Intake: inbox, OCR (Apple Vision / Tesseract) with an invisible text layer, LM Studio suggestions, review screen, renaming and moving.
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
 6. Direct scanning: ✅ eSCL/AirScan (network scanners, all OSes). ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
-7. ✅ iPhone app: browse and search the same folders (read-only; OneDrive through Microsoft Graph), open documents in Quick Look, scan with the camera into the inbox. Tested on an iPhone 16 Pro with the real library; camera scanning on the phone not yet tried.
+7. ✅ iPhone app: browse and search the same folders (read-only; OneDrive through Microsoft Graph), open documents in Quick Look, scan with the camera into the inbox. Tested on an iPhone with a real library, including camera scans.
 
 ## Dependencies (licenses)
 

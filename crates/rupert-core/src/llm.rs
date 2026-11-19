@@ -185,7 +185,7 @@ fn user_prompt(req: &Request) -> String {
         "The current year is {year}. File name: {name}\n\n\
          Suggest how to file this document:\n\
          - title: short and specific, like a person would name the file: who it's from and what \
-           it is, e.g. \"Chugach Electric bill\" or \"Safeco auto policy cancellation\". At most 60 \
+           it is, e.g. \"City Electric bill\" or \"Acme auto policy cancellation\". At most 60 \
            characters. No date in the title. Same language as the document.\n\
          - document_date: the date the document was issued (statement, invoice, letter or \
            receipt date) as YYYY-MM-DD, or \"\" if the document shows none. Only use a date \
@@ -284,21 +284,24 @@ mod tests {
 
     #[test]
     fn parses_and_cleans_answers() {
-        let folders = vec!["Documents/Utilities/Chugach".to_string()];
+        let folders = vec!["Documents/Utilities/City Electric".to_string()];
         let tags = vec!["Utilities".to_string()];
         let req = Request {
             folders: &folders,
             tags: &tags,
             ..Default::default()
         };
-        let answer = "```json\n{\"title\": \" Chugach Electric bill \", \"document_date\": \"2026-10-03\", \
+        let answer = "```json\n{\"title\": \" City Electric bill \", \"document_date\": \"2026-10-03\", \
                       \"tags\": [\"utilities\", \"Electric\", \"\", \"Electric\"], \
-                      \"folder\": \"Documents/Utilities/Chugach\", \"reason\": \"Same utility\"}\n```";
+                      \"folder\": \"Documents/Utilities/City Electric\", \"reason\": \"Same utility\"}\n```";
         let s = parse(answer, &req, "m".into()).unwrap();
-        assert_eq!(s.title.as_deref(), Some("Chugach Electric bill"));
+        assert_eq!(s.title.as_deref(), Some("City Electric bill"));
         assert_eq!(s.document_date.as_deref(), Some("2026-10-03"));
         assert_eq!(s.tags, ["Utilities", "Electric"]);
-        assert_eq!(s.folder.as_deref(), Some("Documents/Utilities/Chugach"));
+        assert_eq!(
+            s.folder.as_deref(),
+            Some("Documents/Utilities/City Electric")
+        );
 
         let odd = "{\"title\": \"\", \"document_date\": \"10/03/2026\", \"tags\": [], \
                    \"folder\": \"Somewhere/Else\", \"reason\": \"\"}";

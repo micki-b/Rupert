@@ -135,13 +135,10 @@ mod tests {
     fn names_from_pattern() {
         let s = Settings::default();
         assert_eq!(
-            s.file_name(Some("2026-04-29"), "Safeco auto policy"),
-            "2026-04-29 Safeco auto policy"
+            s.file_name(Some("2026-04-29"), "Acme auto policy"),
+            "2026-04-29 Acme auto policy"
         );
-        assert_eq!(
-            s.file_name(None, "Safeco auto policy"),
-            "Safeco auto policy"
-        );
+        assert_eq!(s.file_name(None, "Acme auto policy"), "Acme auto policy");
         let dashed = Settings {
             name_pattern: "{title} - {date}".into(),
             ..Default::default()

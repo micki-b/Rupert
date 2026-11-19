@@ -35,7 +35,7 @@
 
   const inboxSource = $derived(sources.find((s) => s.id === settings?.inbox?.sourceId) ?? null);
   const example = $derived(
-    settings ? fileNameFor(settings.namePattern, "2026-04-29", "Safeco auto policy cancellation") + ".pdf" : "",
+    settings ? fileNameFor(settings.namePattern, "2026-04-29", "Acme auto policy cancellation") + ".pdf" : "",
   );
 
   onMount(async () => {

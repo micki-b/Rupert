@@ -193,8 +193,8 @@ mod tests {
     #[test]
     fn cleans_names() {
         assert_eq!(
-            clean_name("2026-04-29 Safeco: auto / policy?", "pdf"),
-            "2026-04-29 Safeco auto policy"
+            clean_name("2026-04-29 Acme: auto / policy?", "pdf"),
+            "2026-04-29 Acme auto policy"
         );
         assert_eq!(clean_name("Bill.PDF", "pdf"), "Bill");
         assert_eq!(clean_name("  ..Notes.  ", "txt"), "Notes");
@@ -213,26 +213,26 @@ mod tests {
         sidecar::write_meta(
             &scan,
             Some(DocMeta {
-                title: Some("Safeco".into()),
+                title: Some("Acme".into()),
                 ..Default::default()
             }),
             false,
             false,
         )
         .unwrap();
-        fs::write(dest.join("Safeco notice.jpg"), b"other").unwrap();
+        fs::write(dest.join("Acme notice.jpg"), b"other").unwrap();
 
-        let moved = move_document(&scan, &dest, "Safeco notice").unwrap();
-        assert_eq!(moved, dest.join("Safeco notice (2).jpg"));
+        let moved = move_document(&scan, &dest, "Acme notice").unwrap();
+        assert_eq!(moved, dest.join("Acme notice (2).jpg"));
         assert_eq!(fs::read(&moved).unwrap(), b"jpeg");
         assert_eq!(
-            fs::read(dest.join("Safeco notice.jpg")).unwrap(),
+            fs::read(dest.join("Acme notice.jpg")).unwrap(),
             b"other",
             "not overwritten"
         );
         assert!(!scan.exists());
         let side = sidecar::read(&moved).unwrap().unwrap();
-        assert_eq!(side.meta.unwrap().title.as_deref(), Some("Safeco"));
+        assert_eq!(side.meta.unwrap().title.as_deref(), Some("Acme"));
         assert!(
             !inbox.join(".rupert").exists(),
             "empty sidecar folder removed"
@@ -240,7 +240,7 @@ mod tests {
 
         // Renaming in place to its own name is a no-op.
         assert_eq!(
-            move_document(&moved, &dest, "Safeco notice (2)").unwrap(),
+            move_document(&moved, &dest, "Acme notice (2)").unwrap(),
             moved
         );
     }

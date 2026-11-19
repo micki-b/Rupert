@@ -30,7 +30,7 @@
 
   const sourceName = (id: string) => sources.find((s) => s.id === id)?.name ?? "";
   const n = (x: number) => x.toLocaleString();
-  /** The last two folders, e.g. "…/OneDrive-Personal/Boating"; full path on hover. */
+  /** The last two folders, e.g. "…/OneDrive/Taxes"; full path on hover. */
   const shortPath = (p: string) => {
     const parts = p.split(/[\\/]/).filter(Boolean);
     return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;

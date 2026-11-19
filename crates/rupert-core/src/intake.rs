@@ -650,7 +650,7 @@ mod tests {
     fn files_a_document() {
         let dir = tempfile::tempdir().unwrap();
         fs::create_dir_all(dir.path().join("Scans")).unwrap();
-        fs::create_dir_all(dir.path().join("Insurance/SafeCo")).unwrap();
+        fs::create_dir_all(dir.path().join("Insurance/Acme")).unwrap();
         fs::write(
             dir.path().join("Scans/scan 001.txt"),
             "auto policy cancelled",
@@ -662,19 +662,19 @@ mod tests {
             "s",
             "Scans/scan 001.txt",
             &Filing {
-                title: Some("Safeco auto policy cancellation".into()),
+                title: Some("Acme auto policy cancellation".into()),
                 document_date: Some("2026-04-29".into()),
                 tags: vec!["Insurance".into()],
                 dest_source_id: "s".into(),
-                dest_dir: "Insurance/SafeCo".into(),
-                file_name: "2026-04-29 Safeco auto policy cancellation".into(),
+                dest_dir: "Insurance/Acme".into(),
+                file_name: "2026-04-29 Acme auto policy cancellation".into(),
                 ..Default::default()
             },
         )
         .unwrap();
         assert_eq!(
             filed.rel_path,
-            "Insurance/SafeCo/2026-04-29 Safeco auto policy cancellation.txt"
+            "Insurance/Acme/2026-04-29 Acme auto policy cancellation.txt"
         );
         let path = dir.path().join(&filed.rel_path);
         let meta = meta::read_meta(&path).unwrap().meta;
