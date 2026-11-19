@@ -27,6 +27,7 @@
     { id: "ai-models", title: "Setting up AI models" },
     { id: "lm-studio", title: "LM Studio (on this computer)", sub: true },
     { id: "claude", title: "Claude", sub: true },
+    { id: "chatgpt-plan", title: "ChatGPT with your plan", sub: true },
     { id: "openai", title: "OpenAI-compatible services", sub: true },
     { id: "ai-trouble", title: "When the assistant doesn't work", sub: true },
     { id: "iphone", title: "The iPhone app" },
@@ -57,6 +58,13 @@
     return () => observer.disconnect();
   });
 
+  /** At the very end the last sections can't reach the top, so the
+   * highlight goes to the last one. */
+  function onscroll(e: Event) {
+    const el = e.currentTarget as HTMLElement;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 4) current = sections[sections.length - 1].id;
+  }
+
   /** Web links open in the browser, not in this window. */
   function onclick(e: MouseEvent) {
     const a = (e.target as HTMLElement).closest("a");
@@ -71,7 +79,7 @@
 <svelte:head><title>Rupert Help</title></svelte:head>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="help" {onclick}>
+<div class="help" {onclick} {onscroll}>
   <nav aria-label="Contents">
     <div class="brand">Rupert Help</div>
     {#each sections as s (s.id)}
@@ -375,7 +383,14 @@
       </p>
       <ul>
         <li><a href="#lm-studio"><b>LM Studio on this computer</b></a>: private and free, needs a capable computer.</li>
-        <li><a href="#claude"><b>Claude (Anthropic, cloud)</b></a>: with an API key or your Anthropic account.</li>
+        <li>
+          <a href="#claude"><b>Claude (Anthropic, cloud)</b></a>: with an API key or your Anthropic account (a Max,
+          Ultra or Team plan's monthly credits can pay for it).
+        </li>
+        <li>
+          <a href="#chatgpt-plan"><b>ChatGPT, with your plan (cloud)</b></a>: sign in with ChatGPT; no API key, uses your
+          ChatGPT plan.
+        </li>
         <li>
           <a href="#openai"><b>OpenAI-compatible service (cloud)</b></a>: OpenAI or another service that works the same way.
         </li>
@@ -430,9 +445,24 @@
       <h3 class="sub-h">Claude</h3>
       <p>
         Claude, by Anthropic, answers quickly and well. It's a paid cloud service, billed by use through an Anthropic
-        developer account (the Claude Console). That account is separate from a claude.ai subscription; some subscriptions
-        include monthly credits for it.
+        developer account (the Claude Console). That account is separate from a claude.ai subscription: Anthropic doesn't
+        let other apps use a subscription's own usage, so Rupert can't run on your Claude plan directly.
       </p>
+      <div class="note" id="claude-credits">
+        <b>Have a Max, Ultra or Team plan?</b> It includes monthly credits for the Claude Console ($100 a month with
+        Max, $200 with Ultra, up to $500 pooled with Team), which Rupert can spend:
+        <ol>
+          <li>
+            On <a href="https://claude.ai">claude.ai</a>, open <b>Settings ▸ Billing</b> (Team: <b>Organization settings ▸
+            Billing</b>) and, under <b>API credits</b>, link a Claude Console organization. You can create one there. Pick
+            carefully: the link can't be changed later without Anthropic's support.
+          </li>
+          <li>Sign in to Claude below with that organization (option 1 or 2).</li>
+        </ol>
+        The credits are used first, expire at the end of each month and don't roll over. When they're used up, requests
+        stop until next month (unless you've bought credits too); nothing is ever charged to your plan. Free and Pro plans
+        don't include them. New subscribers can claim them after 7 days.
+      </div>
       <p>In <b>Settings ▸ Assistant</b>, choose <b>Claude (Anthropic, cloud)</b>. Then choose how to sign in.</p>
 
       <h4>Option 1: API key</h4>
@@ -488,6 +518,33 @@
       </p>
     </section>
 
+    <!-- MARK: ChatGPT plan -->
+    <section id="chatgpt-plan">
+      <h3 class="sub-h">ChatGPT with your plan</h3>
+      <p>
+        If you pay for ChatGPT, Rupert can use your plan instead of an API key: you sign in with your ChatGPT account, and
+        Rupert's questions count against your plan's limits. OpenAI calls this “Sign in with ChatGPT”. It's a preview, so
+        OpenAI may still change how it works and which plans it covers.
+      </p>
+      <ol>
+        <li>In <b>Settings ▸ Assistant</b>, choose <b>ChatGPT, with your plan (cloud)</b>.</li>
+        <li>
+          Click <b>Sign in with ChatGPT…</b>. Your browser opens OpenAI's sign-in page; sign in and allow Rupert to use your
+          ChatGPT plan. The page then says you can close it, and Settings shows your account.
+        </li>
+        <li>Pick a <b>Model</b>: the list shows what your plan offers other apps. Click <b>Save</b>.</li>
+      </ol>
+      <p>
+        Rupert keeps the sign-in in {keychain}. It doesn't see your ChatGPT conversations, and nothing it sends is saved at
+        OpenAI for later. In ChatGPT's settings you can see Rupert among the apps using your plan, cap how much it may use
+        each week, or remove it. <b>Sign out</b> in Rupert forgets the sign-in on this computer.
+      </p>
+      <p class="tip">
+        When Rupert's share of your plan is used up, the assistant says so; it starts working again when your limit resets.
+        Nothing is charged beyond your plan.
+      </p>
+    </section>
+
     <!-- MARK: OpenAI-compatible -->
     <section id="openai">
       <h3 class="sub-h">OpenAI-compatible services</h3>
@@ -540,12 +597,27 @@
             <td>Click Sign in… in Settings ▸ Assistant.</td>
           </tr>
           <tr>
+            <td>“your ChatGPT plan's limit for Rupert is used up”</td>
+            <td>Wait for the limit to reset, or raise Rupert's limit in ChatGPT's settings.</td>
+          </tr>
+          <tr>
+            <td>“this ChatGPT account or plan can't be used by other apps”</td>
+            <td>Your plan or workspace doesn't allow it. Choose another model in Settings ▸ Assistant.</td>
+          </tr>
+          <tr>
+            <td>“The ChatGPT sign-in has expired”</td>
+            <td>Click Sign in again… in Settings ▸ Assistant.</td>
+          </tr>
+          <tr>
             <td>“not signed in or no access”</td>
             <td>The key was revoked or mistyped, or the sign-in ran out. Save a new key, or sign in again.</td>
           </tr>
           <tr>
             <td>A message about your credit balance</td>
-            <td>Add credits to the account on the service's website.</td>
+            <td>
+              Add credits to the account on the service's website. With a Claude Max, Ultra or Team plan, check that its
+              monthly credits are linked to the organization you signed in with (see <a href="#claude-credits">Claude</a>).
+            </td>
           </tr>
           <tr>
             <td>“rate limited, try again shortly”</td>
@@ -636,7 +708,11 @@
   .help {
     display: grid;
     grid-template-columns: 220px minmax(0, 1fr);
-    min-height: 100vh;
+    /* The app's stylesheet stops the page body from scrolling (the main
+       window lays out its own panes), so this is the help's scroller; the
+       contents column stays put with `position: sticky`. */
+    height: 100vh;
+    overflow-y: auto;
     background: var(--bg);
     color: var(--text);
     user-select: text;

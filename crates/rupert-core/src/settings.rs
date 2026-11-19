@@ -47,6 +47,9 @@ pub enum AssistantProvider {
     Anthropic,
     /// Any OpenAI-compatible service (OpenAI, OpenRouter, …).
     Openai,
+    /// OpenAI's models paid by the person's ChatGPT plan ("Sign in with
+    /// ChatGPT"; credentials in the keychain, see `chatgpt.rs`).
+    Chatgpt,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

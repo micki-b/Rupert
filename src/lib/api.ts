@@ -200,7 +200,17 @@ export interface Settings {
 }
 
 /** Which model the chat assistant uses. Keys live in the keychain. */
-export type AssistantProvider = "local" | "anthropic" | "openai";
+export type AssistantProvider = "local" | "anthropic" | "openai" | "chatgpt";
+
+/** The ChatGPT plan sign-in (Settings ▸ Assistant). */
+export interface ChatGptStatus {
+  signedIn: boolean;
+  email: string | null;
+  /** Models the plan offers other apps (slug for the API, name to show). */
+  models: { slug: string; displayName: string }[];
+  /** Why the models couldn't be listed, if they couldn't. */
+  problem: string | null;
+}
 
 export interface AssistantSettings {
   provider: AssistantProvider;
@@ -377,6 +387,9 @@ export const api = {
   assistantHasKey: (provider: AssistantProvider) => invoke<boolean>("assistant_has_key", { provider }),
   assistantCliStatus: () => invoke<{ installed: boolean; signedIn: boolean }>("assistant_cli_status"),
   assistantCliLogin: () => invoke<void>("assistant_cli_login"),
+  chatgptStatus: () => invoke<ChatGptStatus>("chatgpt_status"),
+  chatgptSignIn: () => invoke<ChatGptStatus>("chatgpt_sign_in"),
+  chatgptSignOut: () => invoke<void>("chatgpt_sign_out"),
   favoriteFolders: () => invoke<FavoriteFolder[]>("favorite_folders"),
   folderFavorite: (sourceId: string, relPath: string) => invoke<boolean>("folder_favorite", { sourceId, relPath }),
   setFolderFavorite: (sourceId: string, relPath: string, favorite: boolean) =>

@@ -2,6 +2,8 @@
 //! keychain, the `ant` command-line login for Claude, and the conversation
 //! itself (logic in `rupert_core::assistant`).
 
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
@@ -9,11 +11,13 @@ use std::sync::Mutex;
 use rupert_core::assistant::{
     self, AnthropicAuth, Backend, Cancel, Chat, LibraryTools, Step, UiAction,
 };
+use rupert_core::chatgpt::{self, Credentials, PlanModel, SignIn};
 use rupert_core::llm::LmStudio;
 use rupert_core::settings::{AssistantProvider, Settings};
 use rupert_core::{Error, Index};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::{AppState, CmdResult, err};
 
@@ -67,6 +71,8 @@ fn key_name(provider: AssistantProvider) -> Option<&'static str> {
         AssistantProvider::Local => None,
         AssistantProvider::Anthropic => Some("anthropic-api-key"),
         AssistantProvider::Openai => Some("openai-api-key"),
+        // Signs in instead (`chatgpt_sign_in`).
+        AssistantProvider::Chatgpt => None,
     }
 }
 
@@ -168,6 +174,193 @@ pub async fn assistant_cli_login() -> CmdResult<()> {
     .map_err(err)?
 }
 
+// MARK: - ChatGPT plan
+
+/// The ChatGPT sign-in, as one JSON entry in the keychain.
+const CHATGPT_ENTRY: &str = "chatgpt-plan";
+/// How long to wait for the browser to come back.
+const SIGN_IN_WAIT: std::time::Duration = std::time::Duration::from_secs(300);
+
+fn chatgpt_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYCHAIN_SERVICE, CHATGPT_ENTRY).map_err(err)
+}
+
+fn chatgpt_load() -> Option<Credentials> {
+    let json = chatgpt_entry().ok()?.get_password().ok()?;
+    serde_json::from_str(&json).ok()
+}
+
+fn chatgpt_save(c: &Credentials) -> Result<(), String> {
+    chatgpt_entry()?
+        .set_password(&serde_json::to_string(c).map_err(err)?)
+        .map_err(err)
+}
+
+/// The signed-in credentials with an access token good for a while yet
+/// (refreshed and saved if needed: refresh tokens rotate).
+fn chatgpt_credentials() -> Result<Credentials, String> {
+    let c = chatgpt_load().ok_or("Sign in with ChatGPT in Settings ▸ Assistant.")?;
+    if c.is_fresh() {
+        return Ok(c);
+    }
+    let fresh = chatgpt::refresh(&c).map_err(err)?;
+    chatgpt_save(&fresh)?;
+    Ok(fresh)
+}
+
+/// This computer's id for OpenAI, made once (not a secret: it only tells
+/// one computer from another).
+fn chatgpt_host_id(app: &AppHandle) -> Result<String, String> {
+    let path = app
+        .path()
+        .app_config_dir()
+        .map_err(err)?
+        .join("chatgpt-host-id");
+    if let Ok(id) = std::fs::read_to_string(&path)
+        && id.trim().starts_with("urn:")
+    {
+        return Ok(id.trim().to_string());
+    }
+    let id = chatgpt::new_host_id();
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(err)?;
+    }
+    std::fs::write(&path, &id).map_err(err)?;
+    Ok(id)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatGptStatus {
+    signed_in: bool,
+    email: Option<String>,
+    models: Vec<PlanModel>,
+    /// Why the models couldn't be listed, if they couldn't.
+    problem: Option<String>,
+}
+
+fn chatgpt_status_now() -> ChatGptStatus {
+    let Some(saved) = chatgpt_load() else {
+        return ChatGptStatus {
+            signed_in: false,
+            email: None,
+            models: Vec::new(),
+            problem: None,
+        };
+    };
+    let listed = chatgpt_credentials().and_then(|c| chatgpt::models(&c.access_token).map_err(err));
+    let (models, problem) = match listed {
+        Ok(m) => (m, None),
+        Err(e) => (Vec::new(), Some(e)),
+    };
+    ChatGptStatus {
+        signed_in: true,
+        email: saved.email,
+        models,
+        problem,
+    }
+}
+
+#[tauri::command]
+pub async fn chatgpt_status() -> ChatGptStatus {
+    tauri::async_runtime::spawn_blocking(chatgpt_status_now)
+        .await
+        .unwrap_or(ChatGptStatus {
+            signed_in: false,
+            email: None,
+            models: Vec::new(),
+            problem: None,
+        })
+}
+
+/// Signs in with ChatGPT in the browser: OpenAI's page comes back to a
+/// one-time listener on 127.0.0.1, then the code is redeemed and the
+/// tokens go into the keychain.
+#[tauri::command]
+pub async fn chatgpt_sign_in(app: AppHandle) -> CmdResult<ChatGptStatus> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let listener = TcpListener::bind(("127.0.0.1", chatgpt::PREFERRED_PORT))
+            .or_else(|_| TcpListener::bind(("127.0.0.1", 0)))
+            .map_err(err)?;
+        let port = listener.local_addr().map_err(err)?.port();
+        let earlier = chatgpt_load();
+        let sign_in = SignIn::new(port, &chatgpt_host_id(&app)?, earlier.as_ref());
+        let url = sign_in.authorize_url(earlier.as_ref().map(|c| c.id_token.as_str()));
+        app.opener().open_url(url, None::<&str>).map_err(err)?;
+
+        let (code, client_id) = wait_for_callback(&listener, &sign_in)?;
+        let credentials = sign_in.finish(&code, &client_id).map_err(err)?;
+        chatgpt_save(&credentials)?;
+        Ok(chatgpt_status_now())
+    })
+    .await
+    .map_err(err)?
+}
+
+/// Waits for the browser's return and answers it with a short page.
+fn wait_for_callback(listener: &TcpListener, sign_in: &SignIn) -> Result<(String, String), String> {
+    listener.set_nonblocking(true).map_err(err)?;
+    let deadline = std::time::Instant::now() + SIGN_IN_WAIT;
+    loop {
+        if std::time::Instant::now() > deadline {
+            return Err("Signing in took too long; please try again.".into());
+        }
+        let mut stream = match listener.accept() {
+            Ok((s, _)) => s,
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                continue;
+            }
+            Err(e) => return Err(err(e)),
+        };
+        let _ = stream.set_nonblocking(false);
+        let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(10)));
+        let mut request_line = String::new();
+        let _ = BufReader::new(&stream).read_line(&mut request_line);
+        // "GET /auth/callback?code=… HTTP/1.1"
+        let target = request_line
+            .split_whitespace()
+            .nth(1)
+            .unwrap_or_default()
+            .to_string();
+        if !target.starts_with(chatgpt::CALLBACK_PATH) {
+            let _ = stream.write_all(
+                b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            );
+            continue; // e.g. the browser asking for a favicon
+        }
+        let result = sign_in.callback(&target).map_err(err);
+        let (title, line) = match &result {
+            Ok(_) => (
+                "Signed in",
+                "Rupert can now use your ChatGPT plan. You can close this tab.",
+            ),
+            Err(e) => ("Not signed in", e.as_str()),
+        };
+        let page = format!(
+            "<!doctype html><meta charset=utf-8><title>Rupert</title>\
+             <body style=\"font:16px -apple-system,system-ui,sans-serif;margin:15vh auto;max-width:28em;text-align:center\">\
+             <h1 style=\"font-size:22px\">{title}</h1><p>{}</p></body>",
+            line.replace('<', "&lt;")
+        );
+        let _ = write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}",
+            page.len()
+        );
+        return result;
+    }
+}
+
+/// Forgets the ChatGPT sign-in on this computer.
+#[tauri::command]
+pub fn chatgpt_sign_out() -> CmdResult<()> {
+    match chatgpt_entry()?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(err(e)),
+    }
+}
+
 // MARK: - Backend
 
 fn is_cloud(settings: &Settings) -> bool {
@@ -210,6 +403,23 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
             };
             Ok(Backend::anthropic(model, auth))
         }
+        AssistantProvider::Chatgpt => {
+            let c = chatgpt_credentials()?;
+            let model = match model {
+                Some(m) => m.to_string(),
+                None => chatgpt::models(&c.access_token)
+                    .map_err(err)?
+                    .into_iter()
+                    .next()
+                    .map(|m| m.slug)
+                    .ok_or("Your ChatGPT plan lists no models for other apps.")?,
+            };
+            Ok(Backend::ChatGptPlan {
+                base_url: chatgpt::API_BASE.into(),
+                model,
+                access_token: c.access_token,
+            })
+        }
         AssistantProvider::Openai => Ok(Backend::OpenAiCompatible {
             base_url: a
                 .base_url
@@ -251,6 +461,10 @@ pub fn assistant_info(state: State<AppState>) -> AssistantInfo {
             "Claude · {}",
             model.unwrap_or_else(|| assistant::ANTHROPIC_DEFAULT_MODEL.into())
         ),
+        AssistantProvider::Chatgpt => match model {
+            Some(m) => format!("ChatGPT plan · {m}"),
+            None => "ChatGPT plan".into(),
+        },
         AssistantProvider::Openai => match model {
             Some(m) => format!("Cloud · {m}"),
             None => "Cloud (no model chosen)".into(),

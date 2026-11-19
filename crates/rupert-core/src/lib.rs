@@ -6,6 +6,7 @@
 pub mod assistant;
 pub mod camera;
 pub mod catalog;
+pub mod chatgpt;
 pub mod cloud;
 pub mod error;
 pub mod escl;
@@ -18,6 +19,7 @@ pub mod intake;
 pub mod listing;
 pub mod llm;
 pub mod meta;
+pub mod oauth;
 pub mod ocr;
 #[cfg(feature = "onedrive")]
 pub mod onedrive;

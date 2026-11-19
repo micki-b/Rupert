@@ -14,9 +14,10 @@ use std::io::Read;
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 
 use crate::error::{Error, Result};
+pub use crate::oauth::Pkce;
+use crate::oauth::{encode, percent_decode, query};
 use crate::remote::RemoteFile;
 
 const AUTHORITY: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0";
@@ -74,39 +75,6 @@ fn check(mut resp: ureq::http::Response<ureq::Body>) -> Result<ureq::http::Respo
 }
 
 // MARK: - Sign-in
-
-/// One sign-in attempt's secrets (RFC 7636).
-#[derive(Debug, Clone)]
-pub struct Pkce {
-    pub verifier: String,
-    pub challenge: String,
-    pub state: String,
-}
-
-impl Pkce {
-    pub fn new() -> Self {
-        let verifier = format!(
-            "{}{}",
-            uuid::Uuid::new_v4().simple(),
-            uuid::Uuid::new_v4().simple()
-        );
-        Self {
-            challenge: challenge_for(&verifier),
-            verifier,
-            state: uuid::Uuid::new_v4().simple().to_string(),
-        }
-    }
-}
-
-impl Default for Pkce {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-fn challenge_for(verifier: &str) -> String {
-    base64url(&Sha256::digest(verifier.as_bytes()))
-}
 
 /// The Microsoft sign-in page to show.
 pub fn authorize_url(client_id: &str, redirect_uri: &str, pkce: &Pkce) -> String {
@@ -532,65 +500,7 @@ impl Graph {
     }
 }
 
-// MARK: - Encoding helpers
-
-fn base64url(bytes: &[u8]) -> String {
-    const ABC: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
-    for chunk in bytes.chunks(3) {
-        let n = chunk
-            .iter()
-            .enumerate()
-            .fold(0u32, |n, (i, &b)| n | (b as u32) << (16 - 8 * i));
-        for i in 0..=chunk.len() {
-            out.push(ABC[(n >> (18 - 6 * i) & 63) as usize] as char);
-        }
-    }
-    out
-}
-
-/// Percent-encodes everything but RFC 3986 unreserved characters.
-fn encode(s: &str) -> String {
-    s.bytes()
-        .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
-                (b as char).to_string()
-            }
-            _ => format!("%{b:02X}"),
-        })
-        .collect()
-}
-
-fn query(params: &[(&str, &str)]) -> String {
-    params
-        .iter()
-        .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
-        .collect::<Vec<_>>()
-        .join("&")
-}
-
-fn percent_decode(s: &str) -> String {
-    let bytes = s.as_bytes();
-    let hex = |b: u8| (b as char).to_digit(16).map(|d| d as u8);
-    let mut out = Vec::with_capacity(bytes.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'%' if i + 2 < bytes.len() => match (hex(bytes[i + 1]), hex(bytes[i + 2])) {
-                (Some(h), Some(l)) => {
-                    out.push(h << 4 | l);
-                    i += 3;
-                    continue;
-                }
-                _ => out.push(b'%'),
-            },
-            b'+' => out.push(b' '),
-            b => out.push(b),
-        }
-        i += 1;
-    }
-    String::from_utf8_lossy(&out).into_owned()
-}
+// MARK: - Times
 
 /// "2025-03-14T18:22:05Z" / "…05.123Z" → milliseconds since the epoch.
 pub fn parse_time_ms(s: &str) -> Option<i64> {
@@ -622,25 +532,6 @@ pub fn parse_time_ms(s: &str) -> Option<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn pkce_matches_the_rfc_example() {
-        assert_eq!(
-            challenge_for("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"),
-            "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
-        );
-        let p = Pkce::new();
-        assert_eq!(p.verifier.len(), 64);
-        assert_ne!(p.verifier, Pkce::new().verifier);
-    }
-
-    #[test]
-    fn base64url_pads_nothing() {
-        assert_eq!(base64url(b"f"), "Zg");
-        assert_eq!(base64url(b"fo"), "Zm8");
-        assert_eq!(base64url(b"foo"), "Zm9v");
-        assert_eq!(base64url(&[0xfb, 0xff]), "-_8");
-    }
 
     #[test]
     fn sign_in_url_and_redirect() {

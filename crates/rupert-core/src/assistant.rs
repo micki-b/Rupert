@@ -64,6 +64,14 @@ pub enum Backend {
         model: String,
         auth: AnthropicAuth,
     },
+    /// OpenAI's Responses API (`/responses` below `base_url`), paid by the
+    /// person's ChatGPT plan through a "Sign in with ChatGPT" access token
+    /// (see `chatgpt.rs`). Streaming only, nothing stored at OpenAI.
+    ChatGptPlan {
+        base_url: String,
+        model: String,
+        access_token: String,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -88,7 +96,9 @@ impl Backend {
 
     pub fn model(&self) -> &str {
         match self {
-            Self::OpenAiCompatible { model, .. } | Self::Anthropic { model, .. } => model,
+            Self::OpenAiCompatible { model, .. }
+            | Self::Anthropic { model, .. }
+            | Self::ChatGptPlan { model, .. } => model,
         }
     }
 
@@ -96,6 +106,7 @@ impl Backend {
         match self {
             Self::OpenAiCompatible { .. } => Format::OpenAi,
             Self::Anthropic { .. } => Format::Anthropic,
+            Self::ChatGptPlan { .. } => Format::Responses,
         }
     }
 }
@@ -230,6 +241,7 @@ fn post_json(
 enum Format {
     OpenAi,
     Anthropic,
+    Responses,
 }
 
 /// A conversation. Its history is kept in the backend's own format, so
@@ -289,6 +301,11 @@ impl Chat {
                 model,
                 auth,
             } => self.send_anthropic(base_url, model, auth, tools, text, cancel, on_step),
+            Backend::ChatGptPlan {
+                base_url,
+                model,
+                access_token,
+            } => self.send_responses(base_url, model, access_token, tools, text, cancel, on_step),
         };
         if result.is_err() {
             self.history.truncate(mark);
@@ -560,6 +577,258 @@ impl Chat {
             model: model.to_string(),
         })
     }
+}
+
+// MARK: - Responses API (ChatGPT plan)
+
+impl Chat {
+    #[allow(clippy::too_many_arguments)]
+    fn send_responses(
+        &mut self,
+        base_url: &str,
+        model: &str,
+        access_token: &str,
+        tools: &dyn ToolBox,
+        text: &str,
+        cancel: &Cancel,
+        on_step: &mut dyn FnMut(&Step),
+    ) -> Result<Reply> {
+        let http = agent(Duration::from_secs(300));
+        let tool_defs: Vec<Value> = tools
+            .specs()
+            .into_iter()
+            .map(|t| {
+                json!({"type": "function", "name": t.name, "description": t.description,
+                       "parameters": t.schema})
+            })
+            .collect();
+        self.history.push(json!({"role": "user", "content": text}));
+        let mut steps = Vec::new();
+        let mut served_by = model.to_string();
+        for _ in 0..MAX_ROUNDS {
+            // Nothing is stored at OpenAI (`store: false`), so every request
+            // carries the conversation, reasoning included (encrypted).
+            let body = json!({
+                "model": model,
+                "instructions": self.system,
+                "input": self.history,
+                "tools": tool_defs,
+                "store": false,
+                "stream": true,
+                "include": ["reasoning.encrypted_content"],
+            });
+            let req = http
+                .post(&format!("{}/responses", base_url.trim_end_matches('/')))
+                .header("authorization", &format!("Bearer {access_token}"))
+                .header("content-type", "application/json")
+                .header("accept", "text/event-stream");
+            let response = post_stream(cancel, req, body)?;
+            if let Some(m) = response.get("model").and_then(Value::as_str) {
+                served_by = m.to_string();
+            }
+            let output = response
+                .get("output")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let mut calls = Vec::new();
+            let mut said = String::new();
+            for item in output {
+                match item.get("type").and_then(Value::as_str) {
+                    Some("function_call") => calls.push((
+                        item.get("call_id")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .to_string(),
+                        item.get("name")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .to_string(),
+                        item.get("arguments")
+                            .and_then(Value::as_str)
+                            .and_then(|a| serde_json::from_str(a).ok())
+                            .unwrap_or(json!({})),
+                    )),
+                    Some("message") => said.push_str(&output_text(&item)),
+                    _ => {}
+                }
+                self.history.push(echo_item(item));
+            }
+            if calls.is_empty() {
+                return Ok(Reply {
+                    text: said.trim().to_string(),
+                    steps,
+                    model: served_by,
+                });
+            }
+            for (id, out) in Self::run_tools(tools, &calls, &mut steps, cancel, on_step)? {
+                self.history
+                    .push(json!({"type": "function_call_output", "call_id": id, "output": out}));
+            }
+        }
+        Ok(Reply {
+            text: "I couldn't finish that in a reasonable number of steps.".into(),
+            steps,
+            model: served_by,
+        })
+    }
+}
+
+/// An output item as it goes back into the next request. With nothing
+/// stored at OpenAI, item ids would point at nothing, so they're left out
+/// (reasoning items keep theirs, with their encrypted content).
+fn echo_item(mut item: Value) -> Value {
+    if item.get("type").and_then(Value::as_str) != Some("reasoning")
+        && let Some(map) = item.as_object_mut()
+    {
+        map.remove("id");
+        map.remove("status");
+    }
+    item
+}
+
+/// The text of a `message` output item.
+fn output_text(item: &Value) -> String {
+    item.get("content")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|c| c.get("type").and_then(Value::as_str) == Some("output_text"))
+        .filter_map(|c| c.get("text").and_then(Value::as_str))
+        .collect()
+}
+
+/// Sends a streaming Responses request on its own thread (so `cancel` can
+/// stop it, closing the connection) and returns the finished response.
+fn post_stream(
+    cancel: &Cancel,
+    req: ureq::RequestBuilder<ureq::typestate::WithBody>,
+    body: Value,
+) -> Result<Value> {
+    cancel.check()?;
+    let (tx, rx) = mpsc::channel();
+    let stop = cancel.clone();
+    std::thread::spawn(move || {
+        let result = req.send_json(&body).map_err(ai_err).and_then(|mut resp| {
+            let status = resp.status().as_u16();
+            if !(200..300).contains(&status) {
+                let text = resp.body_mut().read_to_string().unwrap_or_default();
+                return Err(plan_error(status, &text));
+            }
+            let reader = std::io::BufReader::new(resp.into_body().into_reader());
+            read_events(reader, &stop)
+        });
+        let _ = tx.send(result);
+    });
+    loop {
+        match rx.recv_timeout(Duration::from_millis(100)) {
+            Ok(answer) => {
+                cancel.check()?;
+                return answer;
+            }
+            Err(RecvTimeoutError::Timeout) => cancel.check()?,
+            Err(RecvTimeoutError::Disconnected) => {
+                return Err(ai_err("the request ended unexpectedly"));
+            }
+        }
+    }
+}
+
+/// Reads a Responses event stream (server-sent events) up to
+/// `response.completed` and returns that response. Anything else that ends
+/// the stream is an error.
+fn read_events(reader: impl std::io::BufRead, cancel: &Cancel) -> Result<Value> {
+    let mut data = String::new();
+    for line in reader.lines() {
+        cancel.check()?;
+        let line = line.map_err(ai_err)?;
+        if let Some(rest) = line.strip_prefix("data:") {
+            data.push_str(rest.trim_start());
+            continue;
+        }
+        if !line.is_empty() || data.is_empty() {
+            continue; // `event:` lines, comments; or an empty block
+        }
+        let event: Value = serde_json::from_str(&std::mem::take(&mut data)).unwrap_or(Value::Null);
+        match event.get("type").and_then(Value::as_str) {
+            Some("response.completed") => {
+                return Ok(event.get("response").cloned().unwrap_or(Value::Null));
+            }
+            Some("response.failed") => {
+                let e = event
+                    .pointer("/response/error")
+                    .cloned()
+                    .unwrap_or(Value::Null);
+                return Err(plan_error_code(
+                    e.get("code").and_then(Value::as_str).unwrap_or(""),
+                    e.get("message")
+                        .and_then(Value::as_str)
+                        .unwrap_or("the request failed"),
+                ));
+            }
+            Some("response.incomplete") => {
+                let why = event
+                    .pointer("/response/incomplete_details/reason")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown");
+                return Err(ai_err(format!("the answer stopped early ({why})")));
+            }
+            Some("error") => {
+                return Err(plan_error_code(
+                    event.get("code").and_then(Value::as_str).unwrap_or(""),
+                    event
+                        .get("message")
+                        .and_then(Value::as_str)
+                        .unwrap_or("the request failed"),
+                ));
+            }
+            _ => {}
+        }
+    }
+    Err(ai_err(
+        "the answer was cut off (the connection ended early)",
+    ))
+}
+
+/// An HTTP error from the Responses API, in words.
+fn plan_error(status: u16, body: &str) -> Error {
+    let v: Value = serde_json::from_str(body).unwrap_or(Value::Null);
+    let code = v
+        .pointer("/error/code")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let message = v
+        .pointer("/error/message")
+        .and_then(Value::as_str)
+        .map(String::from)
+        .unwrap_or_else(|| body.chars().take(300).collect());
+    match (status, code) {
+        (_, c) if c.starts_with("subscription_sharing") => plan_error_code(c, &message),
+        (401, _) => {
+            ai_err("the ChatGPT sign-in has expired; sign in again in Settings ▸ Assistant")
+        }
+        (429, _) => ai_err(format!("rate limited, try again shortly ({message})")),
+        _ => ai_err(format!("HTTP {status}: {message}")),
+    }
+}
+
+fn plan_error_code(code: &str, message: &str) -> Error {
+    ai_err(match code {
+        "subscription_sharing_usage_limit_exceeded" => {
+            "your ChatGPT plan's limit for Rupert is used up for now; try again later, or raise \
+             Rupert's limit in ChatGPT's settings"
+                .to_string()
+        }
+        "subscription_sharing_usage_unavailable" => {
+            "ChatGPT plan usage isn't available right now; try again later".to_string()
+        }
+        "subscription_sharing_user_not_eligible" => {
+            "this ChatGPT account or plan can't be used by other apps (signing in again won't \
+             change that)"
+                .to_string()
+        }
+        _ => message.to_string(),
+    })
 }
 
 /// The assistant turn as it goes back into the history. After a refusal
@@ -1357,6 +1626,189 @@ mod tests {
         // The first tool ran; the second and the next round didn't.
         assert!(tools.take_actions().is_empty());
         assert_eq!(seen.lock().unwrap().len(), 1);
+        assert!(chat.is_empty());
+    }
+
+    // MARK: Responses API (ChatGPT plan)
+
+    /// A server-sent event as the Responses API streams it.
+    fn sse(event: &Value) -> String {
+        format!(
+            "event: {}\ndata: {event}\n\n",
+            event["type"].as_str().unwrap()
+        )
+    }
+
+    /// Like `mock`, but each answer is a raw event-stream body. With
+    /// `hang`, the last connection gets its headers and then nothing more.
+    fn mock_sse(bodies: Vec<String>, hang: bool) -> (String, Seen) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let log = seen.clone();
+        std::thread::spawn(move || {
+            let count = bodies.len() + usize::from(hang);
+            let mut bodies = bodies.into_iter();
+            for stream in listener.incoming().take(count) {
+                let mut stream = stream.unwrap();
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut head = String::new();
+                let mut len = 0;
+                loop {
+                    let mut line = String::new();
+                    reader.read_line(&mut line).unwrap();
+                    if line.to_ascii_lowercase().starts_with("content-length:") {
+                        len = line[15..].trim().parse().unwrap();
+                    }
+                    if line == "\r\n" {
+                        break;
+                    }
+                    head.push_str(&line);
+                }
+                let mut body = vec![0; len];
+                reader.read_exact(&mut body).unwrap();
+                log.lock()
+                    .unwrap()
+                    .push((head, serde_json::from_slice(&body).unwrap()));
+                match bodies.next() {
+                    Some(out) => {
+                        write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{out}", out.len()).unwrap();
+                    }
+                    None => {
+                        let _ = write!(
+                            stream,
+                            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n\r\n"
+                        );
+                        let _ = stream.flush();
+                        std::thread::sleep(Duration::from_secs(30));
+                    }
+                }
+            }
+        });
+        (url, seen)
+    }
+
+    #[test]
+    fn reads_event_streams() {
+        let done =
+            json!({"type": "response.completed", "response": {"model": "gpt-x", "output": []}});
+        let stream = format!(
+            ": comment\n\n{}{}{}",
+            sse(&json!({"type": "response.created", "response": {}})),
+            sse(&json!({"type": "response.output_text.delta", "delta": "Hi"})),
+            sse(&done)
+        );
+        let r = read_events(stream.as_bytes(), &Cancel::new()).unwrap();
+        assert_eq!(r["model"], "gpt-x");
+
+        let failed = sse(&json!({"type": "response.failed", "response": {"error":
+            {"code": "subscription_sharing_usage_limit_exceeded", "message": "limit"}}}));
+        let e = read_events(failed.as_bytes(), &Cancel::new()).unwrap_err();
+        assert!(e.to_string().contains("limit for Rupert"), "{e}");
+
+        let cut = sse(&json!({"type": "response.output_text.delta", "delta": "Hi"}));
+        assert!(read_events(cut.as_bytes(), &Cancel::new()).is_err());
+        assert!(
+            plan_error(401, "{}").to_string().contains("sign in again"),
+            "expired sign-in"
+        );
+    }
+
+    #[test]
+    fn chatgpt_plan_tool_loop() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        let first = sse(
+            &json!({"type": "response.completed", "response": {"model": "gpt-x",
+            "output": [
+                {"type": "reasoning", "id": "rs_1", "summary": [], "encrypted_content": "enc"},
+                {"type": "function_call", "id": "fc_1", "status": "completed", "call_id": "call_1",
+                 "name": "search_documents", "arguments": "{\"query\":\"impeller\"}"}
+            ]}}),
+        );
+        let second = format!(
+            "{}{}",
+            sse(&json!({"type": "response.output_text.delta", "delta": "In Boat"})),
+            sse(
+                &json!({"type": "response.completed", "response": {"model": "gpt-x", "output": [
+                    {"type": "message", "id": "msg_1", "role": "assistant", "content":
+                        [{"type": "output_text", "text": "In Boat/Engine."}]}
+                ]}})
+            )
+        );
+        let (url, seen) = mock_sse(vec![first, second], false);
+        let backend = Backend::ChatGptPlan {
+            base_url: format!("{url}/v1"),
+            model: "gpt-x".into(),
+            access_token: "tok".into(),
+        };
+        let mut chat = Chat::new("sys");
+        let mut progress = Vec::new();
+        let reply = chat
+            .send(
+                &backend,
+                &tools,
+                "where is the impeller invoice?",
+                &Cancel::new(),
+                &mut |s| progress.push(s.tool.clone()),
+            )
+            .unwrap();
+        assert_eq!(reply.text, "In Boat/Engine.");
+        assert_eq!(reply.model, "gpt-x");
+        assert_eq!(progress, ["search_documents"]);
+
+        let seen = seen.lock().unwrap();
+        let (head, first_req) = &seen[0];
+        assert!(head.starts_with("POST /v1/responses"));
+        assert!(
+            head.to_ascii_lowercase()
+                .contains("authorization: bearer tok")
+        );
+        assert_eq!(first_req["instructions"], "sys");
+        assert_eq!(first_req["store"], false);
+        assert_eq!(first_req["stream"], true);
+        assert_eq!(first_req["tools"][0]["type"], "function");
+        assert!(first_req.get("temperature").is_none());
+        // The second request carries everything: the question, the
+        // reasoning (with its id), the call (without its id) and the result.
+        let input = seen[1].1["input"].as_array().unwrap();
+        assert_eq!(
+            input[0],
+            json!({"role": "user", "content": "where is the impeller invoice?"})
+        );
+        assert_eq!(input[1]["id"], "rs_1");
+        assert_eq!(input[2]["call_id"], "call_1");
+        assert!(input[2].get("id").is_none() && input[2].get("status").is_none());
+        assert_eq!(input[3]["type"], "function_call_output");
+        assert!(
+            input[3]["output"]
+                .as_str()
+                .unwrap()
+                .contains("Impeller invoice")
+        );
+    }
+
+    #[test]
+    fn chatgpt_plan_stops_mid_stream() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        let (url, _seen) = mock_sse(vec![], true);
+        let backend = Backend::ChatGptPlan {
+            base_url: url,
+            model: "gpt-x".into(),
+            access_token: "tok".into(),
+        };
+        let cancel = Cancel::new();
+        let stopper = cancel.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(300));
+            stopper.cancel();
+        });
+        let started = std::time::Instant::now();
+        let mut chat = Chat::new("sys");
+        let result = chat.send(&backend, &tools, "hello?", &cancel, &mut |_| {});
+        assert!(matches!(result, Err(Error::Cancelled)));
+        assert!(started.elapsed() < Duration::from_secs(3));
         assert!(chat.is_empty());
     }
 }

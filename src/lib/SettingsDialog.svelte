@@ -3,7 +3,7 @@
   // and the chat assistant's model.
   import { onMount } from "svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
-  import { api, fileNameFor, type AssistantProvider, type Settings, type Source } from "$lib/api";
+  import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "$lib/api";
 
   let { sources, onclose, onsaved }: { sources: Source[]; onclose: () => void; onsaved: (s: Settings) => void } =
     $props();
@@ -19,6 +19,8 @@
   let newKey = $state("");
   let cli = $state<{ installed: boolean; signedIn: boolean } | null>(null);
   let cliBusy = $state(false);
+  let chatgpt = $state<ChatGptStatus | null>(null);
+  let chatgptBusy = $state(false);
   const provider = $derived(settings?.assistant.provider ?? "local");
 
   const inboxSource = $derived(sources.find((s) => s.id === settings?.inbox?.sourceId) ?? null);
@@ -34,6 +36,40 @@
       hasKey[p] = await api.assistantHasKey(p).catch(() => false);
     }
     cli = await api.assistantCliStatus().catch(() => null);
+    if (settings?.assistant.provider === "chatgpt") loadChatgpt();
+  });
+
+  async function loadChatgpt() {
+    chatgpt = await api.chatgptStatus().catch(() => null);
+    // Default to the first model the plan offers.
+    if (settings?.assistant.provider === "chatgpt" && !settings.assistant.model && chatgpt?.models.length)
+      settings.assistant.model = chatgpt.models[0].slug;
+  }
+
+  async function chatgptSignIn() {
+    chatgptBusy = true;
+    try {
+      error = null;
+      chatgpt = await api.chatgptSignIn();
+      // Pick the first model the plan offers, unless one is chosen.
+      if (settings && !settings.assistant.model && chatgpt.models.length)
+        settings.assistant.model = chatgpt.models[0].slug;
+    } catch (e) {
+      error = String(e);
+    } finally {
+      chatgptBusy = false;
+    }
+  }
+
+  async function chatgptSignOut() {
+    await api.chatgptSignOut().catch((e) => (error = String(e)));
+    chatgpt = { signedIn: false, email: null, models: [], problem: null };
+  }
+
+  // The status is fetched when ChatGPT is chosen (it asks OpenAI for models).
+  $effect(() => {
+    if (provider === "chatgpt" && (chatgpt === null || (!settings?.assistant.model && chatgpt.models.length)))
+      loadChatgpt();
   });
 
   async function saveKey() {
@@ -187,10 +223,15 @@
         <h2>Assistant</h2>
         <div class="grid">
           <label for="ai-provider">Model</label>
-          <select id="ai-provider" bind:value={settings.assistant.provider}>
+          <select
+            id="ai-provider"
+            bind:value={settings.assistant.provider}
+            onchange={() => (settings!.assistant.model = null)}
+          >
             <option value="local">LM Studio on this computer</option>
             <option value="anthropic">Claude (Anthropic, cloud)</option>
             <option value="openai">OpenAI-compatible service (cloud)</option>
+            <option value="chatgpt">ChatGPT, with your plan (cloud)</option>
           </select>
           {#if provider === "anthropic"}
             <label for="ai-model">Claude model</label>
@@ -211,6 +252,34 @@
                 Anthropic account, through the <code>ant</code> command
               </label>
             </div>
+          {:else if provider === "chatgpt"}
+            <span class="label">Account</span>
+            <div class="row">
+              {#if chatgpt?.signedIn}
+                <span class="muted">{chatgpt.email ?? "Signed in"}</span>
+                <button onclick={chatgptSignOut}>Sign out</button>
+              {:else}
+                <span class="muted">Not signed in</span>
+              {/if}
+              <button onclick={chatgptSignIn} disabled={chatgptBusy}>
+                {chatgptBusy ? "Waiting for the browser…" : chatgpt?.signedIn ? "Sign in again…" : "Sign in with ChatGPT…"}
+              </button>
+            </div>
+            {#if chatgpt?.signedIn}
+              <label for="ai-model3">Model</label>
+              <select
+                id="ai-model3"
+                value={settings.assistant.model ?? ""}
+                onchange={(e) => (settings!.assistant.model = e.currentTarget.value || null)}
+              >
+                {#each chatgpt.models as m (m.slug)}<option value={m.slug}>{m.displayName}</option>{/each}
+                {#if settings.assistant.model && !chatgpt.models.some((m) => m.slug === settings!.assistant.model)}
+                  <option value={settings.assistant.model}>{settings.assistant.model}</option>
+                {/if}
+                {#if !chatgpt.models.length && !settings.assistant.model}<option value="">The plan's first model</option>{/if}
+              </select>
+              {#if chatgpt.problem}<span></span><span class="small error">{chatgpt.problem}</span>{/if}
+            {/if}
           {:else if provider === "openai"}
             <label for="ai-url">Service</label>
             <input
@@ -258,6 +327,12 @@
         <p class="small">
           <button class="link" onclick={() => api.openHelp("ai-models")}>How to set up each kind of model</button>
         </p>
+        {#if provider === "chatgpt"}
+          <p class="muted small">
+            Answers count against your ChatGPT plan's limits, not an API key. You can cap Rupert's share in ChatGPT's
+            settings. This is a preview from OpenAI and may change.
+          </p>
+        {/if}
         {#if provider === "local"}
           <p class="muted small">Uses the LM Studio server and model above. Nothing leaves this computer.</p>
         {:else}
