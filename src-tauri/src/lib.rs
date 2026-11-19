@@ -1007,9 +1007,26 @@ fn install_menu(app: &tauri::App) -> tauri::Result<()> {
 /// Where PDFium lives: bundled resources in a built app, `src-tauri/pdfium`
 /// when running from the source tree.
 fn pdfium_dir(app: &tauri::App) -> Option<PathBuf> {
-    let bundled = app.path().resource_dir().ok().map(|d| d.join("pdfium"));
+    let resources = app.path().resource_dir().ok();
+    // macOS bundles it in Contents/Frameworks (signed with the app, as
+    // notarization and the App Store require; tauri.macos.conf.json).
+    let frameworks = resources
+        .as_ref()
+        .and_then(|r| r.parent())
+        .map(|c| c.join("Frameworks"));
+    let bundled = resources.map(|d| d.join("pdfium"));
     let dev = Some(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("pdfium"));
-    [bundled, dev].into_iter().flatten().find(|d| d.is_dir())
+    [frameworks, bundled, dev]
+        .into_iter()
+        .flatten()
+        .find(|d| has_pdfium(d))
+}
+
+/// Whether `dir` holds the PDFium library for this platform.
+fn has_pdfium(dir: &std::path::Path) -> bool {
+    ["libpdfium.dylib", "libpdfium.so", "pdfium.dll"]
+        .iter()
+        .any(|name| dir.join(name).is_file())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

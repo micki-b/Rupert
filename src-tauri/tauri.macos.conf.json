@@ -1,0 +1,15 @@
+{
+  "bundle": {
+    "resources": {
+      "pdfium/**/*": null,
+      "pdfium/LICENSE-pdfium.txt": "pdfium/LICENSE-pdfium.txt",
+      "pdfium/licenses/*": "pdfium/licenses/",
+      "pdfium/VERSION": "pdfium/VERSION"
+    },
+    "macOS": {
+      "frameworks": [
+        "pdfium/libpdfium.dylib"
+      ]
+    }
+  }
+}
