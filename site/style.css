@@ -15,7 +15,7 @@
   --accent-strong: #6b4320;
   --on-accent: #fff;
   --shadow: 0 30px 80px -30px rgba(60, 40, 20, 0.45), 0 8px 24px -12px rgba(60, 40, 20, 0.25);
-  --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --ui: "Inter", system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
   color-scheme: light dark;
 }
@@ -208,11 +208,12 @@ h2 {
 
 /* MARK: Home: hero */
 
-.home h1,
-.home h2 {
+h1,
+h2,
+.brand {
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .hero2 {
@@ -229,7 +230,7 @@ h2 {
 }
 
 .hero2 h1 em {
-  font-style: italic;
+  font-style: normal;
   color: var(--accent);
 }
 
