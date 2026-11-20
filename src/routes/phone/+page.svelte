@@ -29,6 +29,7 @@
     type ScanSettings,
     type TagCount,
   } from "$lib/phone/api";
+  import { LANGS, languageNames, loadLanguage, m, useLanguage, type Lang } from "$lib/i18n";
 
   type Tab = "library" | "search" | "scan" | "settings";
   type Crumb = { sourceId: string; relPath: string; name: string };
@@ -90,12 +91,12 @@
     saved: "happy",
     error: "puzzled",
   };
-  const scanSays: Record<typeof scanState, string> = {
-    ready: "Scan a document?",
-    saving: "Filing it…",
-    saved: "Got it!",
-    error: "That didn't work",
-  };
+  const scanSays = $derived<Record<typeof scanState, string>>({
+    ready: m.phone.scanReady,
+    saving: m.phone.scanSaving,
+    saved: m.phone.scanSaved,
+    error: m.phone.scanError,
+  });
 
   let confirmRemove = $state<string | null>(null);
   let od = $state<OneDriveStatus | null>(null);
@@ -111,6 +112,25 @@
     error: string | null;
   };
   let chooser = $state<Chooser | null>(null);
+  /** Settings ▸ Language: the choice (null: automatic) and the iPhone's language. */
+  let languageSetting = $state<string | null>(null);
+  let systemLang = $state<Lang>("en");
+
+  async function loadLanguageInfo() {
+    const info = await loadLanguage();
+    if (info) {
+      languageSetting = info.setting ?? null;
+      systemLang = info.system;
+    }
+  }
+
+  async function chooseLanguage(language: string | null) {
+    const info = await phone.setLanguage(language).catch(() => null);
+    if (!info) return;
+    languageSetting = info.setting ?? null;
+    systemLang = info.system;
+    useLanguage(info.current);
+  }
   let busy = $state(false);
   let settingsError = $state<string | null>(null);
 
@@ -124,7 +144,13 @@
   const busyIndexing = $derived(Boolean(progress?.active || remoteProgress?.active));
   const shownProgress = $derived(remoteProgress?.active ? remoteProgress : progress);
   const title = $derived(
-    tab === "library" ? (here?.name ?? "Library") : tab === "search" ? "Search" : tab === "scan" ? "Scan" : "Settings",
+    tab === "library"
+      ? (here?.name ?? m.phone.library)
+      : tab === "search"
+        ? m.phone.search
+        : tab === "scan"
+          ? m.phone.scan
+          : m.phone.settings,
   );
 
   // MARK: Loading
@@ -178,6 +204,7 @@
   onMount(() => {
     loadOverview();
     phone.appVersion().then((v) => (version = v));
+    loadLanguageInfo();
     phone.tags().then((t) => (tags = t));
     const unlisten = [
       onProgress((p) => {
@@ -203,7 +230,7 @@
     const place = overview?.inboxPlace;
     if (!place) return;
     tab = "library";
-    stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: "Inbox" }];
+    stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: m.phone.inbox }];
     entries = [];
     loadFolder();
   }
@@ -382,13 +409,13 @@
     );
   }
 
-  const providerName: Record<string, string> = {
+  const providerName = $derived<Record<string, string>>({
     icloud: "iCloud Drive",
     onedrive: "OneDrive",
     googledrive: "Google Drive",
     dropbox: "Dropbox",
-    local: "Folder",
-  };
+    local: m.phone.folder,
+  });
 
   function folderOf(relPath: string): string {
     const i = relPath.lastIndexOf("/");
@@ -403,7 +430,7 @@
 <div class="app">
   <header>
     {#if tab === "library" && here}
-      <button class="back" onclick={back} aria-label="Back"><Icon name="back" size={22} /></button>
+      <button class="back" onclick={back} aria-label={m.phone.back}><Icon name="back" size={22} /></button>
     {/if}
     <h1>{title}</h1>
     {#if tab === "library" && here}
@@ -413,7 +440,7 @@
         onclick={toggleFolderFav}
         disabled={favBusy}
         aria-pressed={hereFav}
-        aria-label={hereFav ? "Remove this folder from Favorites" : "Add this folder to Favorites"}
+        aria-label={hereFav ? m.phone.unfavoriteFolder : m.phone.favoriteFolder}
         >{hereFav ? "★" : "☆"}</button
       >
     {/if}
@@ -429,28 +456,25 @@
       {#if !here}
         {#if overview && library.length === 0 && !overview.inboxPlace}
           <div class="empty">
-            <p>
-              Pick the folders that hold your documents, the same ones Rupert uses on your computer: in iCloud Drive,
-              OneDrive, Google Drive or on this iPhone.
-            </p>
-            <button class="primary" disabled={busy} onclick={() => act(phone.addFolder)}>Add a folder…</button>
+            <p>{m.phone.pickFolders}</p>
+            <button class="primary" disabled={busy} onclick={() => act(phone.addFolder)}>{m.phone.addFolder}</button>
             {#if od?.signedIn}
-              <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "library")}>Add a OneDrive folder…</button>
+              <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "library")}>{m.phone.addOneDrive}</button>
             {:else if od?.configured}
-              <p class="note small">OneDrive folders need a sign-in first: Settings ▸ OneDrive.</p>
+              <p class="note small">{m.phone.oneDriveSignInFirst}</p>
             {/if}
             {#if gd?.signedIn}
               <button class="primary" disabled={busy} onclick={() => openChooser("googledrive", "library")}>
-                Add a Google Drive folder…
+                {m.phone.addGoogleDrive}
               </button>
             {:else if gd?.configured}
-              <p class="note small">Google Drive folders need a sign-in first: Settings ▸ Google Drive.</p>
+              <p class="note small">{m.phone.googleDriveSignInFirst}</p>
             {/if}
             {#if settingsError}<p class="error">{settingsError}</p>{/if}
           </div>
         {:else if overview}
           {#if favFolders.length || overview.stats.favorites}
-            <h2 class="group">Favorites</h2>
+            <h2 class="group">{m.phone.favorites}</h2>
             <ul class="list">
               {#each favFolders as f (f.sourceId + "/" + f.relPath)}
                 <li>
@@ -469,7 +493,7 @@
                   <button class="row" onclick={showFavoriteDocuments}>
                     <span class="icon fav"><Icon name="star" size={22} /></span>
                     <span class="main">
-                      <span class="name">Favorite documents</span>
+                      <span class="name">{m.phone.favoriteDocuments}</span>
                       <span class="sub">{overview.stats.favorites}</span>
                     </span>
                     <Icon name="chevron" />
@@ -477,7 +501,7 @@
                 </li>
               {/if}
             </ul>
-            <h2 class="group">Library</h2>
+            <h2 class="group">{m.phone.library}</h2>
           {/if}
           <ul class="list">
             {#if overview.inboxPlace}
@@ -485,8 +509,8 @@
                 <button class="row" onclick={openInbox}>
                   <span class="icon folder"><Icon name="inbox" size={22} /></span>
                   <span class="main">
-                    <span class="name">Inbox</span>
-                    <span class="sub">New scans · {overview.inbox}</span>
+                    <span class="name">{m.phone.inbox}</span>
+                    <span class="sub">{m.phone.newScans(overview.inbox ?? "")}</span>
                   </span>
                   <Icon name="chevron" />
                 </button>
@@ -498,7 +522,7 @@
                   <span class="icon folder"><Icon name="library" size={22} /></span>
                   <span class="main">
                     <span class="name">{s.name}</span>
-                    <span class="sub">{s.available ? providerName[s.provider] : "Not available on this iPhone"}</span>
+                    <span class="sub">{s.available ? providerName[s.provider] : m.phone.notAvailable}</span>
                   </span>
                   <Icon name="chevron" />
                 </button>
@@ -506,17 +530,15 @@
             {/each}
           </ul>
           {#if library.length === 0}
-            <p class="note">Add the folders that hold your documents in Settings ▸ Library folders.</p>
+            <p class="note">{m.phone.addInSettings}</p>
           {/if}
-          <p class="note">
-            {overview.stats.documents.toLocaleString()} documents, {overview.stats.withText.toLocaleString()} searchable.
-          </p>
+          <p class="note">{m.phone.stats(overview.stats.documents, overview.stats.withText)}</p>
         {/if}
       {:else}
         {#if listError}<p class="error pad">{listError}</p>{/if}
         {#if favError}<p class="error pad">{favError}</p>{/if}
         {#if !listing && entries.length === 0 && !listError}
-          <p class="note">This folder has no documents.</p>
+          <p class="note">{m.phone.noDocuments}</p>
         {/if}
         <ul class="list">
           {#each entries as e (e.relPath)}
@@ -534,7 +556,7 @@
                     </span>
                   {/if}
                 </span>
-                {#if e.cloud === "cloudOnly"}<span class="cloud" title="In the cloud"><Icon name="cloud" /></span>{/if}
+                {#if e.cloud === "cloudOnly"}<span class="cloud" title={m.phone.inTheCloud}><Icon name="cloud" /></span>{/if}
                 {#if e.isDir}<Icon name="chevron" />{/if}
               </button>
             </li>
@@ -546,7 +568,7 @@
         <Icon name="search" />
         <input
           type="search"
-          placeholder="Words, titles, tags"
+          placeholder={m.phone.searchPlaceholder}
           bind:value={query}
           oninput={runSearch}
           autocapitalize="off"
@@ -555,26 +577,26 @@
       </div>
       <div class="chips">
         <button class="chip" class:on={favoritesOnly} onclick={() => ((favoritesOnly = !favoritesOnly), runSearch())}>
-          <Icon name="star" size={12} /> Favorites
+          <Icon name="star" size={12} /> {m.phone.favoritesChip}
         </button>
         {#if tags.length}
           <button class="chip" class:on={selectedTags.length > 0} onclick={() => (tagSheet = true)}>
-            # Tags{selectedTags.length ? ` · ${selectedTags.length}` : ""}
+            {m.phone.tagsChip(selectedTags.length)}
           </button>
         {/if}
         {#each selectedTags as t, i (t)}
-          {#if i > 0}<span class="join">{tagMode === "all" ? "and" : "or"}</span>{/if}
+          {#if i > 0}<span class="join">{tagMode === "all" ? m.phone.and : m.phone.or}</span>{/if}
           <button
             class="chip on"
             onclick={() => ((selectedTags = selectedTags.filter((x) => x !== t)), runSearch())}
-            aria-label="Remove tag {t}"
+            aria-label={m.phone.removeTag(t)}
           >
             {t} ✕
           </button>
         {/each}
       </div>
       {#if hits.length === 0 && (query || selectedTags.length || favoritesOnly)}
-        <p class="note">Nothing found.</p>
+        <p class="note">{m.phone.nothingFound}</p>
       {/if}
       <ul class="list">
         {#each hits as h (h.sourceId + h.relPath)}
@@ -600,24 +622,21 @@
     {:else if tab === "scan"}
       <div class="scan">
         {#if overview && !overview.inbox}
-          <p>
-            Scans are saved as PDFs to your Rupert inbox folder. Rupert on your computer then reads them and suggests
-            names and folders. Choose the same inbox folder here, in iCloud Drive or OneDrive.
-          </p>
-          <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>Choose in Files…</button>
+          <p>{m.phone.scanIntro}</p>
+          <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>{m.phone.chooseInFiles}</button>
           {#if od?.signedIn}
-            <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>Choose in OneDrive…</button>
+            <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>{m.phone.chooseInOneDrive}</button>
           {/if}
           {#if gd?.signedIn}
             <button class="primary" disabled={busy} onclick={() => openChooser("googledrive", "inbox")}>
-              Choose in Google Drive…
+              {m.phone.chooseInGoogleDrive}
             </button>
           {/if}
           {#if settingsError}<p class="error">{settingsError}</p>{/if}
         {:else if overview}
           <div class="scan-options">
-            <div class="segmented" role="radiogroup" aria-label="Color">
-              {#each [["color", "Color"], ["gray", "Grayscale"], ["bw", "Black & white"]] as [value, label] (value)}
+            <div class="segmented" role="radiogroup" aria-label={m.phone.color}>
+              {#each [["color", m.phone.color], ["gray", m.phone.grayscale], ["bw", m.phone.blackWhite]] as [value, label] (value)}
                 <button
                   role="radio"
                   aria-checked={scanSettings.mode === value}
@@ -628,7 +647,7 @@
                 </button>
               {/each}
             </div>
-            <div class="segmented" role="radiogroup" aria-label="Resolution">
+            <div class="segmented" role="radiogroup" aria-label={m.phone.resolution}>
               {#each [150, 200, 300, 400] as dpi (dpi)}
                 <button
                   role="radio"
@@ -636,21 +655,21 @@
                   class:on={scanSettings.dpi === dpi}
                   onclick={() => ((scanSettings.dpi = dpi), saveScanSettings())}
                 >
-                  {dpi} dpi
+                  {m.phone.dpi(dpi)}
                 </button>
               {/each}
             </div>
             <p class="note small">
               {scanSettings.mode === "bw"
-                ? "Black & white: sharp, small files; shadows are evened out. Best for text."
+                ? m.phone.bwNote
                 : scanSettings.mode === "gray"
-                  ? "Grayscale suits most paperwork."
-                  : "Color for receipts with stamps, photos and forms in color."}
-              300 dpi gives the best text recognition.
+                  ? m.phone.grayNote
+                  : m.phone.colorNote}
+              {m.phone.dpiNote}
             </p>
           </div>
           <!-- Rupert is the scan button, and says what's happening. -->
-          <button class="owl-scan" onclick={scan} disabled={scanning} aria-label={scanning ? "Saving the scan" : "Scan a document"}>
+          <button class="owl-scan" onclick={scan} disabled={scanning} aria-label={scanning ? m.phone.savingScan : m.phone.scanDocument}>
             <span class="bubble" aria-hidden="true">
               {#if scanState === "ready"}<Icon name="camera" size={16} />{/if}
               {scanSays[scanState]}
@@ -658,12 +677,12 @@
             <RupertOwl mood={scanMood[scanState]} size={150} />
           </button>
           <p class="note">
-            Pages are saved to <strong>{overview.inboxService ? `${serviceName[overview.inboxService]} ▸ ` : ""}{overview.inbox}</strong> as one PDF.
+            {m.phone.savedTo[0]} <strong>{overview.inboxService ? `${serviceName[overview.inboxService]} ▸ ` : ""}{overview.inbox}</strong> {m.phone.savedTo[1]}
           </p>
           {#if lastScan}
             <p class="ok">
-              Saved “{lastScan}”.
-              {#if overview?.inboxPlace}<button class="plain" onclick={openInbox}>Open the inbox</button>{/if}
+              {m.phone.savedScan(lastScan)}
+              {#if overview?.inboxPlace}<button class="plain" onclick={openInbox}>{m.phone.openInbox}</button>{/if}
             </p>
           {/if}
           {#if scanError}<p class="error">{scanError}</p>{/if}
@@ -671,60 +690,60 @@
       </div>
     {:else if overview}
       <section>
-        <h2>Library folders</h2>
+        <h2>{m.phone.libraryFolders}</h2>
         <ul class="list boxed">
           {#each library as s (s.id)}
             <li class="setting">
               <span class="main">
                 <span class="name">{s.name}</span>
-                <span class="sub">{providerName[s.provider]}{s.available ? "" : " · not available"}</span>
+                <span class="sub">{providerName[s.provider]}{s.available ? "" : m.phone.notAvailableShort}</span>
               </span>
               {#if confirmRemove === s.id}
                 <button class="danger" onclick={() => act(() => phone.removeFolder(s.id)).then(() => (confirmRemove = null))}>
-                  Remove
+                  {m.phone.remove}
                 </button>
-                <button class="plain" onclick={() => (confirmRemove = null)}>Keep</button>
+                <button class="plain" onclick={() => (confirmRemove = null)}>{m.phone.keep}</button>
               {:else}
-                <button class="plain" onclick={() => (confirmRemove = s.id)}>Remove…</button>
+                <button class="plain" onclick={() => (confirmRemove = s.id)}>{m.phone.removeEllipsis}</button>
               {/if}
             </li>
           {/each}
           <li class="setting">
             <button class="plain add" disabled={busy} onclick={() => act(phone.addFolder)}>
-              <Icon name="plus" /> Add a folder…
+              <Icon name="plus" /> {m.phone.addFolder}
             </button>
           </li>
           {#if od?.signedIn}
             <li class="setting">
               <button class="plain add" disabled={busy} onclick={() => openChooser("onedrive", "library")}>
-                <Icon name="plus" /> Add a OneDrive folder…
+                <Icon name="plus" /> {m.phone.addOneDrive}
               </button>
             </li>
           {/if}
           {#if gd?.signedIn}
             <li class="setting">
               <button class="plain add" disabled={busy} onclick={() => openChooser("googledrive", "library")}>
-                <Icon name="plus" /> Add a Google Drive folder…
+                <Icon name="plus" /> {m.phone.addGoogleDrive}
               </button>
             </li>
           {/if}
         </ul>
-        <p class="note small">Removing a folder only removes it from Rupert on this iPhone. Nothing is deleted.</p>
+        <p class="note small">{m.phone.removingNote}</p>
       </section>
       <section>
-        <h2>Inbox for scans</h2>
+        <h2>{m.phone.inboxForScans}</h2>
         <ul class="list boxed">
           <li class="setting">
             <span class="main">
-              <span class="name">{overview.inbox ?? "Not chosen"}</span>
-              {#if overview.inbox}<span class="sub">{overview.inboxService ? serviceName[overview.inboxService] : "Files"}</span>{/if}
+              <span class="name">{overview.inbox ?? m.phone.notChosen}</span>
+              {#if overview.inbox}<span class="sub">{overview.inboxService ? serviceName[overview.inboxService] : m.phone.files}</span>{/if}
             </span>
-            <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>In Files…</button>
+            <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>{m.phone.inFiles}</button>
             {#if od?.signedIn}
-              <button class="plain" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>In OneDrive…</button>
+              <button class="plain" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>{m.phone.inOneDrive}</button>
             {/if}
             {#if gd?.signedIn}
-              <button class="plain" disabled={busy} onclick={() => openChooser("googledrive", "inbox")}>In Google Drive…</button>
+              <button class="plain" disabled={busy} onclick={() => openChooser("googledrive", "inbox")}>{m.phone.inGoogleDrive}</button>
             {/if}
           </li>
         </ul>
@@ -734,78 +753,85 @@
         <ul class="list boxed">
           <li class="setting">
             {#if !od?.configured}
-              <span class="main"><span class="sub wrap">This copy of Rupert isn't registered with Microsoft yet.</span></span>
+              <span class="main"><span class="sub wrap">{m.phone.notRegistered}</span></span>
             {:else if od.signedIn}
               <span class="main">
-                <span class="name">{od.account ?? "Signed in"}</span>
+                <span class="name">{od.account ?? m.phone.signedIn}</span>
                 {#if remoteProgress?.active}
-                  <span class="sub">Reading {remoteProgress.current ?? "OneDrive"}…</span>
+                  <span class="sub">{m.phone.readingFrom(remoteProgress.current ?? "OneDrive")}</span>
                 {:else if od.error}
                   <span class="sub error">{od.error}</span>
                 {/if}
               </span>
-              <button class="plain" disabled={busy} onclick={() => act(phone.onedriveSignOut)}>Sign out</button>
+              <button class="plain" disabled={busy} onclick={() => act(phone.onedriveSignOut)}>{m.phone.signOut}</button>
             {:else}
-              <span class="main"><span class="name">Not signed in</span></span>
-              <button class="plain" disabled={busy} onclick={() => act(phone.onedriveSignIn)}>Sign in…</button>
+              <span class="main"><span class="name">{m.phone.notSignedIn}</span></span>
+              <button class="plain" disabled={busy} onclick={() => act(phone.onedriveSignIn)}>{m.phone.signIn}</button>
             {/if}
           </li>
         </ul>
-        <p class="note small left">
-          OneDrive folders can't be opened through Files, so Rupert reads them directly from OneDrive. It reads only
-          its own small catalog files, downloads a document when you open it, and adds scans to the inbox.
-        </p>
+        <p class="note small left">{m.phone.oneDriveNote}</p>
       </section>
       {#if gd?.configured}
         <section>
-          <h2>Google Drive <span class="preview">preview</span></h2>
+          <h2>Google Drive <span class="preview">{m.phone.preview}</span></h2>
           <ul class="list boxed">
             <li class="setting">
               {#if gd.signedIn}
                 <span class="main">
-                  <span class="name">{gd.account ?? "Signed in"}</span>
+                  <span class="name">{gd.account ?? m.phone.signedIn}</span>
                   {#if remoteProgress?.active}
-                    <span class="sub">Reading {remoteProgress.current ?? "Google Drive"}…</span>
+                    <span class="sub">{m.phone.readingFrom(remoteProgress.current ?? "Google Drive")}</span>
                   {:else if gd.error}
                     <span class="sub error">{gd.error}</span>
                   {/if}
                 </span>
-                <button class="plain" disabled={busy} onclick={() => act(phone.gdriveSignOut)}>Sign out</button>
+                <button class="plain" disabled={busy} onclick={() => act(phone.gdriveSignOut)}>{m.phone.signOut}</button>
               {:else}
-                <span class="main"><span class="name">Not signed in</span></span>
-                <button class="plain" disabled={busy} onclick={() => act(phone.gdriveSignIn)}>Sign in…</button>
+                <span class="main"><span class="name">{m.phone.notSignedIn}</span></span>
+                <button class="plain" disabled={busy} onclick={() => act(phone.gdriveSignIn)}>{m.phone.signIn}</button>
               {/if}
             </li>
           </ul>
           <p class="note small left">
-            Google Drive folders can't be opened through Files either, so Rupert reads them directly from Google Drive,
-            the same way. Google hasn't reviewed Rupert, so its sign-in page warns that the app isn't verified: tap
-            <b>Advanced</b>, then <b>Go to Rupert</b>, to continue.
+            {m.phone.googleNote[0]} <b>{m.phone.googleNote[1]}</b>{m.phone.googleNote[2]} <b>{m.phone.googleNote[3]}</b>{m.phone.googleNote[4]}
           </p>
         </section>
       {/if}
       <section>
-        <h2>Index</h2>
-        <p class="note small left">
-          {overview.stats.documents.toLocaleString()} documents; {overview.stats.withText.toLocaleString()} can be
-          searched by their text. Text comes from Rupert on your computer, through the hidden catalog in each folder.
-          Documents stay in the cloud until you open them.
-        </p>
-        <button class="plain add" onclick={() => phone.refresh()} disabled={busyIndexing}>Check folders again</button>
+        <h2>{m.phone.index}</h2>
+        <p class="note small left">{m.phone.indexNote(overview.stats.documents, overview.stats.withText)}</p>
+        <button class="plain add" onclick={() => phone.refresh()} disabled={busyIndexing}>{m.phone.checkAgain}</button>
       </section>
       <section>
-        <h2>About</h2>
+        <h2>{m.phone.language}</h2>
         <ul class="list boxed">
           <li class="setting">
-            <span class="main"><span class="name">Version</span></span>
+            <select
+              class="language"
+              aria-label={m.phone.language}
+              value={languageSetting ?? ""}
+              onchange={(e) => chooseLanguage(e.currentTarget.value || null)}
+            >
+              <option value="">{m.settings.automatic(languageNames[systemLang])}</option>
+              {#each LANGS as lang (lang)}<option value={lang}>{languageNames[lang]}</option>{/each}
+            </select>
+          </li>
+        </ul>
+        <p class="note small left">{m.phone.languageNote}</p>
+      </section>
+      <section>
+        <h2>{m.phone.about}</h2>
+        <ul class="list boxed">
+          <li class="setting">
+            <span class="main"><span class="name">{m.phone.version}</span></span>
             <span class="value selectable">
-              {#if version}{version.version}{#if version.build}&nbsp;({version.build}){/if}{#if version.development}&nbsp;· development build{/if}{/if}
+              {#if version}{version.version}{#if version.build}&nbsp;({version.build}){/if}{#if version.development}&nbsp;· {m.phone.developmentBuild}{/if}{/if}
             </span>
           </li>
         </ul>
         <p class="note small left">
-          Rupert is free and open source (MIT): <span class="nowrap">github.com/micki-b/Rupert</span>. When reporting a problem, please mention the
-          version above.
+          {m.phone.aboutNote[0]} <span class="nowrap">github.com/micki-b/Rupert</span>{m.phone.aboutNote[1]}
         </p>
       </section>
       {#if settingsError}<p class="error pad">{settingsError}</p>{/if}
@@ -813,7 +839,7 @@
   </main>
 
   <nav>
-    {#each [["library", "Library"], ["search", "Search"], ["scan", "Scan"], ["settings", "Settings"]] as [t, label] (t)}
+    {#each [["library", m.phone.library], ["search", m.phone.search], ["scan", m.phone.scan], ["settings", m.phone.settings]] as [t, label] (t)}
       <button class:on={tab === t} onclick={() => switchTab(t as Tab)} data-tab={t}>
         <Icon name={t === "scan" ? "camera" : (t as "library" | "search" | "settings")} size={24} />
         <span>{label}</span>
@@ -823,10 +849,10 @@
 
   {#if tagSheet}
     <div class="backdrop" role="presentation" onclick={() => ((tagSheet = false), runSearch())}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label="Tags">
+    <div class="sheet" role="dialog" aria-modal="true" aria-label={m.phone.tags}>
       <div class="grabber"></div>
       <div class="chooser-head">
-        <h2 class="doc-title">Tags</h2>
+        <h2 class="doc-title">{m.phone.tags}</h2>
       </div>
       <div class="tag-sheet-body">
         <TagFilter
@@ -841,7 +867,7 @@
       <div class="sheet-actions">
         <span></span>
         <button class="primary" onclick={() => ((tagSheet = false), runSearch())}>
-          {selectedTags.length ? "Show documents" : "Done"}
+          {selectedTags.length ? m.phone.showDocuments : m.common.done}
         </button>
       </div>
     </div>
@@ -849,16 +875,16 @@
 
   {#if chooser}
     <div class="backdrop" role="presentation" onclick={() => (chooser = null)}></div>
-    <div class="sheet chooser" role="dialog" aria-modal="true" aria-label="Choose a {serviceName[chooser.service]} folder">
+    <div class="sheet chooser" role="dialog" aria-modal="true" aria-label={m.phone.chooseServiceFolder(serviceName[chooser.service])}>
       <div class="grabber"></div>
       <div class="chooser-head">
         {#if chooser.path.length}
-          <button class="back" onclick={chooserBack} aria-label="Back"><Icon name="back" size={22} /></button>
+          <button class="back" onclick={chooserBack} aria-label={m.phone.back}><Icon name="back" size={22} /></button>
         {/if}
         <h2 class="doc-title">{chooser.path.at(-1)?.name ?? serviceName[chooser.service]}</h2>
       </div>
       <p class="sub">
-        {chooser.purpose === "library" ? "Choose a folder for the library." : "Choose the inbox folder for scans."}
+        {chooser.purpose === "library" ? m.phone.chooseForLibrary : m.phone.chooseForInbox}
       </p>
       {#if chooser.error}<p class="error">{chooser.error}</p>{/if}
       <ul class="list chooser-list">
@@ -872,13 +898,13 @@
           </li>
         {/each}
         {#if !chooser.loading && chooser.folders.length === 0 && !chooser.error}
-          <li class="note">No folders in here.</li>
+          <li class="note">{m.phone.noFolders}</li>
         {/if}
       </ul>
       <div class="sheet-actions">
-        <button class="plain" onclick={() => (chooser = null)}>Cancel</button>
+        <button class="plain" onclick={() => (chooser = null)}>{m.common.cancel}</button>
         <button class="primary" onclick={chooserUse} disabled={!chooser.path.length}>
-          {chooser.path.length ? `Use “${chooser.path.at(-1)?.name}”` : "Open a folder"}
+          {chooser.path.length ? m.phone.use(chooser.path.at(-1)?.name ?? "") : m.phone.openAFolder}
         </button>
       </div>
     </div>
@@ -886,27 +912,27 @@
 
   {#if sheet}
     <div class="backdrop" role="presentation" onclick={() => (sheet = null)}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label="Document">
+    <div class="sheet" role="dialog" aria-modal="true" aria-label={m.phone.document}>
       <div class="grabber"></div>
       <h2 class="doc-title">{sheet.info?.title || sheet.name}</h2>
       {#if sheet.info?.title}<p class="sub">{sheet.name}</p>{/if}
       <dl>
-        {#if sheet.info?.documentDate}<dt>Date</dt><dd>{formatDocDate(sheet.info.documentDate)}</dd>{/if}
+        {#if sheet.info?.documentDate}<dt>{m.phone.date}</dt><dd>{formatDocDate(sheet.info.documentDate)}</dd>{/if}
         {#if sheet.info?.tags.length}
-          <dt>Tags</dt>
+          <dt>{m.phone.tags}</dt>
           <dd class="tags">{#each sheet.info.tags as t (t)}<span class="chip on">{t}</span>{/each}</dd>
         {/if}
-        {#if sheet.info?.notes}<dt>Notes</dt><dd class="notes">{sheet.info.notes}</dd>{/if}
-        <dt>Folder</dt>
+        {#if sheet.info?.notes}<dt>{m.phone.notes}</dt><dd class="notes">{sheet.info.notes}</dd>{/if}
+        <dt>{m.phone.folder}</dt>
         <dd>{[sourceName(sheet.sourceId), folderOf(sheet.relPath)].filter(Boolean).join(" / ")}</dd>
-        <dt>Size</dt>
-        <dd>{formatSize(sheet.size)}{sheet.cloudOnly ? " · in the cloud" : ""}</dd>
+        <dt>{m.phone.size}</dt>
+        <dd>{formatSize(sheet.size)}{sheet.cloudOnly ? m.phone.inTheCloudSuffix : ""}</dd>
       </dl>
       {#if openError}<p class="error">{openError}</p>{/if}
       <div class="sheet-actions">
-        <button class="plain" onclick={() => (sheet = null)}>Close</button>
+        <button class="plain" onclick={() => (sheet = null)}>{m.common.close}</button>
         <button class="primary" onclick={openDoc} disabled={opening}>
-          {opening ? (sheet.cloudOnly ? "Downloading…" : "Opening…") : "Open"}
+          {opening ? (sheet.cloudOnly ? m.phone.downloading : m.phone.opening) : m.phone.open}
         </button>
       </div>
     </div>
@@ -1300,6 +1326,15 @@
   }
   .boxed {
     border-top: 1px solid var(--border);
+  }
+  .setting select.language {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    color: var(--text);
+    background: none;
+    border: 0;
+    padding: 4px 0;
   }
   .setting {
     display: flex;

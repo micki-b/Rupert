@@ -5,6 +5,7 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { api } from "$lib/api";
   import { renderMarkdown, resolveRel } from "$lib/markdown";
+  import { m } from "$lib/i18n";
 
   let {
     sourceId,
@@ -76,11 +77,11 @@
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html html}
   {:else if phase === "online"}
-    <p class="note">Online-only. Open it to download it.</p>
+    <p class="note">{m.markdown.onlineOnly}</p>
   {:else if phase === "error"}
-    <p class="note">Couldn't show it: {problem}</p>
+    <p class="note">{m.markdown.couldntShow(problem)}</p>
   {:else if !compact}
-    <p class="note">Loading…</p>
+    <p class="note">{m.common.loading}</p>
   {/if}
 </div>
 

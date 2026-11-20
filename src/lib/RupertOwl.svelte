@@ -8,22 +8,15 @@
   // the painted ones), so they can blink, look around and read. A small
   // badge names the task. Still under "reduce motion".
   import owlUrl from "$lib/assets/rupert-owl.png";
+  import { m } from "$lib/i18n";
 
   let { mood = "idle", size = 44 }: { mood?: OwlMood; size?: number } = $props();
 
   const uid = $props.id();
-  const labels: Record<OwlMood, string> = {
-    idle: "Rupert",
-    thinking: "Rupert is thinking",
-    searching: "Rupert is searching",
-    studying: "Rupert is reading",
-    opening: "Rupert is showing you something",
-    happy: "Rupert found it",
-    puzzled: "Rupert is puzzled",
-  };
+
 </script>
 
-<div class="owl mood-{mood}" style:width="{size}px" style:height="{size}px" role="img" aria-label={labels[mood]}>
+<div class="owl mood-{mood}" style:width="{size}px" style:height="{size}px" role="img" aria-label={m.owl[mood]}>
   <div class="body">
     <img src={owlUrl} alt="" draggable="false" />
     <!-- Eyes, in the cut-out image's own coordinates (950 × 1000) -->

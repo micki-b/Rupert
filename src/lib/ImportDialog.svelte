@@ -12,6 +12,7 @@
     type ImportSummary,
     type Source,
   } from "$lib/api";
+  import { m, num } from "$lib/i18n";
 
   let {
     sources,
@@ -29,13 +30,12 @@
   let error = $state<string | null>(null);
 
   const sourceName = (id: string) => sources.find((s) => s.id === id)?.name ?? "";
-  const n = (x: number) => x.toLocaleString();
+  const n = (x: number) => num(x);
   /** The last two folders, e.g. "…/OneDrive/Taxes"; full path on hover. */
   const shortPath = (p: string) => {
     const parts = p.split(/[\\/]/).filter(Boolean);
     return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;
   };
-  const plural = (x: number, one: string, many = one + "s") => `${n(x)} ${x === 1 ? one : many}`;
 
   onMount(() => {
     api.scansnapLibrary().then((l) => (library = l));
@@ -62,7 +62,7 @@
   }
 
   async function chooseLibrary() {
-    const picked = await openDialog({ directory: true, title: "ScanSnap Home's library folder (“Managed”)" });
+    const picked = await openDialog({ directory: true, title: m.import.pickLibrary });
     if (typeof picked === "string") library = picked;
   }
 
@@ -76,7 +76,7 @@
   // always the user's pick (a sandboxed app may only use picked folders).
   const addSource = (path: string) =>
     attempt(async () => {
-      const picked = await openDialog({ directory: true, defaultPath: path, title: "Add this folder to Rupert" });
+      const picked = await openDialog({ directory: true, defaultPath: path, title: m.import.pickSource });
       if (typeof picked !== "string") return;
       await api.addSource(picked);
       onsourceadded();
@@ -99,59 +99,53 @@
 
 <div class="backdrop" role="presentation">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
-    <h1 id="import-title">Import from ScanSnap Home</h1>
+    <h1 id="import-title">{m.import.title}</h1>
 
     {#if step === "find"}
-      <p>
-        Rupert brings over what ScanSnap Home knows about your documents that isn't in the files themselves:
-        document dates, favorites, receipt details, and the text it recognized in scans. Nothing is moved or
-        renamed, and ScanSnap Home isn't changed.
-      </p>
+      <p>{m.import.intro}</p>
       {#if library}
         <p class="path">{library}</p>
       {:else if library === null}
-        <p class="muted">ScanSnap Home's library wasn't found in the usual place. Choose its “Managed” folder.</p>
+        <p class="muted">{m.import.notFound}</p>
       {/if}
       <div class="actions">
-        <button onclick={chooseLibrary}>Choose folder…</button>
+        <button onclick={chooseLibrary}>{m.import.chooseFolder}</button>
         <span class="spacer"></span>
-        <button onclick={onclose}>Cancel</button>
+        <button onclick={onclose}>{m.common.cancel}</button>
         <button class="primary" disabled={!library || busy} onclick={review}>
-          {busy ? "Reading…" : "Continue"}
+          {busy ? m.import.reading : m.import.continue}
         </button>
       </div>
     {:else if step === "review" && summary}
       {@const s = summary}
       <p>
-        ScanSnap Home lists {plural(s.items, "document")}. {n(s.withDetails)} have details to bring over;
-        {#if s.ready}{n(s.ready)} of them are in Rupert's sources:{:else}none of them are in Rupert's sources yet.{/if}
+        {m.import.lists(s.items, s.withDetails)}
+        {#if s.ready}{m.import.inSources(s.ready)}{:else}{m.import.noneInSources}{/if}
       </p>
       {#if s.ready}
         <ul class="counts">
-          {#if s.dates}<li><b>{n(s.dates)}</b> document dates</li>{/if}
-          {#if s.favorites}<li><b>{n(s.favorites)}</b> favorites</li>{/if}
-          {#if s.receipts}<li><b>{n(s.receipts)}</b> receipts (tagged “Receipt”, details in the notes)</li>{/if}
-          {#if s.texts}<li><b>{n(s.texts)}</b> scans' recognized text, so they can be searched</li>{/if}
+          {#if s.dates}<li><b>{n(s.dates)}</b> {m.import.dates(s.dates)}</li>{/if}
+          {#if s.favorites}<li><b>{n(s.favorites)}</b> {m.import.favorites(s.favorites)}</li>{/if}
+          {#if s.receipts}<li><b>{n(s.receipts)}</b> {m.import.receipts(s.receipts)}</li>{/if}
+          {#if s.texts}<li><b>{n(s.texts)}</b> {m.import.texts(s.texts)}</li>{/if}
         </ul>
         <p class="muted small">
-          Details go into the PDF itself where possible; the recognized text goes into a hidden file next to
-          the document.
+          {m.import.whereDetailsGo}
           {#if s.onlineOnly}
-            {plural(s.onlineOnly, "document is", "documents are")} online-only: they aren't downloaded, so their
-            details wait in the hidden file and move into the PDF the next time you save it in Rupert.
+            {m.import.onlineOnly(s.onlineOnly)}
           {/if}
-          Details you've already set in Rupert are kept.
+          {m.import.keptDetails}
         </p>
       {/if}
 
       {#if s.outsideSources.length}
-        <h2>Not in Rupert's sources</h2>
+        <h2>{m.import.notInSources}</h2>
         <ul class="folders">
           {#each s.outsideSources as f (f.path)}
             <li>
               <span class="path" title={f.path}>{shortPath(f.path)}</span>
               <span class="muted">{n(f.count)}</span>
-              <button disabled={busy} onclick={() => addSource(f.path)}>Add as source</button>
+              <button disabled={busy} onclick={() => addSource(f.path)}>{m.import.addAsSource}</button>
             </li>
           {/each}
         </ul>
@@ -159,7 +153,7 @@
 
       {#if s.renamed.length}
         <details>
-          <summary>{plural(s.renamed.length, "document was", "documents were")} renamed or moved since; matched by size</summary>
+          <summary>{m.import.renamed(s.renamed.length)}</summary>
           <ul class="list">
             {#each s.renamed as r (r.from)}
               <li><span class="muted">{r.from}</span><br />→ {sourceName(r.sourceId)}/{r.relPath}</li>
@@ -169,7 +163,7 @@
       {/if}
       {#if s.notFound.length}
         <details>
-          <summary>{plural(s.notFound.length, "document")} couldn't be found</summary>
+          <summary>{m.import.notFoundDocs(s.notFound.length)}</summary>
           <ul class="list">
             {#each s.notFound as p (p)}<li>{p}</li>{/each}
           </ul>
@@ -178,25 +172,25 @@
 
       <div class="actions">
         <span class="spacer"></span>
-        <button onclick={onclose}>Cancel</button>
+        <button onclick={onclose}>{m.common.cancel}</button>
         <button class="primary" disabled={!s.ready || busy} onclick={start}>
-          Import {plural(s.ready, "document")}
+          {m.import.importN(s.ready)}
         </button>
       </div>
     {:else if step === "running"}
-      <p>Importing… {#if progress}{n(progress.done)} of {n(progress.total)}{/if}</p>
+      <p>{m.import.importing} {#if progress}{m.import.progress(progress.done, progress.total)}{/if}</p>
       <progress max={progress?.total || 1} value={progress?.done ?? 0}></progress>
-      <p class="muted small">You can keep using Rupert; it re-indexes the changed folders afterwards.</p>
+      <p class="muted small">{m.import.keepUsing}</p>
     {:else if step === "done" && report}
-      <p>Done.</p>
+      <p>{m.import.done}</p>
       <ul class="counts">
-        {#if report.embedded}<li><b>{n(report.embedded)}</b> PDFs updated</li>{/if}
-        {#if report.sidecar}<li><b>{n(report.sidecar)}</b> documents got a hidden details file</li>{/if}
-        {#if report.unchanged}<li><b>{n(report.unchanged)}</b> already up to date</li>{/if}
+        {#if report.embedded}<li><b>{n(report.embedded)}</b> {m.import.pdfsUpdated(report.embedded)}</li>{/if}
+        {#if report.sidecar}<li><b>{n(report.sidecar)}</b> {m.import.sidecars(report.sidecar)}</li>{/if}
+        {#if report.unchanged}<li><b>{n(report.unchanged)}</b> {m.import.unchanged}</li>{/if}
       </ul>
       {#if report.failed.length}
         <details open>
-          <summary>{plural(report.failed.length, "document")} couldn't be updated</summary>
+          <summary>{m.import.failed(report.failed.length)}</summary>
           <ul class="list">
             {#each report.failed as f (f.relPath)}
               <li>{sourceName(f.sourceId)}/{f.relPath}<br /><span class="muted">{f.error}</span></li>
@@ -206,7 +200,7 @@
       {/if}
       <div class="actions">
         <span class="spacer"></span>
-        <button class="primary" onclick={onclose}>Close</button>
+        <button class="primary" onclick={onclose}>{m.common.close}</button>
       </div>
     {/if}
 

@@ -6,6 +6,7 @@
   import Icon from "$lib/Icon.svelte";
   import { updates } from "$lib/updates.svelte";
   import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "$lib/api";
+  import { LANGS, languageNames, loadLanguage, m, type Lang } from "$lib/i18n";
 
   let {
     sources,
@@ -34,15 +35,18 @@
   /** The Mac App Store edition: no self-updater, no `ant` sign-in. */
   let appStore = $state(false);
   let chatgptBusy = $state(false);
+  /** The system's language, which "Automatic" follows. */
+  let systemLang = $state<Lang>("en");
   const provider = $derived(settings?.assistant.provider ?? "local");
 
   const inboxSource = $derived(sources.find((s) => s.id === settings?.inbox?.sourceId) ?? null);
   const example = $derived(
-    settings ? fileNameFor(settings.namePattern, "2026-04-29", "Acme auto policy cancellation") + ".pdf" : "",
+    settings ? fileNameFor(settings.namePattern, "2026-04-29", m.settings.exampleTitle) + ".pdf" : "",
   );
 
   onMount(async () => {
     api.appInfo().then((i) => (appStore = i.edition === "app-store"));
+    loadLanguage().then((l) => l && (systemLang = l.system));
     settings = await api.getSettings();
     if (section) {
       await tick();
@@ -134,7 +138,7 @@
 
   /** Picks a folder; it must be inside one of the sources. */
   async function chooseInbox() {
-    const picked = await openDialog({ directory: true, title: "Choose the inbox folder" });
+    const picked = await openDialog({ directory: true, title: m.settings.chooseInbox });
     if (typeof picked !== "string" || !settings) return;
     const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "");
     const path = norm(picked);
@@ -142,7 +146,7 @@
       .filter((s) => path === norm(s.root) || path.startsWith(norm(s.root) + "/"))
       .sort((a, b) => b.root.length - a.root.length)[0];
     if (!source) {
-      error = "The inbox has to be inside one of Rupert's sources, so filed documents stay in your library.";
+      error = m.settings.inboxOutside;
       return;
     }
     error = null;
@@ -174,6 +178,7 @@
     try {
       onsaved(await api.setSettings(snap));
       lastSaved = json;
+      await loadLanguage();
       error = null;
     } catch (e) {
       error = String(e);
@@ -202,242 +207,247 @@
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <header class="head">
       <div>
-        <h1 id="settings-title">Settings</h1>
-        <p class="muted small">Changes apply right away.</p>
+        <h1 id="settings-title">{m.settings.title}</h1>
+        <p class="muted small">{m.settings.applyNow}</p>
       </div>
-      <button class="close" onclick={done} title="Close (Esc)" aria-label="Close settings">
+      <button class="close" onclick={done} title={m.common.closeEsc} aria-label={m.settings.closeSettings}>
         <Icon name="close" size={18} />
       </button>
     </header>
     {#if settings}
       <section>
-        <h2>Inbox</h2>
-        <p class="muted small">
-          New scans arrive here, e.g. the folder a ScanSnap Home profile saves to. Rupert recognizes their text,
-          suggests how to file them, and moves them where you decide.
-        </p>
+        <h2>{m.settings.language}</h2>
+        <div class="grid">
+          <label for="language">{m.settings.language}</label>
+          <select
+            id="language"
+            value={settings.language ?? ""}
+            onchange={(e) => (settings!.language = e.currentTarget.value || null)}
+          >
+            <option value="">{m.settings.automatic(languageNames[systemLang])}</option>
+            {#each LANGS as lang (lang)}<option value={lang}>{languageNames[lang]}</option>{/each}
+          </select>
+        </div>
+        <p class="muted small">{m.settings.languageNote}</p>
+      </section>
+
+      <section>
+        <h2>{m.settings.inbox}</h2>
+        <p class="muted small">{m.settings.inboxIntro}</p>
         <div class="row">
           <span class="path">
             {#if settings.inbox && inboxSource}
               {inboxSource.name}{settings.inbox.relPath ? "/" + settings.inbox.relPath : ""}
             {:else}
-              <span class="muted">Not set</span>
+              <span class="muted">{m.settings.notSet}</span>
             {/if}
           </span>
-          <button onclick={chooseInbox}>Choose…</button>
-          {#if settings.inbox}<button onclick={() => (settings!.inbox = null)}>Clear</button>{/if}
+          <button onclick={chooseInbox}>{m.settings.choose}</button>
+          {#if settings.inbox}<button onclick={() => (settings!.inbox = null)}>{m.settings.clear}</button>{/if}
         </div>
       </section>
 
       <section>
-        <h2>Text recognition</h2>
+        <h2>{m.settings.textRecognition}</h2>
         <label class="check">
           <input type="checkbox" bind:checked={settings.ocr} disabled={!engine} />
-          Recognize the text in scans{#if engine}&nbsp;<span class="muted">({engine})</span>{/if}
+          {m.settings.recognize}{#if engine}&nbsp;<span class="muted">({engine})</span>{/if}
         </label>
         {#if engine === null}
-          <p class="muted small">No OCR engine found. Install Tesseract to enable this.</p>
+          <p class="muted small">{m.settings.noEngine}</p>
         {:else}
-          <p class="muted small">
-            Adds an invisible text layer to scanned PDFs, so any PDF reader can search them. Runs on this computer.
-          </p>
+          <p class="muted small">{m.settings.ocrNote}</p>
         {/if}
       </section>
 
       <section>
-        <h2>Suggestions</h2>
+        <h2>{m.settings.suggestions}</h2>
         <label class="check">
           <input type="checkbox" bind:checked={settings.suggestions} />
-          Suggest a title, date, tags and folder with LM Studio
+          {m.settings.suggest}
         </label>
         <div class="grid">
-          <label for="lm-url">Server</label>
+          <label for="lm-url">{m.settings.server}</label>
           <div class="row">
             <input id="lm-url" bind:value={settings.lmStudioUrl} onchange={checkLm} />
             <span class="status {lmStatus}">
-              {lmStatus === "ok" ? "Connected" : lmStatus === "down" ? "Not running" : "Checking…"}
+              {lmStatus === "ok" ? m.settings.connected : lmStatus === "down" ? m.settings.notRunning : m.settings.checking}
             </span>
           </div>
-          <label for="lm-model">Model</label>
+          <label for="lm-model">{m.settings.model}</label>
           <select
             id="lm-model"
             value={settings.lmStudioModel ?? ""}
             onchange={(e) => (settings!.lmStudioModel = e.currentTarget.value || null)}
           >
-            <option value="">The model loaded in LM Studio</option>
-            {#each models as m (m)}<option value={m}>{m}</option>{/each}
+            <option value="">{m.settings.loadedModel}</option>
+            {#each models as name (name)}<option value={name}>{name}</option>{/each}
             {#if settings.lmStudioModel && !models.includes(settings.lmStudioModel)}
               <option value={settings.lmStudioModel}>{settings.lmStudioModel}</option>
             {/if}
           </select>
         </div>
-        <p class="muted small">Only document text from the inbox is sent, and only to this local server.</p>
+        <p class="muted small">{m.settings.suggestionsNote}</p>
       </section>
 
       <section>
-        <h2 id="settings-assistant">Assistant</h2>
+        <h2 id="settings-assistant">{m.settings.assistant}</h2>
         <div class="grid">
-          <label for="ai-provider">Model</label>
+          <label for="ai-provider">{m.settings.model}</label>
           <select
             id="ai-provider"
             bind:value={settings.assistant.provider}
             onchange={() => (settings!.assistant.model = null)}
           >
-            <option value="local">LM Studio on this computer</option>
-            <option value="anthropic">Claude (Anthropic, cloud)</option>
-            <option value="openai">OpenAI-compatible service (cloud)</option>
-            <option value="chatgpt">ChatGPT, with your plan (cloud)</option>
+            <option value="local">{m.settings.providerLocal}</option>
+            <option value="anthropic">{m.settings.providerAnthropic}</option>
+            <option value="openai">{m.settings.providerOpenai}</option>
+            <option value="chatgpt">{m.settings.providerChatgpt}</option>
           </select>
           {#if provider === "anthropic"}
-            <label for="ai-model">Claude model</label>
+            <label for="ai-model">{m.settings.claudeModel}</label>
             <input
               id="ai-model"
-              placeholder="claude-opus-5-5 (default)"
+              placeholder={m.settings.claudeDefault}
               value={settings.assistant.model ?? ""}
               oninput={(e) => (settings!.assistant.model = e.currentTarget.value.trim() || null)}
             />
-            {#if !appStore}<span class="label">Sign-in</span>{/if}
+            {#if !appStore}<span class="label">{m.settings.signIn}</span>{/if}
             <div class="stack" hidden={appStore}>
               <label class="check">
                 <input type="radio" name="ai-auth" checked={!settings.assistant.anthropicCliLogin} onchange={() => (settings!.assistant.anthropicCliLogin = false)} />
-                API key
+                {m.settings.apiKey}
               </label>
               <label class="check">
                 <input type="radio" name="ai-auth" checked={settings.assistant.anthropicCliLogin} onchange={() => (settings!.assistant.anthropicCliLogin = true)} />
-                Anthropic account, through the <code>ant</code> command
+                {m.settings.antAccount[0]} <code>ant</code> {m.settings.antAccount[1]}
               </label>
             </div>
           {:else if provider === "chatgpt"}
-            <span class="label">Account</span>
+            <span class="label">{m.settings.account}</span>
             <div class="row">
               {#if chatgpt?.signedIn}
-                <span class="muted">{chatgpt.email ?? "Signed in"}</span>
-                <button onclick={chatgptSignOut}>Sign out</button>
+                <span class="muted">{chatgpt.email ?? m.settings.signedIn}</span>
+                <button onclick={chatgptSignOut}>{m.settings.signOut}</button>
               {:else}
-                <span class="muted">Not signed in</span>
+                <span class="muted">{m.settings.notSignedIn}</span>
               {/if}
               <button onclick={chatgptSignIn} disabled={chatgptBusy}>
-                {chatgptBusy ? "Waiting for the browser…" : chatgpt?.signedIn ? "Sign in again…" : "Sign in with ChatGPT…"}
+                {chatgptBusy ? m.settings.waitingForBrowser : chatgpt?.signedIn ? m.settings.signInAgain : m.settings.signInChatgpt}
               </button>
             </div>
             {#if chatgpt?.signedIn}
-              <label for="ai-model3">Model</label>
+              <label for="ai-model3">{m.settings.model}</label>
               <select
                 id="ai-model3"
                 value={settings.assistant.model ?? ""}
                 onchange={(e) => (settings!.assistant.model = e.currentTarget.value || null)}
               >
-                {#each chatgpt.models as m (m.slug)}<option value={m.slug}>{m.displayName}</option>{/each}
-                {#if settings.assistant.model && !chatgpt.models.some((m) => m.slug === settings!.assistant.model)}
+                {#each chatgpt.models as cm (cm.slug)}<option value={cm.slug}>{cm.displayName}</option>{/each}
+                {#if settings.assistant.model && !chatgpt.models.some((cm) => cm.slug === settings!.assistant.model)}
                   <option value={settings.assistant.model}>{settings.assistant.model}</option>
                 {/if}
-                {#if !chatgpt.models.length && !settings.assistant.model}<option value="">The plan's first model</option>{/if}
+                {#if !chatgpt.models.length && !settings.assistant.model}<option value="">{m.settings.firstPlanModel}</option>{/if}
               </select>
               {#if chatgpt.problem}<span></span><span class="small error">{chatgpt.problem}</span>{/if}
             {/if}
           {:else if provider === "openai"}
-            <label for="ai-url">Service</label>
+            <label for="ai-url">{m.settings.service}</label>
             <input
               id="ai-url"
               placeholder="https://api.openai.com/v1"
               value={settings.assistant.baseUrl ?? ""}
               oninput={(e) => (settings!.assistant.baseUrl = e.currentTarget.value.trim() || null)}
             />
-            <label for="ai-model2">Model</label>
+            <label for="ai-model2">{m.settings.model}</label>
             <input
               id="ai-model2"
-              placeholder="The service's model name"
+              placeholder={m.settings.serviceModel}
               value={settings.assistant.model ?? ""}
               oninput={(e) => (settings!.assistant.model = e.currentTarget.value.trim() || null)}
             />
           {/if}
           {#if provider !== "local" && !(provider === "anthropic" && settings.assistant.anthropicCliLogin && !appStore)}
-            <label for="ai-key">API key</label>
+            <label for="ai-key">{m.settings.apiKey}</label>
             <div class="row">
               {#if hasKey[provider]}
-                <span class="muted">Saved in the keychain</span>
-                <button onclick={removeKey}>Remove</button>
+                <span class="muted">{m.settings.savedInKeychain}</span>
+                <button onclick={removeKey}>{m.settings.remove}</button>
               {:else}
-                <input id="ai-key" type="password" bind:value={newKey} placeholder="Paste the key" autocomplete="off" />
-                <button onclick={saveKey} disabled={!newKey.trim()}>Save key</button>
+                <input id="ai-key" type="password" bind:value={newKey} placeholder={m.settings.pasteKey} autocomplete="off" />
+                <button onclick={saveKey} disabled={!newKey.trim()}>{m.settings.saveKey}</button>
               {/if}
             </div>
           {/if}
           {#if provider === "anthropic" && settings.assistant.anthropicCliLogin && !appStore}
-            <span class="label">Account</span>
+            <span class="label">{m.settings.account}</span>
             <div class="row">
               {#if !cli?.installed}
-                <span class="muted">The <code>ant</code> command isn't installed.</span>
+                <span class="muted">{m.settings.antMissing[0]} <code>ant</code> {m.settings.antMissing[1]}</span>
               {:else if cli.signedIn}
-                <span class="muted">Signed in</span>
+                <span class="muted">{m.settings.signedIn}</span>
               {:else}
-                <span class="muted">Not signed in</span>
+                <span class="muted">{m.settings.notSignedIn}</span>
               {/if}
               {#if cli?.installed}
-                <button onclick={cliLogin} disabled={cliBusy}>{cliBusy ? "Waiting for the browser…" : cli.signedIn ? "Sign in again…" : "Sign in…"}</button>
+                <button onclick={cliLogin} disabled={cliBusy}>{cliBusy ? m.settings.waitingForBrowser : cli.signedIn ? m.settings.signInAgain : m.settings.signInEllipsis}</button>
               {/if}
             </div>
           {/if}
         </div>
         <p class="small">
-          <button class="link" onclick={() => api.openHelp("ai-models")}>How to set up each kind of model</button>
+          <button class="link" onclick={() => api.openHelp("ai-models")}>{m.settings.howToSetUp}</button>
         </p>
         {#if provider === "chatgpt"}
-          <p class="muted small">
-            Answers count against your ChatGPT plan's limits, not an API key. You can cap Rupert's share in ChatGPT's
-            settings. This is a preview from OpenAI and may change.
-          </p>
+          <p class="muted small">{m.settings.chatgptNote}</p>
         {/if}
         {#if provider === "local"}
-          <p class="muted small">Uses the LM Studio server and model above. Nothing leaves this computer.</p>
+          <p class="muted small">{m.settings.localNote}</p>
         {:else}
-          <p class="small cloud-note">
-            ☁ With a cloud model, your questions and what the assistant looks at (document titles, tags, folders and
-            the text of documents it reads) are sent to that service. Inbox suggestions still use LM Studio only.
-          </p>
+          <p class="small cloud-note">{m.settings.cloudNote}</p>
         {/if}
       </section>
 
       <section hidden={appStore}>
-        <h2 id="settings-updates">Updates</h2>
+        <h2 id="settings-updates">{m.settings.updates}</h2>
         <label class="check">
           <input type="checkbox" bind:checked={settings.checkUpdates} />
-          Check for updates automatically
+          {m.settings.checkAutomatically}
         </label>
         <div class="row update-row">
           <button onclick={() => updates.check(true)} disabled={updates.status === "checking" || updates.status === "downloading"}>
-            {updates.status === "checking" ? "Checking…" : "Check now"}
+            {updates.status === "checking" ? m.settings.checking : m.settings.checkNow}
           </button>
           {#if updates.status === "none"}
-            <span class="muted small">Rupert is up to date.</span>
+            <span class="muted small">{m.settings.upToDate}</span>
           {:else if updates.status === "available"}
-            <span class="small">Version {updates.version} is available.</span>
-            <button onclick={() => updates.install()}>Install and restart</button>
+            <span class="small">{m.settings.available(updates.version ?? "")}</span>
+            <button onclick={() => updates.install()}>{m.settings.installRestart}</button>
           {:else if updates.status === "downloading"}
             <span class="muted small">
-              Downloading{updates.progress !== null ? ` (${Math.round(updates.progress * 100)} %)` : ""}…
+              {m.settings.downloading(updates.progress !== null ? Math.round(updates.progress * 100) : null)}
             </span>
           {:else if updates.status === "error"}
-            <span class="small error">Couldn't check for updates: {updates.problem}</span>
+            <span class="small error">{m.settings.couldntCheck(updates.problem ?? "")}</span>
           {/if}
         </div>
-        <p class="muted small">Rupert looks for new versions on GitHub, where it's published. Nothing else is sent.</p>
+        <p class="muted small">{m.settings.updatesNote}</p>
       </section>
 
       <section>
-        <h2>File names</h2>
+        <h2>{m.settings.fileNames}</h2>
         <div class="grid">
-          <label for="pattern">Pattern</label>
+          <label for="pattern">{m.settings.pattern}</label>
           <input id="pattern" bind:value={settings.namePattern} />
         </div>
         <p class="muted small">
-          <code>{"{date}"}</code> and <code>{"{title}"}</code> are filled in. Example: {example}
+          {m.settings.patternHint[0]}<code>{"{date}"}</code>{m.settings.patternHint[1]}<code>{"{title}"}</code>{m.settings.patternHint[2]}{example}
         </p>
       </section>
 
       {#if error}<p class="error">{error}</p>{/if}
     {:else}
-      <p class="muted">Loading…</p>
+      <p class="muted">{m.common.loading}</p>
     {/if}
   </div>
 </div>

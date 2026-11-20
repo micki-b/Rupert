@@ -49,6 +49,7 @@
   import { isMarkdown } from "$lib/markdown";
   import { checkNowAndThen, updates } from "$lib/updates.svelte";
   import RupertOwl from "$lib/RupertOwl.svelte";
+  import { m } from "$lib/i18n";
 
   type Folder = { sourceId: string; relPath: string };
   type Selected = { sourceId: string; entry: Entry };
@@ -113,17 +114,17 @@
 
   function loadFolderMode(): FolderMode {
     try {
-      const m = localStorage.getItem(MODE_KEY);
-      return m === "icons" || m === "gallery" ? m : "list";
+      const saved = localStorage.getItem(MODE_KEY);
+      return saved === "icons" || saved === "gallery" ? saved : "list";
     } catch {
       return "list";
     }
   }
 
-  function setFolderMode(m: FolderMode) {
-    folderMode = m;
+  function setFolderMode(mode: FolderMode) {
+    folderMode = mode;
     try {
-      localStorage.setItem(MODE_KEY, m);
+      localStorage.setItem(MODE_KEY, mode);
     } catch {
       /* not essential */
     }
@@ -425,7 +426,7 @@
   // MARK: - Source actions
 
   async function addSource() {
-    const path = await open({ directory: true, multiple: false, title: "Add a folder to Rupert" });
+    const path = await open({ directory: true, multiple: false, title: m.main.addFolderTitle });
     if (typeof path !== "string") return;
     const added = await run(() => api.addSource(path));
     if (!added) return;
@@ -436,7 +437,7 @@
   /** Picks an unavailable source's folder again: it moved, or (in the Mac
    * App Store edition) access has to be granted once more. */
   async function relocateSource(s: Source) {
-    const path = await open({ directory: true, multiple: false, defaultPath: s.root, title: `Choose “${s.name}”` });
+    const path = await open({ directory: true, multiple: false, defaultPath: s.root, title: m.main.chooseSource(s.name) });
     if (typeof path !== "string") return;
     const found = await run(() => api.relocateSource(s.id, path));
     if (found) await loadSources(true);
@@ -445,8 +446,8 @@
   async function removeSource(s: Source) {
     menuFor = null;
     const ok = await ask(
-      `Remove "${s.name}" from Rupert?\n\nThe folder and its files stay exactly where they are.`,
-      { title: "Remove source", kind: "warning", okLabel: "Remove" },
+      m.main.removeAsk(s.name),
+      { title: m.main.removeTitle, kind: "warning", okLabel: m.main.remove },
     );
     if (!ok) return;
     await run(() => api.removeSource(s.id));
@@ -470,12 +471,8 @@
     const on = !s.downloadOnlineOnly;
     if (on) {
       const ok = await ask(
-        `Rupert will download the online-only PDFs and text files in “${s.name}” a few at a time, ` +
-          `read their text so they can be searched, and then free the space again. ` +
-          `Nothing is changed in the files.\n\nThis can take hours for a large folder and uses your ` +
-          `internet connection. Files larger than 100 MB are skipped. What Rupert finds is saved ` +
-          `in the folder's hidden catalog, so your other computers don't have to download them too.`,
-        { title: "Download online-only files to index them?", kind: "info", okLabel: "Start" },
+        m.main.downloadAsk(s.name),
+        { title: m.main.downloadTitle, kind: "info", okLabel: m.main.start },
       );
       if (!ok) return;
     }
@@ -516,8 +513,8 @@
 
   /** The right-click menu: where, for what, and whether it's a search result. */
   let itemMenu = $state<{ x: number; y: number; sel: Selected; inSearch: boolean } | null>(null);
-  const trashLabel = $derived(info?.os === "windows" ? "Delete" : "Move to Trash");
-  const binName = $derived(info?.os === "windows" ? "Recycle Bin" : "Trash");
+  const trashLabel = $derived(info?.os === "windows" ? m.trash.delete : m.trash.moveToTrash);
+  const binName = $derived(info?.os === "windows" ? m.trash.recycleBin : m.trash.trash);
 
   function openItemMenu(sel: Selected, ev: MouseEvent, inSearch = false) {
     ev.preventDefault();
@@ -545,7 +542,7 @@
     itemMenu = null;
     const e = sel.entry;
     if (e.isDir) {
-      const ok = await ask(`Move “${e.name}” and everything in it to the ${binName}?`, {
+      const ok = await ask(m.main.trashFolderAsk(e.name, binName), {
         title: trashLabel,
         kind: "warning",
         okLabel: trashLabel,
@@ -599,17 +596,16 @@
 
   function statusText(): string {
     if (progress?.active && progress.total > 0) {
-      return `Indexing ${progress.done.toLocaleString()} of ${progress.total.toLocaleString()}…`;
+      return m.main.indexing(progress.done, progress.total);
     }
-    if (progress?.active) return "Checking for changes…";
+    if (progress?.active) return m.main.checkingChanges;
     if (progress && progress.downloadTotal > 0) {
-      return `Downloading online-only documents to read them: ${progress.downloadDone.toLocaleString()} of ${progress.downloadTotal.toLocaleString()}…`;
+      return m.main.downloadingToRead(progress.downloadDone, progress.downloadTotal);
     }
     if (!stats || stats.documents === 0) return "";
-    const parts = [`${stats.documents.toLocaleString()} documents`];
-    parts.push(`${stats.withText.toLocaleString()} searchable by content`);
-    if (stats.cloudOnlyUnindexed)
-      parts.push(`${stats.cloudOnlyUnindexed.toLocaleString()} online-only (name and details only)`);
+    const parts = [m.main.documents(stats.documents)];
+    parts.push(m.main.searchable(stats.withText));
+    if (stats.cloudOnlyUnindexed) parts.push(m.main.onlineOnlyCount(stats.cloudOnlyUnindexed));
     return parts.join(" · ");
   }
 </script>
@@ -618,16 +614,16 @@
   <!-- MARK: Sidebar -->
   <aside class="sources">
     <header>
-      <h2>Library</h2>
+      <h2>{m.main.library}</h2>
     </header>
     <button class="lib-item" class:active={inboxOpen} onclick={openInbox}>
       <span class="lib-icon inbox-icon"><Icon name="inbox" size={14} /></span>
-      <span class="label">Inbox</span>
-      {#if !appSettings?.inbox}<span class="count">Set up</span>{:else if inboxCount}<span class="count">{inboxCount}</span>{/if}
+      <span class="label">{m.main.inbox}</span>
+      {#if !appSettings?.inbox}<span class="count">{m.main.setUp}</span>{:else if inboxCount}<span class="count">{inboxCount}</span>{/if}
     </button>
     <button class="lib-item" class:active={favoritesOnly} onclick={filterFavorites}>
       <span class="lib-icon star">★</span>
-      <span class="label">Favorites</span>
+      <span class="label">{m.main.favorites}</span>
       {#if stats?.favorites}<span class="count">{stats.favorites}</span>{/if}
     </button>
     {#each favoriteFolders as f (f.sourceId + "/" + f.relPath)}
@@ -641,12 +637,12 @@
         <span class="label">{f.name}</span>
       </button>
     {/each}
-    <div class="view-switch" role="tablist" aria-label="Show in the sidebar">
+    <div class="view-switch" role="tablist" aria-label={m.main.showInSidebar}>
       <button
         role="tab"
         aria-selected={sidebarView === "folders"}
-        aria-label="Folders"
-        title="Folders"
+        aria-label={m.main.folders}
+        title={m.main.folders}
         class:on={sidebarView === "folders"}
         onclick={() => setSidebarView("folders")}
       >
@@ -655,8 +651,8 @@
       <button
         role="tab"
         aria-selected={sidebarView === "tags"}
-        aria-label="Tags{selectedTags.length ? `, ${selectedTags.length} selected` : ''}"
-        title="Tags"
+        aria-label={selectedTags.length ? m.main.tagsSelected(selectedTags.length) : m.main.tags}
+        title={m.main.tags}
         class:on={sidebarView === "tags"}
         onclick={() => setSidebarView("tags")}
       >
@@ -675,18 +671,18 @@
           onchange={tagsChanged}
         />
         <button class="manage-tags" onclick={() => (tagManagerOpen = true)}>
-          Manage tags…{#if tags.length}&nbsp;<span class="count">{tags.length} in all</span>{/if}
+          {m.main.manageTags}{#if tags.length}&nbsp;<span class="count">{m.main.inAll(tags.length)}</span>{/if}
         </button>
       </div>
     {:else}
     <header class="sources-header">
-      <h2>Sources</h2>
-      <button class="icon-btn" onclick={addSource} title="Add a folder" aria-label="Add a folder">
+      <h2>{m.main.sources}</h2>
+      <button class="icon-btn" onclick={addSource} title={m.main.addFolder} aria-label={m.main.addFolder}>
         <Icon name="plus" />
       </button>
     </header>
 
-    <div role="tree" aria-label="Sources">
+    <div role="tree" aria-label={m.main.sources}>
       {#each sources as s (s.id)}
         {#if renaming === s.id}
           <!-- svelte-ignore a11y_autofocus -->
@@ -713,10 +709,10 @@
               startExpanded
             >
               {#snippet trailing()}
-                <span class="provider">{providerLabel[s.provider]}</span>
+                <span class="provider">{providerLabel(s.provider)}</span>
                 <button
                   class="icon-btn more"
-                  aria-label="Source options"
+                  aria-label={m.main.sourceOptions}
                   onclick={(e) => {
                     e.stopPropagation();
                     menuFor = menuFor === s.id ? null : s.id;
@@ -735,12 +731,12 @@
             <div class="row">
               <Icon name="warning" size={14} />
               <span class="label">{s.name}</span>
-              <button class="link-btn" onclick={() => relocateSource(s)} title="Choose this folder again ({s.root})">
-                {info?.os === "macos" ? "Allow access…" : "Locate…"}
+              <button class="link-btn" onclick={() => relocateSource(s)} title={m.main.chooseAgain(s.root)}>
+                {info?.os === "macos" ? m.main.allowAccess : m.main.locate}
               </button>
               <button
                 class="icon-btn more"
-                aria-label="Source options"
+                aria-label={m.main.sourceOptions}
                 onclick={(e) => {
                   e.stopPropagation();
                   menuFor = menuFor === s.id ? null : s.id;
@@ -758,11 +754,11 @@
     </div>
 
     {#if sources.length === 0}
-      <p class="empty small">No sources yet.</p>
+      <p class="empty small">{m.main.noSources}</p>
     {/if}
 
     <button class="lib-item import" onclick={() => (importing = true)}>
-      <span class="label">Import from ScanSnap Home…</span>
+      <span class="label">{m.main.importScanSnap}</span>
     </button>
     {/if}
   </aside>
@@ -771,23 +767,23 @@
     <div class="menu" role="menu" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
       <div class="menu-path" title={s.root}>{s.root}</div>
       <button role="menuitemcheckbox" aria-checked={s.showAllTypes} onclick={() => toggleAllTypes(s)}>
-        <span class="check">{s.showAllTypes ? "✓" : ""}</span>Show all file types
+        <span class="check">{s.showAllTypes ? "✓" : ""}</span>{m.main.showAllTypes}
       </button>
       {#if s.provider !== "local"}
         <button
           role="menuitemcheckbox"
           aria-checked={s.downloadOnlineOnly}
           onclick={() => toggleDownload(s)}
-          title="Download online-only documents to read their text, then free the space again"
+          title={m.main.downloadTip}
         >
-          <span class="check">{s.downloadOnlineOnly ? "✓" : ""}</span>Download online-only files to index them
+          <span class="check">{s.downloadOnlineOnly ? "✓" : ""}</span>{m.main.downloadToIndex}
         </button>
       {/if}
       <button role="menuitem" onclick={() => startRename(s)}>
-        <span class="check"></span>Rename…
+        <span class="check"></span>{m.main.rename}
       </button>
       <button role="menuitem" class="danger" onclick={() => removeSource(s)}>
-        <span class="check"></span>Remove from Rupert…
+        <span class="check"></span>{m.main.removeFromRupert}
       </button>
     </div>
   {/snippet}
@@ -814,26 +810,26 @@
         bind:this={searchInput}
         bind:value={query}
         type="search"
-        placeholder="Search all documents"
+        placeholder={m.main.searchPlaceholder}
         onkeydown={(e) => {
           if (e.key === "Escape") clearSearch();
         }}
       />
       {#each selectedTags as t, i (t)}
-        {#if i > 0}<span class="tag-join">{tagMode === "all" ? "and" : "or"}</span>{/if}
-        <button class="filter-chip" onclick={() => removeTag(t)} title="Remove filter"># {t} ×</button>
+        {#if i > 0}<span class="tag-join">{tagMode === "all" ? m.main.and : m.main.or}</span>{/if}
+        <button class="filter-chip" onclick={() => removeTag(t)} title={m.main.removeFilter}># {t} ×</button>
       {/each}
       {#if selectedTags.length > 1}
         <button
           class="filter-chip mode-chip"
           onclick={() => (tagMode = tagMode === "all" ? "any" : "all")}
-          title="Switch between documents with any or all of these tags"
+          title={m.main.switchMode}
         >
-          {tagMode === "all" ? "All tags" : "Any tag"}
+          {tagMode === "all" ? m.main.allTags : m.main.anyTag}
         </button>
       {/if}
       {#if favoritesOnly}
-        <button class="filter-chip" onclick={() => (favoritesOnly = false)} title="Remove filter">★ Favorites ×</button>
+        <button class="filter-chip" onclick={() => (favoritesOnly = false)} title={m.main.removeFilter}>{m.main.favoritesChip}</button>
       {/if}
     </div>
 
@@ -841,13 +837,13 @@
       <div class="error" role="alert">
         <Icon name="warning" size={14} />
         <span>{error}</span>
-        <button class="icon-btn" onclick={() => (error = null)} aria-label="Dismiss">×</button>
+        <button class="icon-btn" onclick={() => (error = null)} aria-label={m.main.dismiss}>×</button>
       </div>
     {/if}
 
     {#if searching}
       <p class="result-count muted">
-        {#if !searchedOnce}Searching…{:else if hits.length === 0}No matching documents.{:else}{hits.length}{hits.length >= 300 ? "+" : ""} document{hits.length === 1 ? "" : "s"}{/if}
+        {#if !searchedOnce}{m.main.searching}{:else if hits.length === 0}{m.main.noMatches}{:else}{m.main.hits(hits.length, hits.length >= 300)}{/if}
       </p>
       <ul class="results">
         {#each hits as h (h.sourceId + "\n" + h.relPath)}
@@ -866,7 +862,7 @@
                 <strong>{h.title ?? h.name}</strong>
                 {#if h.title}<span class="muted r-name">{h.name}</span>{/if}
                 {#if h.cloud === "cloudOnly"}
-                  <span class="cloud" title="Online-only"><Icon name="cloud" size={13} /></span>
+                  <span class="cloud" title={m.main.onlineOnly}><Icon name="cloud" size={13} /></span>
                 {/if}
               </div>
               {#if h.snippet}
@@ -884,7 +880,7 @@
         {/each}
       </ul>
     {:else if folder && source}
-      <nav class="crumbs" aria-label="Folder path">
+      <nav class="crumbs" aria-label={m.main.folderPath}>
         {#each crumbs as c, i (c.relPath)}
           {#if i > 0}<span class="sep">/</span>{/if}
           <button class:current={i === crumbs.length - 1} onclick={() => selectFolder(source.id, c.relPath)}
@@ -895,12 +891,12 @@
           class="folder-star"
           class:on={folderFav}
           onclick={toggleFolderFav}
-          title={folderFav ? "Remove this folder from Favorites" : "Add this folder to Favorites"}
+          title={folderFav ? m.main.unfavoriteFolder : m.main.favoriteFolder}
           aria-pressed={folderFav}>{folderFav ? "★" : "☆"}</button
         >
-        <span class="view-switch" role="group" aria-label="View">
-          {#each [["list", "view-list", "List"], ["icons", "view-grid", "Large icons"], ["gallery", "view-gallery", "Gallery"]] as const as [m, icon, label] (m)}
-            <button class:on={folderMode === m} onclick={() => setFolderMode(m)} title={label} aria-label={label} aria-pressed={folderMode === m}>
+        <span class="view-switch" role="group" aria-label={m.main.view}>
+          {#each [["list", "view-list", m.main.list], ["icons", "view-grid", m.main.largeIcons], ["gallery", "view-gallery", m.main.gallery]] as const as [mode, icon, label] (mode)}
+            <button class:on={folderMode === mode} onclick={() => setFolderMode(mode)} title={label} aria-label={label} aria-pressed={folderMode === mode}>
               <Icon name={icon} size={16} />
             </button>
           {/each}
@@ -908,10 +904,10 @@
       </nav>
 
       {#if entries.length === 0 && loading}
-        <p class="empty center">Loading…</p>
+        <p class="empty center">{m.common.loading}</p>
       {:else if entries.length === 0}
         <p class="empty center">
-          {source.showAllTypes ? "This folder is empty." : "No documents in this folder."}
+          {source.showAllTypes ? m.main.emptyFolder : m.main.noDocuments}
         </p>
       {:else if folderMode !== "list"}
         <PictureView
@@ -928,10 +924,10 @@
         <table>
           <thead>
             <tr>
-              <th class="name">Name</th>
-              <th>Kind</th>
-              <th class="num">Size</th>
-              <th>Modified</th>
+              <th class="name">{m.main.name}</th>
+              <th>{m.main.kind}</th>
+              <th class="num">{m.main.size}</th>
+              <th>{m.main.modified}</th>
             </tr>
           </thead>
           <tbody>
@@ -953,12 +949,12 @@
                   <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
                   {@render tagChips(e.tags)}
                   {#if e.cloud === "cloudOnly"}
-                    <span class="cloud" title="Online-only: opening it downloads it">
+                    <span class="cloud" title={m.main.onlineOnlyTip}>
                       <Icon name="cloud" size={14} />
                     </span>
                   {/if}
                 </td>
-                <td class="muted">{e.isDir ? "Folder" : kindLabel[e.kind ?? "other"]}</td>
+                <td class="muted">{kindLabel(e.isDir ? "folder" : e.kind)}</td>
                 <td class="num muted">{e.isDir || (e.cloud === "cloudOnly" && !e.size) ? "" : formatSize(e.size)}</td>
                 <td class="muted">{formatDate(e.modifiedMs)}</td>
               </tr>
@@ -969,16 +965,16 @@
     {:else}
       <div class="welcome">
         <h1 class="visually-hidden">Rupert</h1>
-        <button class="welcome-owl" onclick={() => assistant?.show()} title="Ask Rupert (⌘J)">
+        <button class="welcome-owl" onclick={() => assistant?.show()} title={m.main.askRupertKey}>
           <RupertOwl size={132} />
-          <span>Ask Rupert</span>
+          <span>{m.main.askRupert}</span>
         </button>
-        <p class="muted">The librarian for your scanned documents.</p>
+        <p class="muted">{m.main.tagline}</p>
         {#if sources.length === 0}
-          <p>Add a folder to get started. Rupert shows it as it is on disk and never moves your files on its own.</p>
-          <button class="primary" onclick={addSource}>Add a folder…</button>
+          <p>{m.main.getStarted}</p>
+          <button class="primary" onclick={addSource}>{m.main.addFolderButton}</button>
         {:else}
-          <p class="muted">Choose a folder on the left, or search above.</p>
+          <p class="muted">{m.main.chooseOrSearch}</p>
         {/if}
       </div>
     {/if}
@@ -986,7 +982,7 @@
 
   <!-- MARK: Details -->
   <section class="details">
-    <h2>Details</h2>
+    <h2>{m.main.details}</h2>
     {#if selected}
       {@const e = selected.entry}
       <div class="detail-name">{e.name}</div>
@@ -995,30 +991,30 @@
         <hr />
       {/if}
       <dl>
-        <dt>Kind</dt>
-        <dd>{e.isDir ? "Folder" : kindLabel[e.kind ?? "other"]}</dd>
+        <dt>{m.main.kind}</dt>
+        <dd>{kindLabel(e.isDir ? "folder" : e.kind)}</dd>
         {#if !e.isDir && e.size}
-          <dt>Size</dt>
+          <dt>{m.main.size}</dt>
           <dd>{formatSize(e.size)}</dd>
         {/if}
-        <dt>Modified</dt>
+        <dt>{m.main.modified}</dt>
         <dd>{formatDate(e.modifiedMs)}</dd>
-        <dt>Location</dt>
+        <dt>{m.main.location}</dt>
         <dd>{sourceName(selected.sourceId)}/{e.relPath}</dd>
         {#if e.cloud === "cloudOnly"}
-          <dt>Storage</dt>
-          <dd class="cloud-note"><Icon name="cloud" size={14} /> Online-only. Opening it downloads it.</dd>
+          <dt>{m.main.storage}</dt>
+          <dd class="cloud-note"><Icon name="cloud" size={14} /> {m.main.onlineOnlyNote}</dd>
         {/if}
       </dl>
       <div class="actions">
-        <button class="primary" onclick={() => activate(selected!.sourceId, e)}>Open</button>
+        <button class="primary" onclick={() => activate(selected!.sourceId, e)}>{m.main.open}</button>
         <button onclick={() => reveal(selected!)}>{revealLabel(info?.os)}</button>
         {#if searching}
-          <button onclick={() => showInFolder(selected!)}>Show in Rupert</button>
+          <button onclick={() => showInFolder(selected!)}>{m.main.showInRupert}</button>
         {/if}
       </div>
     {:else}
-      <p class="empty">Select a document.</p>
+      <p class="empty">{m.main.selectDocument}</p>
     {/if}
   </section>
   {/if}
@@ -1029,24 +1025,24 @@
 {/if}
 
 {#if itemMenu}
-  {@const m = itemMenu}
+  {@const mn = itemMenu}
   <div
     class="menu item-menu"
     role="menu"
     tabindex="-1"
-    style:left="{m.x}px"
-    style:top="{m.y}px"
+    style:left="{mn.x}px"
+    style:top="{mn.y}px"
     onclick={(e) => e.stopPropagation()}
     onkeydown={() => {}}
   >
-    <button role="menuitem" onclick={() => fromMenu((sel) => activate(sel.sourceId, sel.entry))}>Open</button>
+    <button role="menuitem" onclick={() => fromMenu((sel) => activate(sel.sourceId, sel.entry))}>{m.main.open}</button>
     <button role="menuitem" onclick={() => fromMenu(reveal)}>{revealLabel(info?.os)}</button>
-    {#if m.inSearch}
-      <button role="menuitem" onclick={() => fromMenu(showInFolder)}>Show in Rupert</button>
+    {#if mn.inSearch}
+      <button role="menuitem" onclick={() => fromMenu(showInFolder)}>{m.main.showInRupert}</button>
     {/if}
-    <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>Move to…</button>
+    <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>{m.main.moveTo}</button>
     <hr />
-    <button role="menuitem" class="danger" onclick={() => trashEntry(m.sel)}>{trashLabel}</button>
+    <button role="menuitem" class="danger" onclick={() => trashEntry(mn.sel)}>{trashLabel}</button>
   </div>
 {/if}
 
@@ -1093,7 +1089,7 @@
       if (await moveItem(moving!, sourceId, relPath)) return null;
       const message = error; // shown in the dialog instead of behind it
       error = null;
-      return message ?? "The move didn't work.";
+      return message ?? m.main.moveFailed;
     }}
     onclose={() => (moving = null)}
   />
@@ -1122,23 +1118,23 @@
 <footer>
   <span>
     {#if info}
-      <span title="Version and edition (where it was installed from)">{info.name} {info.version} · {editionLabel(info)}</span>
+      <span title={m.main.versionTip}>{info.name} {info.version} · {editionLabel(info)}</span>
     {/if}
-    <button class="footer-btn" onclick={() => (settingsOpen = true)} title="Settings">Settings</button>
-    <button class="footer-btn" onclick={() => api.openHelp()} title="Rupert Help (F1)">Help</button>
+    <button class="footer-btn" onclick={() => (settingsOpen = true)} title={m.main.settings}>{m.main.settings}</button>
+    <button class="footer-btn" onclick={() => api.openHelp()} title={m.main.helpTip}>{m.main.help}</button>
   </span>
   <span class="status">
     {#if updates.status === "available"}
-      <button class="footer-btn update" onclick={() => updates.install()} title="Download, install and restart">
-        Update to {updates.version}
+      <button class="footer-btn update" onclick={() => updates.install()} title={m.main.updateTip}>
+        {m.main.updateTo(updates.version ?? "")}
       </button> ·
     {:else if updates.status === "downloading"}
-      Downloading the update{updates.progress !== null ? ` (${Math.round(updates.progress * 100)} %)` : ""}… ·
+      {m.main.downloadingUpdate(updates.progress !== null ? Math.round(updates.progress * 100) : null)} ·
     {:else if updates.status === "restarting"}
-      Restarting… ·
+      {m.main.restarting} ·
     {/if}
     {statusText()}
-    {#if progress && !progress.pdfText}· PDF text search unavailable (PDFium missing){/if}
+    {#if progress && !progress.pdfText}· {m.main.noPdfText}{/if}
   </span>
 </footer>
 

@@ -12,6 +12,7 @@
     type ScanRequest,
     type Scanner,
   } from "$lib/api";
+  import { m } from "$lib/i18n";
 
   let {
     hasInbox,
@@ -149,17 +150,17 @@
 
 <div class="backdrop" role="presentation">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="scan-title">
-    <h1 id="scan-title">Scan</h1>
+    <h1 id="scan-title">{m.scan.title}</h1>
     {#if !hasInbox}
-      <p>Scans are saved to the inbox, where Rupert reads them and suggests how to file them. Set it up first.</p>
+      <p>{m.scan.needsInbox}</p>
       <div class="actions">
         <span class="spacer"></span>
-        <button onclick={onclose}>Cancel</button>
-        <button class="primary" onclick={onsettings}>Set up the inbox…</button>
+        <button onclick={onclose}>{m.common.cancel}</button>
+        <button class="primary" onclick={onsettings}>{m.scan.setUpInbox}</button>
       </div>
     {:else}
       <section>
-        <h2>Scanner</h2>
+        <h2>{m.scan.scanner}</h2>
         <ul class="scanners">
           {#each all as s (s.url)}
             <li>
@@ -171,30 +172,28 @@
           {/each}
         </ul>
         {#if searching}
-          <p class="muted small">Looking for scanners on the network…</p>
+          <p class="muted small">{m.scan.looking}</p>
         {:else if all.length === 0}
-          <p class="muted small">
-            No network scanners found. Make sure the scanner is on and on the same network, or add it by its address.
-          </p>
+          <p class="muted small">{m.scan.noneFound}</p>
         {/if}
         <div class="row">
           <input
-            placeholder="Add by address, e.g. 192.168.1.20"
+            placeholder={m.scan.addressPlaceholder}
             bind:value={address}
             onkeydown={(e) => e.key === "Enter" && addByAddress()}
           />
-          <button onclick={addByAddress} disabled={!address.trim()}>Add</button>
+          <button onclick={addByAddress} disabled={!address.trim()}>{m.scan.add}</button>
         </div>
         {#if capsError}<p class="error small">{capsError}</p>{/if}
       </section>
 
       {#if caps}
         <section>
-          <h2>Settings {#if caps.makeAndModel}<span class="muted">· {caps.makeAndModel}</span>{/if}</h2>
+          <h2>{m.scan.settings} {#if caps.makeAndModel}<span class="muted">· {caps.makeAndModel}</span>{/if}</h2>
           <div class="grid">
-            <span class="label">Source</span>
+            <span class="label">{m.scan.source}</span>
             <div class="seg">
-              {#each [["feeder", "Document feeder"], ["platen", "Glass"]] as [value, label] (value)}
+              {#each [["feeder", m.scan.feeder], ["platen", m.scan.glass]] as [value, label] (value)}
                 {#if value === "feeder" ? caps.feeder : caps.platen}
                   <label
                     ><input type="radio" bind:group={request.source} value={value as InputSource} />
@@ -204,39 +203,39 @@
               {/each}
             </div>
             {#if request.source === "feeder" && caps.duplex}
-              <span class="label">Sides</span>
-              <label><input type="checkbox" bind:checked={request.duplex} /> Both sides</label>
+              <span class="label">{m.scan.sides}</span>
+              <label><input type="checkbox" bind:checked={request.duplex} /> {m.scan.bothSides}</label>
             {/if}
-            <span class="label">Color</span>
+            <span class="label">{m.scan.color}</span>
             <div class="seg">
-              <label><input type="radio" bind:group={request.color} value="gray" /> Grayscale</label>
+              <label><input type="radio" bind:group={request.color} value="gray" /> {m.scan.grayscale}</label>
               {#if sourceCaps?.colorModes.includes("RGB24")}
-                <label><input type="radio" bind:group={request.color} value="color" /> Color</label>
+                <label><input type="radio" bind:group={request.color} value="color" /> {m.scan.inColor}</label>
               {/if}
             </div>
-            <label class="label" for="res">Resolution</label>
+            <label class="label" for="res">{m.scan.resolution}</label>
             <select id="res" bind:value={request.resolution}>
-              {#each sourceCaps?.resolutions ?? [] as r (r)}<option value={r}>{r} dpi</option>{/each}
+              {#each sourceCaps?.resolutions ?? [] as r (r)}<option value={r}>{m.scan.dpi(r)}</option>{/each}
             </select>
-            <label class="label" for="size">Page size</label>
+            <label class="label" for="size">{m.scan.pageSize}</label>
             <select id="size" bind:value={request.pageSize}>
-              {#each [["letter", "Letter"], ["legal", "Legal"], ["a4", "A4"], ["max", "As large as possible"]] as [v, l] (v)}
+              {#each [["letter", m.scan.letter], ["legal", m.scan.legal], ["a4", m.scan.a4], ["max", m.scan.max]] as [v, l] (v)}
                 <option value={v as PageSize}>{l}</option>
               {/each}
             </select>
           </div>
-          <p class="muted small">300 dpi grayscale suits most paperwork and gives the best text recognition.</p>
+          <p class="muted small">{m.scan.hint}</p>
         </section>
       {/if}
 
       {#if error}<p class="error">{error}</p>{/if}
       <div class="actions">
         {#if scanning}
-          <span class="progress"><span class="spinner"></span>Scanning… {pages ? `${pages} page${pages === 1 ? "" : "s"}` : ""}</span>
+          <span class="progress"><span class="spinner"></span>{m.scan.scanning} {pages ? m.scan.pages(pages) : ""}</span>
         {/if}
         <span class="spacer"></span>
-        <button onclick={onclose} disabled={scanning}>Cancel</button>
-        <button class="primary" disabled={!caps || scanning} onclick={start}>Scan</button>
+        <button onclick={onclose} disabled={scanning}>{m.common.cancel}</button>
+        <button class="primary" disabled={!caps || scanning} onclick={start}>{m.scan.scan}</button>
       </div>
     {/if}
   </div>

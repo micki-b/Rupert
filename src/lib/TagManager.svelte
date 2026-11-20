@@ -13,6 +13,7 @@
     type TagEditPreview,
     type TagEditReport,
   } from "$lib/api";
+  import { m } from "$lib/i18n";
 
   let { onclose, onchanged }: { onclose: () => void; onchanged: () => void } = $props();
 
@@ -40,7 +41,7 @@
   const renameEdit = $derived<TagEdit | null>(
     picked.length && newName.trim() ? { from: picked, action: { kind: "rename", to: newName.trim() } } : null,
   );
-  const verb = $derived(picked.length > 1 ? "Merge" : "Rename");
+  const verb = $derived(picked.length > 1 ? m.tags.merge : m.tags.rename);
 
   async function load() {
     all = await api.listTags();
@@ -88,12 +89,12 @@
 
   function describe(p: TagEditPreview): string {
     const parts = [
-      p.inFile && `${p.inFile} inside PDFs`,
-      p.sidecar && `${p.sidecar} in sidecars`,
-      p.pending && `${p.pending} online-only, noted beside the file`,
-      p.download && `${p.download} online-only to download`,
+      p.inFile && m.tags.inPdfs(p.inFile),
+      p.sidecar && m.tags.inSidecars(p.sidecar),
+      p.pending && m.tags.pending(p.pending),
+      p.download && m.tags.toDownload(p.download),
     ].filter(Boolean);
-    return `${p.documents} document${p.documents === 1 ? "" : "s"}${parts.length ? ": " + parts.join(", ") : ""}.`;
+    return m.tags.documents(p.documents, parts.join(", "));
   }
 
   async function run(edit: TagEdit) {
@@ -118,8 +119,8 @@
     if (!renameEdit || !preview) return;
     if (preview.download > 0) {
       const ok = await ask(
-        `${preview.download} online-only PDF${preview.download === 1 ? "" : "s"} will be downloaded to change ${preview.download === 1 ? "it" : "them"}.`,
-        { title: `${verb} tags`, kind: "warning", okLabel: verb },
+        m.tags.downloadAsk(preview.download),
+        { title: picked.length > 1 ? m.tags.mergeTitle : m.tags.renameTitle, kind: "warning", okLabel: verb },
       );
       if (!ok) return;
     }
@@ -138,8 +139,8 @@
     }
     const names = picked.map((t) => `“${t}”`).join(", ");
     const ok = await ask(
-      `Remove ${names} from ${describe(p)}${p.download ? " Online-only PDFs left without tags have to be downloaded." : ""} The documents themselves stay.`,
-      { title: "Delete tags", kind: "warning", okLabel: "Delete" },
+      m.tags.deleteAsk(names, describe(p), p.download > 0),
+      { title: m.tags.deleteTitle, kind: "warning", okLabel: m.tags.delete },
     );
     if (ok) await run(edit);
   }
@@ -153,17 +154,14 @@
 
 <div class="backdrop" role="presentation">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="tm-title">
-    <h1 id="tm-title">Manage tags</h1>
-    <p class="muted small">
-      Pick tags to rename, merge into one, or delete. Changes are saved in each document (inside the PDF, or in its
-      sidecar), so other computers see them too.
-    </p>
+    <h1 id="tm-title">{m.tags.title}</h1>
+    <p class="muted small">{m.tags.intro}</p>
     <div class="columns">
       <div class="list-col">
         <div class="list-tools">
-          <input type="search" placeholder="Filter {all.length} tags…" bind:value={filter} />
+          <input type="search" placeholder={m.tags.filter(all.length)} bind:value={filter} />
           <button class="link" onclick={() => (sortByCount = !sortByCount)}>
-            {sortByCount ? "By use" : "A–Z"}
+            {sortByCount ? m.tags.byUse : m.tags.aToZ}
           </button>
         </div>
         <ul class="tag-list">
@@ -176,41 +174,38 @@
               </label>
             </li>
           {:else}
-            <li class="muted small pad">{all.length ? "No tags match." : "No tags yet."}</li>
+            <li class="muted small pad">{all.length ? m.tags.noneMatch : m.tags.noneYet}</li>
           {/each}
         </ul>
       </div>
 
       <div class="action-col">
         {#if !picked.length}
-          <p class="muted">Pick one tag to rename it, or several to merge them.</p>
+          <p class="muted">{m.tags.pickHint}</p>
         {:else}
-          <h2>{picked.length === 1 ? "Selected tag" : `${picked.length} selected tags`}</h2>
+          <h2>{m.tags.selected(picked.length)}</h2>
           <ul class="picked">
             {#each picked as t (t)}
               <li><span># {t}</span><span class="count">{countOf(t)}</span></li>
             {/each}
           </ul>
           <label class="field">
-            <span>{picked.length > 1 ? "Merge into" : "Rename to"}</span>
-            <input bind:value={newName} list="tm-tags" placeholder="New tag name" disabled={working} />
+            <span>{picked.length > 1 ? m.tags.mergeInto : m.tags.renameTo}</span>
+            <input bind:value={newName} list="tm-tags" placeholder={m.tags.newName} disabled={working} />
             <datalist id="tm-tags">
               {#each all as t (t.tag)}<option value={t.tag}></option>{/each}
             </datalist>
           </label>
           {#if preview}
-            <p class="small">Changes {describe(preview)}</p>
+            <p class="small">{m.tags.changes(describe(preview))}</p>
             {#if preview.download}
-              <p class="small warn">
-                Online-only PDFs left without any tag must be downloaded to change; the rest only get a note beside
-                the file until they're next opened.
-              </p>
+              <p class="small warn">{m.tags.downloadNote}</p>
             {/if}
           {:else if previewError}
             <p class="small error">{previewError}</p>
           {/if}
           <div class="buttons">
-            <button class="danger" onclick={remove} disabled={working}>Delete…</button>
+            <button class="danger" onclick={remove} disabled={working}>{m.tags.deleteButton}</button>
             <span class="spacer"></span>
             <button class="primary" onclick={rename} disabled={working || !preview || preview.documents === 0}>
               {verb}
@@ -221,15 +216,15 @@
         {#if working}
           <p class="small progress">
             <span class="spinner"></span>
-            Saving {progress ? `${progress.done} of ${progress.total}` : "…"}
+            {m.tags.saving} {progress ? m.tags.savingProgress(progress.done, progress.total) : "…"}
           </p>
         {/if}
         {#if report}
           <p class="small ok">
-            Changed {report.changed} document{report.changed === 1 ? "" : "s"}.
+            {m.tags.changed(report.changed)}
           </p>
           {#if report.failed.length}
-            <p class="small error">{report.failed.length} couldn't be changed:</p>
+            <p class="small error">{m.tags.failed(report.failed.length)}</p>
             <ul class="failures">
               {#each report.failed.slice(0, 20) as f (f.path)}<li><strong>{f.path}</strong>: {f.error}</li>{/each}
             </ul>
@@ -240,7 +235,7 @@
     </div>
     <div class="actions">
       <span class="spacer"></span>
-      <button onclick={onclose} disabled={working}>Done</button>
+      <button onclick={onclose} disabled={working}>{m.common.done}</button>
     </div>
   </div>
 </div>

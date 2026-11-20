@@ -5,6 +5,7 @@
   import { api } from "$lib/api";
   import Icon from "$lib/Icon.svelte";
   import MarkdownView from "$lib/MarkdownView.svelte";
+  import { m } from "$lib/i18n";
 
   let { sourceId, relPath, onclose }: { sourceId: string; relPath: string; onclose: () => void } = $props();
 
@@ -32,7 +33,7 @@
   <div class="reader" role="dialog" tabindex="-1" aria-modal="true" aria-label={name} onclick={(e) => e.stopPropagation()}>
     <header>
       {#if trail.length > 1}
-        <button class="icon" onclick={() => (trail = trail.slice(0, -1))} title="Back" aria-label="Back">
+        <button class="icon" onclick={() => (trail = trail.slice(0, -1))} title={m.common.back} aria-label={m.common.back}>
           <Icon name="back" size={18} />
         </button>
       {/if}
@@ -40,8 +41,8 @@
         <strong>{name}</strong>
         <span class="muted">{current.includes("/") ? current.slice(0, current.lastIndexOf("/")) : ""}</span>
       </div>
-      <button class="open" onclick={() => api.openEntry(sourceId, current)}>Open in default app</button>
-      <button class="icon" onclick={onclose} title="Close (Esc)" aria-label="Close">
+      <button class="open" onclick={() => api.openEntry(sourceId, current)}>{m.common.openInDefaultApp}</button>
+      <button class="icon" onclick={onclose} title={m.common.closeEsc} aria-label={m.common.close}>
         <Icon name="close" size={18} />
       </button>
     </header>

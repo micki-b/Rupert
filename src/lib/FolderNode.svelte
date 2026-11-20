@@ -7,6 +7,7 @@
   import Icon from "./Icon.svelte";
   import FolderNode from "./FolderNode.svelte";
   import { dropTarget, isDropOver, type MoveItem } from "./drag.svelte";
+  import { m } from "$lib/i18n";
 
   interface Props {
     sourceId: string;
@@ -80,7 +81,7 @@
     class:open={expanded}
     class:none={children !== null && children.length === 0}
     onclick={toggle}
-    aria-label={expanded ? "Collapse" : "Expand"}
+    aria-label={expanded ? m.common.collapse : m.common.expand}
     tabindex="-1"
   >
     <Icon name="chevron" size={12} />

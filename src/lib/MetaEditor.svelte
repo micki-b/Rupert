@@ -3,6 +3,7 @@
   // its sidecar, so it only happens when the user presses Save.
   import { api, type DocMeta, type Entry, type MetaRecord } from "./api";
   import Icon from "./Icon.svelte";
+  import { m } from "$lib/i18n";
 
   let { sourceId, entry }: { sourceId: string; entry: Entry } = $props();
 
@@ -23,13 +24,13 @@
     return { title: "", documentDate: "", tags: [], notes: "", favorite: false };
   }
 
-  function toForm(m: DocMeta): Form {
+  function toForm(d: DocMeta): Form {
     return {
-      title: m.title ?? "",
-      documentDate: m.documentDate ?? "",
-      tags: [...m.tags],
-      notes: m.notes ?? "",
-      favorite: m.favorite,
+      title: d.title ?? "",
+      documentDate: d.documentDate ?? "",
+      tags: [...d.tags],
+      notes: d.notes ?? "",
+      favorite: d.favorite,
     };
   }
 
@@ -120,34 +121,34 @@
 
   const storageText = $derived(
     record?.storage === "embedded"
-      ? "Stored inside the PDF"
+      ? m.details.inPdf
       : record?.storage === "sidecar"
-        ? "Stored in a hidden sidecar file"
-        : "No details saved yet",
+        ? m.details.inSidecar
+        : m.details.noneYet,
   );
 </script>
 
 {#if !available}
   <div class="offline">
     <Icon name="cloud" size={16} />
-    <p>This PDF is online-only. Its details are stored inside it, so showing them downloads the file.</p>
+    <p>{m.details.onlineOnly}</p>
     {#if record}
-      {@const m = record.meta}
+      {@const known = record.meta}
       <p class="beside">
-        Already known without downloading:
+        {m.details.alreadyKnown}
         {[
-          m.title,
-          m.documentDate && `dated ${m.documentDate}`,
-          m.favorite && "favorite",
-          m.tags.length && m.tags.map((t) => `#${t}`).join(" "),
-          m.notes,
+          known.title,
+          known.documentDate && m.details.dated(known.documentDate),
+          known.favorite && m.details.favorite,
+          known.tags.length && known.tags.map((t) => `#${t}`).join(" "),
+          known.notes,
         ]
           .filter(Boolean)
           .join(" · ")}
       </p>
     {/if}
     <button onclick={() => load(true)} disabled={loading}>
-      {loading ? "Downloading…" : "Download and show details"}
+      {loading ? m.details.downloading : m.details.downloadAndShow}
     </button>
   </div>
 {:else}
@@ -155,21 +156,21 @@
   <form class="meta" onsubmit={(e) => { e.preventDefault(); save(); }} {onkeydown}>
     <div class="title-row">
       <label class="field grow">
-        <span>Title</span>
+        <span>{m.details.title}</span>
         <input bind:value={form.title} placeholder={entry.name} disabled={loading} />
       </label>
       <button
         type="button"
         class="star"
         class:on={form.favorite}
-        title={form.favorite ? "Remove from favorites" : "Mark as favorite"}
+        title={form.favorite ? m.details.removeFavorite : m.details.markFavorite}
         aria-pressed={form.favorite}
         onclick={() => (form.favorite = !form.favorite)}>{form.favorite ? "★" : "☆"}</button
       >
     </div>
 
     <label class="field">
-      <span>Document date</span>
+      <span>{m.details.documentDate}</span>
       <input
         type="date"
         class:unset={!form.documentDate}
@@ -179,18 +180,18 @@
     </label>
 
     <div class="field">
-      <span id="tags-label">Tags</span>
+      <span id="tags-label">{m.details.tags}</span>
       <div class="tags" role="group" aria-labelledby="tags-label">
         {#each form.tags as tag, i (tag)}
           <span class="tag">
             {tag}
-            <button type="button" aria-label="Remove tag {tag}" onclick={() => removeTag(i)}>×</button>
+            <button type="button" aria-label={m.details.removeTag(tag)} onclick={() => removeTag(i)}>×</button>
           </span>
         {/each}
         <input
           class="tag-input"
           bind:value={tagDraft}
-          placeholder={form.tags.length ? "" : "Add tags…"}
+          placeholder={form.tags.length ? "" : m.details.addTags}
           disabled={loading}
           onkeydown={(e) => {
             if (e.key === "Enter" || e.key === ",") {
@@ -206,7 +207,7 @@
     </div>
 
     <label class="field">
-      <span>Notes</span>
+      <span>{m.details.notes}</span>
       <textarea bind:value={form.notes} rows="3" disabled={loading}></textarea>
     </label>
 
@@ -214,13 +215,13 @@
 
     <div class="actions">
       <button type="submit" class="primary" disabled={!dirty || saving || loading}>
-        {saving ? "Saving…" : "Save"}
+        {saving ? m.details.saving : m.common.save}
       </button>
-      <button type="button" onclick={revert} disabled={!dirty || saving}>Revert</button>
+      <button type="button" onclick={revert} disabled={!dirty || saving}>{m.details.revert}</button>
     </div>
 
     <p class="storage">
-      {loading ? "Reading…" : storageText}
+      {loading ? m.details.reading : storageText}
       {#if record?.note}<br /><span class="note">{record.note}</span>{/if}
     </p>
   </form>
