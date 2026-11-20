@@ -16,8 +16,8 @@ use std::time::{Duration, Instant};
 use serde::Deserialize;
 
 use crate::error::{Error, Result};
-pub use crate::oauth::Pkce;
-use crate::oauth::{encode, percent_decode, query};
+pub use crate::oauth::{Pkce, Tokens, parse_time_ms};
+use crate::oauth::{encode, query};
 use crate::remote::RemoteFile;
 
 const AUTHORITY: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0";
@@ -94,38 +94,7 @@ pub fn authorize_url(client_id: &str, redirect_uri: &str, pkce: &Pkce) -> String
 /// The authorization code from the page's redirect, after checking it
 /// answers this attempt.
 pub fn code_from_redirect(url: &str, pkce: &Pkce) -> Result<String> {
-    let q = url.split_once('?').map(|(_, q)| q).unwrap_or_default();
-    let q = q.split('#').next().unwrap_or_default();
-    let params: HashMap<String, String> = q
-        .split('&')
-        .filter_map(|kv| kv.split_once('='))
-        .map(|(k, v)| (percent_decode(k), percent_decode(v)))
-        .collect();
-    if let Some(e) = params.get("error") {
-        let detail = params.get("error_description").unwrap_or(e);
-        return Err(net_err(detail));
-    }
-    if params.get("state") != Some(&pkce.state) {
-        return Err(net_err("the sign-in answer didn't match; please try again"));
-    }
-    params
-        .get("code")
-        .cloned()
-        .ok_or_else(|| net_err("the sign-in page returned no code"))
-}
-
-#[derive(Debug, Clone)]
-pub struct Tokens {
-    pub access_token: String,
-    /// Replaces the stored one (refresh tokens rotate).
-    pub refresh_token: Option<String>,
-    pub expires_at: Instant,
-}
-
-impl Tokens {
-    pub fn is_fresh(&self) -> bool {
-        Instant::now() + Duration::from_secs(120) < self.expires_at
-    }
+    crate::oauth::code_from_redirect(url, pkce).map_err(net_err)
 }
 
 #[derive(Deserialize)]
@@ -498,33 +467,6 @@ impl Graph {
         };
         Ok(item.name)
     }
-}
-
-// MARK: - Times
-
-/// "2025-03-14T18:22:05Z" / "…05.123Z" → milliseconds since the epoch.
-pub fn parse_time_ms(s: &str) -> Option<i64> {
-    let s = s.strip_suffix('Z')?;
-    let (date, time) = s.split_once('T')?;
-    let mut d = date.split('-').map(|p| p.parse::<i64>().ok());
-    let (y, m, day) = (d.next()??, d.next()??, d.next()??);
-    let (hms, frac) = time.split_once('.').unwrap_or((time, ""));
-    let mut t = hms.split(':').map(|p| p.parse::<i64>().ok());
-    let (hh, mm, ss) = (t.next()??, t.next()??, t.next()??);
-    let ms = if frac.is_empty() {
-        0
-    } else {
-        format!("{frac:0<3}")[..3].parse::<i64>().ok()?
-    };
-    // Days from civil (Howard Hinnant's algorithm).
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + day - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = era * 146_097 + doe - 719_468;
-    Some(((days * 24 + hh) * 60 + mm) * 60_000 + ss * 1000 + ms)
 }
 
 // MARK: - Tests

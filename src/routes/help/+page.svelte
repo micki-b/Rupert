@@ -101,14 +101,14 @@
       <h1>Rupert, the librarian for your documents</h1>
       <p>
         Rupert keeps track of your scanned documents and other files in the folders you already use: on this computer,
-        in iCloud Drive or in OneDrive. It doesn't import or copy anything. Your folders stay the library, and Rupert adds
+        in iCloud Drive, OneDrive or Google Drive. It doesn't import or copy anything. Your folders stay the library, and Rupert adds
         search, tags, dates, favorites and an inbox for new scans.
       </p>
       <h3>First steps</h3>
       <ol>
         <li>
           <strong>Add a folder.</strong> Click <b>+</b> next to <b>Sources</b> in the sidebar and pick a folder, for example
-          your Documents folder or a OneDrive folder. Its subfolders are included. Add as many sources as you like.
+          your Documents folder, or a folder in OneDrive or Google Drive. Its subfolders are included. Add as many sources as you like.
         </li>
         <li>
           <strong>Wait for the first pass.</strong> Rupert reads each document once so it can search its text. The status
@@ -183,8 +183,8 @@
         since everything inside it goes too.
       </p>
       <p>
-        Rupert doesn't open online-only files to delete them; the deletion syncs like any other, and iCloud Drive and
-        OneDrive also keep deleted files for a while on their websites. Folders you added as sources can't be deleted this way; use
+        Rupert doesn't open online-only files to delete them; the deletion syncs like any other, and iCloud Drive,
+        OneDrive and Google Drive also keep deleted files for a while on their websites. Folders you added as sources can't be deleted this way; use
         <b>Remove from Rupert…</b> in the source's <b>⋯</b> menu (that leaves the folder on disk).
       </p>
       <h3>Source options</h3>
@@ -195,7 +195,7 @@
           on to see every file.
         </li>
         <li>
-          <b>Download online-only files to index them</b> (iCloud Drive and OneDrive sources): see
+          <b>Download online-only files to index them</b> (iCloud Drive, OneDrive and Google Drive sources): see
           <a href="#online-only">online-only files</a> below.
         </li>
         <li><b>Rename…</b> changes the name shown in Rupert, not the folder's name on disk.</li>
@@ -203,9 +203,15 @@
       </ul>
       <h3 id="online-only">Online-only files</h3>
       <p>
-        iCloud Drive and OneDrive can keep files in the cloud only, to save space. Rupert shows them with a cloud icon
+        iCloud Drive, OneDrive and Google Drive can keep files in the cloud only, to save space. Rupert shows them with a cloud icon
         <span class="cloud">☁</span> and never opens them on its own, because opening one downloads it. You can still find
         them by name and by the details Rupert knows about them, and opening one downloads it as usual.
+      </p>
+      <p>
+        On Windows, Google Drive set to <b>Stream files</b> doesn't tell other apps which files are on the computer, so
+        Rupert treats every file on its <b>Google Drive (G:)</b> drive as online-only. Titles, tags and text then come
+        from Rupert on another computer (through the shared catalog), or from <b>Download online-only files to index
+        them</b>. With Google Drive set to <b>Mirror files</b>, everything is on the computer and read as usual.
       </p>
       <p>
         To search the <em>text</em> of online-only documents, turn on <b>Download online-only files to index them</b> for that
@@ -678,7 +684,10 @@
         <li>
           <b>Add folders</b> from iCloud Drive or On My iPhone with the Files picker: the same folders Rupert uses on the
           computer. For <b>OneDrive</b>, sign in with your Microsoft account in the app instead (the Files picker can't share
-          OneDrive folders with other apps).
+          OneDrive folders with other apps). <b>Google Drive</b> works the same way (a preview): the Google Drive app doesn't
+          share its folders with other apps either, so sign in with your Google account in <b>Settings ▸ Google
+          Drive</b>. Google hasn't reviewed Rupert, so its sign-in page warns that the app isn't verified; tap
+          <b>Advanced</b>, then <b>Go to Rupert</b>.
         </li>
         <li>
           <b>Search and browse</b> titles, tags and text. The text comes from what Rupert on your computer has read, so let it
@@ -714,7 +723,7 @@
           is lost if it's deleted.
         </li>
         <li>
-          <b>The shared catalog</b>: in iCloud Drive and OneDrive sources, a hidden <code>.rupert/catalog</code> folder holds
+          <b>The shared catalog</b>: in iCloud Drive, OneDrive and Google Drive sources, a hidden <code>.rupert/catalog</code> folder holds
           the text Rupert has read, so your other devices can search online-only documents.
         </li>
         <li><b>API keys</b> are kept in {keychain}.</li>

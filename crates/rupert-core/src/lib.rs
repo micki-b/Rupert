@@ -14,6 +14,8 @@ pub mod escl;
 pub mod file_kind;
 pub mod fileops;
 pub mod folder_info;
+#[cfg(feature = "gdrive")]
+pub mod gdrive;
 pub mod index;
 pub mod indexer;
 pub mod intake;

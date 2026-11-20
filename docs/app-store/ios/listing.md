@@ -43,6 +43,7 @@ YOUR DOCUMENTS STAY YOURS
 • Your files stay in your own storage; Rupert reads them where they are.
 • Online-only files aren't downloaded until you open one.
 • OneDrive: sign in with your Microsoft account; Rupert only reads your folders and adds new scans to your inbox.
+• Google Drive (preview): sign in with your Google account, the same way.
 
 Rupert is free and open source.
 
@@ -78,6 +79,8 @@ To try it with PDFs already on the device: Library tab ▸ "Add a folder…", ch
 To try it without any PDFs: Scan tab ▸ "Choose in Files…", choose or create a folder (for example in On My iPhone) as the inbox. Tap Rupert the owl to scan a page with the camera; it's saved there as a PDF. Then Library tab ▸ "Add a folder…" and choose that same folder to see the scan in the library.
 
 OneDrive is optional (Settings ▸ OneDrive) and needs a personal Microsoft account.
+
+Google Drive is optional too (Settings ▸ Google Drive, marked "preview"). Rupert's Google project is used by a few known people and isn't verified by Google, so Google's sign-in page shows its "Google hasn't verified this app" warning; that is expected. It isn't needed to review the app.
 
 Rupert is free and open source: https://github.com/micki-b/Rupert
 

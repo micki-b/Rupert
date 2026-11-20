@@ -1,0 +1,16 @@
+# rupertlibrarian.com: Apache settings for Bluehost shared hosting. This
+# folder sits inside the main site's public_html, whose WordPress rules would
+# otherwise apply here too; turning the rewrite engine on below replaces them.
+
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # One address: https://rupertlibrarian.com (no www). The certificate is
+  # Bluehost's free Let's Encrypt one, renewed by Bluehost.
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP_HOST} ^www\. [NC]
+  RewriteRule ^ https://rupertlibrarian.com%{REQUEST_URI} [L,R=301]
+</IfModule>

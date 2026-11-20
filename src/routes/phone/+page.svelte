@@ -21,6 +21,8 @@
     type Listed,
     type OneDriveFolder,
     type OneDriveStatus,
+    type CloudService,
+    type CloudStatus,
     type AppVersion,
     type Overview,
     type Progress,
@@ -97,9 +99,11 @@
 
   let confirmRemove = $state<string | null>(null);
   let od = $state<OneDriveStatus | null>(null);
+  let gd = $state<CloudStatus | null>(null);
   let remoteProgress = $state<Progress | null>(null);
-  /** The OneDrive folder chooser: what it's for, and where it is. */
+  /** The cloud folder chooser: which service, what it's for, and where it is. */
   type Chooser = {
+    service: CloudService;
     purpose: "library" | "inbox";
     path: OneDriveFolder[];
     folders: OneDriveFolder[];
@@ -128,6 +132,7 @@
   async function loadOverview() {
     overview = await phone.overview();
     od = await phone.onedriveStatus().catch(() => null);
+    gd = await phone.gdriveStatus().catch(() => null);
     favFolders = await phone.favoriteFolders().catch(() => []);
   }
 
@@ -322,10 +327,12 @@
     }
   }
 
-  // MARK: OneDrive
+  // MARK: OneDrive and Google Drive
 
-  async function openChooser(purpose: "library" | "inbox") {
-    chooser = { purpose, path: [], folders: [], loading: true, error: null };
+  const serviceName: Record<CloudService, string> = { onedrive: "OneDrive", googledrive: "Google Drive" };
+
+  async function openChooser(service: CloudService, purpose: "library" | "inbox") {
+    chooser = { service, purpose, path: [], folders: [], loading: true, error: null };
     await loadChooser();
   }
 
@@ -334,7 +341,10 @@
     chooser.loading = true;
     chooser.error = null;
     try {
-      chooser.folders = await phone.onedriveFolders(chooser.path.at(-1)?.id ?? null);
+      const parent = chooser.path.at(-1)?.id ?? null;
+      chooser.folders = await (chooser.service === "googledrive"
+        ? phone.gdriveFolders(parent)
+        : phone.onedriveFolders(parent));
     } catch (e) {
       chooser.error = String(e);
       chooser.folders = [];
@@ -360,10 +370,15 @@
     const here = c?.path.at(-1);
     if (!c || !here) return;
     chooser = null;
+    const path = $state.snapshot(c.path);
     await act(() =>
-      c.purpose === "library"
-        ? phone.addOnedriveFolder(here.id, here.name)
-        : phone.setOnedriveInbox(here.id, here.name, $state.snapshot(c.path)),
+      c.service === "googledrive"
+        ? c.purpose === "library"
+          ? phone.addGdriveFolder(here.id, here.name)
+          : phone.setGdriveInbox(here.id, here.name, path)
+        : c.purpose === "library"
+          ? phone.addOnedriveFolder(here.id, here.name)
+          : phone.setOnedriveInbox(here.id, here.name, path),
     );
   }
 
@@ -416,13 +431,20 @@
           <div class="empty">
             <p>
               Pick the folders that hold your documents, the same ones Rupert uses on your computer: in iCloud Drive,
-              OneDrive or on this iPhone.
+              OneDrive, Google Drive or on this iPhone.
             </p>
             <button class="primary" disabled={busy} onclick={() => act(phone.addFolder)}>Add a folder…</button>
             {#if od?.signedIn}
-              <button class="primary" disabled={busy} onclick={() => openChooser("library")}>Add a OneDrive folder…</button>
+              <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "library")}>Add a OneDrive folder…</button>
             {:else if od?.configured}
               <p class="note small">OneDrive folders need a sign-in first: Settings ▸ OneDrive.</p>
+            {/if}
+            {#if gd?.signedIn}
+              <button class="primary" disabled={busy} onclick={() => openChooser("googledrive", "library")}>
+                Add a Google Drive folder…
+              </button>
+            {:else if gd?.configured}
+              <p class="note small">Google Drive folders need a sign-in first: Settings ▸ Google Drive.</p>
             {/if}
             {#if settingsError}<p class="error">{settingsError}</p>{/if}
           </div>
@@ -584,7 +606,12 @@
           </p>
           <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>Choose in Files…</button>
           {#if od?.signedIn}
-            <button class="primary" disabled={busy} onclick={() => openChooser("inbox")}>Choose in OneDrive…</button>
+            <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>Choose in OneDrive…</button>
+          {/if}
+          {#if gd?.signedIn}
+            <button class="primary" disabled={busy} onclick={() => openChooser("googledrive", "inbox")}>
+              Choose in Google Drive…
+            </button>
           {/if}
           {#if settingsError}<p class="error">{settingsError}</p>{/if}
         {:else if overview}
@@ -631,7 +658,7 @@
             <RupertOwl mood={scanMood[scanState]} size={150} />
           </button>
           <p class="note">
-            Pages are saved to <strong>{overview.inboxOnOnedrive ? "OneDrive ▸ " : ""}{overview.inbox}</strong> as one PDF.
+            Pages are saved to <strong>{overview.inboxService ? `${serviceName[overview.inboxService]} ▸ ` : ""}{overview.inbox}</strong> as one PDF.
           </p>
           {#if lastScan}
             <p class="ok">
@@ -669,8 +696,15 @@
           </li>
           {#if od?.signedIn}
             <li class="setting">
-              <button class="plain add" disabled={busy} onclick={() => openChooser("library")}>
+              <button class="plain add" disabled={busy} onclick={() => openChooser("onedrive", "library")}>
                 <Icon name="plus" /> Add a OneDrive folder…
+              </button>
+            </li>
+          {/if}
+          {#if gd?.signedIn}
+            <li class="setting">
+              <button class="plain add" disabled={busy} onclick={() => openChooser("googledrive", "library")}>
+                <Icon name="plus" /> Add a Google Drive folder…
               </button>
             </li>
           {/if}
@@ -683,11 +717,14 @@
           <li class="setting">
             <span class="main">
               <span class="name">{overview.inbox ?? "Not chosen"}</span>
-              {#if overview.inbox}<span class="sub">{overview.inboxOnOnedrive ? "OneDrive" : "Files"}</span>{/if}
+              {#if overview.inbox}<span class="sub">{overview.inboxService ? serviceName[overview.inboxService] : "Files"}</span>{/if}
             </span>
             <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>In Files…</button>
             {#if od?.signedIn}
-              <button class="plain" disabled={busy} onclick={() => openChooser("inbox")}>In OneDrive…</button>
+              <button class="plain" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>In OneDrive…</button>
+            {/if}
+            {#if gd?.signedIn}
+              <button class="plain" disabled={busy} onclick={() => openChooser("googledrive", "inbox")}>In Google Drive…</button>
             {/if}
           </li>
         </ul>
@@ -719,6 +756,34 @@
           its own small catalog files, downloads a document when you open it, and adds scans to the inbox.
         </p>
       </section>
+      {#if gd?.configured}
+        <section>
+          <h2>Google Drive <span class="preview">preview</span></h2>
+          <ul class="list boxed">
+            <li class="setting">
+              {#if gd.signedIn}
+                <span class="main">
+                  <span class="name">{gd.account ?? "Signed in"}</span>
+                  {#if remoteProgress?.active}
+                    <span class="sub">Reading {remoteProgress.current ?? "Google Drive"}…</span>
+                  {:else if gd.error}
+                    <span class="sub error">{gd.error}</span>
+                  {/if}
+                </span>
+                <button class="plain" disabled={busy} onclick={() => act(phone.gdriveSignOut)}>Sign out</button>
+              {:else}
+                <span class="main"><span class="name">Not signed in</span></span>
+                <button class="plain" disabled={busy} onclick={() => act(phone.gdriveSignIn)}>Sign in…</button>
+              {/if}
+            </li>
+          </ul>
+          <p class="note small left">
+            Google Drive folders can't be opened through Files either, so Rupert reads them directly from Google Drive,
+            the same way. Google hasn't reviewed Rupert, so its sign-in page warns that the app isn't verified: tap
+            <b>Advanced</b>, then <b>Go to Rupert</b>, to continue.
+          </p>
+        </section>
+      {/if}
       <section>
         <h2>Index</h2>
         <p class="note small left">
@@ -784,13 +849,13 @@
 
   {#if chooser}
     <div class="backdrop" role="presentation" onclick={() => (chooser = null)}></div>
-    <div class="sheet chooser" role="dialog" aria-modal="true" aria-label="Choose a OneDrive folder">
+    <div class="sheet chooser" role="dialog" aria-modal="true" aria-label="Choose a {serviceName[chooser.service]} folder">
       <div class="grabber"></div>
       <div class="chooser-head">
         {#if chooser.path.length}
           <button class="back" onclick={chooserBack} aria-label="Back"><Icon name="back" size={22} /></button>
         {/if}
-        <h2 class="doc-title">{chooser.path.at(-1)?.name ?? "OneDrive"}</h2>
+        <h2 class="doc-title">{chooser.path.at(-1)?.name ?? serviceName[chooser.service]}</h2>
       </div>
       <p class="sub">
         {chooser.purpose === "library" ? "Choose a folder for the library." : "Choose the inbox folder for scans."}
@@ -1010,6 +1075,17 @@
     background: var(--accent-soft);
     color: var(--text);
     border-radius: 2px;
+  }
+  h2 .preview {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--accent-soft, rgba(0, 0, 0, 0.06));
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
   }
   .value {
     color: var(--muted);

@@ -1,6 +1,6 @@
 # Rupert
 
-Rupert, the librarian: scanned-document management for macOS, Windows and Linux, with an iPhone app. It works directly on top of your own folders, including OneDrive and iCloud Drive.
+Rupert, the librarian: scanned-document management for macOS, Windows and Linux, with an iPhone app. It works directly on top of your own folders, including iCloud Drive, OneDrive and Google Drive.
 
 - Your folders stay the library. Changes made in Finder or Explorer appear in Rupert, and Rupert's changes are ordinary file operations.
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.

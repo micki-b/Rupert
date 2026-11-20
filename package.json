@@ -11,7 +11,8 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri",
-    "phone": "TAURI_APP_PATH=mobile tauri"
+    "phone": "TAURI_APP_PATH=mobile tauri",
+    "site": "node scripts/build-site.mjs"
   },
   "license": "MIT",
   "dependencies": {

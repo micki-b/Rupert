@@ -32,7 +32,8 @@ export interface Overview {
   sources: PhoneSource[];
   /** Name of the folder scans go to. */
   inbox: string | null;
-  inboxOnOnedrive: boolean;
+  /** The cloud service it's on; null: a folder in Files. */
+  inboxService: CloudService | null;
   /** Where to browse the inbox in the library. */
   inboxPlace: { sourceId: string; relPath: string } | null;
   stats: IndexStats;
@@ -71,6 +72,12 @@ export interface OneDriveFolder {
   name: string;
 }
 
+/** A cloud service the phone reaches through its web API. */
+export type CloudService = "onedrive" | "googledrive";
+
+/** Google Drive's status has the same shape as OneDrive's. */
+export type CloudStatus = OneDriveStatus;
+
 export const phone = {
   overview: () => invoke<Overview>("overview"),
   appVersion: () => invoke<AppVersion>("app_version"),
@@ -99,6 +106,16 @@ export const phone = {
   /** `path`: the folders from the top of OneDrive down to the inbox. */
   setOnedriveInbox: (itemId: string, name: string, path: OneDriveFolder[]) =>
     invoke<void>("set_onedrive_inbox", { itemId, name, path }),
+  gdriveStatus: () => invoke<CloudStatus>("gdrive_status"),
+  /** `false` if cancelled. */
+  gdriveSignIn: () => invoke<boolean>("gdrive_sign_in"),
+  gdriveSignOut: () => invoke<void>("gdrive_sign_out"),
+  /** Subfolders; `null` for the top of My Drive. */
+  gdriveFolders: (id: string | null) => invoke<OneDriveFolder[]>("gdrive_folders", { id }),
+  addGdriveFolder: (itemId: string, name: string) => invoke<void>("add_gdrive_folder", { itemId, name }),
+  /** `path`: the folders from the top of My Drive down to the inbox. */
+  setGdriveInbox: (itemId: string, name: string, path: OneDriveFolder[]) =>
+    invoke<void>("set_gdrive_inbox", { itemId, name, path }),
 };
 
 export const onProgress = (f: (p: Progress) => void): Promise<UnlistenFn> =>

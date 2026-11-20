@@ -242,6 +242,12 @@ impl Worker {
             }
             _ => Vec::new(),
         };
+        // On a drive that doesn't say which files are local, scans in the
+        // inbox are read anyway (reading them is the point).
+        let streamed = self
+            .inbox()
+            .and_then(|(source, rel)| resolve(&source.root, rel).ok())
+            .is_some_and(|dir| readable_anyway(&dir));
         let source_id = self
             .settings
             .inbox
@@ -277,7 +283,7 @@ impl Worker {
                 item.folders = d.folders.clone();
                 item.note = d.note.clone();
                 item.suggested_folder = suggested_folder(&item);
-            } else if e.cloud == CloudState::CloudOnly {
+            } else if e.cloud == CloudState::CloudOnly && !streamed {
                 item.stage = Stage::Ready;
                 item.note = Some(
                     "Online-only: open it once to download it, then Rupert will read it.".into(),
@@ -524,6 +530,14 @@ fn parent_of(rel: &str) -> &str {
 
 // MARK: - Filing
 
+/// Whether a file in the inbox may be read although it counts as
+/// online-only: on a drive that streams files without saying which are
+/// local (Google Drive on Windows), Rupert can't tell, and a new scan in the
+/// inbox is meant to be read.
+fn readable_anyway(path: &Path) -> bool {
+    crate::cloud::streams_on_demand(path)
+}
+
 /// What the user decided in the review.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -565,7 +579,7 @@ pub fn file_document(
     let dest_source = find(&filing.dest_source_id)?;
     let path = resolve(&from_source.root, rel_path)?;
     let dest_dir = resolve(&dest_source.root, &filing.dest_dir)?;
-    let local = cloud_state(&path)? == CloudState::Local;
+    let local = cloud_state(&path)? == CloudState::Local || readable_anyway(&path);
 
     let existing = if local {
         meta::read_meta(&path)?.meta
@@ -612,7 +626,7 @@ pub fn preview(
     path: &Path,
     page: usize,
 ) -> Result<Option<(Vec<u8>, &'static str)>> {
-    if cloud_state(path)? == CloudState::CloudOnly {
+    if cloud_state(path)? == CloudState::CloudOnly && !readable_anyway(path) {
         return Ok(None);
     }
     match FileKind::from_path(path) {

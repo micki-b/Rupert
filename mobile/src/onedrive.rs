@@ -6,16 +6,16 @@
 //! The refresh token lives in the Keychain; the access token only in
 //! memory. Documents are downloaded only when opened, into the cache.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, SystemTime};
 
 use rupert_core::onedrive::{self, Graph, Pkce, Tokens};
-use rupert_core::{Index, Progress, Provider, Source, remote};
-use serde::{Deserialize, Serialize};
+use rupert_core::{Index, Progress, remote};
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::cloud::{FolderItem, RemoteFolder, RemoteInbox, Service};
 use crate::{AppState, CmdResult, INDEX_CHANGED, blocking, device, err};
 
 /// The app's registration with Microsoft (a public client: not a secret).
@@ -24,54 +24,12 @@ const CLIENT_ID: Option<&str> = option_env!("RUPERT_ONEDRIVE_CLIENT_ID");
 const REDIRECT_URI: &str = "msauth.io.github.micki-b.rupert://auth";
 const CALLBACK_SCHEME: &str = "msauth.io.github.micki-b.rupert";
 const REFRESH_KEY: &str = "onedrive.refresh-token";
-/// Opened documents are kept this long, then removed from the cache.
-const CACHE_DAYS: u64 = 14;
 
 /// OneDrive indexing progress. Payload: `Progress`.
 pub const REMOTE_PROGRESS: &str = "remote-progress";
 
 fn client_id() -> Option<&'static str> {
     CLIENT_ID.map(str::trim).filter(|s| !s.is_empty())
-}
-
-// MARK: - Saved
-
-/// A OneDrive folder in the library.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RemoteFolder {
-    /// Rupert's source id.
-    pub id: String,
-    pub name: String,
-    /// OneDrive's item id.
-    pub item_id: String,
-}
-
-impl RemoteFolder {
-    pub fn source(&self) -> Source {
-        Source {
-            id: self.id.clone(),
-            name: self.name.clone(),
-            root: PathBuf::from(format!("onedrive:{}", self.item_id)),
-            provider: Provider::OneDrive,
-            show_all_types: false,
-            download_online_only: false,
-            bookmark: None,
-        }
-    }
-}
-
-/// A OneDrive folder scans are uploaded to.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RemoteInbox {
-    pub item_id: String,
-    pub name: String,
-    /// The folders from the top of OneDrive down to the inbox itself, as
-    /// chosen (empty if chosen before Rupert kept it): tells whether it lies
-    /// inside one of the library's OneDrive folders.
-    #[serde(default)]
-    pub path: Vec<FolderItem>,
 }
 
 // MARK: - State
@@ -120,14 +78,17 @@ impl OneDrive {
     }
 }
 
+/// The library's OneDrive folders.
 fn remote_folders(app: &AppHandle) -> Vec<RemoteFolder> {
-    app.state::<AppState>()
-        .saved
-        .lock()
-        .unwrap()
+    let state = app.state::<AppState>();
+    let saved = state.saved.lock().unwrap();
+    saved
         .saved
         .remote
-        .clone()
+        .iter()
+        .filter(|f| f.service == Service::OneDrive)
+        .cloned()
+        .collect()
 }
 
 // MARK: - Commands: account
@@ -204,13 +165,6 @@ pub fn onedrive_sign_out(app: AppHandle, od: State<OneDrive>) -> CmdResult<()> {
 
 // MARK: - Commands: folders
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FolderItem {
-    pub id: String,
-    pub name: String,
-}
-
 /// Subfolders of a OneDrive folder (`None`: the top level), for choosing.
 #[tauri::command]
 pub async fn onedrive_folders(id: Option<String>, app: AppHandle) -> CmdResult<Vec<FolderItem>> {
@@ -234,14 +188,18 @@ pub fn add_onedrive_folder(item_id: String, name: String, app: AppHandle) -> Cmd
     let state = app.state::<AppState>();
     {
         let mut saved = state.saved.lock().unwrap();
-        if saved.saved.remote.iter().any(|f| f.item_id == item_id) {
+        if saved
+            .saved
+            .remote
+            .iter()
+            .any(|f| f.service == Service::OneDrive && f.item_id == item_id)
+        {
             return Err(format!("“{name}” is already in the library."));
         }
-        saved.saved.remote.push(RemoteFolder {
-            id: uuid_like(),
-            name,
-            item_id,
-        });
+        saved
+            .saved
+            .remote
+            .push(RemoteFolder::new(Service::OneDrive, item_id, name));
         saved.save();
     }
     crate::reconcile_inbox(&app);
@@ -256,23 +214,16 @@ pub fn set_onedrive_inbox(item_id: String, name: String, path: Vec<FolderItem>, 
     {
         let state = app.state::<AppState>();
         let mut saved = state.saved.lock().unwrap();
-        saved.saved.onedrive_inbox = Some(RemoteInbox {
+        saved.saved.remote_inbox = Some(RemoteInbox {
             item_id,
             name,
             path,
+            service: Service::OneDrive,
         });
         saved.saved.inbox = None;
         saved.save();
     }
     crate::reconcile_inbox(&app);
-}
-
-pub(crate) fn uuid_like() -> String {
-    let nanos = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    format!("onedrive-{nanos:x}")
 }
 
 // MARK: - Indexing
@@ -351,23 +302,15 @@ fn sync_all(app: &AppHandle) -> Result<(), String> {
 
 // MARK: - Opening and uploading
 
-/// Downloads a document (unless cached and unchanged) and returns its path.
-pub fn fetch_document(
+/// Downloads a document the user opened into `dest`.
+pub fn download(
     app: &AppHandle,
     folder: &RemoteFolder,
     rel_path: &str,
-    size: u64,
-) -> Result<PathBuf, String> {
-    let cache = cache_dir(app)?.join(&folder.id);
-    let dest = rupert_core::resolve(&cache, rel_path).map_err(err)?;
-    let cached = std::fs::metadata(&dest).is_ok_and(|m| m.len() == size);
-    if !cached {
-        let graph = app.state::<OneDrive>().graph(app)?;
-        graph
-            .download(&folder.item_id, rel_path, &dest)
-            .map_err(err)?;
-    }
-    Ok(dest)
+    dest: &Path,
+) -> Result<(), String> {
+    let graph = app.state::<OneDrive>().graph(app)?;
+    graph.download(&folder.item_id, rel_path, dest).map_err(err)
 }
 
 /// Writes (or removes) a OneDrive folder's own details file.
@@ -400,32 +343,4 @@ pub fn upload_scan(
     graph
         .upload(&inbox.item_id, &format!("{name}.pdf"), pdf)
         .map_err(err)
-}
-
-fn cache_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app.path().app_cache_dir().map_err(err)?.join("onedrive"))
-}
-
-/// Removes opened documents not used for a while.
-pub fn tidy_cache(app: &AppHandle) {
-    let Ok(dir) = cache_dir(app) else { return };
-    let max_age = Duration::from_secs(CACHE_DAYS * 24 * 3600);
-    fn walk(dir: &Path, max_age: Duration) {
-        for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-            let path = e.path();
-            if path.is_dir() {
-                walk(&path, max_age);
-                let _ = std::fs::remove_dir(&path); // only if empty
-            } else if e
-                .metadata()
-                .and_then(|m| m.modified())
-                .ok()
-                .and_then(|t| t.elapsed().ok())
-                .is_some_and(|age| age > max_age)
-            {
-                let _ = std::fs::remove_file(&path);
-            }
-        }
-    }
-    walk(&dir, max_age);
 }
