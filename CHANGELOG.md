@@ -4,7 +4,7 @@
 
 - **Rupert speaks Spanish** (Rioplatense, as in Argentina): the screens, menus, messages and help, on the computer and on the iPhone. Rupert follows the system's language; **Settings ▸ Language** can choose another. Ask Rupert answers in the language you write in.
 - **Rupert speaks German** (formal "Sie"), everywhere Spanish is: screens, menus, messages, help, the iPhone app and the Windows installer.
-- **In German, the owl wears lederhosen**: a checked shirt, leather braces and a chest strap with an edelweiss.
+- **In German, the owl wears lederhosen**: leather braces and a chest strap with an edelweiss, over a white German football shirt with the black-red-gold chevron.
 - **In Spanish, the owl wears the albiceleste**: the sky-blue and white striped jersey with the number 10.
 
 ## 0.2.0 — 2026-11-20
