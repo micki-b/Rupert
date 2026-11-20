@@ -24,6 +24,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::error::{Error, Result};
+use crate::i18n::{tr, trf};
 use crate::index::{Index, SearchQuery, TagMode};
 use crate::listing::list_dir;
 use crate::source::Source;
@@ -45,7 +46,7 @@ const FALLBACK_BETA: &str = "server-side-fallback-2026-07-01";
 const OAUTH_BETA: &str = "oauth-2025-04-20";
 
 fn ai_err(e: impl std::fmt::Display) -> Error {
-    Error::Unsupported(format!("assistant: {e}"))
+    Error::Unsupported(trf("assistant: {0}", &[&e]))
 }
 
 // MARK: - Backends
@@ -139,8 +140,8 @@ fn read_json(mut resp: ureq::http::Response<ureq::Body>) -> Result<Value> {
         .map(String::from)
         .unwrap_or_else(|| text.chars().take(300).collect());
     Err(ai_err(match status {
-        401 | 403 => format!("not signed in or no access ({message})"),
-        429 => format!("rate limited, try again shortly ({message})"),
+        401 | 403 => trf("not signed in or no access ({0})", &[&message]),
+        429 => trf("rate limited, try again shortly ({0})", &[&message]),
         _ => format!("HTTP {status}: {message}"),
     }))
 }
@@ -231,7 +232,7 @@ fn post_json(
             }
             Err(RecvTimeoutError::Timeout) => cancel.check()?,
             Err(RecvTimeoutError::Disconnected) => {
-                return Err(ai_err("the request ended unexpectedly"));
+                return Err(ai_err(tr("the request ended unexpectedly")));
             }
         }
     }
@@ -410,7 +411,7 @@ impl Chat {
             let said = text_of(&content);
             if stop == "refusal" {
                 let reply = if said.is_empty() {
-                    "The model declined to answer that.".to_string()
+                    tr("The model declined to answer that.").to_string()
                 } else {
                     said
                 };
@@ -454,7 +455,7 @@ impl Chat {
             }
             let mut reply = said;
             if stop == "max_tokens" {
-                reply.push_str("\n\n(The answer was cut off.)");
+                reply.push_str(tr("\n\n(The answer was cut off.)"));
             }
             return Ok(Reply {
                 text: reply,
@@ -511,7 +512,7 @@ impl Chat {
             let msg = resp
                 .pointer("/choices/0/message")
                 .cloned()
-                .ok_or_else(|| ai_err("the model sent no answer"))?;
+                .ok_or_else(|| ai_err(tr("the model sent no answer")))?;
             let calls: Vec<(String, String, Value)> = msg
                 .get("tool_calls")
                 .and_then(Value::as_array)
@@ -728,7 +729,7 @@ fn post_stream(
             }
             Err(RecvTimeoutError::Timeout) => cancel.check()?,
             Err(RecvTimeoutError::Disconnected) => {
-                return Err(ai_err("the request ended unexpectedly"));
+                return Err(ai_err(tr("the request ended unexpectedly")));
             }
         }
     }
@@ -771,7 +772,7 @@ fn read_events(reader: impl std::io::BufRead, cancel: &Cancel) -> Result<Value> 
                     .pointer("/response/incomplete_details/reason")
                     .and_then(Value::as_str)
                     .unwrap_or("unknown");
-                return Err(ai_err(format!("the answer stopped early ({why})")));
+                return Err(ai_err(trf("the answer stopped early ({0})", &[&why])));
             }
             Some("error") => {
                 return Err(plan_error_code(
@@ -804,10 +805,10 @@ fn plan_error(status: u16, body: &str) -> Error {
         .unwrap_or_else(|| body.chars().take(300).collect());
     match (status, code) {
         (_, c) if c.starts_with("subscription_sharing") => plan_error_code(c, &message),
-        (401, _) => {
-            ai_err("the ChatGPT sign-in has expired; sign in again in Settings ▸ Assistant")
-        }
-        (429, _) => ai_err(format!("rate limited, try again shortly ({message})")),
+        (401, _) => ai_err(tr(
+            "the ChatGPT sign-in has expired; sign in again in Settings ▸ Assistant",
+        )),
+        (429, _) => ai_err(trf("rate limited, try again shortly ({0})", &[&message])),
         _ => ai_err(format!("HTTP {status}: {message}")),
     }
 }
@@ -895,18 +896,18 @@ fn describe_call(name: &str, input: &Value) -> String {
         .unwrap_or_default();
     match name {
         "search_documents" => match (s("query"), tags.as_str()) {
-            ("", "") => "Searching documents".into(),
-            (q, "") => format!("Searching for “{q}”"),
-            ("", t) => format!("Looking up tags {t}"),
-            (q, t) => format!("Searching for “{q}” tagged {t}"),
+            ("", "") => tr("Searching documents").into(),
+            (q, "") => trf("Searching for “{0}”", &[&q]),
+            ("", t) => trf("Looking up tags {0}", &[&t]),
+            (q, t) => trf("Searching for “{0}” tagged {1}", &[&q, &t]),
         },
-        "list_tags" => "Looking at tags".into(),
-        "list_sources" => "Looking at the library".into(),
-        "list_folder" => format!("Opening {}", s("path").trim_matches('/')),
-        "read_document" => format!("Reading {}", s("path")),
-        "open_folder" => format!("Showing folder {}", s("path")),
-        "show_document" => format!("Showing {}", s("path")),
-        "show_results" => "Showing results".into(),
+        "list_tags" => tr("Looking at tags").into(),
+        "list_sources" => tr("Looking at the library").into(),
+        "list_folder" => trf("Opening {0}", &[&s("path").trim_matches('/')]),
+        "read_document" => trf("Reading {0}", &[&s("path")]),
+        "open_folder" => trf("Showing folder {0}", &[&s("path")]),
+        "show_document" => trf("Showing {0}", &[&s("path")]),
+        "show_results" => tr("Showing results").into(),
         other => other.to_string(),
     }
 }
@@ -1269,7 +1270,9 @@ pub fn system_prompt(today: &str) -> String {
          question about its contents.\n\n\
          When the user asks to open, show or go to something, do it with open_folder, show_document \
          or show_results. You can't change, move, rename, tag or delete files; say so if asked.\n\n\
-         Answer briefly in plain text. Name documents by title (or file name) and folder."
+         Answer briefly in plain text. Name documents by title (or file name) and folder.\n\n\
+         Answer in the language the user writes in; if that's unclear, in {language}.",
+        language = crate::i18n::current().english_name()
     )
 }
 

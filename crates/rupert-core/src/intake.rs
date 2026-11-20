@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Error, Result};
 use crate::file_kind::{FileKind, image_mime};
 use crate::fileops;
+use crate::i18n::{tr, trf};
 use crate::index::Index;
 use crate::listing::{CloudState, cloud_state, list_dir, relative, resolve};
 use crate::llm::{self, LmStudio, Suggestion};
@@ -100,7 +101,7 @@ struct Done {
 // MARK: - Handle
 
 enum Msg {
-    Configure(Settings, Vec<Source>),
+    Configure(Box<Settings>, Vec<Source>),
     Refresh,
     /// Forget cached results for this document and process it again.
     Redo(String),
@@ -124,7 +125,7 @@ impl IntakeHandle {
 
     /// New settings or sources (also starts the first scan).
     pub fn configure(&self, settings: Settings, sources: Vec<Source>) {
-        let _ = self.tx.send(Msg::Configure(settings, sources));
+        let _ = self.tx.send(Msg::Configure(Box::new(settings), sources));
     }
 
     /// The inbox folder changed on disk.
@@ -218,7 +219,7 @@ impl Worker {
                     self.cache.clear();
                 }
                 self.configured = true;
-                self.settings = settings;
+                self.settings = *settings;
                 self.sources = sources;
             }
             Msg::Refresh => {}
@@ -286,7 +287,8 @@ impl Worker {
             } else if e.cloud == CloudState::CloudOnly && !streamed {
                 item.stage = Stage::Ready;
                 item.note = Some(
-                    "Online-only: open it once to download it, then Rupert will read it.".into(),
+                    tr("Online-only: open it once to download it, then Rupert will read it.")
+                        .into(),
                 );
             }
             items.push(item);
@@ -353,29 +355,29 @@ impl Worker {
                     });
                     match result {
                         Ok(r) if r.pages_recognized > 0 => {
-                            ocr_summary = Some(format!(
-                                "Text recognized on {} of {} pages ({})",
-                                r.pages_recognized,
-                                r.pages,
-                                engine.name()
+                            ocr_summary = Some(trf(
+                                "Text recognized on {0} of {1} pages ({2})",
+                                &[&r.pages_recognized, &r.pages, &engine.name()],
                             ));
                             // The PDF couldn't take a text layer: keep the
                             // text beside it (searchable) and suggest from it.
                             if let Some(e) = r.layer_error {
                                 match sidecar::write_text(&path, &r.text, OCR_TEXT_SOURCE, true) {
-                                    Ok(_) => notes.push(format!(
-                                        "The text couldn't be added to the PDF itself ({e}); \
-                                         Rupert keeps it beside the file, so it can still be searched."
+                                    Ok(_) => notes.push(trf(
+                                        "The text couldn't be added to the PDF itself ({0}); \
+                                         Rupert keeps it beside the file, so it can still be searched.",
+                                        &[&e],
                                     )),
-                                    Err(e2) => notes.push(format!(
-                                        "Text recognition worked, but the text couldn't be saved: {e}; {e2}"
+                                    Err(e2) => notes.push(trf(
+                                        "Text recognition worked, but the text couldn't be saved: {0}; {1}",
+                                        &[&e, &e2],
                                     )),
                                 }
                                 ocr_text = Some(r.text);
                             }
                         }
                         Ok(_) => {}
-                        Err(e) => notes.push(format!("Text recognition failed: {e}")),
+                        Err(e) => notes.push(trf("Text recognition failed: {0}", &[&e])),
                     }
                 }
                 FileKind::Image => {
@@ -392,13 +394,13 @@ impl Worker {
                                 .join(" ");
                             if let Err(e) = sidecar::write_text(&path, &text, OCR_TEXT_SOURCE, true)
                             {
-                                notes.push(format!("Couldn't save the recognized text: {e}"));
+                                notes.push(trf("Couldn't save the recognized text: {0}", &[&e]));
                             }
-                            ocr_summary = Some(format!("Text recognized ({})", engine.name()));
+                            ocr_summary = Some(trf("Text recognized ({0})", &[&engine.name()]));
                             ocr_text = Some(text);
                         }
                         Ok(_) => {}
-                        Err(e) => notes.push(format!("Text recognition failed: {e}")),
+                        Err(e) => notes.push(trf("Text recognition failed: {0}", &[&e])),
                     }
                 }
                 _ => {}
@@ -443,7 +445,7 @@ impl Worker {
                 Err(e) => notes.push(e.to_string()),
             }
         } else if self.settings.suggestions {
-            notes.push("No text to suggest from.".into());
+            notes.push(tr("No text to suggest from.").into());
         }
 
         // Cache against the file as it is now (OCR changed it).

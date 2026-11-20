@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::bookmark;
 use crate::error::{Error, Result};
+use crate::i18n::trf;
 
 // MARK: - Provider
 
@@ -161,9 +162,9 @@ impl SourceStore {
             return Err(Error::NotADirectory(root));
         }
         if let Err(e) = fs::read_dir(&root) {
-            return Err(Error::InvalidValue(format!(
-                "Rupert can't open “{}”: {e}",
-                root.display()
+            return Err(Error::InvalidValue(trf(
+                "Rupert can't open “{0}”: {1}",
+                &[&root.display(), &e],
             )));
         }
         let key = comparable(&root);

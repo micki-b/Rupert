@@ -46,7 +46,7 @@ pub fn open(bookmark: &str) -> Result<Opened> {
     {
         let _ = bookmark;
         Err(crate::error::Error::Unsupported(
-            "folder bookmarks exist only on macOS".into(),
+            crate::i18n::tr("folder bookmarks exist only on macOS").into(),
         ))
     }
 }
@@ -56,6 +56,7 @@ pub fn open(bookmark: &str) -> Result<Opened> {
 #[cfg(target_os = "macos")]
 mod mac {
     use super::*;
+    use crate::i18n::tr;
     use crate::oauth::{base64url, base64url_decode};
     use objc2::runtime::Bool;
     use objc2_foundation::{
@@ -77,7 +78,7 @@ mod mac {
             )
             .map_err(|e| {
                 err(
-                    "couldn't remember access to the folder",
+                    tr("couldn't remember access to the folder"),
                     e.localizedDescription(),
                 )
             })?;
@@ -86,7 +87,7 @@ mod mac {
 
     pub fn open(bookmark: &str) -> Result<Opened> {
         let bytes = base64url_decode(bookmark)
-            .ok_or_else(|| Error::InvalidValue("the folder's bookmark is damaged".into()))?;
+            .ok_or_else(|| Error::InvalidValue(tr("the folder's bookmark is damaged").into()))?;
         let data = NSData::with_bytes(&bytes);
         let mut stale = Bool::NO;
         // SAFETY: `stale` outlives the call.
@@ -98,14 +99,14 @@ mod mac {
                 &mut stale,
             )
         }
-        .map_err(|e| err("the folder can't be found", e.localizedDescription()))?;
+        .map_err(|e| err(tr("the folder can't be found"), e.localizedDescription()))?;
         // Access lasts until the app quits (never stopped on purpose).
         // Outside the sandbox this returns false and nothing is needed.
         // SAFETY: a plain Objective-C call on a valid URL.
         let _ = unsafe { url.startAccessingSecurityScopedResource() };
         let path = url
             .to_file_path()
-            .ok_or_else(|| Error::InvalidValue("the folder's bookmark has no path".into()))?;
+            .ok_or_else(|| Error::InvalidValue(tr("the folder's bookmark has no path").into()))?;
         let refreshed = if stale.as_bool() {
             create(&path).ok()
         } else {

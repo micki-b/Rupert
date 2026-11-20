@@ -30,6 +30,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 
 use crate::error::{Error, Result};
+use crate::i18n::trf;
 use crate::index::{Index, TextState};
 use crate::listing::{CloudState, Entry, cloud_state, list_dir, relative, resolve};
 use crate::meta::{self, DocMeta, Storage};
@@ -179,9 +180,9 @@ struct Snapshot {
 impl Snapshot {
     fn take(library: &Path) -> Result<Self> {
         if !library.join(MAIN_DB).is_file() {
-            return Err(Error::InvalidValue(format!(
-                "no ScanSnap Home library in {} ({MAIN_DB} is missing)",
-                library.display()
+            return Err(Error::InvalidValue(trf(
+                "no ScanSnap Home library in {0} ({1} is missing)",
+                &[&library.display(), &MAIN_DB],
             )));
         }
         let dir = std::env::temp_dir().join(format!("rupert-scansnap-{}", uuid::Uuid::new_v4()));
@@ -218,8 +219,9 @@ impl Drop for Snapshot {
 }
 
 fn not_scansnap(e: rusqlite::Error) -> Error {
-    Error::Unsupported(format!(
-        "this doesn't look like a ScanSnap Home library this version of Rupert can read ({e})"
+    Error::Unsupported(trf(
+        "this doesn't look like a ScanSnap Home library this version of Rupert can read ({0})",
+        &[&e],
     ))
 }
 
@@ -401,7 +403,7 @@ pub fn plan(library: &Path, sources: &[Source], index: Option<&Index>) -> Result
     let snapshot = Snapshot::take(library)?;
     let main = snapshot
         .open(MAIN_DB)?
-        .ok_or_else(|| Error::InvalidValue(format!("{MAIN_DB} is missing")))?;
+        .ok_or_else(|| Error::InvalidValue(trf("{0} is missing", &[&MAIN_DB])))?;
     let folders = read_folders(&main)?;
     let raw = read_items(&main)?;
     let texts = match snapshot.open(SEARCH_DB)? {

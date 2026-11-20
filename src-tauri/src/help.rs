@@ -1,6 +1,7 @@
 //! The help window: Help ▸ Rupert Help on macOS, F1, or the Help button in
 //! the status bar. The page itself is the `/help` route.
 
+use rupert_core::i18n::tr;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::{CmdResult, err};
@@ -30,7 +31,7 @@ pub fn show(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
         .map(|s| format!("window.__rupertHelpSection = '{s}';"))
         .unwrap_or_default();
     WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("help".into()))
-        .title("Rupert Help")
+        .title(tr("Rupert Help"))
         .inner_size(920.0, 720.0)
         .min_inner_size(520.0, 400.0)
         .initialization_script(start)

@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 use crate::catalog;
 use crate::error::{Error, Result};
+use crate::i18n::{tr, trf};
 use crate::listing::{CloudState, cloud_state, list_dir};
 use crate::sidecar;
 use crate::source::{Provider, Source};
@@ -32,7 +33,7 @@ pub fn move_document(from: &Path, dest_dir: &Path, name: &str) -> Result<PathBuf
         .unwrap_or_default();
     let stem = clean_name(name, &ext);
     if stem.is_empty() {
-        return Err(Error::InvalidValue("the file name is empty".into()));
+        return Err(Error::InvalidValue(tr("the file name is empty").into()));
     }
 
     let target = free_name(from, dest_dir, &stem, &ext);
@@ -91,17 +92,22 @@ fn move_with_sidecar(from: &Path, target: &Path, copy_across_disks: bool) -> Res
                 let _ = fs::remove_dir(side_dir);
             }
             return match move_file(target, from, copy_across_disks) {
-                Ok(()) => Err(Error::InvalidValue(format!(
-                    "its details file couldn't be moved ({e}), so it was left where it was"
+                Ok(()) => Err(Error::InvalidValue(trf(
+                    "its details file couldn't be moved ({0}), so it was left where it was",
+                    &[&e],
                 ))),
-                Err(back) => Err(Error::InvalidValue(format!(
-                    "its details file couldn't be moved ({e}), and moving the document back \
-                     failed too ({back}): it is at {}, its details file still in {}",
-                    target.display(),
-                    old_side
-                        .parent()
-                        .map(|p| p.display().to_string())
-                        .unwrap_or_default()
+                Err(back) => Err(Error::InvalidValue(trf(
+                    "its details file couldn't be moved ({0}), and moving the document back \
+                     failed too ({1}): it is at {2}, its details file still in {3}",
+                    &[
+                        &e,
+                        &back,
+                        &target.display(),
+                        &old_side
+                            .parent()
+                            .map(|p| p.display().to_string())
+                            .unwrap_or_default(),
+                    ],
                 ))),
             };
         }
@@ -117,13 +123,13 @@ fn move_file(from: &Path, to: &Path, copy_across_disks: bool) -> Result<()> {
     match fs::rename(from, to) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == ErrorKind::CrossesDevices && !copy_across_disks => {
-            Err(Error::InvalidValue(ONLINE_ONLY_ELSEWHERE.into()))
+            Err(Error::InvalidValue(online_only_elsewhere().into()))
         }
         Err(e) if e.kind() == ErrorKind::CrossesDevices => {
             let len = fs::copy(from, to)?;
             if len != fs::metadata(from)?.len() {
                 let _ = fs::remove_file(to);
-                return Err(Error::InvalidValue("copying the file failed".into()));
+                return Err(Error::InvalidValue(tr("copying the file failed").into()));
             }
             fs::remove_file(from)?;
             Ok(())
@@ -177,8 +183,12 @@ pub fn clean_name(name: &str, ext: &str) -> String {
 // MARK: - Moving to another folder
 
 /// Why an online-only file can't go where it was asked to.
-const ONLINE_ONLY_ELSEWHERE: &str = "it's online-only, and moving it out of its cloud folder would \
-     download it. Download it first (open it once), then move it";
+fn online_only_elsewhere() -> &'static str {
+    tr(
+        "it's online-only, and moving it out of its cloud folder would download it. Download it \
+        first (open it once), then move it",
+    )
+}
 
 /// Where a document or folder went.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -201,7 +211,9 @@ pub fn move_entry(from: &Source, rel_path: &str, to: &Source, dest_dir: &str) ->
     let rel_path = rel_path.trim_matches('/');
     let dest_dir = dest_dir.trim_matches('/');
     if rel_path.is_empty() {
-        return Err(Error::InvalidPath("a source itself can't be moved".into()));
+        return Err(Error::InvalidPath(
+            tr("a source itself can't be moved").into(),
+        ));
     }
     if dest_dir.split('/').any(|p| p == sidecar::DIR_NAME) {
         return Err(Error::InvalidPath(dest_dir.into()));
@@ -229,8 +241,9 @@ pub fn move_entry(from: &Source, rel_path: &str, to: &Source, dest_dir: &str) ->
         && let (Ok(p), Ok(d)) = (fs::canonicalize(&path), fs::canonicalize(&dest))
         && d.starts_with(&p)
     {
-        return Err(Error::InvalidValue(format!(
-            "“{name}” can't be moved into itself"
+        return Err(Error::InvalidValue(trf(
+            "“{0}” can't be moved into itself",
+            &[&name],
         )));
     }
 
@@ -248,8 +261,9 @@ pub fn move_entry(from: &Source, rel_path: &str, to: &Source, dest_dir: &str) ->
         && let Some((doc, _)) = docs.iter().find(|(_, c)| *c == CloudState::CloudOnly)
     {
         let doc_name = doc.rsplit('/').next().unwrap_or(doc);
-        return Err(Error::InvalidValue(format!(
-            "Can't move “{doc_name}”: {ONLINE_ONLY_ELSEWHERE}."
+        return Err(Error::InvalidValue(trf(
+            "Can't move “{0}”: {1}.",
+            &[&doc_name, &online_only_elsewhere()],
         )));
     }
 
@@ -287,9 +301,10 @@ pub fn move_entry(from: &Source, rel_path: &str, to: &Source, dest_dir: &str) ->
     let result = if is_dir {
         fs::rename(&path, &target).map_err(|e| {
             if e.kind() == ErrorKind::CrossesDevices {
-                Error::InvalidValue(format!(
-                    "“{name}” is a folder on another disk. Folders can be moved only within the \
-                     same disk; move it in the Finder or File Explorer instead"
+                Error::InvalidValue(trf(
+                    "“{0}” is a folder on another disk. Folders can be moved only within the \
+                     same disk; move it in the Finder or File Explorer instead",
+                    &[&name],
                 ))
             } else {
                 e.into()
@@ -345,7 +360,7 @@ pub fn trash(root: &Path, rel_path: &str) -> Result<bool> {
     trash_with(root, rel_path, &|path| {
         trash_context()
             .delete(path)
-            .map_err(|e| Error::InvalidValue(format!("couldn't move it to the trash: {e}")))
+            .map_err(|e| Error::InvalidValue(trf("couldn't move it to the trash: {0}", &[&e])))
     })
 }
 
@@ -367,7 +382,7 @@ fn trash_context() -> trash::TrashContext {
 fn trash_with(root: &Path, rel_path: &str, delete: &dyn Fn(&Path) -> Result<()>) -> Result<bool> {
     if rel_path.trim_matches('/').is_empty() {
         return Err(Error::InvalidPath(
-            "a source itself can't be moved to the trash".into(),
+            tr("a source itself can't be moved to the trash").into(),
         ));
     }
     let path = crate::listing::resolve(root, rel_path)?;

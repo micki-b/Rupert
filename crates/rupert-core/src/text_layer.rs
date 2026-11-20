@@ -23,7 +23,8 @@ use std::path::Path;
 use lopdf::{Dictionary, Document, IncrementalDocument, Object, ObjectId, Stream};
 
 use crate::error::{Error, Result};
-use crate::pdf_meta::{append, unwritable_reason};
+use crate::i18n::tr;
+use crate::pdf_meta::{append, unwritable};
 
 /// Glyph width in the font's 1000-unit space; every glyph is the same.
 const GLYPH_WIDTH: f64 = 500.0;
@@ -61,11 +62,8 @@ pub fn add(
     let before = fs::metadata(path)?;
     let mut inc = IncrementalDocument::load(path).map_err(pdf_err)?;
     let prev = inc.get_prev_documents();
-    if let Some(reason) = unwritable_reason(prev) {
-        return Err(Error::Unsupported(reason.replace(
-            "details are kept in a sidecar file",
-            "Rupert won't add a text layer to it",
-        )));
+    if let Some(why) = unwritable(prev) {
+        return Err(Error::Unsupported(why.text_layer_reason()));
     }
     let page_ids = prev.get_pages(); // 1-based page number → object id
 
@@ -109,7 +107,7 @@ pub fn add(
     let now = fs::metadata(path)?;
     if now.len() != before.len() || now.modified().ok() != before.modified().ok() {
         return Err(Error::InvalidValue(
-            "the file changed while recognizing its text; please try again".into(),
+            tr("the file changed while recognizing its text; please try again").into(),
         ));
     }
     append(path, prev_len as u64, &updated[prev_len..])

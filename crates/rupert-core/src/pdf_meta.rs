@@ -14,6 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use lopdf::{Dictionary, Document, IncrementalDocument, Object, ObjectId, Stream, text_string};
 
 use crate::error::{Error, Result};
+use crate::i18n::tr;
 use crate::meta::{DocMeta, PartialMeta, split_keywords};
 use crate::xmp;
 
@@ -39,7 +40,7 @@ fn read_doc(doc: &Document) -> PdfRead {
     let from_info = info_dict(doc).map(read_info).unwrap_or_default();
     PdfRead {
         meta: from_xmp.or(from_info),
-        unwritable_reason: unwritable_reason(doc),
+        unwritable_reason: unwritable(doc).map(Unwritable::sidecar_reason),
     }
 }
 
@@ -81,17 +82,57 @@ fn existing_xmp(doc: &Document) -> Option<(Option<ObjectId>, String)> {
     Some((id, String::from_utf8_lossy(&bytes).into_owned()))
 }
 
+/// Why Rupert won't change a PDF.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Unwritable {
+    Encrypted,
+    SignaturePermissions,
+    Signed,
+}
+
+impl Unwritable {
+    /// Why its details are kept in a sidecar.
+    pub(crate) fn sidecar_reason(self) -> String {
+        match self {
+            Unwritable::Encrypted => {
+                tr("the PDF is encrypted, so details are kept in a sidecar file")
+            }
+            Unwritable::SignaturePermissions => {
+                tr("the PDF has signature permissions, so details are kept in a sidecar file")
+            }
+            Unwritable::Signed => {
+                tr("the PDF is digitally signed, so details are kept in a sidecar file")
+            }
+        }
+        .into()
+    }
+
+    /// Why it gets no text layer.
+    pub(crate) fn text_layer_reason(self) -> String {
+        match self {
+            Unwritable::Encrypted => {
+                tr("the PDF is encrypted, so Rupert won't add a text layer to it")
+            }
+            Unwritable::SignaturePermissions => {
+                tr("the PDF has signature permissions, so Rupert won't add a text layer to it")
+            }
+            Unwritable::Signed => {
+                tr("the PDF is digitally signed, so Rupert won't add a text layer to it")
+            }
+        }
+        .into()
+    }
+}
+
 /// Encrypted or signed PDFs are left untouched; their metadata goes to a
 /// sidecar instead.
-pub(crate) fn unwritable_reason(doc: &Document) -> Option<String> {
+pub(crate) fn unwritable(doc: &Document) -> Option<Unwritable> {
     if doc.trailer.has(b"Encrypt") || doc.encryption_state.is_some() {
-        return Some("the PDF is encrypted, so details are kept in a sidecar file".into());
+        return Some(Unwritable::Encrypted);
     }
     let catalog = doc.catalog().ok()?;
     if catalog.has(b"Perms") {
-        return Some(
-            "the PDF has signature permissions, so details are kept in a sidecar file".into(),
-        );
+        return Some(Unwritable::SignaturePermissions);
     }
     let acroform = match catalog.get(b"AcroForm").ok()? {
         Object::Reference(id) => doc.get_dictionary(*id).ok(),
@@ -102,8 +143,7 @@ pub(crate) fn unwritable_reason(doc: &Document) -> Option<String> {
         .and_then(|f| f.get(b"SigFlags").ok())
         .and_then(|o| o.as_i64().ok())
         .unwrap_or(0);
-    (sig_flags != 0)
-        .then(|| "the PDF is digitally signed, so details are kept in a sidecar file".into())
+    (sig_flags != 0).then_some(Unwritable::Signed)
 }
 
 // MARK: - Writing
@@ -117,8 +157,8 @@ pub fn write(path: &Path, meta: &DocMeta) -> Result<()> {
     let before = fs::metadata(path)?;
     let mut inc = IncrementalDocument::load(path).map_err(pdf_err)?;
     let prev = inc.get_prev_documents();
-    if let Some(reason) = unwritable_reason(prev) {
-        return Err(Error::Unsupported(reason));
+    if let Some(why) = unwritable(prev) {
+        return Err(Error::Unsupported(why.sidecar_reason()));
     }
 
     let catalog_id = prev
@@ -200,7 +240,7 @@ pub fn write(path: &Path, meta: &DocMeta) -> Result<()> {
     let now = fs::metadata(path)?;
     if now.len() != before.len() || now.modified().ok() != before.modified().ok() {
         return Err(Error::InvalidValue(
-            "the file changed while saving; please try again".into(),
+            tr("the file changed while saving; please try again").into(),
         ));
     }
 

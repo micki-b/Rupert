@@ -2,6 +2,7 @@
 //! keychain, the `ant` command-line login for Claude, and the conversation
 //! itself (logic in `rupert_core::assistant`).
 
+use rupert_core::i18n::{tr, trf};
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 use std::path::PathBuf;
@@ -84,7 +85,7 @@ fn read_key(provider: AssistantProvider) -> Option<String> {
 /// Saves (or, with `None`, removes) a provider's API key in the keychain.
 #[tauri::command]
 pub fn assistant_set_key(provider: AssistantProvider, key: Option<String>) -> CmdResult<()> {
-    let name = key_name(provider).ok_or("This provider needs no key.")?;
+    let name = key_name(provider).ok_or(tr("This provider needs no key."))?;
     let entry = keyring::Entry::new(KEYCHAIN_SERVICE, name).map_err(err)?;
     match key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty()) {
         Some(k) => entry.set_password(&k).map_err(err),
@@ -127,14 +128,16 @@ fn ant() -> Option<PathBuf> {
 }
 
 fn ant_token() -> Result<String, String> {
-    let ant = ant().ok_or("The ant command isn't installed (see Settings ▸ Assistant).")?;
+    let ant = ant().ok_or(tr(
+        "The ant command isn't installed (see Settings ▸ Assistant).",
+    ))?;
     let out = Command::new(ant)
         .args(["auth", "print-credentials", "--access-token"])
         .output()
         .map_err(err)?;
     let token = String::from_utf8_lossy(&out.stdout).trim().to_string();
     if !out.status.success() || token.is_empty() {
-        return Err("Not signed in to Anthropic: use Sign in… in Settings ▸ Assistant.".into());
+        return Err(tr("Not signed in to Anthropic: use Sign in… in Settings ▸ Assistant.").into());
     }
     Ok(token)
 }
@@ -163,7 +166,7 @@ pub async fn assistant_cli_status() -> CliStatus {
 #[tauri::command]
 pub async fn assistant_cli_login() -> CmdResult<()> {
     tauri::async_runtime::spawn_blocking(|| {
-        let ant = ant().ok_or("The ant command isn't installed.")?;
+        let ant = ant().ok_or(tr("The ant command isn't installed."))?;
         let status = Command::new(ant)
             .args(["auth", "login"])
             .status()
@@ -171,7 +174,7 @@ pub async fn assistant_cli_login() -> CmdResult<()> {
         if status.success() {
             Ok(())
         } else {
-            Err("Signing in didn't finish.".to_string())
+            Err(tr("Signing in didn't finish.").into())
         }
     })
     .await
@@ -237,7 +240,7 @@ fn chatgpt_save(c: &Credentials) -> Result<(), String> {
 /// The signed-in credentials with an access token good for a while yet
 /// (refreshed and saved if needed: refresh tokens rotate).
 fn chatgpt_credentials() -> Result<Credentials, String> {
-    let c = chatgpt_load().ok_or("Sign in with ChatGPT in Settings ▸ Assistant.")?;
+    let c = chatgpt_load().ok_or(tr("Sign in with ChatGPT in Settings ▸ Assistant."))?;
     if c.is_fresh() {
         return Ok(c);
     }
@@ -348,7 +351,7 @@ fn wait_for_callback(
     let deadline = std::time::Instant::now() + SIGN_IN_WAIT;
     loop {
         if std::time::Instant::now() > deadline {
-            return Err("Signing in took too long; please try again.".into());
+            return Err(tr("Signing in took too long; please try again.").into());
         }
         let mut stream = match listener.accept() {
             Ok((s, _)) => s,
@@ -380,10 +383,10 @@ fn wait_for_callback(
             .and_then(|(code, client_id)| finish(&code, &client_id));
         let (title, line) = match &result {
             Ok(_) => (
-                "Signed in",
-                "Rupert can now use your ChatGPT plan. You can close this tab.",
+                tr("Signed in"),
+                tr("Rupert can now use your ChatGPT plan. You can close this tab."),
             ),
-            Err(e) => ("Not signed in", e.as_str()),
+            Err(e) => (tr("Not signed in"), e.as_str()),
         };
         let page = format!(
             "<!doctype html><meta charset=utf-8><title>Rupert</title>\
@@ -429,10 +432,10 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
                     model: None,
                 }
                 .models()
-                .map_err(|_| "LM Studio isn't running, or has no model loaded.".to_string())?
+                .map_err(|_| tr("LM Studio isn't running, or has no model loaded.").to_string())?
                 .into_iter()
                 .next()
-                .ok_or("LM Studio has no model loaded.")?,
+                .ok_or(tr("LM Studio has no model loaded."))?,
             };
             Ok(Backend::OpenAiCompatible {
                 base_url: format!("{}/v1", settings.lm_studio_url.trim_end_matches('/')),
@@ -447,7 +450,7 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
             } else {
                 AnthropicAuth::ApiKey(
                     read_key(AssistantProvider::Anthropic)
-                        .ok_or("Add an Anthropic API key in Settings ▸ Assistant.")?,
+                        .ok_or(tr("Add an Anthropic API key in Settings ▸ Assistant."))?,
                 )
             };
             Ok(Backend::anthropic(model, auth))
@@ -461,7 +464,7 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
                     .into_iter()
                     .next()
                     .map(|m| m.slug)
-                    .ok_or("Your ChatGPT plan lists no models for other apps.")?,
+                    .ok_or(tr("Your ChatGPT plan lists no models for other apps."))?,
             };
             Ok(Backend::ChatGptPlan {
                 base_url: chatgpt::API_BASE.into(),
@@ -476,11 +479,11 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
                 .filter(|u| !u.trim().is_empty())
                 .unwrap_or_else(|| OPENAI_URL.into()),
             model: model
-                .ok_or("Choose a model in Settings ▸ Assistant.")?
+                .ok_or(tr("Choose a model in Settings ▸ Assistant."))?
                 .to_string(),
             api_key: Some(
                 read_key(AssistantProvider::Openai)
-                    .ok_or("Add an API key in Settings ▸ Assistant.")?,
+                    .ok_or(tr("Add an API key in Settings ▸ Assistant."))?,
             ),
         }),
     }
@@ -511,12 +514,12 @@ pub fn assistant_info(state: State<AppState>) -> AssistantInfo {
             model.unwrap_or_else(|| assistant::ANTHROPIC_DEFAULT_MODEL.into())
         ),
         AssistantProvider::Chatgpt => match model {
-            Some(m) => format!("ChatGPT plan · {m}"),
-            None => "ChatGPT plan".into(),
+            Some(m) => trf("ChatGPT plan · {0}", &[&m]),
+            None => tr("ChatGPT plan").into(),
         },
         AssistantProvider::Openai => match model {
-            Some(m) => format!("Cloud · {m}"),
-            None => "Cloud (no model chosen)".into(),
+            Some(m) => trf("Cloud · {0}", &[&m]),
+            None => tr("Cloud (no model chosen)").into(),
         },
     };
     AssistantInfo {

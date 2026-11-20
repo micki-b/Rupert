@@ -56,7 +56,7 @@ fn check(mut resp: ureq::http::Response<ureq::Body>) -> Result<ureq::http::Respo
     }
     let text = resp.body_mut().read_to_string().unwrap_or_default();
     Err(match status {
-        401 => net_err("signed out, please sign in again"),
+        401 => net_err(crate::i18n::tr("signed out, please sign in again")),
         _ => net_err(error_message(&text).unwrap_or_else(|| format!("HTTP {status}"))),
     })
 }

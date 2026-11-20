@@ -68,7 +68,10 @@ fn check(mut resp: ureq::http::Response<ureq::Body>) -> Result<ureq::http::Respo
         })
         .unwrap_or_else(|| format!("HTTP {status}"));
     Err(if status == 401 {
-        Error::Unsupported("OneDrive: signed out, please sign in again".into())
+        Error::Unsupported(crate::i18n::trf(
+            "OneDrive: {0}",
+            &[&crate::i18n::tr("signed out, please sign in again")],
+        ))
     } else {
         net_err(message)
     })

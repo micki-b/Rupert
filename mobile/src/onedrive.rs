@@ -6,6 +6,7 @@
 //! The refresh token lives in the Keychain; the access token only in
 //! memory. Documents are downloaded only when opened, into the cache.
 
+use rupert_core::i18n::{tr, trf};
 use std::path::Path;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -53,7 +54,7 @@ impl OneDrive {
 
     /// A connection with a current access token, refreshing it if needed.
     pub fn graph(&self, app: &AppHandle) -> Result<Graph, String> {
-        let client = client_id().ok_or("OneDrive isn't set up in this build of Rupert.")?;
+        let client = client_id().ok_or(tr("OneDrive isn't set up in this build of Rupert."))?;
         let mut tokens = self.tokens.lock().unwrap();
         if let Some(t) = tokens.as_ref().filter(|t| t.is_fresh()) {
             return Ok(Graph::new(&t.access_token));
@@ -61,7 +62,7 @@ impl OneDrive {
         let refresh = device(app)
             .keychain_get(REFRESH_KEY)
             .map_err(err)?
-            .ok_or("Sign in to OneDrive first (Settings).")?;
+            .ok_or(tr("Sign in to OneDrive first (Settings)."))?;
         let fresh = onedrive::refresh(client, &refresh).map_err(err)?;
         if let Some(r) = &fresh.refresh_token {
             device(app).keychain_set(REFRESH_KEY, r).map_err(err)?;
@@ -119,7 +120,7 @@ pub fn onedrive_status(od: State<OneDrive>) -> Status {
 pub async fn onedrive_sign_in(app: AppHandle) -> CmdResult<bool> {
     let handle = app.clone();
     let signed_in = blocking(move || {
-        let client = client_id().ok_or("OneDrive isn't set up in this build of Rupert.")?;
+        let client = client_id().ok_or(tr("OneDrive isn't set up in this build of Rupert."))?;
         let pkce = Pkce::new();
         let url = onedrive::authorize_url(client, REDIRECT_URI, &pkce);
         let Some(answer) = device(&handle)
@@ -133,7 +134,7 @@ pub async fn onedrive_sign_in(app: AppHandle) -> CmdResult<bool> {
         let refresh = tokens
             .refresh_token
             .clone()
-            .ok_or("Microsoft didn't allow staying signed in.")?;
+            .ok_or(tr("Microsoft didn't allow staying signed in."))?;
         device(&handle)
             .keychain_set(REFRESH_KEY, &refresh)
             .map_err(err)?;
@@ -194,7 +195,7 @@ pub fn add_onedrive_folder(item_id: String, name: String, app: AppHandle) -> Cmd
             .iter()
             .any(|f| f.service == Service::OneDrive && f.item_id == item_id)
         {
-            return Err(format!("“{name}” is already in the library."));
+            return Err(trf("“{0}” is already in the library.", &[&name]));
         }
         saved
             .saved

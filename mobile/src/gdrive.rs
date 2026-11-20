@@ -11,6 +11,7 @@
 //! The refresh token lives in the Keychain; the access token and each
 //! folder's last listing (Drive works by id, Rupert by path) only in memory.
 
+use rupert_core::i18n::{tr, trf};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Mutex;
@@ -30,7 +31,9 @@ use crate::{AppState, CmdResult, INDEX_CHANGED, blocking, device, err};
 /// `mobile/google-client-id` at build time.
 const CLIENT_ID: Option<&str> = option_env!("RUPERT_GOOGLE_CLIENT_ID");
 const REFRESH_KEY: &str = "gdrive.refresh-token";
-const NOT_SET_UP: &str = "Google Drive isn't set up in this build of Rupert.";
+fn not_set_up() -> &'static str {
+    tr("Google Drive isn't set up in this build of Rupert.")
+}
 
 fn client_id() -> Option<&'static str> {
     CLIENT_ID.map(str::trim).filter(|s| !s.is_empty())
@@ -59,7 +62,7 @@ impl GoogleDrive {
 
     /// A connection with a current access token, refreshing it if needed.
     pub fn drive(&self, app: &AppHandle) -> Result<Drive, String> {
-        let client = client_id().ok_or(NOT_SET_UP)?;
+        let client = client_id().ok_or(not_set_up())?;
         let mut tokens = self.tokens.lock().unwrap();
         if let Some(t) = tokens.as_ref().filter(|t| t.is_fresh()) {
             return Ok(Drive::new(&t.access_token));
@@ -67,7 +70,7 @@ impl GoogleDrive {
         let refresh = device(app)
             .keychain_get(REFRESH_KEY)
             .map_err(err)?
-            .ok_or("Sign in to Google Drive first (Settings).")?;
+            .ok_or(tr("Sign in to Google Drive first (Settings)."))?;
         let fresh = gdrive::refresh(client, &refresh).map_err(err)?;
         let drive = Drive::new(&fresh.access_token);
         *tokens = Some(fresh);
@@ -131,8 +134,8 @@ pub fn gdrive_status(gd: State<GoogleDrive>) -> Status {
 pub async fn gdrive_sign_in(app: AppHandle) -> CmdResult<bool> {
     let handle = app.clone();
     let signed_in = blocking(move || {
-        let client = client_id().ok_or(NOT_SET_UP)?;
-        let (redirect, scheme) = gdrive::redirect_for(client).ok_or(NOT_SET_UP)?;
+        let client = client_id().ok_or(not_set_up())?;
+        let (redirect, scheme) = gdrive::redirect_for(client).ok_or(not_set_up())?;
         let pkce = Pkce::new();
         let url = gdrive::authorize_url(client, &redirect, &pkce);
         let Some(answer) = device(&handle).sign_in(&url, &scheme).map_err(err)? else {
@@ -143,7 +146,7 @@ pub async fn gdrive_sign_in(app: AppHandle) -> CmdResult<bool> {
         let refresh = tokens
             .refresh_token
             .clone()
-            .ok_or("Google didn't allow staying signed in.")?;
+            .ok_or(tr("Google didn't allow staying signed in."))?;
         device(&handle)
             .keychain_set(REFRESH_KEY, &refresh)
             .map_err(err)?;
@@ -206,7 +209,7 @@ pub fn add_gdrive_folder(item_id: String, name: String, app: AppHandle) -> CmdRe
             .iter()
             .any(|f| f.service == Service::GoogleDrive && f.item_id == item_id)
         {
-            return Err(format!("“{name}” is already in the library."));
+            return Err(trf("“{0}” is already in the library.", &[&name]));
         }
         saved
             .saved
@@ -334,7 +337,7 @@ fn file_id(
         .lock()
         .unwrap()
         .insert(folder.id.clone(), listing);
-    id.ok_or_else(|| format!("“{rel_path}” isn't in Google Drive any more."))
+    id.ok_or_else(|| trf("“{0}” isn't in Google Drive any more.", &[&rel_path]))
 }
 
 /// Downloads a document the user opened into `dest`.

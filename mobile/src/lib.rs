@@ -10,6 +10,7 @@
 //! opened. Scans go to the inbox folder, where Rupert on the computer runs
 //! OCR and suggests how to file them.
 
+use rupert_core::i18n::{self, tr};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -67,6 +68,9 @@ struct Saved {
     /// folder in `remote`. Not listed as a library folder.
     #[serde(default)]
     inbox_source: Option<String>,
+    /// Rupert's language ("en", "es"); `None` follows the phone's.
+    #[serde(default)]
+    language: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -207,6 +211,38 @@ pub(crate) async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> CmdResult<T> + Send + 'static,
 ) -> CmdResult<T> {
     tauri::async_runtime::spawn_blocking(f).await.map_err(err)?
+}
+
+// MARK: - Commands: language
+
+/// Rupert's language now, the phone's (what "Automatic" means), and the
+/// setting (`None`: automatic).
+#[derive(Serialize)]
+struct Language {
+    current: i18n::Lang,
+    system: i18n::Lang,
+    setting: Option<String>,
+}
+
+#[tauri::command]
+fn language(state: State<AppState>) -> Language {
+    Language {
+        current: i18n::current(),
+        system: i18n::system(),
+        setting: state.saved.lock().unwrap().saved.language.clone(),
+    }
+}
+
+/// Settings ▸ Language. `None` follows the phone.
+#[tauri::command]
+fn set_language(language: Option<String>, state: State<AppState>) -> Language {
+    {
+        let mut saved = state.saved.lock().unwrap();
+        saved.saved.language = language.filter(|l| i18n::Lang::from_code(l).is_some());
+        saved.save();
+        i18n::set(i18n::resolve(saved.saved.language.as_deref()));
+    }
+    self::language(state)
 }
 
 // MARK: - Commands: about
@@ -379,7 +415,7 @@ async fn add_folder(app: AppHandle, state: State<'_, AppState>) -> CmdResult<boo
 #[tauri::command]
 fn remove_folder(id: String, app: AppHandle, state: State<AppState>) -> CmdResult<()> {
     if state.saved.lock().unwrap().saved.inbox_source.as_deref() == Some(id.as_str()) {
-        return Err("That's the inbox; choose another inbox in Settings instead.".into());
+        return Err(tr("That's the inbox; choose another inbox in Settings instead.").into());
     }
     if state.remote(&id).is_none() {
         state.store.lock().unwrap().remove(&id).map_err(err)?;
@@ -847,7 +883,7 @@ async fn scan(
         (saved.saved.inbox.clone(), saved.saved.remote_inbox.clone())
     };
     if inbox.is_none() && remote_inbox.is_none() {
-        return Err("Choose the inbox folder first.".into());
+        return Err(tr("Choose the inbox folder first.").into());
     }
     let handle = app.clone();
     let placed = blocking(move || {
@@ -991,6 +1027,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(&data_dir)?;
     let store = SourceStore::load(config_dir.join("sources.json"))?;
     let saved = SavedStore::load(config_dir.join("phone.json"));
+    i18n::set(i18n::resolve(saved.saved.language.as_deref()));
     let index_path = data_dir.join("index.sqlite");
     let index = Index::open(&index_path)?;
     app.manage(OneDrive::default());
@@ -1090,6 +1127,8 @@ pub fn run() {
             overview,
             refresh,
             app_version,
+            language,
+            set_language,
             add_folder,
             remove_folder,
             choose_inbox,

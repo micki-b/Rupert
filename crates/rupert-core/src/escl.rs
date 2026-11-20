@@ -21,6 +21,7 @@ use quick_xml::events::Event;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::i18n::{tr, trf};
 
 const SERVICE: &str = "_uscan._tcp.local.";
 /// Longest a page may take to arrive (feeding, warming up).
@@ -94,7 +95,7 @@ pub fn scanner_at(address: &str) -> Scanner {
 }
 
 fn net_err(e: impl std::fmt::Display) -> Error {
-    Error::InvalidValue(format!("scanner: {e}"))
+    Error::InvalidValue(trf("scanner: {0}", &[&e]))
 }
 
 fn agent(timeout: Duration) -> ureq::Agent {
@@ -149,12 +150,11 @@ pub fn capabilities(scanner: &Scanner) -> Result<Capabilities> {
     let mut resp = agent(Duration::from_secs(8))
         .get(&format!("{}/ScannerCapabilities", scanner.url))
         .call()
-        .map_err(|e| net_err(format!("{} isn't reachable ({e})", scanner.name)))?;
+        .map_err(|e| net_err(trf("{0} isn't reachable ({1})", &[&scanner.name, &e])))?;
     if resp.status() != 200 {
-        return Err(net_err(format!(
-            "{} answered {} (is it an eSCL scanner?)",
-            scanner.name,
-            resp.status()
+        return Err(net_err(trf(
+            "{0} answered {1} (is it an eSCL scanner?)",
+            &[&scanner.name, &resp.status()],
         )));
     }
     let xml = resp.body_mut().read_to_string().map_err(net_err)?;
@@ -176,7 +176,7 @@ fn parse_capabilities(xml: &str) -> Result<Capabilities> {
     loop {
         match reader
             .read_event()
-            .map_err(|e| net_err(format!("bad capabilities: {e}")))?
+            .map_err(|e| net_err(trf("bad capabilities: {0}", &[&e])))?
         {
             Event::Start(e) => {
                 let name = local(e.name().as_ref());
@@ -238,7 +238,7 @@ fn parse_capabilities(xml: &str) -> Result<Capabilities> {
         c.resolutions.sort_unstable();
     }
     if caps.platen.is_none() && caps.feeder.is_none() {
-        return Err(net_err("the scanner reported no flatbed or feeder"));
+        return Err(net_err(tr("the scanner reported no flatbed or feeder")));
     }
     Ok(caps)
 }
@@ -297,7 +297,7 @@ pub fn scan(
 ) -> Result<PathBuf> {
     let source = caps
         .source(req.source)
-        .ok_or_else(|| net_err("this scanner doesn't have that input"))?;
+        .ok_or_else(|| net_err(tr("this scanner doesn't have that input")))?;
     let color = match req.color {
         ColorMode::Color if source.color_modes.iter().any(|m| m == "RGB24") => "RGB24",
         _ => "Grayscale8",
@@ -341,18 +341,18 @@ pub fn scan(
         .post(&format!("{}/ScanJobs", scanner.url))
         .header("Content-Type", "text/xml")
         .send(settings.as_bytes())
-        .map_err(|e| net_err(format!("couldn't start the scan ({e})")))?;
+        .map_err(|e| net_err(trf("couldn't start the scan ({0})", &[&e])))?;
     match resp.status().as_u16() {
         201 => {}
-        409 | 503 => return Err(net_err("the scanner is busy, or the feeder is empty")),
-        s => return Err(net_err(format!("the scanner refused the scan ({s})"))),
+        409 | 503 => return Err(net_err(tr("the scanner is busy, or the feeder is empty"))),
+        s => return Err(net_err(trf("the scanner refused the scan ({0})", &[&s]))),
     }
     let job = resp
         .headers()
         .get("location")
         .and_then(|v| v.to_str().ok())
         .map(|loc| absolute(&scanner.url, loc))
-        .ok_or_else(|| net_err("the scanner didn't say where the scan is"))?;
+        .ok_or_else(|| net_err(tr("the scanner didn't say where the scan is")))?;
 
     // Fetch pages until the scanner says there are no more.
     let mut pages: Vec<Vec<u8>> = Vec::new();
@@ -363,7 +363,7 @@ pub fn scan(
                 let resp = http
                     .get(&format!("{job}/NextDocument"))
                     .call()
-                    .map_err(|e| net_err(format!("lost the scanner ({e})")))?;
+                    .map_err(|e| net_err(trf("lost the scanner ({0})", &[&e])))?;
                 if resp.status() == 503 && started.elapsed() < PAGE_TIMEOUT {
                     std::thread::sleep(Duration::from_millis(700));
                     continue;
@@ -385,14 +385,14 @@ pub fn scan(
                     }
                 }
                 404 | 410 => return Ok(()), // done
-                s => return Err(net_err(format!("the scan failed ({s})"))),
+                s => return Err(net_err(trf("the scan failed ({0})", &[&s]))),
             }
         }
     })();
     let _ = http.delete(&job).call(); // tidy up; not all scanners need it
     result?;
     if pages.is_empty() {
-        return Err(net_err("no pages were scanned (is the feeder empty?)"));
+        return Err(net_err(tr("no pages were scanned (is the feeder empty?)")));
     }
 
     let pdf = if pages.len() == 1 && pages[0].starts_with(b"%PDF") {

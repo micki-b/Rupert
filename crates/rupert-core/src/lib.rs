@@ -16,6 +16,7 @@ pub mod fileops;
 pub mod folder_info;
 #[cfg(feature = "gdrive")]
 pub mod gdrive;
+pub mod i18n;
 pub mod index;
 pub mod indexer;
 pub mod intake;
