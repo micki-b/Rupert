@@ -705,7 +705,8 @@
   <ul>
     <li>
       <b>Language:</b> Rupert follows your computer's language, or the one you choose in <b>Settings ▸ Language</b>. It
-      speaks English and Rioplatense Spanish (and in Spanish, the owl wears the sky-blue and white jersey).
+      speaks English, Rioplatense Spanish and German. In Spanish the owl wears the sky-blue and white jersey, in German
+      lederhosen.
     </li>
     <li>
       <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ Updates</b>). When one is

@@ -1,9 +1,9 @@
 // Rupert's current language, and number and date formatting in it. Kept
 // apart from the catalogs so they can use `num` and `plural` themselves.
 
-export type Lang = "en" | "es";
+export type Lang = "en" | "es" | "de";
 
-export const LANGS: Lang[] = ["en", "es"];
+export const LANGS: Lang[] = ["en", "es", "de"];
 
 const state = $state({ lang: "en" as Lang });
 
@@ -20,10 +20,10 @@ export function setLang(lang: Lang): void {
 
 /** The locale for numbers and dates ("es-AR" for Rupert's Spanish). */
 export function locale(): string {
-  return state.lang === "es" ? "es-AR" : "en-US";
+  return { en: "en-US", es: "es-AR", de: "de-DE" }[state.lang];
 }
 
-/** 1234 → "1,234" (English) or "1.234" (Spanish). */
+/** 1234 → "1,234" (English) or "1.234" (Spanish, German). */
 export function num(n: number): string {
   return n.toLocaleString(locale());
 }

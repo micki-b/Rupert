@@ -49,7 +49,7 @@
     "license": "MIT",
     "windows": {
       "nsis": {
-        "languages": ["English", "Spanish"]
+        "languages": ["English", "Spanish", "German"]
       }
     }
   },

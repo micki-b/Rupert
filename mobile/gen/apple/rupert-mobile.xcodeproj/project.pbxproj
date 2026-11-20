@@ -42,6 +42,7 @@
 		EFCA62BE2AEE35EAC04909AD /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D47952ED8B5767345D965FC8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8CCE152B2A473952F7FC691C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		82934A2F48D1E53CD08BE4B1 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -196,6 +197,7 @@
 				Base,
 				en,
 				es,
+				de,
 			);
 			mainGroup = 0B1097BE54939349193FBB0A;
 			minimizedProjectReferenceProxies = 1;
@@ -264,6 +266,7 @@
 			children = (
 				D47952ED8B5767345D965FC8 /* en */,
 				8CCE152B2A473952F7FC691C /* es */,
+				82934A2F48D1E53CD08BE4B1 /* de */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";

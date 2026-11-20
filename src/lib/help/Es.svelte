@@ -757,7 +757,7 @@
   <ul>
     <li>
       <b>Idioma:</b> Rupert usa el idioma de tu computadora, o el que elijas en <b>Configuración ▸ Idioma</b>. Habla
-      inglés y español rioplatense.
+      inglés, español rioplatense y alemán.
     </li>
     <li>
       <b>Actualizaciones:</b> Rupert busca una versión nueva una vez por día (lo desactivás en
