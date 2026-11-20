@@ -1,0 +1,2 @@
+/* The camera permission, in English. */
+"NSCameraUsageDescription" = "Rupert uses the camera to scan paper documents into your inbox.";

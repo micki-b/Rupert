@@ -7,5 +7,14 @@
 	     App Store Connect needs no export compliance documents. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Rupert's languages, so macOS shows its own panels (open, save,
+	     share) in them, and offers the per-app language setting. -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+	</array>
 </dict>
 </plist>

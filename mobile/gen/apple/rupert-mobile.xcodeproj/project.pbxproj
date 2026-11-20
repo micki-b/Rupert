@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9D88204159FC167E7483CADA /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 9F2EB2ED07C32BA2AFF2644B /* InfoPlist.strings */; };
 		2987F508C3FEFD436F937DBE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EFCA62BE2AEE35EAC04909AD /* LaunchScreen.storyboard */; };
 		3A52846E82645B91F1AC0C8B /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8716DFDA80241E6F2B84B3AA /* CoreGraphics.framework */; };
 		4B41A295BAEE1C4E67A1FC06 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = AF855DF9EF54257C80A074BA /* main.mm */; };
@@ -39,6 +40,8 @@
 		C7A30BD53BDA6AF4122EB982 /* rupert-mobile_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "rupert-mobile_iOS.entitlements"; sourceTree = "<group>"; };
 		CC74619CE46EC99819FC6CBA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EFCA62BE2AEE35EAC04909AD /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D47952ED8B5767345D965FC8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		8CCE152B2A473952F7FC691C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +116,7 @@
 			children = (
 				CC74619CE46EC99819FC6CBA /* Info.plist */,
 				C7A30BD53BDA6AF4122EB982 /* rupert-mobile_iOS.entitlements */,
+				9F2EB2ED07C32BA2AFF2644B /* InfoPlist.strings */,
 			);
 			path = "rupert-mobile_iOS";
 			sourceTree = "<group>";
@@ -191,6 +195,7 @@
 			knownRegions = (
 				Base,
 				en,
+				es,
 			);
 			mainGroup = 0B1097BE54939349193FBB0A;
 			minimizedProjectReferenceProxies = 1;
@@ -212,6 +217,7 @@
 				757AB1DEB0331231D0F5AF39 /* Assets.xcassets in Resources */,
 				2987F508C3FEFD436F937DBE /* LaunchScreen.storyboard in Resources */,
 				5C9B4BCEE919CEAF4912AD98 /* assets in Resources */,
+				9D88204159FC167E7483CADA /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,6 +257,18 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		9F2EB2ED07C32BA2AFF2644B /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D47952ED8B5767345D965FC8 /* en */,
+				8CCE152B2A473952F7FC691C /* es */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		25E4CD56E0AB6D207DFB7650 /* release */ = {
