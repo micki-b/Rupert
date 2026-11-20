@@ -326,6 +326,66 @@ async fn trash_entry(source_id: String, rel_path: String, app: AppHandle) -> Cmd
     Ok(())
 }
 
+/// Moves a document (with its sidecar) or a folder into the folder
+/// `dest_dir` of `dest_source_id` (possibly another source), then lets the
+/// index catch up. Returns its new path there.
+#[tauri::command]
+async fn move_entry(
+    source_id: String,
+    rel_path: String,
+    dest_source_id: String,
+    dest_dir: String,
+    app: AppHandle,
+) -> CmdResult<String> {
+    let state = app.state::<AppState>();
+    let from = state.source(&source_id)?;
+    let to = state.source(&dest_source_id)?;
+    // The inbox is kept by its path; moving it would lose it.
+    if let Some(inbox) = &state.settings.lock().unwrap().get().inbox
+        && inbox.source_id == source_id
+        && rupert_core::fileops::is_within(&inbox.rel_path, &rel_path)
+    {
+        return Err(
+            "This folder holds Rupert's inbox. Choose another inbox folder in \
+                    Settings ▸ Inbox first, then move it."
+                .into(),
+        );
+    }
+    let (f, t, rel, dest) = (from.clone(), to.clone(), rel_path.clone(), dest_dir.clone());
+    let moved = tauri::async_runtime::spawn_blocking(move || {
+        rupert_core::fileops::move_entry(&f, &rel, &t, &dest)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    if moved.rel_path != rel_path || source_id != dest_source_id {
+        if moved.is_dir {
+            let old_dir = rel_path
+                .rsplit_once('/')
+                .map(|(dir, _)| dir.to_string())
+                .unwrap_or_default();
+            state.indexer.send(Job::SyncDir {
+                source: from,
+                rel_dir: old_dir,
+            });
+            state.indexer.send(Job::SyncDir {
+                source: to,
+                rel_dir: dest_dir,
+            });
+        } else {
+            state.indexer.send(Job::File {
+                source: from,
+                rel_path,
+            });
+            state.indexer.send(Job::File {
+                source: to,
+                rel_path: moved.rel_path.clone(),
+            });
+        }
+    }
+    Ok(moved.rel_path)
+}
+
 /// A Markdown document's text for the reader (or its first `limit` bytes,
 /// for a tile), or `None` for an online-only file.
 #[tauri::command]
@@ -1216,6 +1276,7 @@ pub fn run() {
             open_entry,
             reveal_entry,
             trash_entry,
+            move_entry,
             page_count,
             read_markdown,
             test_log,

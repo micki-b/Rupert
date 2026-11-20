@@ -6,6 +6,7 @@
   import { changes } from "./changes.svelte";
   import Icon from "./Icon.svelte";
   import FolderNode from "./FolderNode.svelte";
+  import { dropTarget, isDropOver, type MoveItem } from "./drag.svelte";
 
   interface Props {
     sourceId: string;
@@ -17,9 +18,13 @@
     startExpanded?: boolean;
     /** Extra content at the end of the row (e.g. a source's menu button). */
     trailing?: Snippet;
+    /** Documents and folders dropped on the row move here. */
+    onmove?: (item: MoveItem, sourceId: string, relPath: string) => void;
   }
-  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing }: Props =
+  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing, onmove }: Props =
     $props();
+
+  const drop = $derived(onmove ? dropTarget(sourceId, relPath, (item) => onmove(item, sourceId, relPath)) : {});
 
   let expanded = $state(false);
   let children = $state<Entry[] | null>(null);
@@ -56,6 +61,8 @@
 <div
   class="row"
   class:selected={isSelected}
+  class:drop={isDropOver(sourceId, relPath)}
+  {...drop}
   style:padding-left="{8 + depth * 14}px"
   role="treeitem"
   aria-selected={isSelected}
@@ -92,6 +99,7 @@
       depth={depth + 1}
       {selected}
       {onselect}
+      {onmove}
     />
   {/each}
 {/if}
@@ -114,6 +122,10 @@
   .row.selected {
     background: var(--accent-soft);
     color: var(--accent-strong);
+  }
+  .row.drop {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   .row:focus-visible {
     outline: 2px solid var(--accent);

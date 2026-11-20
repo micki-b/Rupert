@@ -162,6 +162,19 @@
         Online-only files show a cloud instead of a picture, since showing their pages would download them. Pictures are
         kept in a cache on this computer and made again whenever a document changes.
       </p>
+      <h3 id="moving">Moving</h3>
+      <p>
+        Drag a document or folder onto a folder, in the sidebar or in the folder view, or right-click it and choose
+        <b>Move to…</b> to pick a folder. It moves on disk right away, also into another of your folders, and a document's
+        hidden details file goes along with it, so its title, tags and notes stay with it. If a document with that name is
+        already there, Rupert adds " (2)" rather than replacing anything.
+      </p>
+      <p>
+        Moving never downloads anything. An online-only file therefore moves only within its own cloud folder (for
+        example from one OneDrive folder to another); to move it elsewhere, open it once so it's on this computer, then move
+        it. Folders move only within the same disk. The folder that holds the <a href="#inbox">inbox</a> can't be moved
+        until you choose another inbox in <b>Settings ▸ Inbox</b>.
+      </p>
       <h3 id="deleting">Deleting</h3>
       <p>
         Right-click a document or folder and choose <b>{windows ? "Delete" : "Move to Trash"}</b>, or select it and press

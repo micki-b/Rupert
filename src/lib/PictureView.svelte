@@ -9,6 +9,7 @@
   import { isMarkdown } from "$lib/markdown";
   import { api, type ListedEntry } from "$lib/api";
   import { formatDate } from "$lib/format";
+  import { dragSource, dropTarget, isDropOver, type MoveItem } from "$lib/drag.svelte";
 
   let {
     mode,
@@ -18,6 +19,7 @@
     onselect,
     onactivate,
     onmenu,
+    onmove,
   }: {
     mode: "icons" | "gallery";
     sourceId: string;
@@ -26,6 +28,8 @@
     onselect: (e: ListedEntry) => void;
     onactivate: (e: ListedEntry) => void;
     onmenu: (e: ListedEntry, ev: MouseEvent) => void;
+    /** Moves a dropped document or folder into a folder here. */
+    onmove: (item: MoveItem, sourceId: string, relPath: string) => void;
   } = $props();
 
   let strip: HTMLDivElement | undefined = $state();
@@ -117,9 +121,12 @@
       <button
         class="tile"
         class:selected={e.relPath === selectedRelPath}
+        class:drop={e.isDir && isDropOver(sourceId, e.relPath)}
         onclick={() => onselect(e)}
         ondblclick={() => onactivate(e)}
         oncontextmenu={(ev) => onmenu(e, ev)}
+        {...dragSource({ sourceId, entry: e })}
+        {...e.isDir ? dropTarget(sourceId, e.relPath, (item) => onmove(item, sourceId, e.relPath)) : {}}
         title={e.title ?? e.name}
       >
         <span class="pic">
@@ -180,6 +187,7 @@
           onclick={() => onselect(e)}
           ondblclick={() => onactivate(e)}
           oncontextmenu={(ev) => onmenu(e, ev)}
+          {...dragSource({ sourceId, entry: e })}
           title={e.title ?? e.name}
         >
           <Thumb {sourceId} entry={e} side={200} iconSize={26} />
@@ -215,6 +223,10 @@
   }
   .tile.selected {
     background: var(--accent-soft);
+  }
+  .tile.drop {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   .pic {
     position: relative;

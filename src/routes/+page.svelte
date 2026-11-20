@@ -33,6 +33,8 @@
   import { changes } from "$lib/changes.svelte";
   import { formatDate, formatSize, kindLabel } from "$lib/format";
   import FolderNode from "$lib/FolderNode.svelte";
+  import MoveDialog from "$lib/MoveDialog.svelte";
+  import { dragSource, dropTarget, isDropOver, type MoveItem } from "$lib/drag.svelte";
   import Icon from "$lib/Icon.svelte";
   import ImportDialog from "$lib/ImportDialog.svelte";
   import Inbox from "$lib/Inbox.svelte";
@@ -541,13 +543,19 @@
       });
       if (!ok) return;
     }
-    // In the gallery, move on to the neighbor (handy when sorting out scans).
-    const at = entries.findIndex((x) => x.relPath === e.relPath);
     const done = await run(async () => {
       await api.trashEntry(sel.sourceId, e.relPath);
       return true;
     });
-    if (!done) return;
+    if (done) forget(sel);
+  }
+
+  /** Takes a document or folder that went away (trashed or moved) out of the
+   * view. In the gallery, moves on to its neighbor (handy when sorting out
+   * scans). */
+  function forget(sel: Selected) {
+    const e = sel.entry;
+    const at = entries.findIndex((x) => x.relPath === e.relPath);
     const gone = (x: Entry & { sourceId?: string }, sourceId: string) =>
       sourceId === sel.sourceId && (x.relPath === e.relPath || x.relPath.startsWith(e.relPath + "/"));
     hits = hits.filter((h) => !gone(h, h.sourceId));
@@ -556,6 +564,24 @@
       const next = folderMode === "gallery" && at >= 0 ? (entries[at] ?? entries[at - 1]) : undefined;
       selected = next ? { sourceId: sel.sourceId, entry: next } : null;
     }
+  }
+
+  // MARK: - Moving
+
+  /** The document or folder "Move to…" is choosing a place for. */
+  let moving = $state<Selected | null>(null);
+
+  /** Moves a document (with its details) or a folder into another folder,
+   * in this source or another. Resolves to whether it worked. */
+  async function moveItem(item: MoveItem, destSourceId: string, destDir: string): Promise<boolean> {
+    const done = await run(async () => {
+      await api.moveEntry(item.sourceId, item.entry.relPath, destSourceId, destDir);
+      return true;
+    });
+    if (!done) return false;
+    forget(item);
+    if (folder?.sourceId === destSourceId && folder.relPath === destDir) loadEntries();
+    return true;
   }
 
   function dirOf(relPath: string) {
@@ -674,6 +700,7 @@
               depth={0}
               selected={shownFolder}
               onselect={selectFolder}
+              onmove={moveItem}
               startExpanded
             >
               {#snippet trailing()}
@@ -822,6 +849,7 @@
               onclick={() => (selected = { sourceId: h.sourceId, entry: h })}
               ondblclick={() => activate(h.sourceId, h)}
               oncontextmenu={(ev) => openItemMenu({ sourceId: h.sourceId, entry: h }, ev, true)}
+              {...dragSource({ sourceId: h.sourceId, entry: h })}
             >
               <div class="r-title">
                 <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
@@ -885,6 +913,7 @@
           onselect={(e) => (selected = { sourceId: source.id, entry: e })}
           onactivate={(e) => activate(source.id, e)}
           onmenu={(e, ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
+          onmove={moveItem}
         />
       {:else}
         <table>
@@ -900,9 +929,12 @@
             {#each entries as e (e.relPath)}
               <tr
                 class:selected={selected?.entry.relPath === e.relPath}
+                class:drop={e.isDir && isDropOver(source.id, e.relPath)}
                 onclick={() => (selected = { sourceId: source.id, entry: e })}
                 ondblclick={() => activate(source.id, e)}
                 oncontextmenu={(ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
+                {...dragSource({ sourceId: source.id, entry: e })}
+                {...e.isDir ? dropTarget(source.id, e.relPath, (item) => moveItem(item, source.id, e.relPath)) : {}}
               >
                 <td class="name">
                   <span class="file-icon" class:folder={e.isDir}>
@@ -1003,6 +1035,7 @@
     {#if m.inSearch}
       <button role="menuitem" onclick={() => ((itemMenu = null), showInFolder(m.sel))}>Show in Rupert</button>
     {/if}
+    <button role="menuitem" onclick={() => ((itemMenu = null), (moving = m.sel))}>Move to…</button>
     <hr />
     <button role="menuitem" class="danger" onclick={() => trashEntry(m.sel)}>{trashLabel}</button>
   </div>
@@ -1040,6 +1073,15 @@
       scanOpen = false;
       settingsOpen = true;
     }}
+  />
+{/if}
+
+{#if moving}
+  <MoveDialog
+    item={moving}
+    {sources}
+    onmove={(sourceId, relPath) => moveItem(moving!, sourceId, relPath)}
+    onclose={() => (moving = null)}
   />
 {/if}
 
@@ -1519,6 +1561,10 @@
   }
   tbody tr.selected {
     background: var(--accent-soft);
+  }
+  tbody tr.drop {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   td.name {
     display: flex;
