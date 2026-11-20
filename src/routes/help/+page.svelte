@@ -6,44 +6,24 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { invoke } from "@tauri-apps/api/core";
   import { editionLabel, type AppInfo } from "$lib/api";
+  import { currentLang, m } from "$lib/i18n";
+  import HelpEn, { sections as enSections } from "$lib/help/En.svelte";
+  import HelpEs, { sections as esSections } from "$lib/help/Es.svelte";
 
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const mac = /Mac/.test(ua);
   const windows = /Windows/.test(ua);
   /** The command key as people know it on this computer. */
   const cmd = mac ? "⌘" : "Ctrl+";
-  const fileManager = mac ? "Finder" : windows ? "File Explorer" : "your file manager";
-  const reveal = mac ? "Show in Finder" : windows ? "Show in Explorer" : "Show in Files";
-  const keychain = mac ? "the macOS Keychain" : windows ? "the Windows Credential Manager" : "the system keyring";
 
-  const sections = [
-    { id: "start", title: "Getting started" },
-    { id: "library", title: "Your library" },
-    { id: "finding", title: "Finding documents" },
-    { id: "details", title: "Titles, tags and dates" },
-    { id: "tags", title: "Managing tags" },
-    { id: "inbox", title: "The inbox" },
-    { id: "scanning", title: "Scanning" },
-    { id: "scansnap", title: "Moving from ScanSnap Home" },
-    { id: "assistant", title: "Ask Rupert" },
-    { id: "ai-models", title: "Setting up AI models" },
-    { id: "lm-studio", title: "LM Studio (on this computer)", sub: true },
-    { id: "claude", title: "Claude", sub: true },
-    { id: "chatgpt-plan", title: "ChatGPT with your plan", sub: true },
-    { id: "openai", title: "OpenAI-compatible services", sub: true },
-    { id: "ai-trouble", title: "When the assistant doesn't work", sub: true },
-    { id: "iphone", title: "The iPhone app" },
-    { id: "storage", title: "Where Rupert keeps things" },
-    { id: "keys", title: "Keyboard shortcuts" },
-    { id: "about", title: "About Rupert" },
-  ];
+  const sections = $derived(currentLang() === "es" ? esSections : enSections);
   let current = $state("start");
   let version = $state("");
   const REPO = "https://github.com/micki-b/Rupert";
 
   onMount(() => {
     invoke<AppInfo>("app_info")
-      .then((i) => (version = `${i.version} (${editionLabel(i)} edition)`))
+      .then((i) => (version = m.help.version(i.version, editionLabel(i))))
       .catch(() => {});
     const start = (window as unknown as { __rupertHelpSection?: string }).__rupertHelpSection;
     const target = start || location.hash.slice(1);
@@ -84,699 +64,23 @@
   }
 </script>
 
-<svelte:head><title>Rupert Help</title></svelte:head>
+<svelte:head><title>{m.help.title}</title></svelte:head>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="help" {onclick} {onscroll}>
-  <nav aria-label="Contents">
-    <div class="brand">Rupert Help</div>
+  <nav aria-label={m.help.contents}>
+    <div class="brand">{m.help.title}</div>
     {#each sections as s (s.id)}
       <a href="#{s.id}" class:sub={s.sub} class:current={current === s.id}>{s.title}</a>
     {/each}
   </nav>
 
   <main>
-    <!-- MARK: Getting started -->
-    <section id="start">
-      <h1>Rupert, the librarian for your documents</h1>
-      <p>
-        Rupert keeps track of your scanned documents and other files in the folders you already use: on this computer,
-        in iCloud Drive, OneDrive or Google Drive. It doesn't import or copy anything. Your folders stay the library, and Rupert adds
-        search, tags, dates, favorites and an inbox for new scans.
-      </p>
-      <h3>First steps</h3>
-      <ol>
-        <li>
-          <strong>Add a folder.</strong> Click <b>+</b> next to <b>Sources</b> in the sidebar and pick a folder, for example
-          your Documents folder, or a folder in OneDrive or Google Drive. Its subfolders are included. Add as many sources as you like.
-        </li>
-        <li>
-          <strong>Wait for the first pass.</strong> Rupert reads each document once so it can search its text. The status
-          bar at the bottom shows the progress. You can keep working meanwhile.
-        </li>
-        <li>
-          <strong>Set up the inbox</strong> (optional). In <b>Settings</b>, choose the folder new scans arrive in. Rupert
-          recognizes their text and suggests how to file them. See <a href="#inbox">The inbox</a>.
-        </li>
-        <li>
-          <strong>Set up LM Studio</strong> (optional) for filing suggestions and the chat assistant. See
-          <a href="#lm-studio">LM Studio</a>.
-        </li>
-      </ol>
-      <div class="note">
-        Anything you do in {fileManager} or your sync app shows up in Rupert, and what you do in Rupert is an ordinary
-        change to the files. Nothing is locked into Rupert.
-      </div>
-    </section>
-
-    <!-- MARK: Library -->
-    <section id="library">
-      <h2>Your library</h2>
-      <p>
-        The sidebar lists your <b>Sources</b>, the folders you added. Click a folder to see its documents, and a document
-        to see its details on the right. Double-click (or <b>Open</b>) opens it in its usual app; <b>{reveal}</b> shows it
-        in {fileManager}.
-      </p>
-      <p>The two buttons above the sources switch the sidebar between your <b>folders</b> and your <b>tags</b>.</p>
-      <p>
-        <b>Markdown files</b> (<code>.md</code>) open in Rupert's own reader, formatted with headings, lists, tables and
-        pictures. Links to other Markdown files open there too (<b>Back</b> returns), web links open in your browser, and
-        <b>Open in default app</b> hands the file to your usual editor. Online-only Markdown files open in your usual app,
-        which downloads them.
-      </p>
-      <h3 id="views">Views</h3>
-      <p>The three buttons at the right end of the folder path change how folders are shown, for all folders:</p>
-      <ul>
-        <li><b>List</b>: names, kinds, sizes and dates.</li>
-        <li>
-          <b>Large icons</b>: a picture of each document's first page (the start of the text for Markdown files). Use the
-          arrow keys to move between them.
-        </li>
-        <li>
-          <b>Gallery</b>: the selected document large, with a strip of all documents below. <kbd>←</kbd> and
-          <kbd>→</kbd> move to the previous or next document; <kbd>↑</kbd> and <kbd>↓</kbd> (or the arrow buttons on the
-          page) flip through its pages.
-        </li>
-      </ul>
-      <p>
-        Online-only files show a cloud instead of a picture, since showing their pages would download them. Pictures are
-        kept in a cache on this computer and made again whenever a document changes.
-      </p>
-      <h3 id="moving">Moving</h3>
-      <p>
-        Drag a document or folder onto a folder, in the sidebar or in the folder view, or right-click it and choose
-        <b>Move to…</b> to pick a folder. It moves on disk right away, also into another of your folders, and a document's
-        hidden details file goes along with it, so its title, tags and notes stay with it. If a document with that name is
-        already there, Rupert adds " (2)" rather than replacing anything.
-      </p>
-      <p>
-        Moving never downloads anything. An online-only file therefore moves only within its own cloud folder (for
-        example from one OneDrive folder to another); to move it elsewhere, open it once so it's on this computer, then move
-        it. Folders move only within the same disk. The folder that holds the <a href="#inbox">inbox</a> can't be moved
-        until you choose another inbox in <b>Settings ▸ Inbox</b>.
-      </p>
-      <h3 id="deleting">Deleting</h3>
-      <p>
-        Right-click a document or folder and choose <b>{windows ? "Delete" : "Move to Trash"}</b>, or select it and press
-        <kbd>{mac ? "⌘⌫" : "Delete"}</kbd>. It goes to the {windows ? "Recycle Bin" : "Trash"}, so you can get it back from
-        there. A document's hidden details file goes along with it. Documents go right away; for a folder, Rupert asks first,
-        since everything inside it goes too.
-      </p>
-      <p>
-        Rupert doesn't open online-only files to delete them; the deletion syncs like any other, and iCloud Drive,
-        OneDrive and Google Drive also keep deleted files for a while on their websites. Folders you added as sources can't be deleted this way; use
-        <b>Remove from Rupert…</b> in the source's <b>⋯</b> menu (that leaves the folder on disk).
-      </p>
-      <h3>Source options</h3>
-      <p>Click <b>⋯</b> next to a source:</p>
-      <ul>
-        <li>
-          <b>Show all file types</b>: by default Rupert shows documents only (PDFs, images, Office files, text). Turn this
-          on to see every file.
-        </li>
-        <li>
-          <b>Download online-only files to index them</b> (iCloud Drive, OneDrive and Google Drive sources): see
-          <a href="#online-only">online-only files</a> below.
-        </li>
-        <li><b>Rename…</b> changes the name shown in Rupert, not the folder's name on disk.</li>
-        <li><b>Remove from Rupert…</b> stops showing the folder. The folder and its files stay exactly where they are.</li>
-      </ul>
-      <h3 id="online-only">Online-only files</h3>
-      <p>
-        iCloud Drive, OneDrive and Google Drive can keep files in the cloud only, to save space. Rupert shows them with a cloud icon
-        <span class="cloud">☁</span> and never opens them on its own, because opening one downloads it. You can still find
-        them by name and by the details Rupert knows about them, and opening one downloads it as usual.
-      </p>
-      <p>
-        On Windows, Google Drive set to <b>Stream files</b> doesn't tell other apps which files are on the computer, so
-        Rupert treats every file on its <b>Google Drive (G:)</b> drive as online-only. Titles, tags and text then come
-        from Rupert on another computer (through the shared catalog), or from <b>Download online-only files to index
-        them</b>. With Google Drive set to <b>Mirror files</b>, everything is on the computer and read as usual.
-      </p>
-      <p>
-        To search the <em>text</em> of online-only documents, turn on <b>Download online-only files to index them</b> for that
-        source. Rupert then downloads them a few at a time, reads their text, and frees the space again. Nothing in the
-        files changes. It can take hours for a big folder; files over 100 MB are skipped. What Rupert learns is saved in the
-        folder itself, so your other computers (and the iPhone app) can search those documents without downloading them
-        again.
-      </p>
-    </section>
-
-    <!-- MARK: Finding -->
-    <section id="finding">
-      <h2>Finding documents</h2>
-      <h3>Search</h3>
-      <p>
-        Type in the search field at the top ({cmd}F). Rupert looks in titles, file names, tags, notes and the text of the
-        documents, across all sources. Every word you type has to match; the last one may be the start of a word, so
-        <kbd>impel</kbd> finds “impeller”. Accents don't matter. Press <kbd>Esc</kbd> to clear the search.
-      </p>
-      <p>
-        In the results, <b>Show in Rupert</b> (in the details) takes you to the document's folder.
-      </p>
-      <h3>Tags</h3>
-      <p>
-        Switch the sidebar to <b>Tags</b>. With nothing typed it shows your most-used tags; type to narrow the list, or
-        click <b>Show all</b> below it. Click tags to select several, and choose under <b>Match</b>:
-      </p>
-      <ul>
-        <li><b>Any</b>: documents with at least one of the selected tags.</li>
-        <li><b>All</b>: documents with every selected tag. The list then offers only tags that go together with them.</li>
-      </ul>
-      <p>The tag filter combines with the search text and with Favorites. Click a chip's × above the list to remove it.</p>
-      <h3>Favorites</h3>
-      <p>
-        Mark a document with the ☆ in its details. Mark a folder with the ☆ next to its path above the document list.
-        <b>Favorites</b> in the sidebar lists both. Favorites are saved with the files, so they show up on your other
-        computers and on the iPhone.
-      </p>
-    </section>
-
-    <!-- MARK: Details -->
-    <section id="details">
-      <h2>Titles, tags and dates</h2>
-      <p>Select a document to see and edit its details on the right:</p>
-      <ul>
-        <li><b>Title</b>: a readable name, independent of the file name.</li>
-        <li><b>Document date</b>: the date on the paper (an invoice date, a letter's date), not when it was scanned.</li>
-        <li><b>Tags</b>: as many as you like. Type and press Return or a comma to add one.</li>
-        <li><b>Notes</b>: anything you want to remember about it.</li>
-      </ul>
-      <p>
-        Click <b>Save</b> to keep your changes, or <b>Revert</b> to undo them. They're saved inside the PDF itself, in the
-        standard place other programs (Acrobat, Preview and many more) read too. Files that can't hold details, like Word
-        documents or photos, keep them in a small hidden file next to them. The details panel says which.
-      </p>
-      <p>
-        For an online-only PDF, click <b>Download and show details</b> to read what's stored inside it. Saving changes to an
-        online-only file downloads it first.
-      </p>
-    </section>
-
-    <!-- MARK: Tags -->
-    <section id="tags">
-      <h2>Managing tags</h2>
-      <p>
-        With the sidebar on <b>Tags</b>, click <b>Manage tags</b>. Pick one tag to <b>rename</b> it, several to
-        <b>merge</b> them into one, or use <b>Delete…</b> to remove tags from every document. Rupert shows how many documents
-        will change before it does anything, and changes each document wherever its details are kept.
-      </p>
-      <p>
-        Online-only documents aren't downloaded for this when it can be avoided: the change is noted beside them and moves
-        into the PDF the next time it's saved. If a change would leave an online-only PDF with no tags at all, Rupert asks
-        before downloading it.
-      </p>
-    </section>
-
-    <!-- MARK: Inbox -->
-    <section id="inbox">
-      <h2>The inbox</h2>
-      <p>
-        The inbox is a folder where new scans arrive: the folder your scanner software saves to, or the one scans from
-        Rupert and the iPhone go to. It has to be inside one of your sources. Choose it in <b>Settings ▸ Inbox</b>.
-      </p>
-      <p>For each new file, Rupert:</p>
-      <ol>
-        <li>
-          <b>Recognizes the text</b> if it's a scan without any, and adds an invisible text layer to the PDF, so any PDF app
-          can search it. This happens on this computer ({mac ? "with Apple's built-in text recognition" : "with Tesseract, if it is installed"}).
-          Turn it on or off in <b>Settings ▸ Text recognition</b>.
-        </li>
-        <li>
-          <b>Suggests a title, date, tags and folder</b>, using LM Studio on this computer, if it's running. Rupert suggests
-          folders where similar documents already are.
-        </li>
-        <li>Waits for you. Nothing moves until you say so.</li>
-      </ol>
-      <p>
-        Click <b>Inbox</b> in the sidebar to review. Check the suggestion, change anything, and click <b>File</b>
-        ({cmd}{mac ? "↩" : "Enter"}). Rupert writes the details into the file, renames it and moves it to the folder.
-        <b>Suggest again</b> asks LM Studio for a new suggestion.
-      </p>
-      <p>
-        To get rid of a scan instead, click <b>{windows ? "Delete…" : "Move to Trash…"}</b> under the form, right-click
-        it in the list, or press <kbd>{mac ? "⌘⌫" : "Delete"}</kbd>. Rupert asks first, since a new scan may not be saved
-        anywhere else yet; it goes to the {windows ? "Recycle Bin" : "Trash"}, where you can get it back.
-      </p>
-      <p>
-        The file name follows the pattern in <b>Settings ▸ File names</b>: <code>{"{date}"}</code> and
-        <code>{"{title}"}</code> are filled in, so the default <code>{"{date} {title}"}</code> gives names like
-        “2026-04-29 Car insurance renewal.pdf”. If a file with that name exists, Rupert adds “(2)”; it never overwrites.
-      </p>
-      {#if !mac}
-        <div class="note">
-          Text recognition on Windows and Linux uses the free <b>Tesseract</b> program. If Settings says no engine was
-          found, install Tesseract and restart Rupert.
-        </div>
-      {/if}
-    </section>
-
-    <!-- MARK: Scanning -->
-    <section id="scanning">
-      <h2>Scanning</h2>
-      <h3>Network scanners</h3>
-      <p>
-        Rupert scans directly from scanners that support AirScan (also called eSCL), which most current network scanners
-        and multifunction printers do. Choose {#if mac}<b>File ▸ Scan…</b>, or {/if}<b>Scan…</b> in the inbox. Rupert finds scanners on your network, or you can add one by its address. Pick the source (document feeder or
-        glass), sides, color, resolution and page size, and click <b>Scan</b>. The PDF goes straight into the inbox.
-      </p>
-      <h3>ScanSnap and other scanner software</h3>
-      <p>
-        Any scanner app that saves to a folder works with Rupert. For a ScanSnap, create a ScanSnap Home profile that saves
-        PDFs to Rupert's inbox folder. Rupert picks up each new scan from there.
-      </p>
-      <h3>With the iPhone</h3>
-      <p>The iPhone app scans with the camera into the same inbox. See <a href="#iphone">The iPhone app</a>.</p>
-    </section>
-
-    <!-- MARK: ScanSnap Home -->
-    <section id="scansnap">
-      <h2>Moving from ScanSnap Home</h2>
-      <p>
-        If you used ScanSnap Home to organize your scans, Rupert can bring over what it knows that isn't in the files:
-        document dates, favorites, receipt details and its recognized text. Choose <b>Import from ScanSnap Home…</b>
-        at the bottom of the sidebar{mac ? " or in the File menu" : ""}.
-      </p>
-      <p>
-        Rupert first shows what it found and what it will change, including ScanSnap folders that aren't in your sources yet
-        (<b>Add as source</b>). Nothing you've set in Rupert is overwritten, online-only files aren't downloaded, and running
-        it again changes nothing.
-      </p>
-    </section>
-
-    <!-- MARK: Assistant -->
-    <section id="assistant">
-      <h2>Ask Rupert</h2>
-      <p>
-        Click the chat button in the lower-right corner ({cmd}J) to ask Rupert for documents in plain words. He searches,
-        reads and shows what he finds in the main window. For example:
-      </p>
-      <ul>
-        <li>“Find the impeller invoice from last spring”</li>
-        <li>“What's the deductible on the boat insurance?”</li>
-        <li>“Show everything tagged Taxes and 2025”</li>
-        <li>“Open the Boat folder”</li>
-      </ul>
-      <p>
-        The owl shows what he's doing: thinking, searching, reading a document, or opening something. A line under the
-        conversation names the current step.
-      </p>
-      <ul>
-        <li>
-          <b>Stop</b> (the ■ button, or <kbd>Esc</kbd>) ends an answer at once. Your question goes back into the box so you
-          can change it.
-        </li>
-        <li><b>New conversation</b> (the circular arrow) starts over.</li>
-        <li>The gear opens the assistant's settings.</li>
-      </ul>
-      <p>
-        Rupert can look at your library, but <b>never changes</b> anything: no renaming, moving, tagging or deleting. He only
-        reads the text Rupert already knows, so he never downloads online-only files.
-      </p>
-      <p>
-        By default he runs on LM Studio, on this computer. You can choose Claude or another cloud service instead: see
-        <a href="#ai-models">Setting up AI models</a>.
-      </p>
-    </section>
-
-    <!-- MARK: AI models -->
-    <section id="ai-models">
-      <h2>Setting up AI models</h2>
-      <p>Rupert uses AI in two places, set up separately:</p>
-      <table>
-        <thead><tr><th>Feature</th><th>Where it runs</th><th>Settings</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>Inbox suggestions (title, date, tags, folder)</td>
-            <td>LM Studio on this computer, always</td>
-            <td><b>Settings ▸ Suggestions</b></td>
-          </tr>
-          <tr>
-            <td>Ask Rupert (the chat)</td>
-            <td>LM Studio by default, or a cloud model you choose</td>
-            <td><b>Settings ▸ Assistant</b></td>
-          </tr>
-        </tbody>
-      </table>
-      <p>
-        Text recognition doesn't use AI services at all: it runs on this computer. In <b>Settings ▸ Assistant</b>, the
-        <b>Model</b> menu picks one of three kinds of connection:
-      </p>
-      <ul>
-        <li><a href="#lm-studio"><b>LM Studio on this computer</b></a>: private and free, needs a capable computer.</li>
-        <li>
-          <a href="#claude"><b>Claude (Anthropic, cloud)</b></a>: with an API key or your Anthropic account (a Max,
-          Ultra or Team plan's monthly credits can pay for it).
-        </li>
-        <li>
-          <a href="#chatgpt-plan"><b>ChatGPT, with your plan (cloud)</b></a>: sign in with ChatGPT; no API key, uses your
-          ChatGPT plan.
-        </li>
-        <li>
-          <a href="#openai"><b>OpenAI-compatible service (cloud)</b></a>: OpenAI or another service that works the same way.
-        </li>
-      </ul>
-      <div class="note cloud-note">
-        <b>☁ About privacy.</b> With a cloud model, your questions and what the assistant looks at (document titles, tags,
-        folder names, and the text of documents it reads) are sent to that service. Whenever a cloud model is in use, the
-        chat panel shows <span class="cloud">☁</span> and the model's name under “Ask Rupert”. Inbox suggestions and text
-        recognition stay on this computer either way.
-      </div>
-    </section>
-
-    <!-- MARK: LM Studio -->
-    <section id="lm-studio">
-      <h3 class="sub-h">LM Studio (on this computer)</h3>
-      <p>
-        <a href="https://lmstudio.ai">LM Studio</a> is a free app that runs AI models on your own computer. Nothing leaves
-        the computer. It works best on a Mac with Apple silicon and plenty of memory, or a PC with a recent graphics card.
-      </p>
-      <ol>
-        <li>Install LM Studio from <a href="https://lmstudio.ai">lmstudio.ai</a> and open it.</li>
-        <li>
-          Download a model in LM Studio's search. For the assistant, choose one that supports <b>tool use</b> (LM Studio marks
-          these); for example a recent Qwen model. Bigger models give better answers but are slower.
-        </li>
-        <li>
-          Start the local server: in LM Studio's <b>Developer</b> tab, switch the server on. It listens at
-          <code>http://localhost:1234</code>. Load your model there too.
-        </li>
-        <li>
-          In Rupert, open <b>Settings ▸ Suggestions</b>. <b>Server</b> should say <code>http://localhost:1234</code> and show
-          <span class="ok">Connected</span>. Under <b>Model</b>, keep “The model loaded in LM Studio” or pick one.
-        </li>
-        <li>
-          In <b>Settings ▸ Assistant</b>, choose <b>LM Studio on this computer</b>. The assistant uses the same server and
-          model as the suggestions. Changes in Settings apply right away; click <b>Done</b> when you're finished.
-        </li>
-      </ol>
-      <p class="tip">
-        Local models take their time: a question can take a minute or two, mostly spent thinking. You can keep using Rupert
-        meanwhile, and stop the answer at any time.
-      </p>
-      <p class="tip">
-        LM Studio can run on another computer in your home, too: switch on its option to serve on the local network, and
-        enter that computer's address in <b>Server</b> (for example <code>http://192.168.1.20:1234</code>). Only do this on a
-        network you trust; the server has no password.
-      </p>
-    </section>
-
-    <!-- MARK: Claude -->
-    <section id="claude">
-      <h3 class="sub-h">Claude</h3>
-      <p>
-        Claude, by Anthropic, answers quickly and well. It's a paid cloud service, billed by use through an Anthropic
-        developer account (the Claude Console). That account is separate from a claude.ai subscription: Anthropic doesn't
-        let other apps use a subscription's own usage, so Rupert can't run on your Claude plan directly.
-      </p>
-      <div class="note" id="claude-credits">
-        <b>Have a Max, Ultra or Team plan?</b> It includes monthly credits for the Claude Console ($100 a month with
-        Max, $200 with Ultra, up to $500 pooled with Team), which Rupert can spend:
-        <ol>
-          <li>
-            On <a href="https://claude.ai">claude.ai</a>, open <b>Settings ▸ Billing</b> (Team: <b>Organization settings ▸
-            Billing</b>) and, under <b>API credits</b>, link a Claude Console organization. You can create one there. Pick
-            carefully: the link can't be changed later without Anthropic's support.
-          </li>
-          <li>Sign in to Claude below with that organization (option 1 or 2).</li>
-        </ol>
-        The credits are used first, expire at the end of each month and don't roll over. When they're used up, requests
-        stop until next month (unless you've bought credits too); nothing is ever charged to your plan. Free and Pro plans
-        don't include them. New subscribers can claim them after 7 days.
-      </div>
-      <p>In <b>Settings ▸ Assistant</b>, choose <b>Claude (Anthropic, cloud)</b>. Then choose how to sign in.</p>
-
-      <h4>Option 1: API key</h4>
-      <ol>
-        <li>
-          Sign in or create an account at <a href="https://platform.claude.com">platform.claude.com</a>, and add credits under
-          Billing.
-        </li>
-        <li>
-          Create a key at <a href="https://platform.claude.com/settings/keys">platform.claude.com/settings/keys</a> and copy
-          it.
-        </li>
-        <li>In Rupert, choose <b>API key</b> under Sign-in, paste the key and click <b>Save key</b>.</li>
-      </ol>
-      <p>
-        The key is kept in {keychain}, never in Rupert's settings file. <b>Remove</b> deletes it from there. You can
-        revoke the key on the Claude Console at any time.
-      </p>
-
-      <h4>Option 2: your Anthropic account, without a key</h4>
-      <p>
-        Rupert can use your Anthropic account through Anthropic's command-line tool, <code>ant</code>, so you don't handle
-        a key at all.
-      </p>
-      <ol>
-        <li>
-          Install <code>ant</code>:
-          {#if mac}
-            in Terminal, run <code>brew install anthropics/tap/ant</code> (this needs
-            <a href="https://brew.sh">Homebrew</a>).
-          {:else if windows}
-            download it from <a href="https://github.com/anthropics/anthropic-cli/releases">its releases page</a> and put
-            <code>ant.exe</code> in a folder on your PATH.
-          {:else}
-            follow the steps in <a href="https://platform.claude.com/docs/en/cli-sdks-libraries/cli/quickstart">Anthropic's
-            CLI quickstart</a>.
-          {/if}
-        </li>
-        <li>
-          In Rupert, choose <b>Anthropic account, through the <code>ant</code> command</b> under Sign-in, then click
-          <b>Sign in…</b>. Your browser opens; sign in and approve. The account line changes to “Signed in”.
-        </li>
-      </ol>
-      <p>
-        Use is billed to the Console organization you picked when signing in. The sign-in lasts some weeks; when it runs out,
-        the assistant says so and <b>Sign in again…</b> renews it.
-      </p>
-
-      <h4>Which Claude model</h4>
-      <p>
-        Leave <b>Claude model</b> empty to use <code>claude-opus-5-5</code>, the most capable. For faster, cheaper answers,
-        enter <code>claude-sonnet-5-5</code> or <code>claude-haiku-5-5</code>.
-      </p>
-    </section>
-
-    <!-- MARK: ChatGPT plan -->
-    <section id="chatgpt-plan">
-      <h3 class="sub-h">ChatGPT with your plan</h3>
-      <p>
-        If you pay for ChatGPT, Rupert can use your plan instead of an API key: you sign in with your ChatGPT account, and
-        Rupert's questions count against your plan's limits. OpenAI calls this “Sign in with ChatGPT”. It's a preview, so
-        OpenAI may still change how it works and which plans it covers.
-      </p>
-      <ol>
-        <li>In <b>Settings ▸ Assistant</b>, choose <b>ChatGPT, with your plan (cloud)</b>.</li>
-        <li>
-          Click <b>Sign in with ChatGPT…</b>. Your browser opens OpenAI's sign-in page; sign in and allow Rupert to use your
-          ChatGPT plan. The page then says you can close it, and Settings shows your account.
-        </li>
-        <li>Pick a <b>Model</b>: the list shows what your plan offers other apps.</li>
-      </ol>
-      <p>
-        Rupert keeps the sign-in in {keychain}. It doesn't see your ChatGPT conversations, and nothing it sends is saved at
-        OpenAI for later. In ChatGPT's settings you can see Rupert among the apps using your plan, cap how much it may use
-        each week, or remove it. <b>Sign out</b> in Rupert forgets the sign-in on this computer.
-      </p>
-      <p class="tip">
-        When Rupert's share of your plan is used up, the assistant says so; it starts working again when your limit resets.
-        Nothing is charged beyond your plan.
-      </p>
-    </section>
-
-    <!-- MARK: OpenAI-compatible -->
-    <section id="openai">
-      <h3 class="sub-h">OpenAI-compatible services</h3>
-      <p>
-        Many AI services accept requests the way OpenAI's does: OpenAI itself, and others such as OpenRouter, Groq or Mistral.
-        In <b>Settings ▸ Assistant</b>, choose <b>OpenAI-compatible service (cloud)</b> and fill in:
-      </p>
-      <dl>
-        <dt>Service</dt>
-        <dd>
-          The service's API address. Leave it empty for OpenAI (<code>https://api.openai.com/v1</code>). Others publish theirs,
-          for example <code>https://openrouter.ai/api/v1</code>, <code>https://api.groq.com/openai/v1</code> or
-          <code>https://api.mistral.ai/v1</code>.
-        </dd>
-        <dt>Model</dt>
-        <dd>The model's name exactly as the service lists it. Pick one that supports tool use (also called function calling).</dd>
-        <dt>API key</dt>
-        <dd>
-          Create one on the service's website (for OpenAI:
-          <a href="https://platform.openai.com/api-keys">platform.openai.com/api-keys</a>), paste it and click
-          <b>Save key</b>. It's kept in {keychain}.
-        </dd>
-      </dl>
-      <p>Open the chat: its header shows the model with <span class="cloud">☁</span>.</p>
-    </section>
-
-    <!-- MARK: Troubleshooting AI -->
-    <section id="ai-trouble">
-      <h3 class="sub-h">When the assistant doesn't work</h3>
-      <table>
-        <thead><tr><th>Message or symptom</th><th>What to do</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>“LM Studio isn't running, or has no model loaded.”</td>
-            <td>Open LM Studio, start its server and load a model. Settings ▸ Suggestions should say Connected.</td>
-          </tr>
-          <tr>
-            <td>“Add an Anthropic API key…” or “Add an API key…”</td>
-            <td>Paste a key in Settings ▸ Assistant and click Save key.</td>
-          </tr>
-          <tr>
-            <td>“The ant command isn't installed.”</td>
-            <td>
-              Install it (see <a href="#claude">Claude</a>), then reopen Settings. Rupert looks for it on your PATH and in the
-              usual install folders.
-            </td>
-          </tr>
-          <tr>
-            <td>“Not signed in to Anthropic”</td>
-            <td>Click Sign in… in Settings ▸ Assistant.</td>
-          </tr>
-          <tr>
-            <td>“your ChatGPT plan's limit for Rupert is used up”</td>
-            <td>Wait for the limit to reset, or raise Rupert's limit in ChatGPT's settings.</td>
-          </tr>
-          <tr>
-            <td>“this ChatGPT account or plan can't be used by other apps”</td>
-            <td>Your plan or workspace doesn't allow it. Choose another model in Settings ▸ Assistant.</td>
-          </tr>
-          <tr>
-            <td>“The ChatGPT sign-in has expired”</td>
-            <td>Click Sign in again… in Settings ▸ Assistant.</td>
-          </tr>
-          <tr>
-            <td>“not signed in or no access”</td>
-            <td>The key was revoked or mistyped, or the sign-in ran out. Save a new key, or sign in again.</td>
-          </tr>
-          <tr>
-            <td>A message about your credit balance</td>
-            <td>
-              Add credits to the account on the service's website. With a Claude Max, Ultra or Team plan, check that its
-              monthly credits are linked to the organization you signed in with (see <a href="#claude-credits">Claude</a>).
-            </td>
-          </tr>
-          <tr>
-            <td>“rate limited, try again shortly”</td>
-            <td>The service is busy or you've hit its limit. Wait a minute and ask again.</td>
-          </tr>
-          <tr>
-            <td>Answers without looking anything up, or “I couldn't finish that…”</td>
-            <td>The model may not handle tools well. Try a larger model, or one marked for tool use.</td>
-          </tr>
-          <tr>
-            <td>Very slow answers</td>
-            <td>Normal for big local models. Choose a smaller model in LM Studio, or a cloud model.</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- MARK: iPhone -->
-    <section id="iphone">
-      <h2>The iPhone app</h2>
-      <p>Rupert on the iPhone shows the same library, so you can look things up away from the computer.</p>
-      <ul>
-        <li>
-          <b>Add folders</b> from iCloud Drive or On My iPhone with the Files picker: the same folders Rupert uses on the
-          computer. For <b>OneDrive</b>, sign in with your Microsoft account in the app instead (the Files picker can't share
-          OneDrive folders with other apps). <b>Google Drive</b> works the same way (a preview): the Google Drive app doesn't
-          share its folders with other apps either, so sign in with your Google account in <b>Settings ▸ Google
-          Drive</b>. Google hasn't reviewed Rupert, so its sign-in page warns that the app isn't verified; tap
-          <b>Advanced</b>, then <b>Go to Rupert</b>.
-        </li>
-        <li>
-          <b>Search and browse</b> titles, tags and text. The text comes from what Rupert on your computer has read, so let it
-          finish its first pass there.
-        </li>
-        <li><b>Open</b> a document to download and view it, then share or print it.</li>
-        <li>
-          <b>Scan</b> with the camera. Choose color, grayscale or black &amp; white and the resolution in the Scan tab. Scans
-          are saved to the inbox folder you pick, which should be the computer's inbox, so Rupert there can recognize and
-          file them. The <b>Inbox</b> is always at the top of the Library tab, so you can see your scans until they are
-          filed, even if the inbox folder isn't one of your library folders.
-        </li>
-        <li><b>Star folders</b> to add them to Favorites on all your devices.</li>
-      </ul>
-      <p>Its version and build number are at the bottom of its <b>Settings</b>, under <b>About</b>.</p>
-      <p>The iPhone app doesn't change your documents: only Rupert on the computer edits details and files scans.</p>
-    </section>
-
-    <!-- MARK: Storage -->
-    <section id="storage">
-      <h2>Where Rupert keeps things</h2>
-      <ul>
-        <li>
-          <b>Your documents</b> stay in your folders. Rupert renames or moves a file only when you ask: when you file it from the inbox, or
-          move it to another folder.
-        </li>
-        <li>
-          <b>Titles, tags, dates, notes and favorites</b> are stored inside PDFs, or in a hidden <code>.rupert</code> folder
-          next to files that can't hold them. They travel with the files to your other computers.
-        </li>
-        <li>
-          <b>The search index</b> is a cache on this computer. Rupert rebuilds it from your files whenever needed, so nothing
-          is lost if it's deleted.
-        </li>
-        <li>
-          <b>The shared catalog</b>: in iCloud Drive, OneDrive and Google Drive sources, a hidden <code>.rupert/catalog</code> folder holds
-          the text Rupert has read, so your other devices can search online-only documents.
-        </li>
-        <li><b>API keys</b> are kept in {keychain}.</li>
-      </ul>
-    </section>
-
-    <!-- MARK: Keys -->
-    <section id="keys">
-      <h2>Keyboard shortcuts</h2>
-      <table class="keys">
-        <tbody>
-          <tr><td><kbd>{cmd}F</kbd></td><td>Search</td></tr>
-          <tr><td><kbd>{mac ? "⌘⌫" : "Delete"}</kbd></td><td>Move the selected document or folder to the {windows ? "Recycle Bin" : "Trash"}</td></tr>
-          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Large icons and gallery: previous or next document</td></tr>
-          <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Gallery: previous or next page</td></tr>
-          <tr><td><kbd>Esc</kbd></td><td>Clear the search; in the chat, stop the answer or close the panel</td></tr>
-          <tr><td><kbd>{cmd}J</kbd></td><td>Open or close Ask Rupert</td></tr>
-          <tr><td><kbd>Return</kbd></td><td>In the chat: send (<kbd>Shift+Return</kbd> starts a new line)</td></tr>
-          <tr><td><kbd>{cmd}{mac ? "↩" : "Enter"}</kbd></td><td>In the inbox: file the document</td></tr>
-          {#if mac}<tr><td><kbd>⌘,</kbd></td><td>Settings</td></tr>{/if}
-          <tr><td><kbd>F1</kbd>{#if mac} or <kbd>⇧⌘/</kbd>{/if}</td><td>This help</td></tr>
-        </tbody>
-      </table>
-    </section>
-    <!-- MARK: About -->
-    <section id="about">
-      <h2>About Rupert</h2>
-      <p>
-        Rupert{version ? ` ${version}` : ""}, the librarian for your scanned documents. Free and open source under the
-        <a href="{REPO}/blob/main/LICENSE">MIT license</a>, © 2026 Micki Braun.
-      </p>
-      <ul>
-        <li>
-          <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ Updates</b>). When one is
-          out, <b>Update to …</b> appears in the status bar; click it to install, and Rupert restarts.{#if mac}
-            Or choose <b>Rupert ▸ Check for Updates…</b>.{/if}
-        </li>
-        <li>
-          <b>Asking for help:</b> mention the version and edition shown at the bottom left of the window (for example
-          “Rupert 0.1.0 · GitHub”). <b>GitHub</b> means installed from GitHub (it updates itself); <b>App Store</b> means
-          the Mac App Store edition (the App Store updates it).
-        </li>
-        <li><a href={REPO}>Source code, releases and issues</a> on GitHub</li>
-        <li>
-          <a href="{REPO}/blob/main/PRIVACY.md">Privacy policy</a>: Rupert collects nothing about you; optional cloud
-          features are listed there with exactly what they send.
-        </li>
-        <li>
-          <a href="{REPO}/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>: the open-source components Rupert is
-          built with, and their licenses (also included with the app).
-        </li>
-      </ul>
-    </section>
+    {#if currentLang() === "es"}
+      <HelpEs {mac} {windows} {cmd} {version} repo={REPO} />
+    {:else}
+      <HelpEn {mac} {windows} {cmd} {version} repo={REPO} />
+    {/if}
   </main>
 </div>
 
@@ -835,48 +139,48 @@
     line-height: 1.55;
     font-size: 14px;
   }
-  section {
+  main :global(section) {
     scroll-margin-top: 16px;
     margin-bottom: 36px;
   }
-  h1 {
+  main :global(h1) {
     font-size: 24px;
     margin: 0 0 12px;
   }
-  h2 {
+  main :global(h2) {
     font-size: 19px;
     margin: 0 0 10px;
     padding-top: 8px;
     border-top: 1px solid var(--border);
   }
-  h3 {
+  main :global(h3) {
     font-size: 15px;
     margin: 18px 0 6px;
   }
-  h3.sub-h {
+  main :global(h3.sub-h) {
     font-size: 17px;
     margin-top: 0;
   }
-  h4 {
+  main :global(h4) {
     font-size: 14px;
     margin: 16px 0 4px;
   }
-  #online-only {
+  main :global(#online-only) {
     scroll-margin-top: 16px;
   }
-  p,
-  li {
+  main :global(p),
+  main :global(li) {
     margin: 6px 0;
   }
-  ol,
-  ul {
+  main :global(ol),
+  main :global(ul) {
     padding-left: 22px;
   }
-  a {
+  main :global(a) {
     color: var(--accent);
   }
-  code,
-  kbd {
+  main :global(code),
+  main :global(kbd) {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12.5px;
     background: var(--panel);
@@ -885,54 +189,54 @@
     padding: 0 4px;
     overflow-wrap: anywhere;
   }
-  .note {
+  main :global(.note) {
     background: var(--panel);
     border-left: 3px solid var(--accent);
     border-radius: 4px;
     padding: 8px 12px;
     margin: 12px 0;
   }
-  .note.cloud-note {
+  main :global(.note.cloud-note) {
     border-left-color: var(--cloud);
   }
-  .tip {
+  main :global(.tip) {
     color: var(--muted);
   }
-  .cloud {
+  main :global(.cloud) {
     color: var(--cloud);
   }
-  .ok {
+  main :global(.ok) {
     color: #2e8540;
   }
-  table {
+  main :global(table) {
     border-collapse: collapse;
     width: 100%;
     margin: 10px 0;
     font-size: 13px;
   }
-  th,
-  td {
+  main :global(th),
+  main :global(td) {
     text-align: left;
     vertical-align: top;
     padding: 6px 8px;
     border-bottom: 1px solid var(--border);
   }
-  th {
+  main :global(th) {
     color: var(--muted);
     font-weight: 600;
   }
-  table.keys td:first-child {
+  main :global(table.keys td:first-child) {
     width: 150px;
     white-space: nowrap;
   }
-  dl {
+  main :global(dl) {
     margin: 8px 0;
   }
-  dt {
+  main :global(dt) {
     font-weight: 600;
     margin-top: 8px;
   }
-  dd {
+  main :global(dd) {
     margin: 2px 0 0 0;
   }
   @media (max-width: 640px) {

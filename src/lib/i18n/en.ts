@@ -573,6 +573,11 @@ const en = {
     opening: "Opening…",
     open: "Open",
   },
+  help: {
+    title: "Rupert Help",
+    contents: "Contents",
+    version: (version: string, edition: string) => `${version} (${edition} edition)`,
+  },
   // @@NEXT
 };
 
