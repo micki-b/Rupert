@@ -1,0 +1,309 @@
+/* rupertlibrarian.com: Rupert's own colours (src/app.css), light and dark. */
+
+:root {
+  --bg: #faf8f5;
+  --panel: #f1ede6;
+  --text: #2b2723;
+  --muted: #7a7168;
+  --border: #ddd5ca;
+  --accent: #8a5a2b;
+  --accent-soft: rgba(138, 90, 43, 0.12);
+  --accent-strong: #6b4320;
+  --on-accent: #fff;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1c1a;
+    --panel: #262321;
+    --text: #ece6de;
+    --muted: #a79d93;
+    --border: #3a3531;
+    --accent: #d4a373;
+    --accent-soft: rgba(212, 163, 115, 0.16);
+    --accent-strong: #e8c39e;
+    --on-accent: #1e1c1a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header and footer */
+
+header.site {
+  border-bottom: 1px solid var(--border);
+}
+
+header.site .wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 19px;
+  text-decoration: none;
+}
+
+.brand img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+nav.site {
+  margin-left: auto;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+nav.site a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+nav.site a:hover,
+nav.site a[aria-current="page"] {
+  color: var(--text);
+}
+
+footer.site {
+  margin-top: 72px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+footer.site .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding-top: 24px;
+  padding-bottom: 40px;
+}
+
+footer.site a {
+  color: var(--muted);
+}
+
+/* Home page */
+
+.hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: center;
+  padding: 56px 0 28px;
+}
+
+.hero img.icon {
+  width: 132px;
+  height: 132px;
+  border-radius: 28px;
+}
+
+h1 {
+  font-size: clamp(30px, 5vw, 44px);
+  line-height: 1.15;
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  font-size: 20px;
+  color: var(--muted);
+  margin: 0 0 22px;
+  max-width: 40em;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.button {
+  display: inline-block;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.shot {
+  margin: 28px 0 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  display: block;
+}
+
+h2 {
+  font-size: 28px;
+  margin: 64px 0 16px;
+  line-height: 1.2;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.feature {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.feature h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.feature p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.phones {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.phones img {
+  width: 240px;
+  border-radius: 28px;
+  border: 1px solid var(--border);
+}
+
+.phones .text {
+  flex: 1 1 280px;
+}
+
+.downloads {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.download {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.download h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.download p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Text pages (privacy, support) */
+
+article.text {
+  max-width: 760px;
+  padding-top: 40px;
+}
+
+article.text h1 {
+  font-size: 34px;
+}
+
+article.text h2 {
+  font-size: 22px;
+  margin: 36px 0 10px;
+}
+
+article.text li {
+  margin-bottom: 6px;
+}
+
+article.text code {
+  font-size: 0.9em;
+  background: var(--panel);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 16px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: 36px;
+    gap: 18px;
+  }
+
+  .hero img.icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 22px;
+  }
+
+  .lead {
+    font-size: 18px;
+  }
+
+  .phones img {
+    width: calc(50% - 9px);
+    border-radius: 18px;
+  }
+}

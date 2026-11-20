@@ -1,6 +1,6 @@
 # Rupert privacy policy
 
-*Last updated: November 18, 2026*
+*Last updated: November 20, 2026*
 
 Rupert is a free, open-source app for organizing your scanned documents, made by Micki Braun. It runs on your
 computer (macOS, Windows, Linux) and on your iPhone. This policy explains what happens to your information when you
@@ -55,7 +55,11 @@ None of these is on unless you turn it on.
   folders you choose through the Google Drive API: their file lists, Rupert's own small catalog and details files,
   and a document when you open it. It saves new scans to your inbox folder there and, when you star a folder, that
   folder's small details file. It asks for access to your Drive files (`drive`); the sign-in stays in your iPhone's
-  Keychain, and nothing goes to us. [Google's privacy policy](https://policies.google.com/privacy).
+  Keychain, and nothing goes to us. Rupert's use and transfer of information received from Google APIs adheres to
+  the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy),
+  including the Limited Use requirements: it is used only to show, search and open your documents and to save your
+  scans, on your iPhone, and is never sold, shared or used for advertising.
+  [Google's privacy policy](https://policies.google.com/privacy).
 - **Network scanners**: Rupert looks for scanners on your local network (Bonjour) and talks to the one you choose
   directly. Nothing leaves your network.
 - **Markdown documents** that link to pictures on the web load those pictures from the web when shown, as a browser
