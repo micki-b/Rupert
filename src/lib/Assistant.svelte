@@ -46,7 +46,9 @@
   }
   const mood = $derived<OwlMood>(busy ? moodFor(live.at(-1)?.tool) : after);
 
-  async function refreshInfo() {
+  /** Rereads which model is set up (the window calls it when Settings are
+   * saved, so the panel shows a model chosen while it's open). */
+  export async function refreshInfo() {
     info = await api.assistantInfo().catch(() => null);
   }
 
