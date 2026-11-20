@@ -3,7 +3,7 @@
 ## Unreleased
 
 - **Rupert speaks Spanish** (Rioplatense, as in Argentina): the screens, menus, messages and help, on the computer and on the iPhone. Rupert follows the system's language; **Settings ▸ Language** can choose another. Ask Rupert answers in the language you write in.
-- **In Spanish, the owl wears the sky-blue and white striped jersey.**
+- **In Spanish, the owl wears the albiceleste**: the sky-blue and white striped jersey with the number 10.
 
 ## 0.2.0 — 2026-11-20
 

@@ -238,7 +238,7 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 - **Help:** one complete page per language (`src/lib/help/En.svelte`, `Es.svelte`) with the same section ids. Never a partial fallback.
 - **System texts:** `CFBundleLocalizations` in both Info.plists (macOS and iOS show their own panels in the language, and iOS offers the per-app language), `InfoPlist.strings` per language for the iPhone's camera permission, and NSIS installer languages on Windows. The macOS menu is built by Rupert (Tauri's default one is English only) and rebuilt when the language changes.
 - **Stays as it is:** folder and file names Rupert creates (`.rupert/`, scan names, the name pattern), tags written by imports ("Receipt"), and Ask Rupert's instructions to the model (English, with a line to answer in the user's language). Inbox suggestions keep the document's own language.
-- **The owl** wears an outfit for the language: a sky-blue and white striped jersey in Spanish (no crest or logo), drawn as SVG in the picture's own coordinates, with the picture cut out under it.
+- **The owl** wears an outfit for the language: the albiceleste in Spanish (white with three sky-blue stripes, navy shoulder bands and V-neck, a 10 in the style of the 2022 shirt; no crest or logo, which are trademarks; approved 2026-11-20), drawn as SVG in the picture's own coordinates, with the picture cut out under it.
 
 ## Still to verify
 

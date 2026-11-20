@@ -7,7 +7,7 @@
   // The artwork is the icon's own; only his eyes are drawn on top (over
   // the painted ones), so they can blink, look around and read. A small
   // badge names the task. Still under "reduce motion". In Spanish he wears
-  // a sky-blue and white striped jersey (#19): the picture is then drawn in
+  // a sky-blue and white striped jersey with a 10 (#19): the picture is then drawn in
   // an SVG with the jersey's area cut out, so nothing shows through where
   // both fade out at the bottom.
   import owlUrl from "$lib/assets/rupert-owl.png";
@@ -20,7 +20,7 @@
    * V-neck, down to the picture's faded edge (in the picture's 950 × 1000
    * coordinates). */
   const SHIRT =
-    "M185 626 C218 642 252 657 290 670 L475 808 L660 670 C698 657 732 642 767 626 C800 628 838 636 868 660 C905 700 925 780 933 860 L936 1000 L14 1000 L17 860 C25 780 45 700 82 660 C112 636 150 628 185 626 Z";
+    "M185 626 C225 645 270 664 320 680 L475 815 L630 680 C680 664 725 645 767 626 C800 628 838 636 868 660 C905 700 925 780 933 860 L936 1000 L14 1000 L17 860 C25 780 45 700 82 660 C112 636 150 628 185 626 Z";
   const outfit = $derived(currentLang() === "es" ? "jersey" : null);
 
 </script>
@@ -30,11 +30,13 @@
     {#if outfit === "jersey"}
       <svg class="outfit" viewBox="0 0 950 1000" aria-hidden="true">
         <defs>
-          <!-- A white stripe centered under the V -->
-          <pattern id="stripes-{uid}" patternUnits="userSpaceOnUse" width="200" height="1000" x="425">
-            <rect width="100" height="1000" fill="#fbfcfe" />
-            <rect x="100" width="100" height="1000" fill="#74acdf" />
-          </pattern>
+          <!-- A sky-blue stripe, lighter at its edges like the real shirt's -->
+          <linearGradient id="stripe-{uid}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#9cc7ec" />
+            <stop offset="0.22" stop-color="#74acdf" />
+            <stop offset="0.78" stop-color="#74acdf" />
+            <stop offset="1" stop-color="#9cc7ec" />
+          </linearGradient>
           <linearGradient id="fade-{uid}" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0.87" stop-color="#fff" />
             <stop offset="0.995" stop-color="#fff" stop-opacity="0" />
@@ -52,10 +54,17 @@
             <rect width="950" height="1000" fill="#fff" />
             <path d={SHIRT} fill="#000" />
           </mask>
+          <clipPath id="shirt-{uid}"><path d={SHIRT} /></clipPath>
         </defs>
         <image href={owlUrl} width="950" height="1000" mask="url(#no-shirt-{uid})" />
         <g mask="url(#fade-mask-{uid})">
-          <path d={SHIRT} fill="url(#stripes-{uid})" />
+          <!-- White shirt, three sky-blue stripes: the middle one under the V -->
+          <path d={SHIRT} fill="#fbfcfe" />
+          <g clip-path="url(#shirt-{uid})">
+            <rect x="90" y="600" width="170" height="400" fill="url(#stripe-{uid})" />
+            <rect x="390" y="600" width="170" height="400" fill="url(#stripe-{uid})" />
+            <rect x="690" y="600" width="170" height="400" fill="url(#stripe-{uid})" />
+          </g>
           <path d={SHIRT} fill="url(#volume-{uid})" />
           <!-- Sleeves over the wings: a little shade and a seam -->
           <path
@@ -71,15 +80,37 @@
             stroke-width="5"
             stroke-linecap="round"
           />
+          <!-- The number 10, in the style of the 2022 shirt's lettering: tall,
+               condensed digits, a rounded flag on the 1, a narrow rounded 0,
+               and a small V notch low on each. It sits on the middle stripe
+               and its lower third fades out with the picture. -->
+          <path
+            transform="translate(0 25)"
+            d="M429 990 H459 V912 L451 905 L459 898 V832 C459 812 446 800 426 800 H410 C397 800 389 809 389 822 V836 C389 842 393 846 399 846 H413 C421 846 429 838 429 830 Z M511 800 H521 A40 40 0 0 1 561 840 V950 A40 40 0 0 1 521 990 H511 A40 40 0 0 1 471 950 V840 A40 40 0 0 1 511 800 Z M513 830 H519 A12 12 0 0 1 531 842 V948 A12 12 0 0 1 519 960 H513 A12 12 0 0 1 501 948 V912 L493 905 L501 898 V842 A12 12 0 0 1 513 830 Z"
+            fill="#1c2340"
+            fill-rule="evenodd"
+            stroke="#a9d0f0"
+            stroke-width="4"
+            stroke-linejoin="round"
+            paint-order="stroke"
+          />
         </g>
-        <!-- The V-neck collar -->
+        <!-- Navy bands over the shoulders, and the V-neck collar -->
         <path
-          d="M150 632 C200 628 240 650 290 670 L475 808 L660 670 C710 650 750 628 800 632"
+          d="M185 626 C150 629 112 638 84 660 C62 680 46 706 36 738 M767 626 C802 629 840 638 868 660 C890 680 906 706 916 738"
+          fill="none"
+          stroke="#1f3561"
+          stroke-width="28"
+          stroke-linecap="round"
+        />
+        <path
+          d="M150 632 C200 628 260 658 320 680 L475 815 L630 680 C690 658 750 628 800 632"
           fill="none"
           stroke="#1f3561"
           stroke-width="22"
           stroke-linecap="round"
-          stroke-linejoin="round"
+          stroke-linejoin="miter"
+          stroke-miterlimit="8"
         />
       </svg>
     {:else}
