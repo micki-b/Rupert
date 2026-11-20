@@ -70,7 +70,7 @@
   let inboxOpen = $state(false);
   let inboxCount = $state(0);
   /** The chat panel, to open it from the welcome screen. */
-  let assistant: { show: () => Promise<void> } | undefined = $state();
+  let assistant: { show: () => Promise<void>; refreshInfo: () => Promise<void> } | undefined = $state();
 
   // Search & library filters
   let query = $state("");
@@ -1054,6 +1054,7 @@
     onsaved={(s) => {
       appSettings = s;
       loadInboxCount();
+      assistant?.refreshInfo();
     }}
   />
 {/if}

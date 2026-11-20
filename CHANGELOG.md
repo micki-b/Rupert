@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Ask Rupert** shows a model chosen in Settings ▸ Assistant right away, without closing and reopening the panel.
 - **iPhone:** the layout keeps clear of the screen's sides where iOS asks for it: the iPhone Duo's outer screen (its status icons covered the favorite star) and any iPhone turned sideways.
 - **macOS 13 (Ventura) or later** is now stated as the requirement, so older Macs are told before installing. Rupert's PDF engine already needed it.
 
