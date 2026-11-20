@@ -55,6 +55,13 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.3.0 [4000]
+
+Rupert now speaks Spanish and German.
+• Every screen, message and setting is also in Spanish (as spoken in Argentina) and German. Rupert uses your iPhone's language; Settings ▸ Language can choose another.
+• The owl dresses for the occasion: a sky-blue and white striped jersey in Spanish, lederhosen in German.
+• Folders, files and scans keep the same names in every language, so a family can share a library across phones set to different languages.
+
 ## App Privacy
 
 - **Data collection:** "No, we do not collect data from this app." The developer has no servers and receives nothing. The app talks only to services the user signs in to for their own files (Microsoft OneDrive) and keeps everything else on the device. (If Apple's reviewer reads OneDrive access as collection, the closest category is "User Content ▸ Other User Content", not linked to identity, not used for tracking, purpose "App Functionality".)
