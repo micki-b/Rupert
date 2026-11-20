@@ -28,6 +28,7 @@ FIND ANYTHING
 • Search titles, tags, notes and the text inside every PDF, with the matching words highlighted.
 • Browse as a list, as large icons, or in a gallery that flips through the pages.
 • Filter by tags, and keep favorite documents and folders in the sidebar.
+• Tidy up by dragging documents and folders to another folder; their details move with them.
 • Markdown notes open formatted.
 
 AN INBOX THAT FILES ITSELF

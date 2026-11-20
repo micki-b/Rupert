@@ -35,7 +35,7 @@ use crate::index::{DocRow, Index, Stamp, TextState};
 use crate::listing::{CloudState, Entry, cloud_state, list_dir};
 use crate::meta::{self, DocMeta, PartialMeta, Storage};
 use crate::sidecar::{self, Sidecar};
-use crate::source::{Provider, Source};
+use crate::source::Source;
 use crate::text::TextExtractor;
 
 /// Online-only files fetched at once (downloads are slow but not
@@ -746,7 +746,7 @@ pub(crate) fn online_only_details(
 /// Cloud sources share a catalog so other machines can search online-only
 /// files; a purely local folder has no one to share with.
 fn shares_catalog(source: &Source) -> bool {
-    source.provider != Provider::Local
+    source.shares_catalog()
 }
 
 fn needs_indexing(known: Option<&Stamp>, f: &Found, mode: Mode) -> bool {
@@ -804,6 +804,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::index::SearchQuery;
     use crate::meta::DocMeta;
+    use crate::source::Provider;
     use std::fs;
     use std::path::Path;
     use std::sync::{Arc, Mutex};

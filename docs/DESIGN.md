@@ -25,7 +25,7 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 | Auto-naming / filing | Yes, using only a local model via LM Studio. |
 | Chat assistant | Local LM Studio by default; a cloud model (Claude, or OpenAI-compatible) only if the user picks one (decided 2026-11-18). |
 | Page editing | Out of scope (no rotate/reorder/merge/split). |
-| File operations | Rename/move change the real file right away; delete goes to the system Trash / Recycle Bin (built: right-click ▸ Move to Trash, ⌘⌫ / Delete), taking the sidecar along. |
+| File operations | Rename/move change the real file right away; delete goes to the system Trash / Recycle Bin (built: right-click ▸ Move to Trash, ⌘⌫ / Delete), taking the sidecar along. Moving is built: drag onto a folder, or right-click ▸ Move to…. |
 | Migration | Import from ScanSnap Home. |
 | License | Personal first, likely open source, so prefer permissive dependencies. |
 
@@ -124,6 +124,8 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 - **Thumbnails** (`thumbs.rs`, served by the `thumb:` URL scheme in `src-tauri/src/thumbs.rs`): a PDF page rendered by PDFium, cached as PNG in the app's cache folder (keyed by path, size, modification time, page and size; trimmed to 150 MB when it passes 200 MB); images are served as they are. Online-only files get none, so nothing is downloaded; the view shows an icon. The scheme only serves files inside a source (`resolve`).
 - **Trash** (`fileops::trash`, the `trash` crate): macOS uses `NSFileManager trashItemAtURL` (no Finder automation prompt; "Put Back" isn't offered), Windows the Recycle Bin, Linux the freedesktop Trash. A document's sidecar goes too, and an emptied `.rupert/` folder is removed. Folders go whole, after a confirmation. A source root can't be trashed. The index catches up with a single-file job (or a folder pass for folders). Not on the phone, which stays read-only.
 - **To verify:** trashing an online-only file in iCloud Drive and OneDrive moves it to the service's deleted items without downloading it first.
+- **Move** (`fileops::move_entry`, command `move_entry`): a document (with its sidecar) or a folder into another folder of the same or another source; drag onto a folder in the sidebar or folder view (HTML drag and drop, so the window's `dragDropEnabled` is off: on Windows it would swallow those events), or right-click ▸ Move to…. The name is kept, with " (2)" added if taken; nothing is overwritten. If the sidecar can't follow, the document is moved back. Catalog entries are rewritten under the new paths **before** the rename, so the indexer finds them at once and online-only documents keep their details and text. Nothing is read: an online-only document (or a folder holding one) moves only within its source or between two sources of the same cloud service; documents otherwise copy across disks, folders only rename (same disk). The folder holding the inbox can't be moved (the inbox is kept by path). The index catches up with single-file jobs (old and new path) or two folder passes. Not on the phone.
+- **To verify:** moving online-only files within iCloud Drive and within OneDrive (macOS and Windows) without downloading them; drag and drop on Windows.
 
 ## Mac App Store edition (in preparation, 2026-11-19)
 

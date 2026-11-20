@@ -368,6 +368,10 @@ export const api = {
     invoke<void>("open_entry", { sourceId, relPath }),
   /** Moves a document (with its sidecar) or a folder to the Trash / Recycle Bin. */
   trashEntry: (sourceId: string, relPath: string) => invoke<void>("trash_entry", { sourceId, relPath }),
+  /** Moves a document (with its details) or a folder into `destDir` of
+   * `destSourceId`; resolves to its new path there. */
+  moveEntry: (sourceId: string, relPath: string, destSourceId: string, destDir: string) =>
+    invoke<string>("move_entry", { sourceId, relPath, destSourceId, destDir }),
   /** A Markdown file's text (its first `limit` bytes if given); null when it's online-only. */
   readMarkdown: (sourceId: string, relPath: string, limit?: number) =>
     invoke<string | null>("read_markdown", { sourceId, relPath, limit: limit ?? null }),

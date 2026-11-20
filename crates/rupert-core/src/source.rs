@@ -79,6 +79,12 @@ pub struct Source {
 }
 
 impl Source {
+    /// Whether the source keeps a shared catalog (`.rupert/catalog/`): cloud
+    /// folders do, so other computers can search their online-only files.
+    pub fn shares_catalog(&self) -> bool {
+        self.provider != Provider::Local
+    }
+
     /// Whether the root folder can be read right now: not on an unmounted
     /// drive or a signed-out sync folder, and (sandboxed) still allowed.
     /// Reading, not just checking it's a folder: a sandbox lets an app see
