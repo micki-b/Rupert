@@ -8,7 +8,9 @@
 //   and site/_footer.html.
 // - privacy/: PRIVACY.md rendered into site/privacy.template.html, so the
 //   site always says what the repo says.
-// - img/: the app icon and the made-up App Store screenshots.
+// - img/: the app icon, and site/img/ (screenshots of the made-up sample
+//   library, light and dark, and the owl in each language's outfit).
+// - {{version}} is the app's version from package.json (for download links).
 //
 // Usage: npm run site
 //        npm run site -- --upload   (also uploads, over SSH)
@@ -20,7 +22,7 @@
 
 import { execFileSync, execSync } from "node:child_process";
 import { homedir } from "node:os";
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked } from "marked";
@@ -31,13 +33,17 @@ const out = join(root, "target", "site");
 const zip = join(root, "target", "rupertlibrarian-site.zip");
 
 const read = (p) => readFileSync(join(site, p), "utf8");
+const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
 const header = read("_header.html");
 const footer = read("_footer.html");
 
 /** A page with the shared header (its own nav link marked) and footer. */
 function page(html, current) {
   const nav = header.replace(`data-page="${current}"`, `data-page="${current}" aria-current="page"`);
-  return html.replace("{{header}}", nav.trim()).replace("{{footer}}", footer.trim());
+  return html
+    .replace("{{header}}", nav.trim())
+    .replace("{{footer}}", footer.trim())
+    .replaceAll("{{version}}", version);
 }
 
 function write(rel, text) {
@@ -63,6 +69,7 @@ write("support/index.html", page(read("support/index.html"), "support"));
 const policy = marked.parse(readFileSync(join(root, "PRIVACY.md"), "utf8"));
 write("privacy/index.html", page(read("privacy.template.html").replace("{{privacy}}", policy), "privacy"));
 write("style.css", read("style.css"));
+write("home.js", read("home.js"));
 write("404.html", page(read("404.html"), "none"));
 write(".htaccess", read(".htaccess"));
 
@@ -70,9 +77,9 @@ write(".htaccess", read(".htaccess"));
 image("src-tauri/icons/icon.png", "img/icon.png", 0);
 image("src-tauri/icons/icon.png", "apple-touch-icon.png", 180);
 image("src-tauri/icons/32x32.png", "favicon.png", 0);
-image("docs/app-store/macos/screenshots/2-search.png", "img/mac-search.png", 0);
-image("docs/app-store/ios/screenshots/medium/2-search.png", "img/iphone-search.png", 1311);
-image("docs/app-store/ios/screenshots/medium/4-scan.png", "img/iphone-scan.png", 1311);
+for (const name of readdirSync(join(site, "img"))) {
+  if (name.endsWith(".png")) image(join("site", "img", name), join("img", name), 0);
+}
 
 // One zip for uploading.
 execFileSync("zip", ["-q", "-r", "-X", zip, ".", "-x", ".DS_Store", "*/.DS_Store"], { cwd: out });
