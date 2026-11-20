@@ -7,8 +7,9 @@
   // The artwork is the icon's own; only his eyes are drawn on top (over
   // the painted ones), so they can blink, look around and read. A small
   // badge names the task. Still under "reduce motion". In Spanish he wears
-  // a sky-blue and white striped jersey with a 10 (#19): the picture is then drawn in
-  // an SVG with the jersey's area cut out, so nothing shows through where
+  // a sky-blue and white striped jersey with a 10 (#19), in German
+  // lederhosen (#18): the picture is then drawn in
+  // an SVG with the outfit's area cut out, so nothing shows through where
   // both fade out at the bottom.
   import owlUrl from "$lib/assets/rupert-owl.png";
   import { currentLang, m } from "$lib/i18n";
@@ -21,7 +22,11 @@
    * coordinates). */
   const SHIRT =
     "M185 626 C225 645 270 664 320 680 L475 815 L630 680 C680 664 725 645 767 626 C800 628 838 636 868 660 C905 700 925 780 933 860 L936 1000 L14 1000 L17 860 C25 780 45 700 82 660 C112 636 150 628 185 626 Z";
-  const outfit = $derived(currentLang() === "es" ? "jersey" : null);
+  /** The traditional shirt under the lederhosen: along the bottom of his
+   * face, without a V. */
+  const TRACHT_SHIRT =
+    "M185 626 C260 662 385 702 475 722 C565 702 690 662 767 626 C800 628 838 636 868 660 C905 700 925 780 933 860 L936 1000 L14 1000 L17 860 C25 780 45 700 82 660 C112 636 150 628 185 626 Z";
+  const outfit = $derived(({ es: "jersey", de: "lederhosen" } as Record<string, string>)[currentLang()] ?? null);
 
 </script>
 
@@ -113,7 +118,98 @@
           stroke-miterlimit="8"
         />
       </svg>
-    {:else}
+    {:else if outfit === "lederhosen"}
+      <!-- Lederhosen (#18) over a white German football shirt in the style of
+           the 1990 home shirt (a black-red-gold chevron from the shoulders to
+           a point mid-chest, a black collar with a red edge; no crest or
+           logo): leather
+           braces with the chest strap (Brustlatz) in green trim and an
+           embroidered edelweiss, and the shorts' waistband where the picture
+           fades. -->
+      <svg class="outfit" viewBox="0 0 950 1000" aria-hidden="true">
+        <defs>
+          <linearGradient id="leather-{uid}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#5a3620" />
+            <stop offset="0.5" stop-color="#7a4b2b" />
+            <stop offset="1" stop-color="#5a3620" />
+          </linearGradient>
+          <linearGradient id="fade-{uid}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0.87" stop-color="#fff" />
+            <stop offset="0.995" stop-color="#fff" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="volume-{uid}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#2a1a10" stop-opacity="0.25" />
+            <stop offset="0.2" stop-color="#2a1a10" stop-opacity="0.03" />
+            <stop offset="0.8" stop-color="#2a1a10" stop-opacity="0.03" />
+            <stop offset="1" stop-color="#2a1a10" stop-opacity="0.25" />
+          </linearGradient>
+          <mask id="fade-mask-{uid}" maskUnits="userSpaceOnUse" x="0" y="0" width="950" height="1000">
+            <rect width="950" height="1000" fill="url(#fade-{uid})" />
+          </mask>
+          <mask id="no-shirt-{uid}" maskUnits="userSpaceOnUse" x="0" y="0" width="950" height="1000">
+            <rect width="950" height="1000" fill="#fff" />
+            <path d={TRACHT_SHIRT} fill="#000" />
+          </mask>
+          <clipPath id="shirt-{uid}"><path d={TRACHT_SHIRT} /></clipPath>
+        </defs>
+        <image href={owlUrl} width="950" height="1000" mask="url(#no-shirt-{uid})" />
+        <g mask="url(#fade-mask-{uid})">
+          <path d={TRACHT_SHIRT} fill="#fbfcfe" />
+          <g clip-path="url(#shirt-{uid})">
+            <path d="M0 652 L475 835 L950 652 L950 694 L475 877 L0 694 Z" fill="#1a1a1a" />
+            <path d="M0 694 L475 877 L950 694 L950 736 L475 919 L0 736 Z" fill="#c8161d" />
+            <path d="M0 736 L475 919 L950 736 L950 778 L475 961 L0 778 Z" fill="#f5b81c" />
+          </g>
+          <path d={TRACHT_SHIRT} fill="url(#volume-{uid})" />
+          <path
+            d="M205 612 C282 616 326 684 321 782 C317 862 300 934 282 1000 L14 1000 L17 860 C25 740 95 616 205 612 Z M745 612 C668 616 624 684 629 782 C633 862 650 934 668 1000 L936 1000 L933 860 C925 740 855 616 745 612 Z"
+            fill="#2a1a10"
+            fill-opacity="0.1"
+          />
+          <g clip-path="url(#shirt-{uid})">
+            <rect x="0" y="948" width="950" height="60" fill="url(#leather-{uid})" />
+            <path d="M262 640 L330 640 L360 1000 L292 1000 Z M688 640 L620 640 L590 1000 L658 1000 Z" fill="url(#leather-{uid})" />
+            <path
+              d="M271 650 L300 1000 M321 650 L350 1000 M679 650 L650 1000 M629 650 L600 1000"
+              stroke="#efe3c8"
+              stroke-width="3"
+              stroke-dasharray="10 8"
+              fill="none"
+              opacity="0.8"
+            />
+            <rect x="318" y="775" width="314" height="86" rx="10" fill="url(#leather-{uid})" />
+            <rect x="318" y="775" width="314" height="86" rx="10" fill="none" stroke="#3d7a3f" stroke-width="8" />
+            <rect x="334" y="789" width="282" height="58" rx="6" fill="none" stroke="#efe3c8" stroke-width="3" stroke-dasharray="9 7" opacity="0.85" />
+            <path
+              d="M475 818 Q462 798 475 774 Q488 798 475 818Z M475 818 Q479 794 503 784 Q498 810 475 818Z M475 818 Q493 802 518 810 Q497 827 475 818Z M475 818 Q499 817 513 840 Q486 839 475 818Z M475 818 Q494 833 490 859 Q470 842 475 818Z M475 818 Q480 842 460 859 Q456 833 475 818Z M475 818 Q464 839 437 840 Q451 817 475 818Z M475 818 Q453 827 432 810 Q457 802 475 818Z M475 818 Q452 810 447 784 Q471 794 475 818Z"
+              fill="#f4f1ea"
+              stroke="#d8d0c0"
+              stroke-width="2"
+            />
+            <circle cx="475" cy="818" r="11" fill="#e8b830" />
+            <circle cx="392" cy="818" r="9" fill="#3d7a3f" />
+            <circle cx="558" cy="818" r="9" fill="#3d7a3f" />
+            <circle cx="326" cy="972" r="11" fill="#e9dcc2" />
+            <circle cx="624" cy="972" r="11" fill="#e9dcc2" />
+          </g>
+        </g>
+        <!-- The shirt's black collar with its red edge, along the bottom of his face -->
+        <path
+          d="M160 640 C210 638 260 672 320 692 C380 712 430 724 475 732 C520 724 570 712 630 692 C690 672 740 638 790 640"
+          fill="none"
+          stroke="#c8161d"
+          stroke-width="8"
+          stroke-linecap="round"
+        />
+        <path
+          d="M160 632 C210 630 260 664 320 684 C380 704 430 716 475 724 C520 716 570 704 630 684 C690 664 740 630 790 632"
+          fill="none"
+          stroke="#1a1a1a"
+          stroke-width="16"
+          stroke-linecap="round"
+        />
+      </svg>
+        {:else}
       <img src={owlUrl} alt="" draggable="false" />
     {/if}
     <!-- Eyes, in the cut-out image's own coordinates (950 × 1000) -->

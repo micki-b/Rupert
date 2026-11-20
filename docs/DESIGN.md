@@ -28,7 +28,7 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 | File operations | Rename/move change the real file right away; delete goes to the system Trash / Recycle Bin (built: right-click ▸ Move to Trash, ⌘⌫ / Delete), taking the sidecar along. Moving is built: drag onto a folder, or right-click ▸ Move to…. |
 | Migration | Import from ScanSnap Home. |
 | License | Personal first, likely open source, so prefer permissive dependencies. |
-| Languages | English and Spanish (Rioplatense, "vos"; used for every Spanish system language), then German (decided 2026-11-20). The system's language unless Settings ▸ Language chooses one. Names on disk never depend on the language. |
+| Languages | English, Spanish (Rioplatense, "vos"; used for every Spanish system language) and German (Germany, formal "Sie", with ß; used for every German system language) (decided 2026-11-20). The system's language unless Settings ▸ Language chooses one. Names on disk never depend on the language. |
 
 ## Metadata storage
 
@@ -233,12 +233,12 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 ## Languages
 
 - **Screens:** `src/lib/i18n/`. `en.ts` is the master catalog (nested by screen); every other language is a `Messages` object with exactly the same keys, so `npm run check` catches a missing one. Text with values is a function per language (its own word order and plurals, via `Intl.PluralRules`). Use `m.section.key`; `m` follows the language live. Numbers and dates are formatted in the language's locale (`es-AR`).
-- **Rust messages** (errors, the macOS menu, window titles, Ask Rupert's step lines): `rupert_core::i18n`, `tr("English")` / `trf("… {0} …", &[&value])` looked up in a per-language table (`i18n/es.rs`). A test reads the source tree and fails on any message without a translation, or with different placeholders, and on unused entries.
+- **Rust messages** (errors, the macOS menu, window titles, Ask Rupert's step lines): `rupert_core::i18n`, `tr("English")` / `trf("… {0} …", &[&value])` looked up in a per-language table (`i18n/es.rs`, `i18n/de.rs`). A test reads the source tree and fails on any message without a translation, or with different placeholders, and on unused entries.
 - **Which language:** the setting (`Settings.language`; on the phone `Saved.language`) or else the first system language Rupert speaks (`sys-locale`, which on iOS includes the per-app language), else English. Rust holds it in a process-wide atomic; the screens ask for it (`language` command) before the first window draws.
-- **Help:** one complete page per language (`src/lib/help/En.svelte`, `Es.svelte`) with the same section ids. Never a partial fallback.
+- **Help:** one complete page per language (`src/lib/help/En.svelte`, `Es.svelte`, `De.svelte`) with the same section ids. Never a partial fallback.
 - **System texts:** `CFBundleLocalizations` in both Info.plists (macOS and iOS show their own panels in the language, and iOS offers the per-app language), `InfoPlist.strings` per language for the iPhone's camera permission, and NSIS installer languages on Windows. The macOS menu is built by Rupert (Tauri's default one is English only) and rebuilt when the language changes.
 - **Stays as it is:** folder and file names Rupert creates (`.rupert/`, scan names, the name pattern), tags written by imports ("Receipt"), and Ask Rupert's instructions to the model (English, with a line to answer in the user's language). Inbox suggestions keep the document's own language.
-- **The owl** wears an outfit for the language: the albiceleste in Spanish (white with three sky-blue stripes, navy shoulder bands and V-neck, a 10 in the style of the 2022 shirt; no crest or logo, which are trademarks; approved 2026-11-20), drawn as SVG in the picture's own coordinates, with the picture cut out under it.
+- **The owl** wears an outfit for the language: the albiceleste in Spanish (white with three sky-blue stripes, navy shoulder bands and V-neck, a 10 in the style of the 2022 shirt; no crest or logo, which are trademarks; approved 2026-11-20) and lederhosen in German (leather braces with stitching along both edges, a chest strap with green trim and an edelweiss, over a white football shirt in the style of the 1990 home shirt: black-red-gold chevron, black collar with a red edge; no crest or logo; approved 2026-11-20), drawn as SVG in the picture's own coordinates, with the picture cut out under it.
 
 ## Still to verify
 

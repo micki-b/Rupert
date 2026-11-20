@@ -14,6 +14,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 use serde::{Deserialize, Serialize};
 
+mod de;
 mod es;
 
 // MARK: - Languages
@@ -24,16 +25,18 @@ mod es;
 pub enum Lang {
     En,
     Es,
+    De,
 }
 
 impl Lang {
-    pub const ALL: [Lang; 2] = [Lang::En, Lang::Es];
+    pub const ALL: [Lang; 3] = [Lang::En, Lang::Es, Lang::De];
 
     /// The code used in settings and by the screens' catalogs.
     pub fn code(self) -> &'static str {
         match self {
             Lang::En => "en",
             Lang::Es => "es",
+            Lang::De => "de",
         }
     }
 
@@ -48,6 +51,7 @@ impl Lang {
         match lang.as_str() {
             "en" => Some(Lang::En),
             "es" => Some(Lang::Es),
+            "de" => Some(Lang::De),
             _ => None,
         }
     }
@@ -57,14 +61,17 @@ impl Lang {
         match self {
             Lang::En => "English",
             Lang::Es => "Spanish (Rioplatense, as spoken in Argentina)",
+            Lang::De => "German (formal \"Sie\")",
         }
     }
 
     fn table(self) -> Option<&'static HashMap<&'static str, &'static str>> {
         static ES: OnceLock<HashMap<&str, &str>> = OnceLock::new();
+        static DE: OnceLock<HashMap<&str, &str>> = OnceLock::new();
         match self {
             Lang::En => None,
             Lang::Es => Some(ES.get_or_init(|| es::MESSAGES.iter().copied().collect())),
+            Lang::De => Some(DE.get_or_init(|| de::MESSAGES.iter().copied().collect())),
         }
     }
 }
@@ -159,6 +166,7 @@ mod tests {
         assert_eq!(Lang::from_code("es_419"), Some(Lang::Es));
         assert_eq!(Lang::from_code("ES"), Some(Lang::Es));
         assert_eq!(Lang::from_code("en-US"), Some(Lang::En));
+        assert_eq!(Lang::from_code("de-CH"), Some(Lang::De));
         assert_eq!(Lang::from_code("fr-FR"), None);
         assert_eq!(Lang::from_code(""), None);
         assert_eq!(resolve(Some("es")), Lang::Es);
@@ -229,6 +237,7 @@ mod tests {
                 rust_files(&path, out);
             } else if path.extension().is_some_and(|e| e == "rs")
                 && !path.ends_with("i18n/es.rs")
+                && !path.ends_with("i18n/de.rs")
                 && !path.ends_with("i18n.rs")
             {
                 out.push(path);

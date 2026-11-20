@@ -9,6 +9,14 @@
   import { currentLang, m } from "$lib/i18n";
   import HelpEn, { sections as enSections } from "$lib/help/En.svelte";
   import HelpEs, { sections as esSections } from "$lib/help/Es.svelte";
+  import HelpDe, { sections as deSections } from "$lib/help/De.svelte";
+
+  /** Each language's complete help, with the same section ids. */
+  const helps = {
+    en: { page: HelpEn, sections: enSections },
+    es: { page: HelpEs, sections: esSections },
+    de: { page: HelpDe, sections: deSections },
+  };
 
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const mac = /Mac/.test(ua);
@@ -16,7 +24,8 @@
   /** The command key as people know it on this computer. */
   const cmd = mac ? "⌘" : "Ctrl+";
 
-  const sections = $derived(currentLang() === "es" ? esSections : enSections);
+  const help = $derived(helps[currentLang()]);
+  const sections = $derived(help.sections);
   let current = $state("start");
   let version = $state("");
   const REPO = "https://github.com/micki-b/Rupert";
@@ -76,11 +85,7 @@
   </nav>
 
   <main>
-    {#if currentLang() === "es"}
-      <HelpEs {mac} {windows} {cmd} {version} repo={REPO} />
-    {:else}
-      <HelpEn {mac} {windows} {cmd} {version} repo={REPO} />
-    {/if}
+    <help.page {mac} {windows} {cmd} {version} repo={REPO} />
   </main>
 </div>
 

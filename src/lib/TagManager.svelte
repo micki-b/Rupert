@@ -216,7 +216,9 @@
         {#if working}
           <p class="small progress">
             <span class="spinner"></span>
-            {m.tags.saving} {progress ? m.tags.savingProgress(progress.done, progress.total) : "…"}
+            {progress
+              ? `${m.tags.saving} ${m.tags.savingProgress(progress.done, progress.total)}`
+              : m.common.ellipsis(m.tags.saving)}
           </p>
         {/if}
         {#if report}

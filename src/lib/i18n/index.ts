@@ -7,12 +7,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import en, { type Messages } from "./en";
 import es from "./es";
+import de from "./de";
 import { currentLang, setLang, type Lang } from "./locale.svelte";
 
 export { currentLang, locale, num, plural, LANGS, type Lang } from "./locale.svelte";
 export type { Messages };
 
-const catalogs: Record<Lang, Messages> = { en, es };
+const catalogs: Record<Lang, Messages> = { en, es, de };
 
 /** The current language's catalog. */
 export const m: Messages = new Proxy({} as Messages, {
@@ -23,6 +24,7 @@ export const m: Messages = new Proxy({} as Messages, {
 export const languageNames: Record<Lang, string> = {
   en: "English",
   es: "Español (Rioplatense)",
+  de: "Deutsch",
 };
 
 export interface LanguageInfo {
