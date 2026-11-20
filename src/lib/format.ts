@@ -1,3 +1,6 @@
+import { locale, m } from "$lib/i18n";
+import type { FileKind } from "$lib/api";
+
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB", "TB"];
@@ -7,20 +10,15 @@ export function formatSize(bytes: number): string {
     value /= 1024;
     unit++;
   }
-  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+  const shown = value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
+  return `${shown.toLocaleString(locale(), { minimumFractionDigits: value < 10 ? 1 : 0 })} ${units[unit]}`;
 }
-
-const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 export function formatDate(ms: number | null): string {
-  return ms == null ? "" : dateFormat.format(new Date(ms));
+  return ms == null ? "" : new Date(ms).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
-export const kindLabel: Record<string, string> = {
-  pdf: "PDF",
-  image: "Image",
-  office: "Office",
-  text: "Text",
-  email: "Email",
-  other: "File",
-};
+/** "PDF", "Image", … for a file kind (or "Folder"). */
+export function kindLabel(kind: FileKind | "folder" | null): string {
+  return m.kinds[kind ?? "other"];
+}

@@ -7,6 +7,7 @@
 
 use crate::error::{Error, Result};
 use crate::escl::{self, PageImage};
+use crate::i18n::{tr, trf};
 
 /// Camera pages carry no real resolution. Sizing each page so its longer
 /// side is 11 inches makes a photographed Letter or A4 sheet come out at
@@ -18,7 +19,7 @@ const LONG_SIDE_INCHES: f64 = 11.0;
 /// One page per image file (JPEG, or PNG for black and white).
 pub fn pages_to_pdf(pages: &[Vec<u8>]) -> Result<Vec<u8>> {
     if pages.is_empty() {
-        return Err(Error::InvalidValue("the scan has no pages".into()));
+        return Err(Error::InvalidValue(tr("the scan has no pages").into()));
     }
     let images = pages
         .iter()
@@ -36,8 +37,9 @@ pub fn pages_to_pdf(pages: &[Vec<u8>]) -> Result<Vec<u8>> {
 /// A black-and-white page from a PNG (already thresholded on the phone;
 /// anything below mid-gray counts as black).
 fn bilevel_from_png(data: &[u8]) -> Result<PageImage> {
-    let bad =
-        |e: png::DecodingError| Error::InvalidValue(format!("a scanned page is unreadable: {e}"));
+    let bad = |e: png::DecodingError| {
+        Error::InvalidValue(trf("a scanned page is unreadable: {0}", &[&e]))
+    };
     let mut decoder = png::Decoder::new(std::io::Cursor::new(data));
     decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
     let mut reader = decoder.read_info().map_err(bad)?;

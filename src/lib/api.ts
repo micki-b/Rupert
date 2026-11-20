@@ -2,6 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { m } from "$lib/i18n";
 
 export type Provider = "local" | "icloud" | "onedrive" | "googledrive" | "dropbox";
 export type FileKind = "pdf" | "image" | "office" | "text" | "email" | "other";
@@ -199,6 +200,8 @@ export interface Settings {
   assistant: AssistantSettings;
   /** Desktop: look for a new version on GitHub now and then. */
   checkUpdates: boolean;
+  /** Rupert's language ("en", "es"); null follows the system. */
+  language: string | null;
 }
 
 /** Which model the chat assistant uses. Keys live in the keychain. */
@@ -506,25 +509,28 @@ export function onDirChanged(handler: (changes: DirChange[]) => void): Promise<U
   return listen<DirChange[]>("dir-changed", (e) => handler(e.payload));
 }
 
-export const providerLabel: Record<Provider, string> = {
-  local: "This computer",
-  icloud: "iCloud Drive",
-  onedrive: "OneDrive",
-  googledrive: "Google Drive",
-  dropbox: "Dropbox",
-};
+export function providerLabel(provider: Provider): string {
+  const names: Record<Provider, string> = {
+    local: m.places.thisComputer,
+    icloud: "iCloud Drive",
+    onedrive: "OneDrive",
+    googledrive: "Google Drive",
+    dropbox: "Dropbox",
+  };
+  return names[provider];
+}
 
 /** Which build someone runs, for support: "GitHub" (installers from
  * GitHub releases), "App Store", or "development" (run from the source). */
 export function editionLabel(info: AppInfo | null): string {
-  if (import.meta.env.DEV) return "development";
+  if (import.meta.env.DEV) return m.main.development;
   return info?.edition === "app-store" ? "App Store" : "GitHub";
 }
 
 export function revealLabel(os: string | undefined): string {
-  if (os === "macos") return "Show in Finder";
-  if (os === "windows") return "Show in Explorer";
-  return "Show in Files";
+  if (os === "macos") return m.places.showInFinder;
+  if (os === "windows") return m.places.showInExplorer;
+  return m.places.showInFiles;
 }
 
 export const onTagEditProgress = (f: (p: { done: number; total: number }) => void): Promise<UnlistenFn> =>

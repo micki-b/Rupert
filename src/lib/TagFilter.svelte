@@ -3,6 +3,7 @@
   // pick several, and choose whether documents need any or all of them.
   // Used in the desktop sidebar and the phone's tag sheet.
   import { api, type TagList, type TagMode } from "$lib/api";
+  import { m } from "$lib/i18n";
 
   let {
     selected = $bindable([]),
@@ -55,9 +56,9 @@
     input?.focus();
   }
 
-  function setMode(m: TagMode) {
-    if (mode === m) return;
-    mode = m;
+  function setMode(next: TagMode) {
+    if (mode === next) return;
+    mode = next;
     onchange?.();
   }
 
@@ -94,7 +95,7 @@
     oninput={() => (cursor = -1)}
     {onkeydown}
     type="search"
-    placeholder="Filter tags…"
+    placeholder={m.tagFilter.filterPlaceholder}
     autocapitalize="off"
     autocomplete="off"
     spellcheck="false"
@@ -104,30 +105,30 @@
     <ul class="selected">
       {#each selected as t (t)}
         <li>
-          <button class="row on" onclick={() => toggle(t)} title="Remove from the filter">
+          <button class="row on" onclick={() => toggle(t)} title={m.tagFilter.removeFromFilter}>
             <span class="name"># {t}</span>
-            <span class="x" aria-label="Remove">✕</span>
+            <span class="x" aria-label={m.tagFilter.remove}>✕</span>
           </button>
         </li>
       {/each}
     </ul>
     {#if selected.length > 1}
-      <div class="mode" role="radiogroup" aria-label="Documents must have">
-        <span class="mode-label">Match</span>
+      <div class="mode" role="radiogroup" aria-label={m.tagFilter.mustHave}>
+        <span class="mode-label">{m.tagFilter.match}</span>
         <button role="radio" aria-checked={mode === "any"} class:on={mode === "any"} onclick={() => setMode("any")}>
-          Any
+          {m.tagFilter.any}
         </button>
         <button role="radio" aria-checked={mode === "all"} class:on={mode === "all"} onclick={() => setMode("all")}>
-          All
+          {m.tagFilter.all}
         </button>
-        <button class="clear" onclick={clear}>Clear</button>
+        <button class="clear" onclick={clear}>{m.tagFilter.clear}</button>
       </div>
     {:else}
-      <div class="mode"><button class="clear" onclick={clear}>Clear</button></div>
+      <div class="mode"><button class="clear" onclick={clear}>{m.tagFilter.clear}</button></div>
     {/if}
   {/if}
 
-  <ul class="tags" role="listbox" aria-label="Tags">
+  <ul class="tags" role="listbox" aria-label={m.tagFilter.tags}>
     {#each list.tags as t, i (t.tag)}
       <li>
         <button class="row" class:cursor={i === cursor} role="option" aria-selected={false} onclick={() => pick(t.tag)}>
@@ -140,19 +141,19 @@
   {#if list.matching === 0}
     <p class="empty">
       {filter
-        ? "No tags match."
+        ? m.tagFilter.noneMatch
         : selected.length && mode === "all"
-          ? "No other tags on these documents."
+          ? m.tagFilter.noOthersHere
           : selected.length
-            ? "No other tags."
-            : "No tags yet."}
+            ? m.tagFilter.noOthers
+            : m.tagFilter.noneYet}
     </p>
   {:else if list.matching > list.tags.length}
     <button class="more" onclick={() => (showAll = true)}>
-      Show all {list.matching}{selected.length && mode === "all" ? " that go with these" : ""}
+      {selected.length && mode === "all" ? m.tagFilter.showAllThatGo(list.matching) : m.tagFilter.showAll(list.matching)}
     </button>
   {:else if showAll && list.matching > limit}
-    <button class="more" onclick={() => (showAll = false)}>Show fewer</button>
+    <button class="more" onclick={() => (showAll = false)}>{m.tagFilter.showFewer}</button>
   {/if}
 </div>
 

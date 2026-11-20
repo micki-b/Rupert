@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::error::{Error, Result};
+use crate::i18n::{tr, trf};
 use crate::oauth::{Pkce, base64url_decode, parse_query, query};
 
 const AUTHORIZE_URL: &str = "https://auth.openai.com/api/accounts/authorize";
@@ -192,7 +193,7 @@ impl SignIn {
     pub fn callback(&self, target: &str) -> Result<(String, String)> {
         let q = parse_query(target);
         if q.get("state") != Some(&self.pkce.state) {
-            return Err(err("the sign-in answer didn't match; please try again"));
+            return Err(err(tr("the sign-in answer didn't match; please try again")));
         }
         if let Some(e) = q.get("error") {
             return Err(err(if e == "access_denied" {
@@ -204,14 +205,14 @@ impl SignIn {
         let code = q
             .get("code")
             .cloned()
-            .ok_or_else(|| err("the sign-in page returned no code"))?;
+            .ok_or_else(|| err(tr("the sign-in page returned no code")))?;
         let client_id = match (&self.client_id, q.get("client_id")) {
             (Some(known), Some(given)) if given != known => {
-                return Err(err("the sign-in returned another app registration"));
+                return Err(err(tr("the sign-in returned another app registration")));
             }
             (Some(known), _) => known.clone(),
             (None, Some(given)) if given != FIRST_CLIENT && !given.is_empty() => given.clone(),
-            (None, _) => return Err(err("registering Rupert with ChatGPT didn't finish")),
+            (None, _) => return Err(err(tr("registering Rupert with ChatGPT didn't finish"))),
         };
         Ok((code, client_id))
     }
@@ -285,13 +286,13 @@ fn credentials(
     let id_token = t
         .id_token
         .or_else(|| previous.map(|p| p.id_token.clone()))
-        .ok_or_else(|| err("the sign-in returned no ID token"))?;
+        .ok_or_else(|| err(tr("the sign-in returned no ID token")))?;
     // The ID token came straight from the token endpoint over TLS, which
     // OpenID Connect Core 3.1.3.7 accepts in place of checking its
     // signature; its claims are still checked.
     let claims = id_claims(&id_token)?;
     if claims.get("iss").and_then(Value::as_str) != Some(ISSUER) {
-        return Err(err("the sign-in came from an unexpected issuer"));
+        return Err(err(tr("the sign-in came from an unexpected issuer")));
     }
     let aud_ok = match claims.get("aud") {
         Some(Value::String(a)) => a == client_id,
@@ -299,27 +300,27 @@ fn credentials(
         _ => false,
     };
     if !aud_ok {
-        return Err(err("the sign-in was meant for another app"));
+        return Err(err(tr("the sign-in was meant for another app")));
     }
     if previous.is_none()
         && claims.get("exp").and_then(Value::as_u64).unwrap_or(0) + 60 < now_secs()
     {
-        return Err(err("the sign-in has expired; please try again"));
+        return Err(err(tr("the sign-in has expired; please try again")));
     }
     if let Some(nonce) = nonce
         && claims.get("nonce").and_then(Value::as_str) != Some(nonce)
     {
-        return Err(err("the sign-in answer didn't match; please try again"));
+        return Err(err(tr("the sign-in answer didn't match; please try again")));
     }
     let subject = claims
         .get("sub")
         .and_then(Value::as_str)
-        .ok_or_else(|| err("the sign-in named no account"))?
+        .ok_or_else(|| err(tr("the sign-in named no account")))?
         .to_string();
     if let Some(p) = previous
         && p.subject != subject
     {
-        return Err(err("the refreshed sign-in belongs to another account"));
+        return Err(err(tr("the refreshed sign-in belongs to another account")));
     }
     let scopes = t
         .scope
@@ -333,7 +334,7 @@ fn credentials(
     let refresh_token = t
         .refresh_token
         .or_else(|| previous.map(|p| p.refresh_token.clone()))
-        .ok_or_else(|| err("the sign-in returned no refresh token"))?;
+        .ok_or_else(|| err(tr("the sign-in returned no refresh token")))?;
     Ok(Credentials {
         email: claims
             .get("email")
@@ -357,10 +358,10 @@ fn id_claims(jwt: &str) -> Result<serde_json::Map<String, Value>> {
         .split('.')
         .nth(1)
         .and_then(base64url_decode)
-        .ok_or_else(|| err("the ID token is malformed"))?;
+        .ok_or_else(|| err(tr("the ID token is malformed")))?;
     match serde_json::from_slice(&payload) {
         Ok(Value::Object(map)) => Ok(map),
-        _ => Err(err("the ID token is malformed")),
+        _ => Err(err(tr("the ID token is malformed"))),
     }
 }
 
@@ -394,7 +395,7 @@ pub fn models(access_token: &str) -> Result<Vec<PlanModel>> {
     let status = resp.status().as_u16();
     let body: Value = resp.body_mut().read_json().map_err(err)?;
     if status != 200 {
-        return Err(err(format!("listing models failed (HTTP {status})")));
+        return Err(err(trf("listing models failed (HTTP {0})", &[&status])));
     }
     Ok(listed_models(&body))
 }

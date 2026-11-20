@@ -6,6 +6,7 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux,
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.
 - OCR and AI filing suggestions run locally (AI via LM Studio).
 - An "Ask Rupert" chat finds and opens documents for you, with the local model by default, or with Claude or another cloud model if you choose.
+- In English and Spanish (Rioplatense), following the system's language or the one chosen in Settings.
 
 Status: **milestones 1–7** (6 for network scanners). Sources with live updates and online-only status; titles, tags, dates, notes and favorites saved inside PDFs (or a hidden sidecar); full-text search; moving documents and folders (drag onto a folder, or Move to…) with their details; an inbox that recognizes the text in new scans (Apple Vision on macOS, Tesseract elsewhere), asks a local LM Studio model how to file them, and renames and moves them once you agree; import from ScanSnap Home; scanning from network (eSCL/AirScan) scanners straight into the inbox; an iPhone app that browses and searches the same folders and scans with the camera into the inbox. See [docs/DESIGN.md](docs/DESIGN.md) for the design and roadmap.
 

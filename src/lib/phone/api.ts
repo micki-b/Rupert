@@ -2,6 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { locale, type LanguageInfo } from "$lib/i18n";
 import type { Entry, FavoriteFolder, Hit, IndexStats, Progress, Provider, TagCount, TagMode } from "$lib/api";
 
 export type { FavoriteFolder };
@@ -81,6 +82,7 @@ export type CloudStatus = OneDriveStatus;
 export const phone = {
   overview: () => invoke<Overview>("overview"),
   appVersion: () => invoke<AppVersion>("app_version"),
+  setLanguage: (language: string | null) => invoke<LanguageInfo>("set_language", { language }),
   refresh: () => invoke<void>("refresh"),
   addFolder: () => invoke<boolean>("add_folder"),
   removeFolder: (id: string) => invoke<void>("remove_folder", { id }),
@@ -135,5 +137,5 @@ export function scanName(d = new Date()): string {
 export function formatDocDate(iso: string | null): string {
   if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { dateStyle: "medium" });
+  return new Date(y, m - 1, d).toLocaleDateString(locale(), { dateStyle: "medium" });
 }

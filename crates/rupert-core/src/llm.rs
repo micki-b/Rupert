@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::error::{Error, Result};
+use crate::i18n::{tr, trf};
 use crate::meta::is_iso_date;
 
 pub const DEFAULT_URL: &str = "http://localhost:1234";
@@ -103,7 +104,7 @@ impl LmStudio {
                 .models()?
                 .into_iter()
                 .next()
-                .ok_or_else(|| Error::InvalidValue("LM Studio has no chat model".into()))?,
+                .ok_or_else(|| Error::InvalidValue(tr("LM Studio has no chat model").into()))?,
         };
         let body = json!({
             "model": model,
@@ -140,7 +141,7 @@ impl LmStudio {
             .map_err(unreachable)?
             .body_mut()
             .read_json()
-            .map_err(|e| Error::InvalidValue(format!("LM Studio answered oddly: {e}")))?;
+            .map_err(|e| Error::InvalidValue(trf("LM Studio answered oddly: {0}", &[&e])))?;
         let message = reply.choices.into_iter().next().map(|c| c.message);
         let content = message
             .map(|m| {
@@ -156,7 +157,7 @@ impl LmStudio {
 }
 
 fn unreachable(e: impl std::fmt::Display) -> Error {
-    Error::InvalidValue(format!("LM Studio isn't reachable ({e})"))
+    Error::InvalidValue(trf("LM Studio isn't reachable ({0})", &[&e]))
 }
 
 // MARK: - Prompt
@@ -241,12 +242,12 @@ fn parse(content: &str, req: &Request, model: String) -> Result<Suggestion> {
         (Some(s), Some(e)) if e > s => &content[s..=e],
         _ => {
             return Err(Error::InvalidValue(
-                "the model didn't answer with JSON".into(),
+                tr("the model didn't answer with JSON").into(),
             ));
         }
     };
     let raw: Raw = serde_json::from_str(json)
-        .map_err(|e| Error::InvalidValue(format!("the model's answer didn't parse: {e}")))?;
+        .map_err(|e| Error::InvalidValue(trf("the model's answer didn't parse: {0}", &[&e])))?;
     let clean = |s: String, max: usize| {
         let s = s.trim().trim_matches('"').trim().to_string();
         (!s.is_empty()).then(|| s.chars().take(max).collect::<String>())

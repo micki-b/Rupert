@@ -36,6 +36,8 @@ pub struct Settings {
     pub assistant: AssistantSettings,
     /// Desktop: look for a new version on GitHub now and then.
     pub check_updates: bool,
+    /// Rupert's language ("en", "es"); `None` follows the system.
+    pub language: Option<String>,
 }
 
 /// Which model the assistant talks to.
@@ -78,6 +80,7 @@ impl Default for Settings {
             name_pattern: "{date} {title}".into(),
             assistant: AssistantSettings::default(),
             check_updates: true,
+            language: None,
         }
     }
 }

@@ -202,7 +202,7 @@ mod vision {
             let as_request: &VNRequest = &request;
             handler
                 .performRequests_error(&NSArray::from_slice(&[as_request]))
-                .map_err(|e| Error::InvalidValue(format!("OCR failed: {e}")))?;
+                .map_err(|e| Error::InvalidValue(crate::i18n::trf("OCR failed: {0}", &[&e])))?;
 
             let mut words = Vec::new();
             let Some(results) = request.results() else {
@@ -339,7 +339,9 @@ fn tesseract_recognize(program: &Path, languages: &str, png: &[u8]) -> Result<Ve
     child.stdin.take().expect("piped stdin").write_all(png)?;
     let out = child.wait_with_output()?;
     if !out.status.success() {
-        return Err(Error::InvalidValue("tesseract failed".into()));
+        return Err(Error::InvalidValue(
+            crate::i18n::tr("tesseract failed").into(),
+        ));
     }
     Ok(parse_tsv(&String::from_utf8_lossy(&out.stdout)))
 }

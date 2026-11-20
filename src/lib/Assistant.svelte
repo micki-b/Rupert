@@ -6,6 +6,7 @@
   import { api, onAssistantStep, type AssistantAction, type AssistantInfo, type AssistantStep } from "$lib/api";
   import Icon from "$lib/Icon.svelte";
   import RupertOwl, { type OwlMood } from "$lib/RupertOwl.svelte";
+  import { m } from "$lib/i18n";
 
   let { onaction, onsettings }: { onaction: (a: AssistantAction) => void; onsettings: () => void } = $props();
 
@@ -91,11 +92,11 @@
   function describe(a: AssistantAction): string {
     switch (a.kind) {
       case "openFolder":
-        return `Opened ${a.relPath || "the source"}`;
+        return m.assistant.openedFolder(a.relPath);
       case "showDocument":
-        return `Showed ${a.relPath.split("/").pop()}`;
+        return m.assistant.showedDocument(a.relPath.split("/").pop() ?? "");
       case "search":
-        return "Showed the results";
+        return m.assistant.showedResults;
     }
   }
 
@@ -122,7 +123,7 @@
         ...messages,
         {
           role: "assistant",
-          text: reply.text || "(no answer)",
+          text: reply.text || m.assistant.noAnswer,
           steps: reply.steps,
           shown: reply.actions.map(describe),
           model: reply.model,
@@ -180,30 +181,30 @@
 <svelte:window onkeydown={onwindowkey} />
 
 {#if open}
-  <div class="panel" role="dialog" aria-label="Assistant">
+  <div class="panel" role="dialog" aria-label={m.assistant.panel}>
     <header>
       <RupertOwl {mood} size={44} />
       <div class="title">
-        <strong>Ask Rupert</strong>
+        <strong>{m.assistant.title}</strong>
         {#if info}
-          <span class="model" class:cloud={info.cloud} title={info.cloud ? "Documents the assistant looks at are sent to this cloud service" : "Runs on this computer"}>
+          <span class="model" class:cloud={info.cloud} title={info.cloud ? m.assistant.cloudTip : m.assistant.localTip}>
             {info.cloud ? "☁ " : ""}{info.label}
           </span>
         {/if}
       </div>
-      <button class="icon" onclick={onsettings} title="Assistant settings" aria-label="Assistant settings">
+      <button class="icon" onclick={onsettings} title={m.assistant.settings} aria-label={m.assistant.settings}>
         <Icon name="gear" size={20} />
       </button>
       <button
         class="icon"
         onclick={reset}
         disabled={busy || !messages.length}
-        title="New conversation"
-        aria-label="New conversation"
+        title={m.assistant.newConversation}
+        aria-label={m.assistant.newConversation}
       >
         <Icon name="new-chat" size={20} />
       </button>
-      <button class="icon" onclick={() => (open = false)} title="Close (Esc)" aria-label="Close">
+      <button class="icon" onclick={() => (open = false)} title={m.common.closeEsc} aria-label={m.common.close}>
         <Icon name="close" size={20} />
       </button>
     </header>
@@ -212,43 +213,38 @@
       {#if !messages.length}
         <div class="hello">
           <div class="hello-owl"><RupertOwl mood={busy ? mood : "idle"} size={120} /></div>
-          <p>Ask for documents, or tell me what to show. For example:</p>
+          <p>{m.assistant.hello}</p>
           <ul>
-            <li>“Find the impeller invoice from last spring”</li>
-            <li>“What's the deductible on the boat insurance?”</li>
-            <li>“Show everything tagged Taxes and 2025”</li>
-            <li>“Open the Boat folder”</li>
+            {#each m.assistant.examples as example (example)}<li>{example}</li>{/each}
           </ul>
           {#if info?.cloud}
-            <p class="note">
-              ☁ A cloud model is chosen: titles, tags and the text of documents I look at are sent to it.
-            </p>
+            <p class="note">{m.assistant.cloudNote}</p>
           {/if}
         </div>
       {/if}
-      {#each messages as m, i (i)}
-        {#if m.role === "user"}
-          <div class="msg user">{m.text}</div>
-        {:else if m.role === "assistant"}
-          {#if m.steps.length}
-            <div class="steps">{m.steps.map((s) => s.summary).join(" · ")}</div>
+      {#each messages as msg, i (i)}
+        {#if msg.role === "user"}
+          <div class="msg user">{msg.text}</div>
+        {:else if msg.role === "assistant"}
+          {#if msg.steps.length}
+            <div class="steps">{msg.steps.map((s) => s.summary).join(" · ")}</div>
           {/if}
           <div class="msg bot">
-            {#each boldParts(m.text) as p, j (j)}{#if p.bold}<strong>{p.text}</strong>{:else}{p.text}{/if}{/each}
+            {#each boldParts(msg.text) as p, j (j)}{#if p.bold}<strong>{p.text}</strong>{:else}{p.text}{/if}{/each}
           </div>
-          {#if m.shown.length}<div class="shown">{m.shown.join(" · ")}</div>{/if}
-        {:else if m.role === "stopped"}
-          <div class="stopped">Stopped</div>
+          {#if msg.shown.length}<div class="shown">{msg.shown.join(" · ")}</div>{/if}
+        {:else if msg.role === "stopped"}
+          <div class="stopped">{m.assistant.stopped}</div>
         {:else}
           <div class="msg error">
-            {m.text}
-            <button class="link" onclick={onsettings}>Settings…</button>
+            {msg.text}
+            <button class="link" onclick={onsettings}>{m.assistant.settingsLink}</button>
           </div>
         {/if}
       {/each}
       {#if busy}
         <div class="working">
-          {stopping ? "Stopping…" : live.length ? live[live.length - 1].summary + "…" : "Thinking…"}
+          {stopping ? m.assistant.stopping : live.length ? live[live.length - 1].summary + "…" : m.assistant.thinking}
         </div>
       {/if}
     </div>
@@ -259,21 +255,21 @@
         bind:value={draft}
         {onkeydown}
         rows="2"
-        placeholder="Ask about your documents…"
+        placeholder={m.assistant.placeholder}
         disabled={busy}
       ></textarea>
       {#if busy}
-        <button class="send stop" onclick={stop} disabled={stopping} title="Stop (Esc)" aria-label="Stop">
+        <button class="send stop" onclick={stop} disabled={stopping} title={m.assistant.stopKey} aria-label={m.assistant.stop}>
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill="currentColor" /></svg>
         </button>
       {:else}
-        <button class="send" onclick={send} disabled={!draft.trim()} aria-label="Send">↑</button>
+        <button class="send" onclick={send} disabled={!draft.trim()} aria-label={m.assistant.send}>↑</button>
       {/if}
     </div>
   </div>
 {/if}
 
-<button class="fab" class:open onclick={toggle} title="Ask Rupert (⌘J)" aria-label="Ask Rupert" aria-expanded={open}>
+<button class="fab" class:open onclick={toggle} title={m.assistant.openKey} aria-label={m.assistant.title} aria-expanded={open}>
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
     <path d="M8 10h.01M12 10h.01M16 10h.01" stroke-width="2.6" />

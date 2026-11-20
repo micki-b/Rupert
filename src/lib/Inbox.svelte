@@ -15,6 +15,7 @@
     type Source,
   } from "$lib/api";
   import Icon from "$lib/Icon.svelte";
+  import { m } from "$lib/i18n";
 
   let {
     sources,
@@ -55,8 +56,8 @@
   let os = $state<string | undefined>();
   /** The right-click menu on a scan in the list. */
   let menu = $state<{ x: number; y: number; item: IntakeItem } | null>(null);
-  const trashLabel = $derived(os === "windows" ? "Delete" : "Move to Trash");
-  const binName = $derived(os === "windows" ? "Recycle Bin" : "Trash");
+  const trashLabel = $derived(os === "windows" ? m.trash.delete : m.trash.moveToTrash);
+  const binName = $derived(os === "windows" ? m.trash.recycleBin : m.trash.trash);
 
   const selected = $derived(items.find((i) => i.relPath === selectedRel) ?? null);
   const inboxSource = $derived(sources.find((s) => s.id === settings.inbox?.sourceId) ?? null);
@@ -180,13 +181,13 @@
   function stageText(i: IntakeItem): string {
     switch (i.stage) {
       case "waiting":
-        return "Waiting…";
+        return m.inbox.waiting;
       case "recognizing":
-        return i.progress ? `Reading text (page ${i.progress[0] + 1} of ${i.progress[1]})…` : "Reading text…";
+        return i.progress ? m.inbox.readingPage(i.progress[0] + 1, i.progress[1]) : m.inbox.reading;
       case "suggesting":
-        return "Asking LM Studio…";
+        return m.inbox.asking;
       default:
-        return i.suggestion?.title ?? (i.note ? "Needs your input" : "Ready");
+        return i.suggestion?.title ?? (i.note ? m.inbox.needsInput : m.inbox.ready);
     }
   }
 
@@ -197,7 +198,7 @@
   async function trash(item: IntakeItem) {
     menu = null;
     const ok = await ask(
-      `Move “${item.name}” to the ${binName}?\n\nIt may not be saved anywhere else yet. You can get it back from the ${binName}.`,
+      m.trash.askScan(item.name, binName),
       { title: trashLabel, kind: "warning", okLabel: trashLabel },
     );
     if (!ok) return;
@@ -247,12 +248,9 @@
 
 {#if !settings.inbox || !inboxSource}
   <div class="empty-state">
-    <h1>Inbox</h1>
-    <p class="muted">
-      Choose a folder where new scans arrive (for example, the folder a ScanSnap Home profile saves to). Rupert
-      recognizes their text, suggests a title, date, tags and folder, and files them when you agree.
-    </p>
-    <button class="primary" onclick={onsettings}>Set up the inbox…</button>
+    <h1>{m.inbox.title}</h1>
+    <p class="muted">{m.inbox.setUpIntro}</p>
+    <button class="primary" onclick={onsettings}>{m.inbox.setUp}</button>
   </div>
 {:else}
   <div class="inbox">
@@ -260,8 +258,8 @@
     <aside class="list">
       <header>
         <div class="title-row">
-          <h2>Inbox</h2>
-          <button class="scan-btn" onclick={onscan}>Scan…</button>
+          <h2>{m.inbox.title}</h2>
+          <button class="scan-btn" onclick={onscan}>{m.inbox.scan}</button>
         </div>
         <span class="muted small" title={settings.inbox.relPath}>
           {inboxSource.name}{settings.inbox.relPath ? "/" + settings.inbox.relPath : ""}
@@ -269,9 +267,9 @@
       </header>
       {#if lastFiled}
         <div class="filed">
-          Filed in {lastFiled.label}.
-          <button class="link" onclick={() => onfiled(lastFiled!.filed)}>Show</button>
-          <button class="link" onclick={() => (lastFiled = null)} aria-label="Dismiss">×</button>
+          {m.inbox.filedIn(lastFiled.label)}
+          <button class="link" onclick={() => onfiled(lastFiled!.filed)}>{m.inbox.show}</button>
+          <button class="link" onclick={() => (lastFiled = null)} aria-label={m.inbox.dismiss}>×</button>
         </div>
       {/if}
       {#each items as i (i.relPath)}
@@ -285,7 +283,7 @@
           <span class="state muted" class:busy={i.stage !== "ready"}>{stageText(i)}</span>
         </button>
       {:else}
-        <p class="muted small pad">Nothing waiting. New scans in the inbox folder show up here.</p>
+        <p class="muted small pad">{m.inbox.nothingWaiting}</p>
       {/each}
     </aside>
 
@@ -293,13 +291,13 @@
     <section class="preview">
       {#if selected}
         {#if previewUrl}
-          <img src={previewUrl} alt="First page of {selected.name}" />
+          <img src={previewUrl} alt={m.inbox.firstPage(selected.name)} />
         {:else if selected.cloud === "cloudOnly"}
-          <p class="muted center">Online-only. Open it to download it.</p>
+          <p class="muted center">{m.inbox.onlineOnly}</p>
         {:else if previewLoading}
-          <p class="muted center">Loading preview…</p>
+          <p class="muted center">{m.inbox.loadingPreview}</p>
         {:else}
-          <p class="muted center">No preview for this file.</p>
+          <p class="muted center">{m.inbox.noPreview}</p>
         {/if}
       {/if}
     </section>
@@ -307,7 +305,7 @@
     <!-- MARK: Filing form -->
     <section class="form">
       {#if selected}
-        <h2>File it</h2>
+        <h2>{m.inbox.fileIt}</h2>
         {#if selected.stage !== "ready"}
           <p class="working"><span class="spinner"></span>{stageText(selected)}</p>
         {/if}
@@ -315,12 +313,12 @@
         {#if selected.note}<p class="note small"><Icon name="warning" size={12} /> {selected.note}</p>{/if}
 
         <label class="field">
-          <span>Title</span>
+          <span>{m.inbox.title_}</span>
           <input bind:value={form.title} oninput={onTitleOrDate} placeholder={selected.name} />
         </label>
         <div class="two">
           <label class="field">
-            <span>Document date</span>
+            <span>{m.inbox.documentDate}</span>
             <input
               type="date"
               class:unset={!form.documentDate}
@@ -329,7 +327,7 @@
             />
           </label>
           <label class="field fav">
-            <span>Favorite</span>
+            <span>{m.inbox.favorite}</span>
             <button
               class="star"
               class:on={form.favorite}
@@ -339,18 +337,18 @@
           </label>
         </div>
         <div class="field">
-          <span>Tags</span>
+          <span>{m.inbox.tags}</span>
           <div class="tags">
             {#each form.tags as t (t)}
               <span class="chip"
-                >{t}<button onclick={() => (form.tags = form.tags.filter((x) => x !== t))} aria-label="Remove {t}"
+                >{t}<button onclick={() => (form.tags = form.tags.filter((x) => x !== t))} aria-label={m.inbox.remove(t)}
                   >×</button
                 ></span
               >
             {/each}
             <input
               bind:value={tagDraft}
-              placeholder="Add tag"
+              placeholder={m.inbox.addTag}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === ",") {
                   e.preventDefault();
@@ -364,15 +362,15 @@
           </div>
         </div>
         <label class="field">
-          <span>Folder</span>
+          <span>{m.inbox.folder}</span>
           <input
             list="inbox-folders"
             bind:value={form.folder}
-            placeholder="Type to find a folder"
+            placeholder={m.inbox.findFolder}
             class:invalid={form.folder.trim() !== "" && !folderChoice}
           />
           <datalist id="inbox-folders">
-            {#each selected.folders as f (f.label)}<option value={f.label}>Similar documents</option>{/each}
+            {#each selected.folders as f (f.label)}<option value={f.label}>{m.inbox.similar}</option>{/each}
             {#each allFolders as f (f.sourceId + f.dir)}<option value={f.label}></option>{/each}
           </datalist>
         </label>
@@ -387,54 +385,52 @@
         {/if}
         {#if selected.suggestion?.reason}<p class="muted small">{selected.suggestion.reason}</p>{/if}
         <label class="field">
-          <span>File name</span>
+          <span>{m.inbox.fileName}</span>
           <div class="name-row">
             <input bind:value={form.fileName} oninput={() => (nameEdited = true)} />
             <span class="muted">{ext}</span>
           </div>
         </label>
         <label class="field">
-          <span>Notes</span>
+          <span>{m.inbox.notes}</span>
           <textarea bind:value={form.notes} rows="2"></textarea>
         </label>
 
         {#if error}<p class="error small">{error}</p>{/if}
         <div class="actions">
           <button class="primary" disabled={!folderChoice || filing} onclick={file} title="⌘↩">
-            {filing ? "Filing…" : "File"}
+            {filing ? m.inbox.filing : m.inbox.file}
           </button>
-          <button onclick={() => api.openEntry(selected!.sourceId, selected!.relPath)}>Open</button>
+          <button onclick={() => api.openEntry(selected!.sourceId, selected!.relPath)}>{m.inbox.open}</button>
           <button onclick={() => api.inboxRedo(selected!.relPath)} disabled={selected.stage !== "ready"}
-            >Suggest again</button
+            >{m.inbox.suggestAgain}</button
           >
           <span class="spacer"></span>
           <button class="danger" onclick={() => trash(selected!)} disabled={filing}>{trashLabel}…</button>
         </div>
-        <p class="muted small">
-          Writes the details into the file, renames it and moves it to the folder.
-        </p>
+        <p class="muted small">{m.inbox.whatFilingDoes}</p>
       {/if}
     </section>
   </div>
 {/if}
 
 {#if menu}
-  {@const m = menu}
+  {@const mn = menu}
   <div
     class="menu"
     role="menu"
     tabindex="-1"
-    style:left="{m.x}px"
-    style:top="{m.y}px"
+    style:left="{mn.x}px"
+    style:top="{mn.y}px"
     onclick={(e) => e.stopPropagation()}
     onkeydown={() => {}}
   >
-    <button role="menuitem" onclick={() => ((menu = null), api.openEntry(m.item.sourceId, m.item.relPath))}>Open</button>
-    <button role="menuitem" onclick={() => ((menu = null), api.revealEntry(m.item.sourceId, m.item.relPath))}
+    <button role="menuitem" onclick={() => ((menu = null), api.openEntry(mn.item.sourceId, mn.item.relPath))}>{m.inbox.open}</button>
+    <button role="menuitem" onclick={() => ((menu = null), api.revealEntry(mn.item.sourceId, mn.item.relPath))}
       >{revealLabel(os)}</button
     >
     <hr />
-    <button role="menuitem" class="danger" onclick={() => trash(m.item)}>{trashLabel}…</button>
+    <button role="menuitem" class="danger" onclick={() => trash(mn.item)}>{trashLabel}…</button>
   </div>
 {/if}
 
@@ -489,8 +485,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
   }
   .scan-btn {
+    flex: none;
     font-size: 12px;
     padding: 2px 10px;
   }
@@ -668,8 +666,12 @@
   }
   .actions {
     display: flex;
+    flex-wrap: wrap; /* longer labels in other languages */
     gap: 6px;
     margin-top: 4px;
+  }
+  .actions button {
+    white-space: nowrap;
   }
   .spacer {
     flex: 1;

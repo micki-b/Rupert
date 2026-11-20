@@ -10,6 +10,7 @@
   import { api, type ListedEntry } from "$lib/api";
   import { formatDate } from "$lib/format";
   import { dragSource, dropTarget, isDropOver, type MoveItem } from "$lib/drag.svelte";
+  import { m } from "$lib/i18n";
 
   let {
     mode,
@@ -136,7 +137,7 @@
             <Thumb {sourceId} entry={e} side={320} iconSize={48} />
           {/if}
           {#if e.cloud === "cloudOnly"}
-            <span class="badge" title="Online-only: opening it downloads it"><Icon name="cloud" size={13} /></span>
+            <span class="badge" title={m.pictures.onlineOnlyBadge}><Icon name="cloud" size={13} /></span>
           {/if}
         </span>
         <span class="label">{#if e.favorite}<span class="fav">★</span>{/if}{e.name}</span>
@@ -161,10 +162,10 @@
             <Thumb {sourceId} entry={current} {page} side={BIG} iconSize={96} eager />
           {/if}
           {#if pages && pages > 1}
-            <button class="flip prev" onclick={() => flip(-1)} disabled={page === 0} title="Previous page (↑)" aria-label="Previous page">
+            <button class="flip prev" onclick={() => flip(-1)} disabled={page === 0} title={m.pictures.previousPageKey} aria-label={m.pictures.previousPage}>
               <Icon name="back" size={20} />
             </button>
-            <button class="flip next" onclick={() => flip(1)} disabled={page + 1 >= pages} title="Next page (↓)" aria-label="Next page">
+            <button class="flip next" onclick={() => flip(1)} disabled={page + 1 >= pages} title={m.pictures.nextPageKey} aria-label={m.pictures.nextPage}>
               <Icon name="chevron" size={20} />
             </button>
           {/if}
@@ -173,8 +174,8 @@
           <strong>{#if current.favorite}<span class="fav">★</span>{/if}{current.title ?? current.name}</strong>
           <span class="muted">
             {#if current.title}{current.name} · {/if}{current.documentDate ?? formatDate(current.modifiedMs)}
-            {#if pages && pages > 1}· page {page + 1} of {pages}{/if}
-            {#if current.cloud === "cloudOnly"}· online-only, opening it downloads it{/if}
+            {#if pages && pages > 1}· {m.pictures.pageOf(page + 1, pages)}{/if}
+            {#if current.cloud === "cloudOnly"}· {m.pictures.onlineOnly}{/if}
           </span>
         </div>
       {/if}

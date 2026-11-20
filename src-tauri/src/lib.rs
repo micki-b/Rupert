@@ -1,6 +1,7 @@
 //! Tauri shell: wires `rupert-core` to the UI through commands.
 //! Keep logic in `rupert-core`; commands here should stay thin.
 
+use rupert_core::i18n::{self, tr, trf};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -193,7 +194,7 @@ fn add_source(path: String, state: State<AppState>) -> CmdResult<SourceView> {
 fn relocate_source(id: String, path: String, state: State<AppState>) -> CmdResult<SourceView> {
     let path = PathBuf::from(path);
     if !path.is_dir() {
-        return Err(err(format!("not a folder: {}", path.display())));
+        return Err(err(trf("not a folder: {0}", &[&path.display()])));
     }
     let source = state
         .store
@@ -399,7 +400,7 @@ async fn read_markdown(
     tauri::async_runtime::spawn_blocking(move || {
         let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
         if !rupert_core::markdown::is_markdown(&path) {
-            return Err("Not a Markdown file.".to_string());
+            return Err(tr("Not a Markdown file.").into());
         }
         rupert_core::markdown::read(&path, limit.unwrap_or(rupert_core::markdown::MAX_BYTES))
             .map_err(err)
@@ -778,7 +779,7 @@ fn get_settings(state: State<AppState>) -> Settings {
 }
 
 #[tauri::command]
-fn set_settings(settings: Settings, state: State<AppState>) -> CmdResult<Settings> {
+fn set_settings(app: AppHandle, settings: Settings, state: State<AppState>) -> CmdResult<Settings> {
     state
         .settings
         .lock()
@@ -786,7 +787,30 @@ fn set_settings(settings: Settings, state: State<AppState>) -> CmdResult<Setting
         .set(settings.clone())
         .map_err(err)?;
     state.reconfigure_intake();
+    let lang = i18n::resolve(settings.language.as_deref());
+    if lang != i18n::current() {
+        i18n::set(lang);
+        #[cfg(target_os = "macos")]
+        install_menu(&app).map_err(err)?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
     Ok(settings)
+}
+
+/// Rupert's language now, and the system's (what "Automatic" means).
+#[derive(Serialize)]
+struct Language {
+    current: i18n::Lang,
+    system: i18n::Lang,
+}
+
+#[tauri::command]
+fn language() -> Language {
+    Language {
+        current: i18n::current(),
+        system: i18n::system(),
+    }
 }
 
 /// The OCR engine on this machine, if any (e.g. "Apple Vision").
@@ -961,7 +985,7 @@ fn scan_start(
         .get()
         .inbox
         .clone()
-        .ok_or("set up the inbox first: scans are saved there")?;
+        .ok_or(tr("set up the inbox first: scans are saved there"))?;
     let source = state.source(&inbox.source_id)?;
     let dest = rupert_core::resolve(&source.root, &inbox.rel_path).map_err(err)?;
     let stem = rupert_core::fileops::clean_name(&name, "pdf");
@@ -1038,7 +1062,7 @@ fn scansnap_apply(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
         .lock()
         .unwrap()
         .take()
-        .ok_or("nothing to import; review the import first")?;
+        .ok_or(tr("nothing to import; review the import first"))?;
     let sources = state.sources();
     std::thread::Builder::new()
         .name("rupert-import".into())
@@ -1066,65 +1090,129 @@ fn scansnap_apply(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
 // MARK: - Setup
 
 /// macOS: the standard menu bar plus File ▸ Scan… and Import from ScanSnap
-/// Home…, Rupert ▸ Settings… and Help ▸ Rupert Help. (Windows and Linux
-/// keep their window chrome menu-free; the window has the same actions,
-/// and F1 opens the help.)
+/// Home…, Rupert ▸ Settings… and Help ▸ Rupert Help, in Rupert's language
+/// (Tauri's default menu is English only). Built again when the language
+/// changes. (Windows and Linux keep their window chrome menu-free; the
+/// window has the same actions, and F1 opens the help.)
 #[cfg(target_os = "macos")]
-fn install_menu(app: &tauri::App) -> tauri::Result<()> {
-    use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-    let menu = Menu::default(app.handle())?;
-    let import = MenuItem::with_id(
+fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
+    use tauri::menu::{
+        AboutMetadata, HELP_SUBMENU_ID, Menu, MenuItem, PredefinedMenuItem, Submenu,
+        WINDOW_SUBMENU_ID,
+    };
+    let name = app.package_info().name.clone();
+    let about = AboutMetadata {
+        name: Some(name.clone()),
+        version: Some(app.package_info().version.to_string()),
+        copyright: app.config().bundle.copyright.clone(),
+        ..Default::default()
+    };
+    let sep = || PredefinedMenuItem::separator(app);
+    let item =
+        |id: &str, text: &str, accel: Option<&str>| MenuItem::with_id(app, id, text, true, accel);
+
+    let app_menu = Submenu::with_items(
         app,
-        MENU_IMPORT,
-        "Import from ScanSnap Home…",
+        &name,
         true,
-        None::<&str>,
+        &[&PredefinedMenuItem::about(
+            app,
+            Some(&trf("About {0}", &[&name])),
+            Some(about),
+        )?],
     )?;
-    let settings = MenuItem::with_id(app, MENU_SETTINGS, "Settings…", true, Some("CmdOrCtrl+,"))?;
-    let scan = MenuItem::with_id(app, MENU_SCAN, "Scan…", true, None::<&str>)?;
-    let updates = MenuItem::with_id(app, MENU_UPDATES, "Check for Updates…", true, None::<&str>)?;
-    let help = MenuItem::with_id(
+    if !cfg!(feature = "app-store") {
+        // Not in the App Store edition, which the App Store updates.
+        app_menu.append(&sep()?)?;
+        app_menu.append(&item(MENU_UPDATES, tr("Check for Updates…"), None)?)?;
+    }
+    let settings = item(MENU_SETTINGS, tr("Settings…"), Some("CmdOrCtrl+,"))?;
+    app_menu.append_items(&[
+        &sep()?,
+        &settings,
+        &sep()?,
+        &PredefinedMenuItem::services(app, Some(tr("Services")))?,
+        &sep()?,
+        &PredefinedMenuItem::hide(app, Some(&trf("Hide {0}", &[&name])))?,
+        &PredefinedMenuItem::hide_others(app, Some(tr("Hide Others")))?,
+        &PredefinedMenuItem::show_all(app, Some(tr("Show All")))?,
+        &sep()?,
+        &PredefinedMenuItem::quit(app, Some(&trf("Quit {0}", &[&name])))?,
+    ])?;
+
+    let file = Submenu::with_items(
         app,
-        MENU_HELP,
-        "Rupert Help",
+        tr("File"),
         true,
-        Some("CmdOrCtrl+Shift+/"),
+        &[
+            &item(MENU_SCAN, tr("Scan…"), None)?,
+            &item(MENU_IMPORT, tr("Import from ScanSnap Home…"), None)?,
+            &sep()?,
+            &PredefinedMenuItem::close_window(app, Some(tr("Close Window")))?,
+        ],
     )?;
-    for (i, item) in menu.items()?.into_iter().enumerate() {
-        let Some(sub) = item.as_submenu() else {
-            continue;
-        };
-        if i == 0 {
-            // The app menu: Check for Updates… (not in the App Store
-            // edition, which the App Store updates) and Settings… after
-            // "About Rupert".
-            let mut at = 1;
-            if !cfg!(feature = "app-store") {
-                sub.insert(&updates, at)?;
-                at += 1;
-            }
-            sub.insert(&PredefinedMenuItem::separator(app)?, at)?;
-            sub.insert(&settings, at + 1)?;
-        } else if sub.text()? == "File" {
-            sub.prepend(&PredefinedMenuItem::separator(app)?)?;
-            sub.prepend(&import)?;
-            sub.prepend(&scan)?;
-        } else if sub.id() == tauri::menu::HELP_SUBMENU_ID {
-            sub.prepend(&help)?;
+    let edit = Submenu::with_items(
+        app,
+        tr("Edit"),
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, Some(tr("Undo")))?,
+            &PredefinedMenuItem::redo(app, Some(tr("Redo")))?,
+            &sep()?,
+            &PredefinedMenuItem::cut(app, Some(tr("Cut")))?,
+            &PredefinedMenuItem::copy(app, Some(tr("Copy")))?,
+            &PredefinedMenuItem::paste(app, Some(tr("Paste")))?,
+            &PredefinedMenuItem::select_all(app, Some(tr("Select All")))?,
+        ],
+    )?;
+    let view = Submenu::with_items(
+        app,
+        tr("View"),
+        true,
+        &[&PredefinedMenuItem::fullscreen(
+            app,
+            Some(tr("Enter Full Screen")),
+        )?],
+    )?;
+    let window = Submenu::with_id_and_items(
+        app,
+        WINDOW_SUBMENU_ID,
+        tr("Window"),
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, Some(tr("Minimize")))?,
+            &PredefinedMenuItem::maximize(app, Some(tr("Zoom")))?,
+            &sep()?,
+            &PredefinedMenuItem::close_window(app, Some(tr("Close Window")))?,
+        ],
+    )?;
+    let help = Submenu::with_id_and_items(
+        app,
+        HELP_SUBMENU_ID,
+        tr("Help"),
+        true,
+        &[&item(
+            MENU_HELP,
+            tr("Rupert Help"),
+            Some("CmdOrCtrl+Shift+/"),
+        )?],
+    )?;
+    let menu = Menu::with_items(app, &[&app_menu, &file, &edit, &view, &window, &help])?;
+    app.set_menu(menu)?;
+    Ok(())
+}
+
+/// The menu's own items: open the help, or tell the window.
+#[cfg(target_os = "macos")]
+fn on_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
+    if event.id() == MENU_HELP {
+        let _ = help::show(app, None);
+    }
+    for id in [MENU_IMPORT, MENU_SETTINGS, MENU_SCAN, MENU_UPDATES] {
+        if event.id() == id {
+            let _ = app.emit(id, ());
         }
     }
-    app.set_menu(menu)?;
-    app.on_menu_event(|app, event| {
-        if event.id() == MENU_HELP {
-            let _ = help::show(app, None);
-        }
-        for id in [MENU_IMPORT, MENU_SETTINGS, MENU_SCAN, MENU_UPDATES] {
-            if event.id() == id {
-                let _ = app.emit(id, ());
-            }
-        }
-    });
-    Ok(())
 }
 
 /// Where PDFium lives: bundled resources in a built app, `src-tauri/pdfium`
@@ -1166,9 +1254,14 @@ pub fn run() {
             thumbs::serve(ctx.app_handle(), request, responder)
         })
         .setup(|app| {
-            #[cfg(target_os = "macos")]
-            install_menu(app)?;
             let config_dir = app.path().app_config_dir()?;
+            let settings = SettingsStore::load(config_dir.join("settings.json"))?;
+            i18n::set(i18n::resolve(settings.get().language.as_deref()));
+            #[cfg(target_os = "macos")]
+            {
+                install_menu(app.handle())?;
+                app.on_menu_event(on_menu);
+            }
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             let mut store = SourceStore::load(config_dir.join("sources.json"))?;
@@ -1184,7 +1277,6 @@ pub fn run() {
             let changed_handle = app.handle().clone();
             // PDFium lives on one service thread; everyone shares this handle.
             let extractor = TextExtractor::new(pdfium_dir(app).as_deref());
-            let settings = SettingsStore::load(config_dir.join("settings.json"))?;
             let indexer = rupert_core::indexer::spawn(
                 index_path.clone(),
                 extractor.clone(),
@@ -1266,6 +1358,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info,
+            language,
             list_sources,
             add_source,
             relocate_source,

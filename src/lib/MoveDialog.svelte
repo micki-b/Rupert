@@ -4,6 +4,7 @@
   import type { Source } from "$lib/api";
   import FolderNode from "$lib/FolderNode.svelte";
   import { canMoveInto, type MoveItem } from "$lib/drag.svelte";
+  import { m } from "$lib/i18n";
 
   let {
     item,
@@ -26,8 +27,8 @@
   const why = $derived.by(() => {
     if (!dest || ok) return "";
     return item.entry.isDir && dest.sourceId === item.sourceId && dest.relPath !== parentOf(item.entry.relPath)
-      ? "A folder can't be moved into itself."
-      : "It's already in this folder.";
+      ? m.move.intoItself
+      : m.move.alreadyHere;
   });
 
   function parentOf(relPath: string) {
@@ -47,10 +48,10 @@
 
 <div class="backdrop" role="presentation">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="move-title">
-    <h1 id="move-title">Move “{item.entry.name}”</h1>
+    <h1 id="move-title">{m.move.title(item.entry.name)}</h1>
     <p class="muted small">
-      Choose a folder. {item.entry.isDir ? "The folder moves with everything in it" : "The document moves with its details"},
-      on disk, right away.
+      {m.move.chooseFolder}
+      {item.entry.isDir ? m.move.folderMoves : m.move.documentMoves}
     </p>
     <div class="tree" role="tree">
       {#each sources.filter((s) => s.available) as s (s.id)}
@@ -68,8 +69,8 @@
     {#if error}<p class="error small" role="alert">{error}</p>{/if}
     <div class="footer">
       <span class="muted small">{why}</span>
-      <button onclick={onclose} disabled={busy}>Cancel</button>
-      <button class="primary" onclick={move} disabled={!ok || busy}>{busy ? "Moving…" : "Move"}</button>
+      <button onclick={onclose} disabled={busy}>{m.common.cancel}</button>
+      <button class="primary" onclick={move} disabled={!ok || busy}>{busy ? m.move.moving : m.move.move}</button>
     </div>
   </div>
 </div>

@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
+use crate::i18n::{tr, trf};
 use crate::{pdf_meta, sidecar};
 
 // MARK: - DocMeta
@@ -54,8 +55,9 @@ impl DocMeta {
         if let Some(date) = &document_date
             && !is_iso_date(date)
         {
-            return Err(Error::InvalidValue(format!(
-                "document date must be YYYY-MM-DD, got \"{date}\""
+            return Err(Error::InvalidValue(trf(
+                "document date must be YYYY-MM-DD, got \"{0}\"",
+                &[date],
             )));
         }
         Ok(Self {
@@ -182,8 +184,6 @@ pub struct MetaRecord {
 
 // MARK: - Read / write
 
-const PENDING_NOTE: &str = "Some details are kept beside the file until it's next saved in Rupert";
-
 /// Reads a document's metadata from wherever it is stored. Reads the file,
 /// so for online-only files this downloads it; callers decide whether that
 /// is acceptable.
@@ -204,7 +204,12 @@ pub fn read_meta(path: &Path) -> Result<MetaRecord> {
                 Some((meta, false)) => Ok(record(meta, Storage::Sidecar, note)),
                 Some((meta, true)) => {
                     let merged = PartialMeta::merge(meta, pdf.meta.into_meta());
-                    let note = note.or_else(|| Some(PENDING_NOTE.into()));
+                    let note = note.or_else(|| {
+                        Some(
+                            tr("Some details are kept beside the file until it's next saved in Rupert")
+                                .into(),
+                        )
+                    });
                     Ok(record(merged, Storage::Sidecar, note))
                 }
                 None => {
@@ -219,8 +224,9 @@ pub fn read_meta(path: &Path) -> Result<MetaRecord> {
             }
         }
         Err(e) => {
-            let note = Some(format!(
-                "couldn't read the PDF ({e}); details are kept in a sidecar"
+            let note = Some(trf(
+                "couldn't read the PDF ({0}); details are kept in a sidecar",
+                &[&e],
             ));
             Ok(match side {
                 Some((meta, _)) => record(meta, Storage::Sidecar, note),

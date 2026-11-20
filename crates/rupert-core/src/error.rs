@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::i18n::{tr, trf};
+
 // MARK: - Error
 
 #[derive(Debug, thiserror::Error)]
@@ -7,35 +9,35 @@ pub enum Error {
     #[error("{0}")]
     Io(#[from] std::io::Error),
 
-    #[error("couldn't read or write settings: {0}")]
+    #[error("{}", trf("couldn't read or write settings: {0}", &[&.0]))]
     Json(#[from] serde_json::Error),
 
-    #[error("file watching failed: {0}")]
+    #[error("{}", trf("file watching failed: {0}", &[&.0]))]
     Watch(#[from] notify_debouncer_mini::notify::Error),
 
-    #[error("not a folder: {}", .0.display())]
+    #[error("{}", trf("not a folder: {0}", &[&.0.display()]))]
     NotADirectory(PathBuf),
 
-    #[error("this folder is already a source")]
+    #[error("{}", tr("this folder is already a source"))]
     DuplicateSource,
 
-    #[error("this folder overlaps the source \"{0}\"; sources can't be nested")]
+    #[error("{}", trf("this folder overlaps the source \"{0}\"; sources can't be nested", &[&.0]))]
     OverlappingSource(String),
 
-    #[error("unknown source")]
+    #[error("{}", tr("unknown source"))]
     UnknownSource,
 
-    #[error("invalid path: {0}")]
+    #[error("{}", trf("invalid path: {0}", &[&.0]))]
     InvalidPath(String),
 
     #[error("{0}")]
     InvalidValue(String),
 
-    #[error("search index: {0}")]
+    #[error("{}", trf("search index: {0}", &[&.0]))]
     Index(String),
 
     /// The PDF couldn't be parsed or the update didn't verify.
-    #[error("PDF problem: {0}")]
+    #[error("{}", trf("PDF problem: {0}", &[&.0]))]
     Pdf(String),
 
     /// Rupert deliberately won't modify this file (e.g. encrypted or signed PDF).
@@ -43,7 +45,7 @@ pub enum Error {
     Unsupported(String),
 
     /// The user stopped it.
-    #[error("stopped")]
+    #[error("{}", tr("stopped"))]
     Cancelled,
 }
 

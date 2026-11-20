@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
+use crate::i18n::tr;
 use crate::index::Index;
 use crate::listing::{CloudState, resolve};
 use crate::meta::{self, DocMeta};
@@ -44,12 +45,12 @@ impl TagEdit {
     /// Checks the edit makes sense before touching anything.
     pub fn validate(&self) -> Result<()> {
         if self.from.iter().all(|t| t.trim().is_empty()) {
-            return Err(Error::InvalidValue("choose at least one tag".into()));
+            return Err(Error::InvalidValue(tr("choose at least one tag").into()));
         }
         if let TagAction::Rename { to } = &self.action
             && to.trim().is_empty()
         {
-            return Err(Error::InvalidValue("the new tag name is empty".into()));
+            return Err(Error::InvalidValue(tr("the new tag name is empty").into()));
         }
         Ok(())
     }
