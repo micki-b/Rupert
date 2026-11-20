@@ -19,7 +19,7 @@ const es: Messages = {
     save: "Guardar",
     done: "Listo",
     expand: "Expandir",
-    collapse: "Contraer",
+    collapse: "Colapsar",
     openInDefaultApp: "Abrir con la app predeterminada",
   },
   move: {
@@ -50,8 +50,9 @@ const es: Messages = {
     noOthersHere: "Estos documentos no tienen otras etiquetas.",
     noOthers: "No hay otras etiquetas.",
     noneYet: "Todavía no hay etiquetas.",
-    showAll: (n: number) => `Mostrar las ${num(n)}`,
-    showAllThatGo: (n: number) => `Mostrar las ${num(n)} que van con estas`,
+    showAll: (n: number) => (n === 1 ? "Mostrar 1" : `Mostrar las ${num(n)}`),
+    showAllThatGo: (n: number) =>
+      n === 1 ? "Mostrar la que va con estas" : `Mostrar las ${num(n)} que van con estas`,
     showFewer: "Mostrar menos",
   },
   import: {
@@ -305,7 +306,7 @@ const es: Messages = {
     downloading: (percent: number | null) =>
       percent === null ? "Descargando…" : `Descargando (${percent} %)…`,
     couldntCheck: (problem: string) => `No se pudo buscar actualizaciones: ${problem}`,
-    updatesNote: "Rupert busca versiones nuevas en GitHub, donde se publica. No se manda nada más.",
+    updatesNote: "Rupert busca versiones nuevas en GitHub, donde se publica. No se comparte nada más.",
     fileNames: "Nombres de archivo",
     pattern: "Formato",
     patternHint: ["Se completan ", " y ", ". Ejemplo: "],
