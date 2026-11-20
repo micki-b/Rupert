@@ -333,7 +333,7 @@ h2,
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
 }
 
-.handle circle {
+.handle circle:first-child {
   fill: #fffdfa;
   stroke: #d4a373;
   stroke-width: 1.5;
@@ -344,6 +344,10 @@ h2,
   stroke: #c98a2b;
   stroke-width: 1.8;
   stroke-linecap: round;
+}
+
+.handle .sun-body {
+  fill: #e8a838;
 }
 
 .handle .moon {
