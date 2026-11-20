@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an improvement to Rupert.
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing issues first. Describe your workflow in your own words; system details are only needed if relevant.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem or workflow would this help with?
+      description: Describe what you are trying to do and where you get stuck.
+    validations:
+      required: true
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: What would you like Rupert to do?
+      description: Explain the outcome you want. A specific example helps.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or additional context (optional)
+      description: Include workarounds, other approaches, or relevant platform details. Remove private information from any attachments.
+    validations:
+      required: false

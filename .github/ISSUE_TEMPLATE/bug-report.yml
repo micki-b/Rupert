@@ -1,0 +1,77 @@
+name: Bug report
+description: Report something in Rupert that is not working as expected.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues first. A short report is fine; enter "unknown" when you cannot find a detail.
+        Remove private document content, personal paths, account details, and API keys from screenshots and logs.
+  - type: input
+    id: app-version
+    attributes:
+      label: Rupert version and edition
+      description: On desktop, copy the version and edition shown at the bottom left of the window. On iPhone, the version is in Settings ▸ General ▸ iPhone Storage ▸ Rupert. For a development build, include the commit if known.
+      placeholder: "e.g. Rupert 0.1.0 · GitHub, 0.1.0 · App Store, or iPhone 0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - iOS
+        - Other / unknown
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system version
+      description: Include the exact version, and the distribution if using Linux.
+      placeholder: "e.g. macOS 15.1, Windows 11 24H2, Ubuntu 24.04, or iOS 18.1"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      description: Device model or CPU, and RAM if known. Do not include serial numbers or device identifiers.
+      placeholder: "e.g. MacBook Air M2, 16 GB RAM; Intel i5 PC, 8 GB RAM; or iPhone 15"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Describe the problem and what you expected Rupert to do. Include any error message.
+      placeholder: "When I …, Rupert … . I expected … ."
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Give the shortest sequence that shows the problem. If you cannot reproduce it reliably, say how often it happens and what you were doing.
+      placeholder: |
+        1. Open …
+        2. Choose …
+        3. Observe …
+    validations:
+      required: true
+  - type: textarea
+    id: relevant-setup
+    attributes:
+      label: Relevant setup (optional)
+      description: Only include details related to this problem, such as local/iCloud Drive/OneDrive folders, online-only files, scanner model, LM Studio and model versions, cloud AI provider, or Tesseract version.
+    validations:
+      required: false
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshots, logs, or additional context (optional)
+      description: Paste error text or attach a screenshot or relevant log excerpt. Remove private information; a sample document is only useful if it is safe to share.
+    validations:
+      required: false
