@@ -208,6 +208,12 @@
         them by name and by the details Rupert knows about them, and opening one downloads it as usual.
       </p>
       <p>
+        On Windows, Google Drive set to <b>Stream files</b> doesn't tell other apps which files are on the computer, so
+        Rupert treats every file on its <b>Google Drive (G:)</b> drive as online-only. Titles, tags and text then come
+        from Rupert on another computer (through the shared catalog), or from <b>Download online-only files to index
+        them</b>. With Google Drive set to <b>Mirror files</b>, everything is on the computer and read as usual.
+      </p>
+      <p>
         To search the <em>text</em> of online-only documents, turn on <b>Download online-only files to index them</b> for that
         source. Rupert then downloads them a few at a time, reads their text, and frees the space again. Nothing in the
         files changes. It can take hours for a big folder; files over 100 MB are skipped. What Rupert learns is saved in the

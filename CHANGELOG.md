@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Google Drive** folders are supported on the computer (Google Drive for desktop), like iCloud Drive and OneDrive: online-only files are shown without downloading them.
+- **Google Drive** folders are supported on the computer (Google Drive for desktop), like iCloud Drive and OneDrive: online-only files are shown without downloading them. On Windows, where Google Drive's streaming drive doesn't say which files are on the computer, Rupert treats them all as online-only rather than downloading your whole Drive.
 - **iPhone: Google Drive (preview).** Sign in with your Google account in Settings to add Google Drive folders and to scan into a Google Drive inbox, as with OneDrive. Google shows an "unverified app" warning at sign-in.
 - **iPhone: Settings ▸ About** shows the app's version and build number.
 - **iPhone: the Inbox is always in the Library**, at the top, so new scans can be seen there until they're filed, even when the inbox folder isn't one of the library folders.

@@ -87,6 +87,9 @@ fn join_rel(parent: &str, name: &str) -> String {
 pub fn list_dir(root: &Path, rel: &str, show_all_types: bool) -> Result<Vec<Entry>> {
     let dir = resolve(root, rel)?;
     let mut entries = Vec::new();
+    // A drive that streams files without marking them (Google Drive on
+    // Windows): everything on it counts as online-only.
+    let streamed = crate::cloud::streams_on_demand(&dir);
 
     for item in fs::read_dir(&dir)? {
         let Ok(item) = item else { continue };
@@ -128,7 +131,7 @@ pub fn list_dir(root: &Path, rel: &str, show_all_types: bool) -> Result<Vec<Entr
             continue;
         }
 
-        let cloud = if placeholder || (!is_dir && is_cloud_only(&meta)) {
+        let cloud = if placeholder || (!is_dir && (streamed || is_cloud_only(&meta))) {
             CloudState::CloudOnly
         } else {
             CloudState::Local
@@ -159,6 +162,9 @@ pub fn cloud_state(path: &Path) -> Result<CloudState> {
     let parent = path
         .parent()
         .ok_or_else(|| Error::InvalidPath(path.display().to_string()))?;
+    if crate::cloud::streams_on_demand(parent) && fs::symlink_metadata(path)?.is_file() {
+        return Ok(CloudState::CloudOnly);
+    }
     let name = path
         .file_name()
         .ok_or_else(|| Error::InvalidPath(path.display().to_string()))?;

@@ -599,7 +599,12 @@ impl Worker {
             return Ok(());
         };
         let sidecars = self.sidecar_mtimes(&source.root.join(parent));
-        let found = Found::new(entry, &sidecars);
+        let mut found = Found::new(entry, &sidecars);
+        // Just downloaded: read it, even on a drive that calls every file
+        // online-only (Google Drive on Windows).
+        if crate::cloud::streams_on_demand(&source.root) {
+            found.entry.cloud = CloudState::Local;
+        }
         self.index_file_with(source, &found, true)?;
 
         // If the space can't be freed (e.g. the file is open elsewhere) it
