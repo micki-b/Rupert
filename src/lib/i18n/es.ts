@@ -21,6 +21,7 @@ const es: Messages = {
     expand: "Expandir",
     collapse: "Colapsar",
     openInDefaultApp: "Abrir con la app predeterminada",
+    ellipsis: (label: string) => `${label}…`,
   },
   move: {
     title: (name: string) => `Mover «${name}»`,

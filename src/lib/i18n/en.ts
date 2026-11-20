@@ -17,6 +17,8 @@ const en = {
     expand: "Expand",
     collapse: "Collapse",
     openInDefaultApp: "Open in default app",
+    /** A label that leads on to more ("Move to Trash…"). */
+    ellipsis: (label: string) => `${label}…`,
   },
   move: {
     title: (name: string) => `Move “${name}”`,

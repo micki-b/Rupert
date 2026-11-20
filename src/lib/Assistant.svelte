@@ -244,7 +244,7 @@
       {/each}
       {#if busy}
         <div class="working">
-          {stopping ? m.assistant.stopping : live.length ? live[live.length - 1].summary + "…" : m.assistant.thinking}
+          {stopping ? m.assistant.stopping : live.length ? m.common.ellipsis(live[live.length - 1].summary) : m.assistant.thinking}
         </div>
       {/if}
     </div>

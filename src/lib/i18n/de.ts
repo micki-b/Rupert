@@ -22,6 +22,8 @@ const de: Messages = {
     expand: "Aufklappen",
     collapse: "Zuklappen",
     openInDefaultApp: "Mit Standard-App öffnen",
+    // German puts a space before the ellipsis ("In den Papierkorb legen …").
+    ellipsis: (label: string) => `${label} …`,
   },
   move: {
     title: (name: string) => `„${name}“ bewegen`,

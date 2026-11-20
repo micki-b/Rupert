@@ -406,7 +406,7 @@
             >{m.inbox.suggestAgain}</button
           >
           <span class="spacer"></span>
-          <button class="danger" onclick={() => trash(selected!)} disabled={filing}>{trashLabel}…</button>
+          <button class="danger" onclick={() => trash(selected!)} disabled={filing}>{m.common.ellipsis(trashLabel)}</button>
         </div>
         <p class="muted small">{m.inbox.whatFilingDoes}</p>
       {/if}
@@ -430,7 +430,7 @@
       >{revealLabel(os)}</button
     >
     <hr />
-    <button role="menuitem" class="danger" onclick={() => trash(mn.item)}>{trashLabel}…</button>
+    <button role="menuitem" class="danger" onclick={() => trash(mn.item)}>{m.common.ellipsis(trashLabel)}</button>
   </div>
 {/if}
 
