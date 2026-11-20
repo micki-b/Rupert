@@ -67,6 +67,11 @@ impl RemoteFolder {
 pub struct RemoteInbox {
     pub item_id: String,
     pub name: String,
+    /// The folders from the top of OneDrive down to the inbox itself, as
+    /// chosen (empty if chosen before Rupert kept it): tells whether it lies
+    /// inside one of the library's OneDrive folders.
+    #[serde(default)]
+    pub path: Vec<FolderItem>,
 }
 
 // MARK: - State
@@ -199,11 +204,11 @@ pub fn onedrive_sign_out(app: AppHandle, od: State<OneDrive>) -> CmdResult<()> {
 
 // MARK: - Commands: folders
 
-#[derive(Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderItem {
-    id: String,
-    name: String,
+    pub id: String,
+    pub name: String,
 }
 
 /// Subfolders of a OneDrive folder (`None`: the top level), for choosing.
@@ -239,19 +244,30 @@ pub fn add_onedrive_folder(item_id: String, name: String, app: AppHandle) -> Cmd
         });
         saved.save();
     }
+    crate::reconcile_inbox(&app);
     start_sync(&app);
     Ok(())
 }
 
+/// Makes a OneDrive folder the inbox. `path`: the folders from the top of
+/// OneDrive down to it, as browsed.
 #[tauri::command]
-pub fn set_onedrive_inbox(item_id: String, name: String, state: State<AppState>) {
-    let mut saved = state.saved.lock().unwrap();
-    saved.saved.onedrive_inbox = Some(RemoteInbox { item_id, name });
-    saved.saved.inbox = None;
-    saved.save();
+pub fn set_onedrive_inbox(item_id: String, name: String, path: Vec<FolderItem>, app: AppHandle) {
+    {
+        let state = app.state::<AppState>();
+        let mut saved = state.saved.lock().unwrap();
+        saved.saved.onedrive_inbox = Some(RemoteInbox {
+            item_id,
+            name,
+            path,
+        });
+        saved.saved.inbox = None;
+        saved.save();
+    }
+    crate::reconcile_inbox(&app);
 }
 
-fn uuid_like() -> String {
+pub(crate) fn uuid_like() -> String {
     let nanos = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()

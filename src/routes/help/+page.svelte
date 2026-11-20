@@ -688,7 +688,8 @@
         <li>
           <b>Scan</b> with the camera. Choose color, grayscale or black &amp; white and the resolution in the Scan tab. Scans
           are saved to the inbox folder you pick, which should be the computer's inbox, so Rupert there can recognize and
-          file them.
+          file them. The <b>Inbox</b> is always at the top of the Library tab, so you can see your scans until they are
+          filed, even if the inbox folder isn't one of your library folders.
         </li>
         <li><b>Star folders</b> to add them to Favorites on all your devices.</li>
       </ul>
@@ -701,7 +702,8 @@
       <h2>Where Rupert keeps things</h2>
       <ul>
         <li>
-          <b>Your documents</b> stay in your folders. Rupert renames or moves a file only when you file it from the inbox.
+          <b>Your documents</b> stay in your folders. Rupert renames or moves a file only when you ask: when you file it from the inbox, or
+          move it to another folder.
         </li>
         <li>
           <b>Titles, tags, dates, notes and favorites</b> are stored inside PDFs, or in a hidden <code>.rupert</code> folder

@@ -13,6 +13,8 @@ export interface PhoneSource {
   name: string;
   provider: Provider;
   available: boolean;
+  /** Added only so the inbox shows in the library; not a library folder. */
+  inbox: boolean;
 }
 
 export interface AppVersion {
@@ -31,6 +33,8 @@ export interface Overview {
   /** Name of the folder scans go to. */
   inbox: string | null;
   inboxOnOnedrive: boolean;
+  /** Where to browse the inbox in the library. */
+  inboxPlace: { sourceId: string; relPath: string } | null;
   stats: IndexStats;
   progress: Progress;
 }
@@ -92,7 +96,9 @@ export const phone = {
   /** Subfolders; `null` for the top level. */
   onedriveFolders: (id: string | null) => invoke<OneDriveFolder[]>("onedrive_folders", { id }),
   addOnedriveFolder: (itemId: string, name: string) => invoke<void>("add_onedrive_folder", { itemId, name }),
-  setOnedriveInbox: (itemId: string, name: string) => invoke<void>("set_onedrive_inbox", { itemId, name }),
+  /** `path`: the folders from the top of OneDrive down to the inbox. */
+  setOnedriveInbox: (itemId: string, name: string, path: OneDriveFolder[]) =>
+    invoke<void>("set_onedrive_inbox", { itemId, name, path }),
 };
 
 export const onProgress = (f: (p: Progress) => void): Promise<UnlistenFn> =>

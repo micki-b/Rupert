@@ -33,6 +33,7 @@ SCAN STRAIGHT INTO YOUR INBOX
 • Rupert's own camera scanner finds the page's edges, straightens it and saves a sharp PDF.
 • Choose color, grayscale or black & white, and the resolution.
 • Several pages become one PDF, saved to your inbox folder in iCloud Drive or OneDrive.
+• Your inbox is always at the top of the Library, so new scans are easy to find.
 
 WORKS WITH RUPERT ON YOUR COMPUTER
 Rupert for Mac, Windows and Linux (free) recognizes the text in new scans, suggests a title, date, tags and folder, and files them when you agree. Titles, tags and dates are stored inside the PDFs, so they appear on your iPhone too.
