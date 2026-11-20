@@ -19,7 +19,7 @@ New issue reporters choose between a bug report and a feature request. Bug repor
 
 - Exact app and OS versions use free text, avoiding release-by-release maintenance of version dropdowns.
 - OS is a dropdown with macOS, Windows, Linux, iOS, and Other / unknown. There is no preselected answer.
-- Version and edition share one field. The desktop hint matches the existing bottom-left status display and `src/routes/help/+page.svelte` guidance. The iPhone app doesn't show its version, so the iPhone hint points to Settings ▸ General ▸ iPhone Storage ▸ Rupert. (iPhone build numbers are timestamps and not useful to reporters.)
+- Version and edition share one field. The desktop hint matches the existing bottom-left status display and `src/routes/help/+page.svelte` guidance. The iPhone hint points to Rupert's own Settings ▸ About, which shows the version and Apple's build number (a UTC timestamp, which identifies the exact upload).
 - Hardware is one field rather than separate mandatory CPU/GPU/RAM questions. Reporters may enter "unknown" for details they cannot find.
 - Expected and actual behavior share a field; reproduction has its own field and accepts an explanation of intermittent failures.
 - Folder providers, scanner details, AI configuration, and OCR versions are optional because their relevance depends on the bug.

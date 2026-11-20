@@ -3706,6 +3706,7 @@ dependencies = [
 name = "rupert-mobile"
 version = "0.1.1"
 dependencies = [
+ "plist",
  "rupert-core",
  "serde",
  "serde_json",

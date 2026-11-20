@@ -155,6 +155,43 @@ pub(crate) async fn blocking<T: Send + 'static>(
     tauri::async_runtime::spawn_blocking(f).await.map_err(err)?
 }
 
+// MARK: - Commands: about
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppVersion {
+    /// "0.1.1".
+    version: String,
+    /// Apple's build number ("2611200404"), when it differs from the version.
+    build: Option<String>,
+    /// A debug build, not one from the App Store.
+    development: bool,
+}
+
+/// The app's version and build number, for Settings ▸ About (and for bug
+/// reports). The build number comes from the app's own Info.plist.
+#[tauri::command]
+fn app_version(app: AppHandle) -> AppVersion {
+    let version = app.package_info().version.to_string();
+    let build = bundle_build().filter(|b| *b != version);
+    AppVersion {
+        version,
+        build,
+        development: cfg!(debug_assertions),
+    }
+}
+
+/// `CFBundleVersion` from the Info.plist beside the app's executable (the
+/// app bundle on iOS); `None` elsewhere.
+fn bundle_build() -> Option<String> {
+    let exe = std::env::current_exe().ok()?;
+    let info = plist::Value::from_file(exe.parent()?.join("Info.plist")).ok()?;
+    info.as_dictionary()?
+        .get("CFBundleVersion")?
+        .as_string()
+        .map(str::to_string)
+}
+
 // MARK: - Commands: overview
 
 #[derive(Serialize)]
@@ -831,6 +868,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             overview,
             refresh,
+            app_version,
             add_folder,
             remove_folder,
             choose_inbox,
