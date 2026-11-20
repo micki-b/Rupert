@@ -31,13 +31,13 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   box.addEventListener("pointerup", stop);
   box.addEventListener("pointercancel", stop);
   handle.addEventListener("keydown", (e) => {
-    const now = parseFloat(getComputedStyle(box).getPropertyValue("--split")) || 58;
+    const now = parseFloat(getComputedStyle(box).getPropertyValue("--split")) || 30;
     if (e.key === "ArrowLeft") set(now - 5);
     if (e.key === "ArrowRight") set(now + 5);
     touched = true;
   });
 
-  // A slow sweep when it first comes into view: dusk, then back to day.
+  // A slow sweep when it first comes into view: to the middle, then back.
   if (reduceMotion) return;
   const sweep = (from, to, ms) =>
     new Promise((done) => {
@@ -54,9 +54,7 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   new IntersectionObserver((entries, obs) => {
     if (!entries[0].isIntersecting) return;
     obs.disconnect();
-    sweep(58, 12, 1600)
-      .then(() => sweep(12, 88, 2200))
-      .then(() => sweep(88, 50, 1400));
+    sweep(30, 50, 1800).then(() => sweep(50, 30, 1800));
   }, { threshold: 0.5 }).observe(box);
 })();
 

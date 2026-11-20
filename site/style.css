@@ -249,7 +249,7 @@ h2 {
 }
 
 .daynight {
-  --split: 58%;
+  --split: 30%;
   position: relative;
   border-radius: 14px;
   box-shadow: var(--shadow);
