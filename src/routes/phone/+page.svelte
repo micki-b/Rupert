@@ -21,6 +21,7 @@
     type Listed,
     type OneDriveFolder,
     type OneDriveStatus,
+    type AppVersion,
     type Overview,
     type Progress,
     type ScanSettings,
@@ -166,8 +167,12 @@
     }, 300);
   }
 
+  /** Shown in Settings ▸ About. */
+  let version = $state<AppVersion | null>(null);
+
   onMount(() => {
     loadOverview();
+    phone.appVersion().then((v) => (version = v));
     phone.tags().then((t) => (tags = t));
     const unlisten = [
       onProgress((p) => {
@@ -723,6 +728,21 @@
         </p>
         <button class="plain add" onclick={() => phone.refresh()} disabled={busyIndexing}>Check folders again</button>
       </section>
+      <section>
+        <h2>About</h2>
+        <ul class="list boxed">
+          <li class="setting">
+            <span class="main"><span class="name">Version</span></span>
+            <span class="value selectable">
+              {#if version}{version.version}{#if version.build}&nbsp;({version.build}){/if}{#if version.development}&nbsp;· development build{/if}{/if}
+            </span>
+          </li>
+        </ul>
+        <p class="note small left">
+          Rupert is free and open source (MIT): <span class="nowrap">github.com/micki-b/Rupert</span>. When reporting a problem, please mention the
+          version above.
+        </p>
+      </section>
       {#if settingsError}<p class="error pad">{settingsError}</p>{/if}
     {/if}
   </main>
@@ -990,6 +1010,17 @@
     background: var(--accent-soft);
     color: var(--text);
     border-radius: 2px;
+  }
+  .value {
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .nowrap {
+    white-space: nowrap;
+  }
+  .selectable {
+    user-select: text;
+    -webkit-user-select: text;
   }
   .note {
     color: var(--muted);

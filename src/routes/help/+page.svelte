@@ -693,6 +693,7 @@
         </li>
         <li><b>Star folders</b> to add them to Favorites on all your devices.</li>
       </ul>
+      <p>Its version and build number are at the bottom of its <b>Settings</b>, under <b>About</b>.</p>
       <p>The iPhone app doesn't change your documents: only Rupert on the computer edits details and files scans.</p>
     </section>
 

@@ -10,8 +10,8 @@ body:
     id: app-version
     attributes:
       label: Rupert version and edition
-      description: On desktop, copy the version and edition shown at the bottom left of the window. On iPhone, the version is in Settings ▸ General ▸ iPhone Storage ▸ Rupert. For a development build, include the commit if known.
-      placeholder: "e.g. Rupert 0.1.0 · GitHub, 0.1.0 · App Store, or iPhone 0.1.0"
+      description: On desktop, copy the version and edition shown at the bottom left of the window. On iPhone, copy it from Rupert's Settings ▸ About. For a development build, include the commit if known.
+      placeholder: "e.g. Rupert 0.1.0 · GitHub, 0.1.0 · App Store, or iPhone 0.2.0 (2612011200)"
     validations:
       required: true
   - type: dropdown

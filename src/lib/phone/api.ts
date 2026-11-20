@@ -17,6 +17,15 @@ export interface PhoneSource {
   inbox: boolean;
 }
 
+export interface AppVersion {
+  /** "0.1.1". */
+  version: string;
+  /** Apple's build number, when it differs from the version. */
+  build: string | null;
+  /** A debug build, not one from the App Store. */
+  development: boolean;
+}
+
 export interface Overview {
   /** Saved folders have been reopened. */
   ready: boolean;
@@ -64,6 +73,7 @@ export interface OneDriveFolder {
 
 export const phone = {
   overview: () => invoke<Overview>("overview"),
+  appVersion: () => invoke<AppVersion>("app_version"),
   refresh: () => invoke<void>("refresh"),
   addFolder: () => invoke<boolean>("add_folder"),
   removeFolder: (id: string) => invoke<void>("remove_folder", { id }),
