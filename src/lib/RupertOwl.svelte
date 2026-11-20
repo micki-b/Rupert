@@ -16,10 +16,11 @@
   let { mood = "idle", size = 44 }: { mood?: OwlMood; size?: number } = $props();
 
   const uid = $props.id();
-  /** The shirt: from the shoulders, along the bottom of his face, down to
-   * the picture's faded edge (in the picture's 950 × 1000 coordinates). */
+  /** The shirt: from the shoulders, along the bottom of his face into a
+   * V-neck, down to the picture's faded edge (in the picture's 950 × 1000
+   * coordinates). */
   const SHIRT =
-    "M185 626 C260 662 385 702 475 722 C565 702 690 662 767 626 C800 628 838 636 868 660 C905 700 925 780 933 860 L936 1000 L14 1000 L17 860 C25 780 45 700 82 660 C112 636 150 628 185 626 Z";
+    "M185 626 C218 642 252 657 290 670 L475 808 L660 670 C698 657 732 642 767 626 C800 628 838 636 868 660 C905 700 925 780 933 860 L936 1000 L14 1000 L17 860 C25 780 45 700 82 660 C112 636 150 628 185 626 Z";
   const outfit = $derived(currentLang() === "es" ? "jersey" : null);
 
 </script>
@@ -29,9 +30,10 @@
     {#if outfit === "jersey"}
       <svg class="outfit" viewBox="0 0 950 1000" aria-hidden="true">
         <defs>
-          <pattern id="stripes-{uid}" patternUnits="userSpaceOnUse" width="168" height="1000" x="391">
-            <rect width="84" height="1000" fill="#fbfcfe" />
-            <rect x="84" width="84" height="1000" fill="#74acdf" />
+          <!-- A white stripe centered under the V -->
+          <pattern id="stripes-{uid}" patternUnits="userSpaceOnUse" width="200" height="1000" x="425">
+            <rect width="100" height="1000" fill="#fbfcfe" />
+            <rect x="100" width="100" height="1000" fill="#74acdf" />
           </pattern>
           <linearGradient id="fade-{uid}" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0.87" stop-color="#fff" />
@@ -70,12 +72,12 @@
             stroke-linecap="round"
           />
         </g>
-        <!-- The collar, along the bottom of his face -->
+        <!-- The V-neck collar -->
         <path
-          d="M150 632 C200 628 230 640 262 660 C335 700 400 712 475 724 C550 712 615 700 688 660 C720 640 750 628 800 632"
+          d="M150 632 C200 628 240 650 290 670 L475 808 L660 670 C710 650 750 628 800 632"
           fill="none"
           stroke="#1f3561"
-          stroke-width="20"
+          stroke-width="22"
           stroke-linecap="round"
           stroke-linejoin="round"
         />
