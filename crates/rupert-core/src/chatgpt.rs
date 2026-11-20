@@ -115,7 +115,9 @@ pub fn keychain_parts(c: &Credentials) -> Result<Vec<String>> {
 
 /// How many parts follow the header `first`, if it is one.
 pub fn keychain_part_count(first: &str) -> Option<usize> {
-    serde_json::from_str::<PartsHeader>(first).ok().map(|h| h.parts)
+    serde_json::from_str::<PartsHeader>(first)
+        .ok()
+        .map(|h| h.parts)
 }
 
 /// Reads a saved sign-in back: `first` is the first entry's value and
@@ -615,7 +617,10 @@ mod tests {
         for p in &parts[1..] {
             assert!(p.encode_utf16().count() <= KEYCHAIN_PART_LEN);
         }
-        assert_eq!(from_keychain_parts(&parts[0], |i| parts.get(i).cloned()), Some(c));
+        assert_eq!(
+            from_keychain_parts(&parts[0], |i| parts.get(i).cloned()),
+            Some(c)
+        );
     }
 
     #[test]
@@ -627,7 +632,10 @@ mod tests {
         assert_eq!(from_keychain_parts(&whole, |_| None), Some(c.clone()));
         // A part gone missing: signed out rather than garbage.
         let parts = keychain_parts(&c).unwrap();
-        assert_eq!(from_keychain_parts(&parts[0], |i| (i != 2).then(|| parts[i].clone())), None);
+        assert_eq!(
+            from_keychain_parts(&parts[0], |i| (i != 2).then(|| parts[i].clone())),
+            None
+        );
     }
 
     #[test]
