@@ -122,6 +122,36 @@ nav.site a[aria-current="page"] {
   color: var(--text);
 }
 
+/* EN · ES · DE */
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.lang-switch a {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.lang-switch a:hover {
+  color: var(--text);
+}
+
+.lang-switch a[aria-current="true"] {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 4px -1px rgba(0, 0, 0, 0.25);
+}
+
 footer.site {
   margin-top: 72px;
   border-top: 1px solid var(--border);
@@ -270,6 +300,9 @@ h2,
   -webkit-user-drag: none;
 }
 
+/* The cut runs from split + 6 % at the top to split − 6 % at the bottom:
+   12 % of the width across the full height (1440 × 900), so the handle
+   leans atan(0.12 × 1440 / 900) = 10.87°. */
 .daynight .night {
   clip-path: polygon(calc(var(--split) + 6%) 0, 100% 0, 100% 100%, calc(var(--split) - 6%) 100%);
 }
@@ -284,7 +317,7 @@ h2,
   padding: 0;
   border: 0;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(212, 163, 115, 0.9));
-  transform: skewX(-7.6deg);
+  transform: skewX(-10.87deg);
   transform-origin: center;
   cursor: ew-resize;
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35);
@@ -296,7 +329,7 @@ h2,
   left: 50%;
   width: 52px;
   height: 52px;
-  transform: translate(-50%, -50%) skewX(7.6deg);
+  transform: translate(-50%, -50%) skewX(10.87deg);
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
 }
 

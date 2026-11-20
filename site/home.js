@@ -3,6 +3,8 @@
 // and the scan's flight. Everything works without it too.
 
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** The page's language: en, es or de. */
+const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document.documentElement.lang : "en";
 
 // MARK: - Light and dark
 
@@ -86,7 +88,9 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
       placeholder: "Fragen Sie zu Ihren Dokumenten …",
     },
   };
+  // The tour starts in the page's language.
   const order = ["en", "es", "de"];
+  while (order[0] !== pageLang) order.push(order.shift());
   const tabs = [...document.querySelectorAll(".langs [data-lang]")];
   const field = (k) => chat.querySelector(`[data-t="${k}"]`);
   let current = "en";
@@ -130,12 +134,12 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
       show(b.dataset.lang);
       clearInterval(timer); // the visitor chose; stop the tour
     });
-  show("en", false);
+  show(pageLang, false);
   if (!reduceMotion) {
     new IntersectionObserver((entries, obs) => {
       if (!entries[0].isIntersecting) return;
       obs.disconnect();
-      show("en");
+      show(pageLang);
       cycle();
     }, { threshold: 0.4 }).observe(chat);
   }
@@ -197,13 +201,27 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const tile = document.querySelector(`.pf[data-os="${os}"]`);
   if (!tile) return;
   tile.classList.add("yours");
-  const label = { mac: "Download for Mac", win: "Download for Windows", linux: "Download for Linux", ios: "Get it on the App Store" }[os];
-  const note = {
-    mac: "Universal: Apple silicon and Intel. macOS 13 or later.",
-    win: "For Windows 10 and 11. A signed installer.",
-    linux: "AppImage, .deb and .rpm on the releases page.",
-    ios: "The computer version reads, files and searches; the iPhone scans and browses.",
-  }[os];
+  const words = {
+    en: {
+      mac: ["Download for Mac", "Universal: Apple silicon and Intel. macOS 13 or later."],
+      win: ["Download for Windows", "For Windows 10 and 11. A signed installer."],
+      linux: ["Download for Linux", "AppImage, .deb and .rpm on the releases page."],
+      ios: ["Get it on the App Store", "The computer version reads, files and searches; the iPhone scans and browses."],
+    },
+    es: {
+      mac: ["Descargar para Mac", "Universal: Apple silicon e Intel. macOS 13 o posterior."],
+      win: ["Descargar para Windows", "Para Windows 10 y 11. Un instalador firmado."],
+      linux: ["Descargar para Linux", "AppImage, .deb y .rpm en la página de versiones."],
+      ios: ["Bajala del App Store", "La versión de computadora lee, archiva y busca; el iPhone escanea y recorre."],
+    },
+    de: {
+      mac: ["Für Mac laden", "Universal: Apple-Chip und Intel. macOS 13 oder neuer."],
+      win: ["Für Windows laden", "Für Windows 10 und 11. Ein signiertes Installationsprogramm."],
+      linux: ["Für Linux laden", "AppImage, .deb und .rpm auf der Release-Seite."],
+      ios: ["Im App Store laden", "Die Computer-Version liest, ordnet und sucht; das iPhone scannt und stöbert."],
+    },
+  };
+  const [label, note] = words[pageLang][os];
   for (const a of document.querySelectorAll("[data-download-primary]")) {
     if (a.closest(".hero2")) {
       a.textContent = label;
