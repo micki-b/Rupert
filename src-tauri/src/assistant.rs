@@ -180,24 +180,58 @@ pub async fn assistant_cli_login() -> CmdResult<()> {
 
 // MARK: - ChatGPT plan
 
-/// The ChatGPT sign-in, as one JSON entry in the keychain.
+/// The ChatGPT sign-in in the keychain: this entry names how many parts
+/// follow (`chatgpt-plan.1`, `.2`, …). Split because Windows Credential
+/// Manager holds too little for the tokens in one entry
+/// (`chatgpt::keychain_parts`).
 const CHATGPT_ENTRY: &str = "chatgpt-plan";
 /// How long to wait for the browser to come back.
 const SIGN_IN_WAIT: std::time::Duration = std::time::Duration::from_secs(300);
 
-fn chatgpt_entry() -> Result<keyring::Entry, String> {
-    keyring::Entry::new(KEYCHAIN_SERVICE, CHATGPT_ENTRY).map_err(err)
+/// Keychain entry `part` of the sign-in (0 is the first).
+fn chatgpt_entry(part: usize) -> Result<keyring::Entry, String> {
+    let name = match part {
+        0 => CHATGPT_ENTRY.to_string(),
+        n => format!("{CHATGPT_ENTRY}.{n}"),
+    };
+    keyring::Entry::new(KEYCHAIN_SERVICE, &name).map_err(err)
+}
+
+fn chatgpt_read(part: usize) -> Option<String> {
+    chatgpt_entry(part).ok()?.get_password().ok()
+}
+
+fn chatgpt_delete(part: usize) -> Result<(), String> {
+    match chatgpt_entry(part)?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(err(e)),
+    }
+}
+
+/// How many parts the saved sign-in has (0 if none, or saved whole).
+fn chatgpt_saved_parts() -> usize {
+    chatgpt_read(0)
+        .and_then(|first| chatgpt::keychain_part_count(&first))
+        .unwrap_or(0)
 }
 
 fn chatgpt_load() -> Option<Credentials> {
-    let json = chatgpt_entry().ok()?.get_password().ok()?;
-    serde_json::from_str(&json).ok()
+    chatgpt::from_keychain_parts(&chatgpt_read(0)?, chatgpt_read)
 }
 
 fn chatgpt_save(c: &Credentials) -> Result<(), String> {
-    chatgpt_entry()?
-        .set_password(&serde_json::to_string(c).map_err(err)?)
-        .map_err(err)
+    let before = chatgpt_saved_parts();
+    let values = chatgpt::keychain_parts(c).map_err(err)?;
+    // The parts first, then the entry that names them.
+    for (i, value) in values.iter().enumerate().skip(1) {
+        chatgpt_entry(i)?.set_password(value).map_err(err)?;
+    }
+    chatgpt_entry(0)?.set_password(&values[0]).map_err(err)?;
+    // Parts left over from a longer sign-in.
+    for i in values.len()..=before {
+        chatgpt_delete(i)?;
+    }
+    Ok(())
 }
 
 /// The signed-in credentials with an access token good for a while yet
@@ -292,17 +326,24 @@ pub async fn chatgpt_sign_in(app: AppHandle) -> CmdResult<ChatGptStatus> {
         let url = sign_in.authorize_url(earlier.as_ref().map(|c| c.id_token.as_str()));
         app.opener().open_url(url, None::<&str>).map_err(err)?;
 
-        let (code, client_id) = wait_for_callback(&listener, &sign_in)?;
-        let credentials = sign_in.finish(&code, &client_id).map_err(err)?;
-        chatgpt_save(&credentials)?;
+        wait_for_callback(&listener, &sign_in, |code, client_id| {
+            let credentials = sign_in.finish(code, client_id).map_err(err)?;
+            chatgpt_save(&credentials)
+        })?;
         Ok(chatgpt_status_now())
     })
     .await
     .map_err(err)?
 }
 
-/// Waits for the browser's return and answers it with a short page.
-fn wait_for_callback(listener: &TcpListener, sign_in: &SignIn) -> Result<(String, String), String> {
+/// Waits for the browser's return, runs `finish` with the code and client
+/// id (redeeming and saving the sign-in), then answers the browser with a
+/// short page saying how it went.
+fn wait_for_callback(
+    listener: &TcpListener,
+    sign_in: &SignIn,
+    finish: impl FnOnce(&str, &str) -> Result<(), String>,
+) -> Result<(), String> {
     listener.set_nonblocking(true).map_err(err)?;
     let deadline = std::time::Instant::now() + SIGN_IN_WAIT;
     loop {
@@ -333,7 +374,10 @@ fn wait_for_callback(listener: &TcpListener, sign_in: &SignIn) -> Result<(String
             );
             continue; // e.g. the browser asking for a favicon
         }
-        let result = sign_in.callback(&target).map_err(err);
+        let result = sign_in
+            .callback(&target)
+            .map_err(err)
+            .and_then(|(code, client_id)| finish(&code, &client_id));
         let (title, line) = match &result {
             Ok(_) => (
                 "Signed in",
@@ -359,10 +403,10 @@ fn wait_for_callback(listener: &TcpListener, sign_in: &SignIn) -> Result<(String
 /// Forgets the ChatGPT sign-in on this computer.
 #[tauri::command]
 pub fn chatgpt_sign_out() -> CmdResult<()> {
-    match chatgpt_entry()?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(err(e)),
+    for i in (1..=chatgpt_saved_parts()).rev() {
+        chatgpt_delete(i)?;
     }
+    chatgpt_delete(0)
 }
 
 // MARK: - Backend
