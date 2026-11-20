@@ -185,6 +185,19 @@
 
   // MARK: Navigation
 
+  /** The library folders (without the source added only for the inbox). */
+  const library = $derived(overview?.sources.filter((s) => !s.inbox) ?? []);
+
+  /** Shows the inbox, wherever it is in the library. */
+  function openInbox() {
+    const place = overview?.inboxPlace;
+    if (!place) return;
+    tab = "library";
+    stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: "Inbox" }];
+    entries = [];
+    loadFolder();
+  }
+
   function openSource(id: string, name: string) {
     stack = [{ sourceId: id, relPath: "", name }];
     entries = [];
@@ -343,7 +356,9 @@
     if (!c || !here) return;
     chooser = null;
     await act(() =>
-      c.purpose === "library" ? phone.addOnedriveFolder(here.id, here.name) : phone.setOnedriveInbox(here.id, here.name),
+      c.purpose === "library"
+        ? phone.addOnedriveFolder(here.id, here.name)
+        : phone.setOnedriveInbox(here.id, here.name, $state.snapshot(c.path)),
     );
   }
 
@@ -392,7 +407,7 @@
   <main>
     {#if tab === "library"}
       {#if !here}
-        {#if overview && overview.sources.length === 0}
+        {#if overview && library.length === 0 && !overview.inboxPlace}
           <div class="empty">
             <p>
               Pick the folders that hold your documents, the same ones Rupert uses on your computer: in iCloud Drive,
@@ -438,7 +453,19 @@
             <h2 class="group">Library</h2>
           {/if}
           <ul class="list">
-            {#each overview.sources as s (s.id)}
+            {#if overview.inboxPlace}
+              <li>
+                <button class="row" onclick={openInbox}>
+                  <span class="icon folder"><Icon name="inbox" size={22} /></span>
+                  <span class="main">
+                    <span class="name">Inbox</span>
+                    <span class="sub">New scans · {overview.inbox}</span>
+                  </span>
+                  <Icon name="chevron" />
+                </button>
+              </li>
+            {/if}
+            {#each library as s (s.id)}
               <li>
                 <button class="row" onclick={() => openSource(s.id, s.name)} disabled={!s.available}>
                   <span class="icon folder"><Icon name="library" size={22} /></span>
@@ -451,6 +478,9 @@
               </li>
             {/each}
           </ul>
+          {#if library.length === 0}
+            <p class="note">Add the folders that hold your documents in Settings ▸ Library folders.</p>
+          {/if}
           <p class="note">
             {overview.stats.documents.toLocaleString()} documents, {overview.stats.withText.toLocaleString()} searchable.
           </p>
@@ -598,7 +628,12 @@
           <p class="note">
             Pages are saved to <strong>{overview.inboxOnOnedrive ? "OneDrive ▸ " : ""}{overview.inbox}</strong> as one PDF.
           </p>
-          {#if lastScan}<p class="ok">Saved “{lastScan}”.</p>{/if}
+          {#if lastScan}
+            <p class="ok">
+              Saved “{lastScan}”.
+              {#if overview?.inboxPlace}<button class="plain" onclick={openInbox}>Open the inbox</button>{/if}
+            </p>
+          {/if}
           {#if scanError}<p class="error">{scanError}</p>{/if}
         {/if}
       </div>
@@ -606,7 +641,7 @@
       <section>
         <h2>Library folders</h2>
         <ul class="list boxed">
-          {#each overview.sources as s (s.id)}
+          {#each library as s (s.id)}
             <li class="setting">
               <span class="main">
                 <span class="name">{s.name}</span>

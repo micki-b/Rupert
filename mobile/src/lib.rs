@@ -57,6 +57,11 @@ struct Saved {
     /// Scans go here instead of `inbox` when set.
     #[serde(default)]
     onedrive_inbox: Option<RemoteInbox>,
+    /// The source added so the inbox shows in the library when it isn't
+    /// inside a library folder: a Files source in the store, or a OneDrive
+    /// folder in `remote`. Not listed as a library folder.
+    #[serde(default)]
+    inbox_source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,11 +136,55 @@ impl AppState {
 
     /// The source (and relative folder) a path lies in, if any.
     fn locate(&self, path: &Path) -> Option<(Source, String)> {
-        self.sources().into_iter().find_map(|s| {
-            let rel = path.strip_prefix(&s.root).ok()?;
-            Some((s.clone(), rel.to_string_lossy().replace('\\', "/")))
+        locate_in(&self.sources(), path)
+    }
+
+    /// Where the inbox can be browsed in the library: the folder it is in a
+    /// library folder, or the source added for it.
+    fn inbox_place(&self) -> Option<Place> {
+        let (files, remote, own, remotes) = {
+            let saved = self.saved.lock().unwrap();
+            let s = &saved.saved;
+            (
+                s.inbox.clone(),
+                s.onedrive_inbox.clone(),
+                s.inbox_source.clone(),
+                s.remote.clone(),
+            )
+        };
+        let not_own = |id: &String| Some(id) != own.as_ref();
+        let (source_id, rel_path) = if let Some(r) = remote {
+            let library: Vec<RemoteFolder> =
+                remotes.iter().filter(|f| not_own(&f.id)).cloned().collect();
+            remote_place(&r, &library).or_else(|| {
+                let id = own.filter(|id| remotes.iter().any(|f| &f.id == id))?;
+                Some((id, String::new()))
+            })?
+        } else {
+            let path = files?.path;
+            let sources = self.sources();
+            let library: Vec<Source> = sources.iter().filter(|s| not_own(&s.id)).cloned().collect();
+            match locate_in(&library, &path) {
+                Some((s, rel)) => (s.id, rel),
+                None => (
+                    own.filter(|id| sources.iter().any(|s| &s.id == id))?,
+                    String::new(),
+                ),
+            }
+        };
+        Some(Place {
+            source_id,
+            rel_path,
         })
     }
+}
+
+/// The source (and relative folder) `path` lies in, if any.
+fn locate_in(sources: &[Source], path: &Path) -> Option<(Source, String)> {
+    sources.iter().find_map(|s| {
+        let rel = path.strip_prefix(&s.root).ok()?;
+        Some((s.clone(), rel.to_string_lossy().replace('\\', "/")))
+    })
 }
 
 pub(crate) type CmdResult<T> = Result<T, String>;
@@ -164,6 +213,16 @@ struct SourceView {
     name: String,
     provider: Provider,
     available: bool,
+    /// Added only to show the inbox (not a library folder).
+    inbox: bool,
+}
+
+/// A folder in the library.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Place {
+    source_id: String,
+    rel_path: String,
 }
 
 #[derive(Serialize)]
@@ -174,18 +233,23 @@ struct Overview {
     /// Name of the folder scans are saved to.
     inbox: Option<String>,
     inbox_on_onedrive: bool,
+    /// Where to browse the inbox.
+    inbox_place: Option<Place>,
     stats: IndexStats,
     progress: Progress,
 }
 
 #[tauri::command]
 fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> {
+    let inbox_place = state.inbox_place();
+    let local = state.sources();
     let saved = state.saved.lock().unwrap();
-    let mut sources: Vec<SourceView> = state
-        .sources()
+    let own = saved.saved.inbox_source.as_deref();
+    let mut sources: Vec<SourceView> = local
         .into_iter()
         .map(|s| SourceView {
             available: s.is_available(),
+            inbox: Some(s.id.as_str()) == own,
             id: s.id,
             name: s.name,
             provider: s.provider,
@@ -196,6 +260,7 @@ fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> 
         name: f.name.clone(),
         provider: Provider::OneDrive,
         available: od.is_signed_in(),
+        inbox: Some(f.id.as_str()) == own,
     }));
     let (inbox, inbox_on_onedrive) = match (&saved.saved.onedrive_inbox, &saved.saved.inbox) {
         (Some(r), _) => (Some(r.name.clone()), true),
@@ -207,6 +272,7 @@ fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> 
         sources,
         inbox,
         inbox_on_onedrive,
+        inbox_place,
         stats: state.index.lock().unwrap().stats().map_err(err)?,
         progress: state.progress.lock().unwrap().clone(),
     })
@@ -223,16 +289,36 @@ fn refresh(app: AppHandle, state: State<AppState>) {
 /// Picks a folder in Files and adds it to the library. `false` if cancelled.
 #[tauri::command]
 async fn add_folder(app: AppHandle, state: State<'_, AppState>) -> CmdResult<bool> {
+    let app_handle = app.clone();
     let picked = blocking(move || device(&app).pick_folder().map_err(err)).await?;
     let Some(picked) = picked else {
         return Ok(false);
     };
-    let source = state
+    // A folder holding the inbox replaces the inbox's own source (sources
+    // can't nest); `reconcile_inbox` brings it back if still needed.
+    let own = state.saved.lock().unwrap().saved.inbox_source.clone();
+    let own_inside = own.filter(|id| {
+        state
+            .source(id)
+            .is_ok_and(|s| s.root.starts_with(&picked.path))
+    });
+    if let Some(id) = own_inside {
+        let _ = state.store.lock().unwrap().remove(&id);
+        state.saved.lock().unwrap().saved.inbox_source = None;
+        state.indexer.send(Job::RemoveSource(id));
+    }
+    let added = state
         .store
         .lock()
         .unwrap()
-        .add(&picked.path, Some(picked.name))
-        .map_err(err)?;
+        .add(&picked.path, Some(picked.name));
+    let source = match added {
+        Ok(source) => source,
+        Err(e) => {
+            reconcile_inbox(&app_handle);
+            return Err(err(e));
+        }
+    };
     {
         let mut saved = state.saved.lock().unwrap();
         saved
@@ -242,12 +328,16 @@ async fn add_folder(app: AppHandle, state: State<'_, AppState>) -> CmdResult<boo
         saved.save();
     }
     state.indexer.send(Job::SyncSource(source));
+    reconcile_inbox(&app_handle);
     Ok(true)
 }
 
 /// Removes a folder from the library (nothing on disk changes).
 #[tauri::command]
-fn remove_folder(id: String, state: State<AppState>) -> CmdResult<()> {
+fn remove_folder(id: String, app: AppHandle, state: State<AppState>) -> CmdResult<()> {
+    if state.saved.lock().unwrap().saved.inbox_source.as_deref() == Some(id.as_str()) {
+        return Err("That's the inbox; choose another inbox in Settings instead.".into());
+    }
     if state.remote(&id).is_none() {
         state.store.lock().unwrap().remove(&id).map_err(err)?;
     }
@@ -258,25 +348,149 @@ fn remove_folder(id: String, state: State<AppState>) -> CmdResult<()> {
         saved.save();
     }
     state.indexer.send(Job::RemoveSource(id));
+    reconcile_inbox(&app);
     Ok(())
 }
 
 /// Picks the folder scans are saved to. `false` if cancelled.
 #[tauri::command]
 async fn choose_inbox(app: AppHandle, state: State<'_, AppState>) -> CmdResult<bool> {
-    let picked = blocking(move || device(&app).pick_folder().map_err(err)).await?;
+    let handle = app.clone();
+    let picked = blocking(move || device(&handle).pick_folder().map_err(err)).await?;
     let Some(picked) = picked else {
         return Ok(false);
     };
-    let mut saved = state.saved.lock().unwrap();
-    saved.saved.inbox = Some(SavedFolder {
-        name: picked.name,
-        path: picked.path.into(),
-        bookmark: picked.bookmark,
-    });
-    saved.saved.onedrive_inbox = None;
-    saved.save();
+    {
+        let mut saved = state.saved.lock().unwrap();
+        saved.saved.inbox = Some(SavedFolder {
+            name: picked.name,
+            path: picked.path.into(),
+            bookmark: picked.bookmark,
+        });
+        saved.saved.onedrive_inbox = None;
+        saved.save();
+    }
+    reconcile_inbox(&app);
     Ok(true)
+}
+
+// MARK: - The inbox in the library
+//
+// Scans should be easy to find on the phone. When the inbox folder lies
+// inside a library folder it is browsed there; otherwise it is added as a
+// source of its own (`Saved::inbox_source`), which the library shows as
+// "Inbox" rather than as a folder. Read-only, like every source here.
+
+/// Where a OneDrive inbox lies inside one of `folders` (by the path it was
+/// chosen by): that folder's id and the inbox's path in it.
+fn remote_place(inbox: &RemoteInbox, folders: &[RemoteFolder]) -> Option<(String, String)> {
+    folders.iter().find_map(|f| {
+        if f.item_id == inbox.item_id {
+            return Some((f.id.clone(), String::new()));
+        }
+        let at = inbox.path.iter().position(|p| p.id == f.item_id)?;
+        let rel: Vec<&str> = inbox.path[at + 1..]
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect();
+        Some((f.id.clone(), rel.join("/")))
+    })
+}
+
+/// Adds the inbox's own source when the inbox isn't inside a library
+/// folder, and removes it when it is (or there's no inbox any more). Called
+/// whenever the inbox or the library folders change, and at launch.
+pub(crate) fn reconcile_inbox(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let (files, remote, own, remotes) = {
+        let saved = state.saved.lock().unwrap();
+        let s = &saved.saved;
+        (
+            s.inbox.clone(),
+            s.onedrive_inbox.clone(),
+            s.inbox_source.clone(),
+            s.remote.clone(),
+        )
+    };
+    let not_own = |id: &String| Some(id) != own.as_ref();
+    let library_remote: Vec<RemoteFolder> =
+        remotes.iter().filter(|f| not_own(&f.id)).cloned().collect();
+    let library_local: Vec<Source> = state
+        .sources()
+        .into_iter()
+        .filter(|s| not_own(&s.id))
+        .collect();
+    let need_remote = remote
+        .clone()
+        .filter(|r| remote_place(r, &library_remote).is_none());
+    let need_files = files
+        .filter(|_| remote.is_none())
+        .filter(|f| locate_in(&library_local, &f.path).is_none());
+
+    // Keep the inbox's source if it is still the right one.
+    if let Some(id) = &own {
+        let keep = if let Some(f) = &need_files {
+            match state.source(id) {
+                Ok(s) if s.root == f.path => true,
+                Ok(_) => {
+                    // The inbox folder moved (its bookmark resolved elsewhere).
+                    let moved = state.store.lock().unwrap().set_root(id, &f.path).is_ok();
+                    if moved && let Ok(s) = state.source(id) {
+                        state.indexer.send(Job::SyncSource(s));
+                    }
+                    moved
+                }
+                Err(_) => false,
+            }
+        } else if let Some(r) = &need_remote {
+            remotes
+                .iter()
+                .any(|f| &f.id == id && f.item_id == r.item_id)
+        } else {
+            false
+        };
+        if keep {
+            return;
+        }
+        let _ = state.store.lock().unwrap().remove(id);
+        let mut saved = state.saved.lock().unwrap();
+        saved.saved.remote.retain(|f| &f.id != id);
+        saved.saved.inbox_source = None;
+        saved.save();
+        drop(saved);
+        state.indexer.send(Job::RemoveSource(id.clone()));
+    }
+
+    if let Some(f) = need_files {
+        let added = state
+            .store
+            .lock()
+            .unwrap()
+            .add(&f.path, Some(f.name.clone()));
+        match added {
+            Ok(source) => {
+                let mut saved = state.saved.lock().unwrap();
+                saved.saved.inbox_source = Some(source.id.clone());
+                saved.save();
+                drop(saved);
+                state.indexer.send(Job::SyncSource(source));
+            }
+            // E.g. the inbox holds a library folder (sources can't nest).
+            Err(e) => eprintln!("rupert: couldn't show the inbox in the library: {e}"),
+        }
+    } else if let Some(r) = need_remote {
+        let folder = RemoteFolder {
+            id: onedrive::uuid_like(),
+            name: r.name.clone(),
+            item_id: r.item_id.clone(),
+        };
+        let mut saved = state.saved.lock().unwrap();
+        saved.saved.inbox_source = Some(folder.id.clone());
+        saved.saved.remote.push(folder);
+        saved.save();
+        drop(saved);
+        onedrive::start_sync(app);
+    }
 }
 
 // MARK: - Commands: browsing and search
@@ -621,6 +835,8 @@ async fn scan(
             if let Some(dir) = tmp_dir {
                 let _ = fs::remove_dir_all(dir);
             }
+            // Show it in the inbox once OneDrive lists it.
+            onedrive::start_sync(&handle);
             return result.map(|name| {
                 Some(tauri_plugin_rupert_ios::Placed {
                     path: String::new(),
@@ -700,6 +916,7 @@ fn open_saved_folders(app: &AppHandle) {
         Err(DeviceError::Unsupported) => {} // not on iOS: paths are stable
         Err(e) => eprintln!("rupert: couldn't reopen folders: {e}"),
     }
+    reconcile_inbox(app);
     state.ready.store(true, Ordering::SeqCst);
     let _ = app.emit(FOLDERS_READY, ());
     state.sync_local();
@@ -852,4 +1069,82 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");
+}
+
+// MARK: - Tests
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use onedrive::FolderItem;
+
+    fn item(id: &str, name: &str) -> FolderItem {
+        FolderItem {
+            id: id.into(),
+            name: name.into(),
+        }
+    }
+
+    fn folder(id: &str, item_id: &str) -> RemoteFolder {
+        RemoteFolder {
+            id: id.into(),
+            name: item_id.into(),
+            item_id: item_id.into(),
+        }
+    }
+
+    #[test]
+    fn a_onedrive_inbox_is_found_inside_a_library_folder() {
+        let inbox = RemoteInbox {
+            item_id: "IN".into(),
+            name: "Rupert Inbox".into(),
+            path: vec![
+                item("DOCS", "Documents"),
+                item("PAPER", "Paper"),
+                item("IN", "Rupert Inbox"),
+            ],
+        };
+        let library = [folder("a", "BOAT"), folder("b", "DOCS")];
+        assert_eq!(
+            remote_place(&inbox, &library),
+            Some(("b".into(), "Paper/Rupert Inbox".into()))
+        );
+        // The inbox is itself a library folder.
+        assert_eq!(
+            remote_place(&inbox, &[folder("c", "IN")]),
+            Some(("c".into(), String::new()))
+        );
+        // Elsewhere, or chosen before its path was kept.
+        assert_eq!(remote_place(&inbox, &[folder("a", "BOAT")]), None);
+        let old = RemoteInbox {
+            path: Vec::new(),
+            ..inbox
+        };
+        assert_eq!(remote_place(&old, &library), None);
+    }
+
+    #[test]
+    fn a_files_inbox_is_found_inside_a_library_folder() {
+        let source = |id: &str, root: &str| Source {
+            id: id.into(),
+            name: id.into(),
+            root: root.into(),
+            provider: Provider::ICloud,
+            show_all_types: false,
+            download_online_only: false,
+            bookmark: None,
+        };
+        let library = [
+            source("docs", "/icloud/Documents"),
+            source("boat", "/icloud/Boat"),
+        ];
+        let found = locate_in(&library, Path::new("/icloud/Documents/Scans/Inbox"))
+            .map(|(s, rel)| (s.id, rel));
+        assert_eq!(found, Some(("docs".into(), "Scans/Inbox".into())));
+        let at_root = locate_in(&library, Path::new("/icloud/Boat")).map(|(s, rel)| (s.id, rel));
+        assert_eq!(at_root, Some(("boat".into(), String::new())));
+        assert!(locate_in(&library, Path::new("/icloud/Rupert Inbox")).is_none());
+        // A sibling whose name starts the same isn't inside.
+        assert!(locate_in(&library, Path::new("/icloud/Boating")).is_none());
+    }
 }
