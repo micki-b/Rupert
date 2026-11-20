@@ -530,6 +530,15 @@
     itemMenu = { x, y, sel, inSearch };
   }
 
+  /** Runs a right-click menu command for the item it was opened on, closing
+   * the menu first. (The item is read before the menu closes: the menu's
+   * markup only knows it while open.) */
+  function fromMenu(action: (sel: Selected) => void) {
+    const sel = itemMenu?.sel;
+    itemMenu = null;
+    if (sel) action(sel);
+  }
+
   /** Sends a document (with its sidecar) or a folder to the Trash / Recycle Bin.
    * Files go right away, as in the Finder; folders ask first. */
   async function trashEntry(sel: Selected) {
@@ -1030,12 +1039,12 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={() => {}}
   >
-    <button role="menuitem" onclick={() => ((itemMenu = null), activate(m.sel.sourceId, m.sel.entry))}>Open</button>
-    <button role="menuitem" onclick={() => ((itemMenu = null), reveal(m.sel))}>{revealLabel(info?.os)}</button>
+    <button role="menuitem" onclick={() => fromMenu((sel) => activate(sel.sourceId, sel.entry))}>Open</button>
+    <button role="menuitem" onclick={() => fromMenu(reveal)}>{revealLabel(info?.os)}</button>
     {#if m.inSearch}
-      <button role="menuitem" onclick={() => ((itemMenu = null), showInFolder(m.sel))}>Show in Rupert</button>
+      <button role="menuitem" onclick={() => fromMenu(showInFolder)}>Show in Rupert</button>
     {/if}
-    <button role="menuitem" onclick={() => ((itemMenu = null), (moving = m.sel))}>Move to…</button>
+    <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>Move to…</button>
     <hr />
     <button role="menuitem" class="danger" onclick={() => trashEntry(m.sel)}>{trashLabel}</button>
   </div>
@@ -1080,7 +1089,12 @@
   <MoveDialog
     item={moving}
     {sources}
-    onmove={(sourceId, relPath) => moveItem(moving!, sourceId, relPath)}
+    onmove={async (sourceId, relPath) => {
+      if (await moveItem(moving!, sourceId, relPath)) return null;
+      const message = error; // shown in the dialog instead of behind it
+      error = null;
+      return message ?? "The move didn't work.";
+    }}
     onclose={() => (moving = null)}
   />
 {/if}

@@ -13,13 +13,14 @@
   }: {
     item: MoveItem;
     sources: Source[];
-    /** Moves the item there; resolves to whether it worked. */
-    onmove: (sourceId: string, relPath: string) => Promise<boolean>;
+    /** Moves the item there; resolves to an error message, or null if it worked. */
+    onmove: (sourceId: string, relPath: string) => Promise<string | null>;
     onclose: () => void;
   } = $props();
 
   let dest = $state<{ sourceId: string; relPath: string } | null>(null);
   let busy = $state(false);
+  let error = $state<string | null>(null);
 
   const ok = $derived(!!dest && canMoveInto(item, dest.sourceId, dest.relPath));
   const why = $derived.by(() => {
@@ -36,9 +37,9 @@
   async function move() {
     if (!dest || !ok || busy) return;
     busy = true;
-    const done = await onmove(dest.sourceId, dest.relPath);
+    error = await onmove(dest.sourceId, dest.relPath);
     busy = false;
-    if (done) onclose();
+    if (!error) onclose();
   }
 </script>
 
@@ -59,11 +60,12 @@
           name={s.name}
           depth={0}
           selected={dest}
-          onselect={(sourceId, relPath) => (dest = { sourceId, relPath })}
+          onselect={(sourceId, relPath) => ((dest = { sourceId, relPath }), (error = null))}
           startExpanded
         />
       {/each}
     </div>
+    {#if error}<p class="error small" role="alert">{error}</p>{/if}
     <div class="footer">
       <span class="muted small">{why}</span>
       <button onclick={onclose} disabled={busy}>Cancel</button>
@@ -113,6 +115,10 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 4px;
+  }
+  .error {
+    margin: 10px 0 0;
+    color: var(--danger, #c0392b);
   }
   .footer {
     display: flex;

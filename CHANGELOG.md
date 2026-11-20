@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Move documents and folders** to another folder: drag them onto a folder in the sidebar or the folder view, or right-click ▸ **Move to…**. A document's details go with it, and nothing is ever replaced (a " (2)" is added instead). Online-only files move within their own cloud folder without being downloaded.
+- **Right-click menu:** Open, Show in Finder (Show in File Explorer) and Show in Rupert work again; they did nothing since 0.1.0.
 
 ## 0.1.1 — 2026-11-19
 
