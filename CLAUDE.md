@@ -17,8 +17,8 @@ Read `docs/DESIGN.md` first. It records the product decisions and the metadata l
 - Use `// MARK: -` section dividers in Rust files.
 - The desktop binary is `Rupert` (capital R, so the Dock says "Rupert" under `tauri dev`); bundles rename it to `rupert` (`mainBinaryName`). A `tauri build` on macOS renames `target/debug/Rupert` too (same file on a case-insensitive disk).
 - Two macOS editions from one code base: the DMG (default) and the Mac App Store edition (`--features app-store`, `src-tauri/tauri.appstore.conf.json`, sandboxed). Anything that reads outside folders the user picked, runs another program, or updates the app must work in (or be gated off for) the sandbox. Folders are kept with security-scoped bookmarks (`rupert_core::bookmark`, `Source::bookmark`). Lint both: `cargo clippy -p rupert --features app-store`.
-- The user help (Help ▸ Rupert Help, F1) is one page per language in `src/lib/help/` (`En.svelte`, `Es.svelte`), framed by `src/routes/help/+page.svelte`. When a feature, label or setting changes, update every language's help too.
-- Text people read goes in the catalogs, never directly in code: screens in `src/lib/i18n/en.ts` plus every other language's catalog (`npm run check` fails on a missing key), Rust messages through `rupert_core::i18n::tr`/`trf` with an entry in each `i18n/<lang>.rs` (`cargo test` fails without one). Spanish is Rioplatense ("vos").
+- The user help (Help ▸ Rupert Help, F1) is one page per language in `src/lib/help/` (`En.svelte`, `Es.svelte`, `De.svelte`), framed by `src/routes/help/+page.svelte`. When a feature, label or setting changes, update every language's help too.
+- Text people read goes in the catalogs, never directly in code: screens in `src/lib/i18n/en.ts` plus every other language's catalog (`npm run check` fails on a missing key), Rust messages through `rupert_core::i18n::tr`/`trf` with an entry in each `i18n/<lang>.rs` (`cargo test` fails without one). Spanish is Rioplatense ("vos"); German is formal ("Sie"), with ß.
 
 ## Commands
 
