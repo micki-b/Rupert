@@ -578,12 +578,7 @@ const en = {
     contents: "Contents",
     version: (version: string, edition: string) => `${version} (${edition} edition)`,
   },
-  // @@NEXT
 };
 
 export type Messages = typeof en;
 export default en;
-
-// Keep the helpers referenced while sections that use them are added.
-void num;
-void plural;
