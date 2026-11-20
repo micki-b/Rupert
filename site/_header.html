@@ -1,11 +1,12 @@
 <header class="site">
   <div class="wrap">
-    <a class="brand" href="/"><img src="/img/icon.png" alt="" width="34" height="34" />Rupert</a>
+    <a class="brand" href="{{base}}/"><img src="/img/icon.png" alt="" width="34" height="34" />Rupert</a>
     <nav class="site" aria-label="Site">
-      <a href="/#features" data-page="features">Features</a>
-      <a href="/#download" data-page="download">Download</a>
-      <a href="/support/" data-page="support">Support</a>
-      <a href="/privacy/" data-page="privacy">Privacy</a>
+      <a href="{{base}}/#features" data-page="features">{{t.nav.features}}</a>
+      <a href="{{base}}/#download" data-page="download">{{t.nav.download}}</a>
+      <a href="{{base}}/support/" data-page="support">{{t.nav.support}}</a>
+      <a href="/privacy/" data-page="privacy">{{t.nav.privacy}}</a>
     </nav>
+    <nav class="lang-switch" aria-label="{{t.lang.switch}}">{{langlinks}}</nav>
   </div>
 </header>
