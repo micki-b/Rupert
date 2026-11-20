@@ -15,7 +15,7 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 |---|---|
 | Platforms | macOS, Windows, Linux. Phone viewer later. |
 | Stack | Tauri 2 (Rust core, web UI). Tauri 2 also targets iOS/Android. |
-| Sources | Folders already synced to disk (OneDrive, iCloud Drive, local). No cloud APIs. |
+| Sources | Folders already synced to disk (OneDrive, iCloud Drive, Google Drive, local). No cloud APIs on the computer; the phone reads OneDrive and Google Drive through their web APIs, since their apps don't share folders through Files. |
 | Visibility | User picks folders; subfolders included. Each source is its own tree. |
 | File types | Document types only by default (PDF, images, Office, text); per-source setting to show everything. |
 | Online-only files | Indexed without downloading (name, path, size, dates at minimum). |

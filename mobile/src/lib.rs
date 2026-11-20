@@ -3,8 +3,9 @@
 //!
 //! The phone only reads the library. Folders come from the Files picker
 //! (iCloud Drive, On My iPhone) and are reopened at launch from bookmarks;
-//! OneDrive folders, which the Files app can't hand to other apps, are read
-//! through Microsoft Graph (`onedrive`). Text and details come from the shared catalog and sidecars
+//! OneDrive and Google Drive folders, which the Files app can't hand to
+//! other apps, are read through their web APIs (`cloud`, `onedrive`,
+//! `gdrive`). Text and details come from the shared catalog and sidecars
 //! that Rupert on a computer writes; documents are downloaded only when
 //! opened. Scans go to the inbox folder, where Rupert on the computer runs
 //! OCR and suggests how to file them.
@@ -17,9 +18,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::time::Duration;
 
+mod cloud;
+mod gdrive;
 mod onedrive;
 
-use onedrive::{OneDrive, RemoteFolder, RemoteInbox};
+use cloud::{RemoteFolder, RemoteInbox, Service};
+use gdrive::GoogleDrive;
+use onedrive::OneDrive;
 
 use rupert_core::camera;
 use rupert_core::indexer::{self, Mode, Options, PrepareHidden};
@@ -51,14 +56,14 @@ struct Saved {
     /// Source id → bookmark.
     bookmarks: HashMap<String, String>,
     inbox: Option<SavedFolder>,
-    /// Library folders read through OneDrive's web API.
+    /// Library folders read through a cloud service's web API.
     #[serde(default)]
     remote: Vec<RemoteFolder>,
-    /// Scans go here instead of `inbox` when set.
-    #[serde(default)]
-    onedrive_inbox: Option<RemoteInbox>,
+    /// Scans go here (OneDrive or Google Drive) instead of `inbox` when set.
+    #[serde(default, alias = "onedriveInbox")]
+    remote_inbox: Option<RemoteInbox>,
     /// The source added so the inbox shows in the library when it isn't
-    /// inside a library folder: a Files source in the store, or a OneDrive
+    /// inside a library folder: a Files source in the store, or a cloud
     /// folder in `remote`. Not listed as a library folder.
     #[serde(default)]
     inbox_source: Option<String>,
@@ -121,8 +126,8 @@ impl AppState {
         self.store.lock().unwrap().sources().to_vec()
     }
 
-    /// Local folders only; OneDrive folders are synced by `onedrive`. (Not
-    /// `Job::SyncAll`, which would drop the OneDrive folders' entries.)
+    /// Local folders only; cloud folders are synced by `cloud`. (Not
+    /// `Job::SyncAll`, which would drop the cloud folders' entries.)
     fn sync_local(&self) {
         for source in self.sources() {
             self.indexer.send(Job::SyncSource(source));
@@ -147,7 +152,7 @@ impl AppState {
             let s = &saved.saved;
             (
                 s.inbox.clone(),
-                s.onedrive_inbox.clone(),
+                s.remote_inbox.clone(),
                 s.inbox_source.clone(),
                 s.remote.clone(),
             )
@@ -269,7 +274,8 @@ struct Overview {
     sources: Vec<SourceView>,
     /// Name of the folder scans are saved to.
     inbox: Option<String>,
-    inbox_on_onedrive: bool,
+    /// The service it's on; `None`: a folder in Files.
+    inbox_service: Option<Service>,
     /// Where to browse the inbox.
     inbox_place: Option<Place>,
     stats: IndexStats,
@@ -277,7 +283,7 @@ struct Overview {
 }
 
 #[tauri::command]
-fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> {
+fn overview(app: AppHandle, state: State<AppState>) -> CmdResult<Overview> {
     let inbox_place = state.inbox_place();
     let local = state.sources();
     let saved = state.saved.lock().unwrap();
@@ -295,20 +301,20 @@ fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> 
     sources.extend(saved.saved.remote.iter().map(|f| SourceView {
         id: f.id.clone(),
         name: f.name.clone(),
-        provider: Provider::OneDrive,
-        available: od.is_signed_in(),
+        provider: f.service.provider(),
+        available: f.service.signed_in(&app),
         inbox: Some(f.id.as_str()) == own,
     }));
-    let (inbox, inbox_on_onedrive) = match (&saved.saved.onedrive_inbox, &saved.saved.inbox) {
-        (Some(r), _) => (Some(r.name.clone()), true),
-        (None, Some(f)) => (Some(f.name.clone()), false),
-        (None, None) => (None, false),
+    let (inbox, inbox_service) = match (&saved.saved.remote_inbox, &saved.saved.inbox) {
+        (Some(r), _) => (Some(r.name.clone()), Some(r.service)),
+        (None, Some(f)) => (Some(f.name.clone()), None),
+        (None, None) => (None, None),
     };
     Ok(Overview {
         ready: state.ready.load(Ordering::SeqCst),
         sources,
         inbox,
-        inbox_on_onedrive,
+        inbox_service,
         inbox_place,
         stats: state.index.lock().unwrap().stats().map_err(err)?,
         progress: state.progress.lock().unwrap().clone(),
@@ -318,7 +324,7 @@ fn overview(state: State<AppState>, od: State<OneDrive>) -> CmdResult<Overview> 
 #[tauri::command]
 fn refresh(app: AppHandle, state: State<AppState>) {
     state.sync_local();
-    onedrive::start_sync(&app);
+    cloud::start_all(&app);
 }
 
 // MARK: - Commands: folders
@@ -404,7 +410,7 @@ async fn choose_inbox(app: AppHandle, state: State<'_, AppState>) -> CmdResult<b
             path: picked.path.into(),
             bookmark: picked.bookmark,
         });
-        saved.saved.onedrive_inbox = None;
+        saved.saved.remote_inbox = None;
         saved.save();
     }
     reconcile_inbox(&app);
@@ -418,20 +424,23 @@ async fn choose_inbox(app: AppHandle, state: State<'_, AppState>) -> CmdResult<b
 // source of its own (`Saved::inbox_source`), which the library shows as
 // "Inbox" rather than as a folder. Read-only, like every source here.
 
-/// Where a OneDrive inbox lies inside one of `folders` (by the path it was
+/// Where a cloud inbox lies inside one of `folders` on its service (by the path it was
 /// chosen by): that folder's id and the inbox's path in it.
 fn remote_place(inbox: &RemoteInbox, folders: &[RemoteFolder]) -> Option<(String, String)> {
-    folders.iter().find_map(|f| {
-        if f.item_id == inbox.item_id {
-            return Some((f.id.clone(), String::new()));
-        }
-        let at = inbox.path.iter().position(|p| p.id == f.item_id)?;
-        let rel: Vec<&str> = inbox.path[at + 1..]
-            .iter()
-            .map(|p| p.name.as_str())
-            .collect();
-        Some((f.id.clone(), rel.join("/")))
-    })
+    folders
+        .iter()
+        .filter(|f| f.service == inbox.service)
+        .find_map(|f| {
+            if f.item_id == inbox.item_id {
+                return Some((f.id.clone(), String::new()));
+            }
+            let at = inbox.path.iter().position(|p| p.id == f.item_id)?;
+            let rel: Vec<&str> = inbox.path[at + 1..]
+                .iter()
+                .map(|p| p.name.as_str())
+                .collect();
+            Some((f.id.clone(), rel.join("/")))
+        })
 }
 
 /// Adds the inbox's own source when the inbox isn't inside a library
@@ -444,7 +453,7 @@ pub(crate) fn reconcile_inbox(app: &AppHandle) {
         let s = &saved.saved;
         (
             s.inbox.clone(),
-            s.onedrive_inbox.clone(),
+            s.remote_inbox.clone(),
             s.inbox_source.clone(),
             s.remote.clone(),
         )
@@ -482,7 +491,7 @@ pub(crate) fn reconcile_inbox(app: &AppHandle) {
         } else if let Some(r) = &need_remote {
             remotes
                 .iter()
-                .any(|f| &f.id == id && f.item_id == r.item_id)
+                .any(|f| &f.id == id && f.item_id == r.item_id && f.service == r.service)
         } else {
             false
         };
@@ -516,17 +525,13 @@ pub(crate) fn reconcile_inbox(app: &AppHandle) {
             Err(e) => eprintln!("rupert: couldn't show the inbox in the library: {e}"),
         }
     } else if let Some(r) = need_remote {
-        let folder = RemoteFolder {
-            id: onedrive::uuid_like(),
-            name: r.name.clone(),
-            item_id: r.item_id.clone(),
-        };
+        let folder = RemoteFolder::new(r.service, r.item_id.clone(), r.name.clone());
         let mut saved = state.saved.lock().unwrap();
         saved.saved.inbox_source = Some(folder.id.clone());
         saved.saved.remote.push(folder);
         saved.save();
         drop(saved);
-        onedrive::start_sync(app);
+        cloud::start_sync(app, r.service);
     }
 }
 
@@ -570,7 +575,7 @@ async fn list_dir(
         .collect())
 }
 
-/// A OneDrive folder's contents, from the index (nothing is on the phone).
+/// A cloud folder's contents, from the index (nothing is on the phone).
 fn list_remote(source_id: &str, rel_path: &str, state: &AppState) -> CmdResult<Vec<ListedEntry>> {
     let (dirs, docs) = state
         .index
@@ -687,7 +692,7 @@ async fn set_folder_favorite(
     let rel = rel_path.trim_matches('/').to_string();
     if let Some(folder) = state.remote(&source_id) {
         let (handle, info2, rel2) = (app.clone(), info.clone(), rel.clone());
-        blocking(move || onedrive::write_folder_info(&handle, &folder, &rel2, &info2)).await?;
+        blocking(move || cloud::write_folder_info(&handle, &folder, &rel2, &info2)).await?;
     } else {
         let source = state.source(&source_id)?;
         let dir = rupert_core::resolve(&source.root, &rel).map_err(err)?;
@@ -798,7 +803,7 @@ async fn open_document(
             .map(|d| d.hit.size)
             .unwrap_or(0);
         return blocking(move || {
-            let path = onedrive::fetch_document(&app, &folder, &rel_path, size)?;
+            let path = cloud::fetch_document(&app, &folder, &rel_path, size)?;
             device(&app).preview(&path.to_string_lossy()).map_err(err)
         })
         .await;
@@ -839,10 +844,7 @@ async fn scan(
 ) -> CmdResult<Option<String>> {
     let (inbox, remote_inbox) = {
         let saved = state.saved.lock().unwrap();
-        (
-            saved.saved.inbox.clone(),
-            saved.saved.onedrive_inbox.clone(),
-        )
+        (saved.saved.inbox.clone(), saved.saved.remote_inbox.clone())
     };
     if inbox.is_none() && remote_inbox.is_none() {
         return Err("Choose the inbox folder first.".into());
@@ -868,12 +870,12 @@ async fn scan(
         let pdf = camera::pages_to_pdf(&jpegs).map_err(err)?;
         let tmp_dir = Path::new(first).parent().map(Path::to_path_buf);
         if let Some(remote) = remote_inbox {
-            let result = onedrive::upload_scan(&handle, &remote, &name, &pdf);
+            let result = cloud::upload_scan(&handle, &remote, &name, &pdf);
             if let Some(dir) = tmp_dir {
                 let _ = fs::remove_dir_all(dir);
             }
-            // Show it in the inbox once OneDrive lists it.
-            onedrive::start_sync(&handle);
+            // Show it in the inbox once the service lists it.
+            cloud::start_sync(&handle, remote.service);
             return result.map(|name| {
                 Some(tauri_plugin_rupert_ios::Placed {
                     path: String::new(),
@@ -958,8 +960,9 @@ fn open_saved_folders(app: &AppHandle) {
     let _ = app.emit(FOLDERS_READY, ());
     state.sync_local();
     app.state::<OneDrive>().restore(app);
-    onedrive::start_sync(app);
-    onedrive::tidy_cache(app);
+    app.state::<GoogleDrive>().restore(app);
+    cloud::start_all(app);
+    cloud::tidy_cache(app);
 }
 
 /// Lets the sync service fetch one of Rupert's hidden folders (sidecars,
@@ -991,6 +994,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let index_path = data_dir.join("index.sqlite");
     let index = Index::open(&index_path)?;
     app.manage(OneDrive::default());
+    app.manage(GoogleDrive::default());
 
     let progress_handle = app.handle().clone();
     let changed_handle = app.handle().clone();
@@ -1104,6 +1108,12 @@ pub fn run() {
             onedrive::onedrive_folders,
             onedrive::add_onedrive_folder,
             onedrive::set_onedrive_inbox,
+            gdrive::gdrive_status,
+            gdrive::gdrive_sign_in,
+            gdrive::gdrive_sign_out,
+            gdrive::gdrive_folders,
+            gdrive::add_gdrive_folder,
+            gdrive::set_gdrive_inbox,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");
@@ -1114,7 +1124,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use onedrive::FolderItem;
+    use cloud::FolderItem;
 
     fn item(id: &str, name: &str) -> FolderItem {
         FolderItem {
@@ -1128,6 +1138,7 @@ mod tests {
             id: id.into(),
             name: item_id.into(),
             item_id: item_id.into(),
+            service: Service::OneDrive,
         }
     }
 
@@ -1141,6 +1152,7 @@ mod tests {
                 item("PAPER", "Paper"),
                 item("IN", "Rupert Inbox"),
             ],
+            service: Service::OneDrive,
         };
         let library = [folder("a", "BOAT"), folder("b", "DOCS")];
         assert_eq!(
@@ -1154,11 +1166,45 @@ mod tests {
         );
         // Elsewhere, or chosen before its path was kept.
         assert_eq!(remote_place(&inbox, &[folder("a", "BOAT")]), None);
+        // A folder on the other service never holds it, even with the same id.
+        let google = RemoteFolder {
+            service: Service::GoogleDrive,
+            ..folder("g", "DOCS")
+        };
+        assert_eq!(remote_place(&inbox, std::slice::from_ref(&google)), None);
         let old = RemoteInbox {
             path: Vec::new(),
             ..inbox
         };
         assert_eq!(remote_place(&old, &library), None);
+    }
+
+    #[test]
+    fn folders_saved_before_google_drive_load_as_onedrive() {
+        let json = r#"{"bookmarks":{},"inbox":null,
+            "remote":[{"id":"onedrive-1","name":"Boating","itemId":"B"}],
+            "onedriveInbox":{"itemId":"IN","name":"Rupert Inbox"}}"#;
+        let saved: Saved = serde_json::from_str(json).unwrap();
+        assert_eq!(saved.remote[0].service, Service::OneDrive);
+        let inbox = saved.remote_inbox.unwrap();
+        assert_eq!(inbox.service, Service::OneDrive);
+        assert_eq!(inbox.item_id, "IN");
+        // Saved again, it uses the new names.
+        let again = Saved {
+            remote_inbox: Some(inbox),
+            ..Default::default()
+        };
+        let text = serde_json::to_string(&again).unwrap();
+        assert!(text.contains(r#""remoteInbox""#) && text.contains(r#""service":"onedrive""#));
+    }
+
+    #[test]
+    fn google_drive_folders_are_their_own_sources() {
+        let f = RemoteFolder::new(Service::GoogleDrive, "XYZ".into(), "Paperwork".into());
+        let s = f.source();
+        assert!(f.id.starts_with("googledrive-"));
+        assert_eq!(s.provider, Provider::GoogleDrive);
+        assert_eq!(s.root, Path::new("googledrive:XYZ"));
     }
 
     #[test]

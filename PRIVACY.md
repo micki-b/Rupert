@@ -11,7 +11,7 @@ use it.
 - **Rupert collects nothing about you.** There are no accounts with us, no analytics, no tracking, no ads and no
   crash reports sent anywhere. We have no servers that receive your data.
 - **Your documents stay where they are**: in the folders you choose, on your device or in your own cloud storage
-  (iCloud Drive, OneDrive). Rupert reads and changes them there, and keeps its search index on your device.
+  (iCloud Drive, OneDrive, Google Drive). Rupert reads and changes them there, and keeps its search index on your device.
 - **Some optional features talk to other services** that you choose and set up yourself. They are listed below,
   with exactly what is sent.
 
@@ -22,7 +22,7 @@ use it.
   storage, like any other file.
 - **A search index and a cache of page pictures** are kept in the app's own folder on each device. They can be
   deleted at any time; Rupert rebuilds them from your files.
-- **A shared catalog** (the hidden `.rupert/catalog` folder in iCloud Drive and OneDrive folders) holds the text
+- **A shared catalog** (the hidden `.rupert/catalog` folder in iCloud Drive, OneDrive and Google Drive folders) holds the text
   Rupert has read from your documents, so your other devices can search documents that are stored only online.
   It stays in your cloud storage.
 - **Settings** are stored on your device. **Sign-ins and API keys** for optional services are stored in your
@@ -51,6 +51,11 @@ None of these is on unless you turn it on.
 - **OneDrive on iPhone**: when you sign in with your Microsoft account, Rupert reads the OneDrive folders you choose
   through Microsoft Graph, and saves new scans to your inbox folder there. It asks only for access to your files
   (`Files.ReadWrite`) and to stay signed in. [Microsoft's privacy statement](https://privacy.microsoft.com/privacystatement).
+- **Google Drive on iPhone** (preview): when you sign in with your Google account, Rupert reads the Google Drive
+  folders you choose through the Google Drive API: their file lists, Rupert's own small catalog and details files,
+  and a document when you open it. It saves new scans to your inbox folder there and, when you star a folder, that
+  folder's small details file. It asks for access to your Drive files (`drive`); the sign-in stays in your iPhone's
+  Keychain, and nothing goes to us. [Google's privacy policy](https://policies.google.com/privacy).
 - **Network scanners**: Rupert looks for scanners on your local network (Bonjour) and talks to the one you choose
   directly. Nothing leaves your network.
 - **Markdown documents** that link to pictures on the web load those pictures from the web when shown, as a browser

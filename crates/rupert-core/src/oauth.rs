@@ -1,7 +1,9 @@
-//! Pieces shared by the OAuth sign-ins (OneDrive on the phone, the ChatGPT
-//! plan on the desktop): PKCE (RFC 7636), URL encoding, and base64url.
+//! Pieces shared by the OAuth sign-ins (OneDrive and Google Drive on the
+//! phone, the ChatGPT plan on the desktop): PKCE (RFC 7636), the redirect's
+//! code, tokens, URL encoding, base64url, and service timestamps.
 
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use sha2::{Digest, Sha256};
 
@@ -41,6 +43,73 @@ impl Default for Pkce {
 
 pub(crate) fn challenge_for(verifier: &str) -> String {
     base64url(&Sha256::digest(verifier.as_bytes()))
+}
+
+// MARK: - Sign-in answers
+
+/// The authorization code from a sign-in page's redirect
+/// (`scheme://…?code=…&state=…`), after checking it answers this attempt.
+pub fn code_from_redirect(url: &str, pkce: &Pkce) -> std::result::Result<String, String> {
+    let q = url.split_once('?').map(|(_, q)| q).unwrap_or_default();
+    let q = q.split('#').next().unwrap_or_default();
+    let params: HashMap<String, String> = q
+        .split('&')
+        .filter_map(|kv| kv.split_once('='))
+        .map(|(k, v)| (percent_decode(k), percent_decode(v)))
+        .collect();
+    if let Some(e) = params.get("error") {
+        return Err(params.get("error_description").unwrap_or(e).clone());
+    }
+    if params.get("state") != Some(&pkce.state) {
+        return Err("the sign-in answer didn't match; please try again".into());
+    }
+    params
+        .get("code")
+        .cloned()
+        .ok_or_else(|| "the sign-in page returned no code".into())
+}
+
+/// A signed-in session's tokens. The refresh token is the caller's to keep
+/// (Keychain); the access token lives only in memory.
+#[derive(Debug, Clone)]
+pub struct Tokens {
+    pub access_token: String,
+    /// Replaces the stored one when given (OneDrive's rotate; Google's don't).
+    pub refresh_token: Option<String>,
+    pub expires_at: Instant,
+}
+
+impl Tokens {
+    pub fn is_fresh(&self) -> bool {
+        Instant::now() + Duration::from_secs(120) < self.expires_at
+    }
+}
+
+// MARK: - Times
+
+/// "2025-03-14T18:22:05Z" / "…05.123Z" → milliseconds since the epoch.
+pub fn parse_time_ms(s: &str) -> Option<i64> {
+    let s = s.strip_suffix('Z')?;
+    let (date, time) = s.split_once('T')?;
+    let mut d = date.split('-').map(|p| p.parse::<i64>().ok());
+    let (y, m, day) = (d.next()??, d.next()??, d.next()??);
+    let (hms, frac) = time.split_once('.').unwrap_or((time, ""));
+    let mut t = hms.split(':').map(|p| p.parse::<i64>().ok());
+    let (hh, mm, ss) = (t.next()??, t.next()??, t.next()??);
+    let ms = if frac.is_empty() {
+        0
+    } else {
+        format!("{frac:0<3}")[..3].parse::<i64>().ok()?
+    };
+    // Days from civil (Howard Hinnant's algorithm).
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146_097 + doe - 719_468;
+    Some(((days * 24 + hh) * 60 + mm) * 60_000 + ss * 1000 + ms)
 }
 
 // MARK: - Encoding

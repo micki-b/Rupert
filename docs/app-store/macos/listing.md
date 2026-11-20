@@ -22,7 +22,7 @@ Search the text of every scanned document, let new scans name and file themselve
 
 ## Description [4000]
 
-Rupert is the librarian for your scanned documents. It works directly on the folders you already keep on your Mac, in iCloud Drive or in OneDrive, so there's nothing to import and nothing to lock in. Your folders stay your library.
+Rupert is the librarian for your scanned documents. It works directly on the folders you already keep on your Mac, in iCloud Drive, OneDrive or Google Drive, so there's nothing to import and nothing to lock in. Your folders stay your library.
 
 FIND ANYTHING
 • Search titles, tags, notes and the text inside every PDF, with the matching words highlighted.
@@ -44,7 +44,7 @@ ASK RUPERT
 YOUR DOCUMENTS STAY YOURS
 • Titles, tags and dates are stored inside the PDFs (or in a small hidden file next to other kinds), so they go wherever the file goes and appear on your iPhone too.
 • Text recognition and filing suggestions never leave your Mac.
-• Online-only files in iCloud Drive and OneDrive are shown without downloading them.
+• Online-only files in iCloud Drive, OneDrive and Google Drive are shown without downloading them.
 • No account with us, no tracking, no ads.
 
 Rupert is free and open source.

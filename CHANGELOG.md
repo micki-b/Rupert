@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Google Drive** folders are supported on the computer (Google Drive for desktop), like iCloud Drive and OneDrive: online-only files are shown without downloading them.
+- **iPhone: Google Drive (preview).** Sign in with your Google account in Settings to add Google Drive folders and to scan into a Google Drive inbox, as with OneDrive. Google shows an "unverified app" warning at sign-in.
 - **iPhone: Settings ▸ About** shows the app's version and build number.
 - **iPhone: the Inbox is always in the Library**, at the top, so new scans can be seen there until they're filed, even when the inbox folder isn't one of the library folders.
 - **Move documents and folders** to another folder: drag them onto a folder in the sidebar or the folder view, or right-click ▸ **Move to…**. A document's details go with it, and nothing is ever replaced (a " (2)" is added instead). Online-only files move within their own cloud folder without being downloaded.
