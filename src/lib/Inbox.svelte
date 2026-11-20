@@ -485,8 +485,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
   }
   .scan-btn {
+    flex: none;
     font-size: 12px;
     padding: 2px 10px;
   }
@@ -664,8 +666,12 @@
   }
   .actions {
     display: flex;
+    flex-wrap: wrap; /* longer labels in other languages */
     gap: 6px;
     margin-top: 4px;
+  }
+  .actions button {
+    white-space: nowrap;
   }
   .spacer {
     flex: 1;

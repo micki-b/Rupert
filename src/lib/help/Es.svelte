@@ -346,7 +346,7 @@
   </ul>
   <p>
     El búho muestra lo que está haciendo: pensar, buscar, leer un documento o abrir algo. Una línea debajo de la
-    conversación dice el paso actual. Respondé en el idioma que quieras: Rupert contesta en el mismo.
+    conversación dice el paso actual. Preguntá en el idioma que quieras: Rupert contesta en el mismo.
   </p>
   <ul>
     <li>
