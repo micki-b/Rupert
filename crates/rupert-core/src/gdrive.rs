@@ -562,7 +562,8 @@ impl Drive {
     pub fn upload(&self, folder_id: &str, name: &str, bytes: &[u8]) -> Result<String> {
         let q = format!("{} in parents and trashed = false", quoted(folder_id));
         let taken: HashSet<String> = self
-            .search(&q, "nextPageToken,files(name)")?
+            // Every listed item needs its id (`Item` requires it).
+            .search(&q, "nextPageToken,files(id,name)")?
             .into_iter()
             .map(|i| i.name)
             .collect();
