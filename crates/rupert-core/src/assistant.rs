@@ -464,7 +464,7 @@ impl Chat {
             });
         }
         Ok(Reply {
-            text: "I couldn't finish that in a reasonable number of steps.".into(),
+            text: tr("I couldn't finish that in a reasonable number of steps.").into(),
             steps,
             model: served_by,
         })
@@ -573,7 +573,7 @@ impl Chat {
             }
         }
         Ok(Reply {
-            text: "I couldn't finish that in a reasonable number of steps.".into(),
+            text: tr("I couldn't finish that in a reasonable number of steps.").into(),
             steps,
             model: model.to_string(),
         })
@@ -668,7 +668,7 @@ impl Chat {
             }
         }
         Ok(Reply {
-            text: "I couldn't finish that in a reasonable number of steps.".into(),
+            text: tr("I couldn't finish that in a reasonable number of steps.").into(),
             steps,
             model: served_by,
         })
@@ -815,19 +815,19 @@ fn plan_error(status: u16, body: &str) -> Error {
 
 fn plan_error_code(code: &str, message: &str) -> Error {
     ai_err(match code {
-        "subscription_sharing_usage_limit_exceeded" => {
+        "subscription_sharing_usage_limit_exceeded" => tr(
             "your ChatGPT plan's limit for Rupert is used up for now; try again later, or raise \
-             Rupert's limit in ChatGPT's settings"
-                .to_string()
-        }
+                Rupert's limit in ChatGPT's settings",
+        )
+        .to_string(),
         "subscription_sharing_usage_unavailable" => {
-            "ChatGPT plan usage isn't available right now; try again later".to_string()
+            tr("ChatGPT plan usage isn't available right now; try again later").to_string()
         }
-        "subscription_sharing_user_not_eligible" => {
+        "subscription_sharing_user_not_eligible" => tr(
             "this ChatGPT account or plan can't be used by other apps (signing in again won't \
-             change that)"
-                .to_string()
-        }
+                change that)",
+        )
+        .to_string(),
         _ => message.to_string(),
     })
 }

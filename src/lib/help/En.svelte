@@ -318,7 +318,7 @@
   </ul>
   <p>
     The owl shows what he's doing: thinking, searching, reading a document, or opening something. A line under the
-    conversation names the current step.
+    conversation names the current step. Ask in any language: Rupert answers in the same one.
   </p>
   <ul>
     <li>
@@ -640,6 +640,10 @@
       filed, even if the inbox folder isn't one of your library folders.
     </li>
     <li><b>Star folders</b> to add them to Favorites on all your devices.</li>
+    <li>
+      <b>Language</b>: the app follows the iPhone's language, or the one you choose in <b>Settings ▸ Language</b> (or
+      in iOS Settings for Rupert).
+    </li>
   </ul>
   <p>Its version and build number are at the bottom of its <b>Settings</b>, under <b>About</b>.</p>
   <p>The iPhone app doesn't change your documents: only Rupert on the computer edits details and files scans.</p>
@@ -666,6 +670,10 @@
       the text Rupert has read, so your other devices can search online-only documents.
     </li>
     <li><b>API keys</b> are kept in {keychain}.</li>
+    <li>
+      <b>The language</b> changes nothing on disk: folders and files Rupert creates (like <code>.rupert</code>) have the
+      same names in every language, since devices set to different languages share them.
+    </li>
   </ul>
 </section>
 
@@ -695,6 +703,10 @@
     <a href="{REPO}/blob/main/LICENSE">MIT license</a>, © 2026 Micki Braun.
   </p>
   <ul>
+    <li>
+      <b>Language:</b> Rupert follows your computer's language, or the one you choose in <b>Settings ▸ Language</b>. It
+      speaks English and Rioplatense Spanish (and in Spanish, the owl wears the sky-blue and white jersey).
+    </li>
     <li>
       <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ Updates</b>). When one is
       out, <b>Update to …</b> appears in the status bar; click it to install, and Rupert restarts.{#if mac}

@@ -363,6 +363,22 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("ChatGPT plan", "Plan de ChatGPT"),
     ("Cloud · {0}", "Nube · {0}"),
     ("Cloud (no model chosen)", "Nube (sin modelo elegido)"),
+    (
+        "I couldn't finish that in a reasonable number of steps.",
+        "No pude terminar eso en una cantidad razonable de pasos.",
+    ),
+    (
+        "your ChatGPT plan's limit for Rupert is used up for now; try again later, or raise Rupert's limit in ChatGPT's settings",
+        "por ahora se agotó el límite de tu plan de ChatGPT para Rupert; probá más tarde, o subí el límite de Rupert en la configuración de ChatGPT",
+    ),
+    (
+        "ChatGPT plan usage isn't available right now; try again later",
+        "el uso del plan de ChatGPT no está disponible en este momento; probá más tarde",
+    ),
+    (
+        "this ChatGPT account or plan can't be used by other apps (signing in again won't change that)",
+        "esta cuenta o este plan de ChatGPT no se puede usar desde otras apps (volver a iniciar sesión no lo cambia)",
+    ),
     // MARK: - Signing in (ChatGPT, OneDrive, Google Drive)
     (
         "the sign-in answer didn't match; please try again",
