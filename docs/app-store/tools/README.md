@@ -33,7 +33,21 @@ Screenshots and App Previews come from the iOS Simulator ("Rupert Media", an iPh
 
 5. Delete the simulator's app afterwards if you like (`xcrun simctl uninstall "Rupert Media" io.github.micki-b.rupert`); its data is only the sample library.
 
-## Android (website screenshots)
+## Android (`../android/`)
+
+### Google Play screenshots
+
+`android/capture.sh <lang> <outdir>` makes `1-folder` … `4-scan` (1080 × 1920, light mode, 9:41) on the running "Rupert Pixel" emulator. It reinstalls the debug build with a copy of the sample library and its catalog, runs `ios/setup.js` and `android/scenes.js` through the test hooks, and takes each shot when the page logs it (`test_log` goes to logcat on Android). It wipes the emulator app's sign-ins.
+
+```sh
+npm run phone -- android build --debug --target aarch64 --apk
+cargo build --release -p rupert-core --example index_check
+docs/app-store/tools/android/capture.sh es /tmp/play-es
+```
+
+Store them without alpha as `../android/screenshots/<lang>/` (`ffmpeg -i in.png -pix_fmt rgb24 out.png`), then render the feature graphic with `../android/feature.html` (the command is at the top of the file).
+
+### Website screenshots
 
 The website's Android screens (`site/img/<lang>/android-folder-{light,dark}.png`, 603 × 1340) come from the "Rupert Pixel" emulator and a debug build. Android can't pass environment variables to an app, so the debug test hooks read the same names from `rupert-test.env` in the app's data folder.
 

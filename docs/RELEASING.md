@@ -88,3 +88,25 @@ App Store Connect record: "Rupert - The Librarian", bundle ID `io.github.micki-b
    The archive lands in `mobile/gen/apple/build/rupert-mobile_iOS.xcarchive`. The command's own export step needs an Apple account visible to `xcodebuild` and may fail with "No Accounts"; the archive is fine either way.
 2. Upload: `open mobile/gen/apple/build/rupert-mobile_iOS.xcarchive` (Xcode's Organizer) ▸ Distribute App ▸ App Store Connect, automatic signing. Xcode makes the distribution certificate and profile with your account.
 3. App Store Connect processes the build (10–30 minutes, with an email); choose it on the version page, then Add for Review.
+
+## Android
+
+Google Play app: "Rupert", package `io.github.micki_b.rupert` (Android names can't contain "-"). Listing text, screenshots and the feature graphic: `docs/app-store/android/`.
+
+### Keys
+
+- **Upload key:** `~/.android/rupert-upload.jks` (alias `upload`), with its password in the login keychain as "rupert-android-upload" (Keychain Access ▸ "Rupert Android upload key"). It only proves that an upload comes from us. **Keep both safe** (e.g. in a password manager). If they're lost, Play Console can register a new upload key (App integrity ▸ App signing ▸ Request upload key reset).
+- **App signing key:** Google's (Play App Signing, turned on with the first upload). Copies from Google Play are signed with it.
+- **Google sign-in (Drive)** checks which key signed the app. Google Cloud ▸ "Rupert" project ▸ Credentials needs an **Android** OAuth client for package `io.github.micki_b.rupert` with each key's SHA-1:
+  - the debug key (`~/.android/debug.keystore`; emulator and `tauri android dev` builds);
+  - the upload key (APKs installed directly): `keytool -list -v -keystore ~/.android/rupert-upload.jks -alias upload`;
+  - Google's app signing key (copies from Google Play): Play Console ▸ Test and release ▸ App integrity ▸ App signing.
+  Without the right one, Google Drive sign-in fails in that build. OneDrive's sign-in doesn't depend on the key.
+
+### Building and uploading
+
+1. The version comes from `scripts/set-version.py` (`mobile/tauri.conf.json`), as for the other apps.
+2. Build: `scripts/build-android.sh`. It writes `target/android/Rupert-<version>-<code>.aab` (for Google Play) and `.apk` (to install directly: `adb install -r …`), for ARM phones and x86_64. The version code is the build's UTC time, so each build is higher than the last.
+3. Upload the `.aab`: Play Console ▸ Test and release ▸ Testing ▸ Closed testing (or Production) ▸ Create new release, with release notes in English, Spanish and German.
+
+New personal developer accounts must run a **closed test with at least 12 testers for 14 days in a row** before they can apply for production.

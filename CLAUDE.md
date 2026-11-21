@@ -36,6 +36,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home 
   ANDROID_HOME=$HOME/Library/Android/sdk NDK_HOME=$HOME/Library/Android/sdk/ndk/29.0.14206865
 npm run phone -- android build --debug --target aarch64 --apk
 $ANDROID_HOME/emulator/emulator -avd Rupert_Pixel -no-window -no-audio &   # then adb install -r …/app-universal-debug.apk
+scripts/build-android.sh   # signed .aab and .apk for Google Play (upload key + keychain; docs/RELEASING.md)
 ```
 
 - The phone app is read-only toward the library (`indexer::Mode::Viewer`), with exactly two exceptions: saving scans into the inbox, and starring folders (writing only that folder's `.rupert/.folder.json`). Keep it that way: no catalog writes, no document metadata edits, Quick Look markup off.

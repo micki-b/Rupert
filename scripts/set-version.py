@@ -3,13 +3,15 @@
 
 - Cargo.toml (`[workspace.package] version`, which every crate inherits)
 - package.json and package-lock.json (the root package)
-- src-tauri/tauri.conf.json (desktop) and mobile/tauri.conf.json (iPhone)
+- src-tauri/tauri.conf.json (desktop) and mobile/tauri.conf.json (iPhone and
+  Android, whose versionName comes from it)
 - Cargo.lock (refreshed by cargo)
 
 Usage: scripts/set-version.py 0.1.1
 
 Only the version line is changed; the files keep their formatting. Apple's
-build numbers are separate and made by the build scripts (a UTC timestamp).
+build numbers and Android's version codes are separate and made by the build
+scripts (a UTC timestamp).
 """
 
 import re
