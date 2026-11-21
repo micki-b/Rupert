@@ -37,16 +37,24 @@
 </style>
 </head>
 <body>
-<!-- App Store creative assets (docs/app-store/creative/). Render at Apple's sizes:
+<!-- App Store creative assets (docs/app-store/ios/creative/), per language (en, es, de),
+     from that language's screenshots (../screenshots/<lang>/large/). Render at Apple's sizes:
      Chrome --headless=new --hide-scrollbars --force-device-scale-factor=1 --allow-file-access-from-files
-       --window-size=3840,1646 --screenshot=header.png "file://…/creative.html?layout=header"
-       --window-size=3840,2560 --screenshot=search.png "file://…/creative.html?layout=search"
-     Add &guides=1 to outline Apple's art safe area. The PNGs must have no alpha channel. -->
+       --window-size=3840,1646 --screenshot=header.png "file://…/creative.html?layout=header&lang=es"
+       --window-size=3840,2560 --screenshot=search.png "file://…/creative.html?layout=search&lang=es"
+     Add &guides=1 to outline Apple's art safe area. The PNGs must have no alpha channel.
+     The owl wears his outfit in Spanish and German (owl-*.svg, drawn from RupertOwl.svelte). -->
 <script>
   const q = new URLSearchParams(location.search);
   const layout = q.get("layout") || "header";
   const guides = q.get("guides") === "1";
-    const owl = "../../../../src/lib/assets/rupert-owl.png";
+  const lang = q.get("lang") || "en";
+  const owl = { en: "../../../../src/lib/assets/rupert-owl.png", es: "owl-jersey.svg", de: "owl-lederhosen.svg" }[lang];
+  const T = {
+    en: { tag: "Your scanned<br>documents, found.", title: "Your scanned documents, found.", sub: "Search, ask and scan, right where your files live." },
+    es: { tag: "Tus documentos<br>escaneados, a mano.", title: "Tus documentos escaneados, a mano.", sub: "Buscá, preguntá y escaneá, donde ya están tus archivos." },
+    de: { tag: "Ihre Scans,<br>sofort gefunden.", title: "Ihre Scans, sofort gefunden.", sub: "Suchen, fragen und scannen, direkt dort, wo Ihre Dateien liegen." },
+  }[lang];
   const L = {
     // Apple's sizes and art safe areas (creative assets specifications).
     header: { w: 3840, h: 1646, safe: [1097, 493, 1646, 661] },
@@ -67,33 +75,39 @@
       transform: `rotate(${rot}deg)`, zIndex: z }, `<img src="${shotsAbs}${file}">`);
     return w;
   };
-  const shotsAbs = "../screenshots/large/";
+  const shotsAbs = `../screenshots/${lang}/large/`;
   const [sx, sy, sw, sh] = L.safe;
 
   if (layout === "header") {
     add("glow", { left: (L.w / 2 - 1100) + "px", top: (L.h / 2 - 700) + "px", width: "2200px", height: "1400px" });
     const ph = 1360, top = (L.h - ph) / 2 + 40;
     phone("1-folder.png", 50, top - 40, ph, -7, 1);
-    phone("2-search.png", 400, top + 30, ph, 3, 2);
-    phone("3-document.png", L.w - 400 - 640, top + 30, ph, -3, 2);
-    phone("4-scan.png", L.w - 50 - 640, top - 40, ph, 7, 1);
+    phone("4-ask.png", 400, top + 30, ph, 3, 2);
+    phone("2-search.png", L.w - 400 - 640, top + 30, ph, -3, 2);
+    phone("5-scan.png", L.w - 50 - 640, top - 40, ph, 7, 1);
     add("center", { left: sx + "px", top: sy + "px", width: sw + "px", height: sh + "px", gap: "70px" }, `
       <img class="owl" src="${owl}" style="height:560px">
       <div>
         <div class="title" style="font-size:118px">Rupert</div>
         <div class="rule" style="width:150px;height:12px;margin:34px 0 34px"></div>
-        <div class="sub" style="font-size:64px;color:var(--ink);font-weight:600">Your scanned<br>documents, found.</div>
+        <div class="sub fit" style="font-size:64px;color:var(--ink);font-weight:600;white-space:nowrap">${T.tag}</div>
       </div>`);
   } else {
     add("glow", { left: (L.w / 2 - 1300) + "px", top: (L.h / 2 - 1100) + "px", width: "2600px", height: "2200px" });
     const ph = 1720, top = (L.h - ph) / 2;
     phone("2-search.png", 20, top, ph, 4, 2);
-    phone("3-document.png", L.w - 20 - 819, top, ph, -4, 2);
+    phone("4-ask.png", L.w - 20 - 819, top, ph, -4, 2);
     add("center", { left: sx + "px", top: sy + "px", width: sw + "px", height: sh + "px",
       flexDirection: "column", gap: "0" }, `
       <img class="owl" src="${owl}" style="height:560px">
-      <div class="title" style="font-size:132px;margin-top:46px">Your scanned documents, found.</div>
-      <div class="sub" style="font-size:66px;margin-top:30px">Search, scan and file, right where your files live.</div>`);
+      <div class="title fit" style="font-size:132px;margin-top:46px;white-space:nowrap">${T.title}</div>
+      <div class="sub fit" style="font-size:66px;margin-top:30px;white-space:nowrap">${T.sub}</div>`);
+  }
+  // Longer languages: shrink a line until it fits the safe area.
+  for (const e of c.querySelectorAll(".fit")) {
+    const room = layout === "header" ? sw - 560 - 70 : sw - 160;
+    let size = parseFloat(e.style.fontSize);
+    while (e.scrollWidth > room && size > 20) e.style.fontSize = (size -= 2) + "px";
   }
   if (guides) add("guide", { left: sx + "px", top: sy + "px", width: sw + "px", height: sh + "px", zIndex: 9 });
 </script>

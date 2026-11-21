@@ -12,7 +12,7 @@ The Spanish localization in App Store Connect: add **Spanish (Mexico)**, which A
 
 ## Promotional text [170]
 
-Encontrá cualquier documento escaneado en segundos. Rupert busca en las carpetas que ya tenés en iCloud Drive y OneDrive, y escanea papel directo a tu bandeja de entrada.
+Preguntale a Rupert por tus documentos y te responde en el mismo iPhone. Encontrá cualquier escaneo en iCloud Drive u OneDrive, y escaneá papel directo a tu bandeja.
 
 ## Description [4000]
 
@@ -49,7 +49,7 @@ Rupert es libre, gratis y de código abierto.
 
 ## Keywords [100]
 
-`escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,escanear`
+`escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
 ## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
 
@@ -64,6 +64,6 @@ EN TU IDIOMA
 • El búho se viste para la ocasión: la camiseta albiceleste en español, lederhosen en alemán.
 • Las carpetas, los archivos y los escaneos se llaman igual en todos los idiomas, así una familia puede compartir una biblioteca entre teléfonos en idiomas distintos.
 
-## Screenshots
+## Screenshots, App Previews and artwork
 
-The English screenshots work (App Store Connect uses them when a localization has none). Spanish ones can be made the same way, with the app set to Español (Settings ▸ Idioma).
+In this language: `screenshots/es/medium/` and `screenshots/es/large/` (upload in order 1–5), the App Preview `previews/es-ask.mp4`, and the artwork `creative/es-header-3840x1646.png` (Header) and `creative/es-search-results-3840x2560.png` (Search Results). How they're made and which slot each goes in: see `listing.md`.

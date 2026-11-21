@@ -40,6 +40,24 @@ fn new_chat() -> Chat {
     Chat::new(assistant::system_prompt(&rupert_core::pdf_meta::utc_today()))
 }
 
+/// Apple Intelligence. Debug builds take `RUPERT_TEST_ASSISTANT=<url>|<model>`
+/// (an OpenAI-compatible server, e.g. LM Studio on the Mac) instead: the iOS
+/// Simulator can't run Apple's model, and App Store screenshots and previews
+/// are made there.
+fn backend() -> Backend {
+    #[cfg(debug_assertions)]
+    if let Ok(spec) = std::env::var("RUPERT_TEST_ASSISTANT")
+        && let Some((url, model)) = spec.split_once('|')
+    {
+        return Backend::OpenAiCompatible {
+            base_url: format!("{}/v1", url.trim_end_matches('/')),
+            model: model.into(),
+            api_key: None,
+        };
+    }
+    Backend::Apple
+}
+
 // MARK: - Commands
 
 #[derive(Serialize)]
@@ -57,6 +75,14 @@ pub struct AssistantStatus {
 /// Whether Ask Rupert can be offered on this iPhone.
 #[tauri::command]
 pub fn assistant_status() -> AssistantStatus {
+    #[cfg(debug_assertions)]
+    if std::env::var_os("RUPERT_TEST_ASSISTANT").is_some() {
+        return AssistantStatus {
+            available: true,
+            capable: true,
+            message: None,
+        };
+    }
     let s = apple_ai::status();
     AssistantStatus {
         available: s.available,
@@ -89,7 +115,7 @@ pub async fn assistant_send(text: String, app: AppHandle) -> CmdResult<Assistant
         let tools = LibraryTools::new(&index, &sources);
         let assistant = app.state::<AssistantState>();
         let mut chat = assistant.chat.lock().unwrap();
-        let result = chat.send(&Backend::Apple, &tools, &text, &cancel, &mut |step| {
+        let result = chat.send(&backend(), &tools, &text, &cancel, &mut |step| {
             let _ = app.emit(ASSISTANT_STEP, step);
         });
         match result {
