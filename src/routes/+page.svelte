@@ -1396,6 +1396,9 @@
     top: 28px;
     z-index: 10;
     min-width: 210px;
+    /* Within the folder's row: a long path wraps instead of widening the
+       menu past the window's edge. */
+    max-width: calc(100% - 8px);
     padding: 4px;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -1458,9 +1461,7 @@
     padding: 4px 8px 6px;
     font-size: 11px;
     color: var(--muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     border-bottom: 1px solid var(--border);
     margin-bottom: 4px;
   }
