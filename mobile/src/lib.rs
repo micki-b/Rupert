@@ -1088,20 +1088,34 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 /// the Files picker can't be scripted: `SIMCTL_CHILD_RUPERT_TEST_FOLDER`
 /// adds a library folder, `…_RUPERT_TEST_INBOX` sets the inbox, and
 /// `…_RUPERT_TEST_JS` runs a script in the page once it has loaded.
+/// Android can't pass environment variables to an app, so there the same
+/// names come from `KEY=value` lines in `rupert-test.env` in the app's data
+/// folder (written with `adb shell run-as`).
 #[cfg(debug_assertions)]
 mod test_hooks {
     use super::*;
 
+    fn var(app: &tauri::App, name: &str) -> Option<String> {
+        if let Ok(value) = std::env::var(name) {
+            return Some(value);
+        }
+        let file = app.path().app_data_dir().ok()?.join("rupert-test.env");
+        let text = std::fs::read_to_string(file).ok()?;
+        text.lines()
+            .find_map(|line| line.strip_prefix(name)?.strip_prefix('='))
+            .map(str::to_owned)
+    }
+
     pub fn install(app: &tauri::App) {
         let state = app.state::<AppState>();
-        if let Ok(folder) = std::env::var("RUPERT_TEST_FOLDER") {
+        if let Some(folder) = var(app, "RUPERT_TEST_FOLDER") {
             let mut store = state.store.lock().unwrap();
             let known = store.sources().iter().any(|s| s.root == Path::new(&folder));
             if !known && let Err(e) = store.add(&folder, None) {
                 eprintln!("rupert: test folder: {e}");
             }
         }
-        if let Ok(folder) = std::env::var("RUPERT_TEST_INBOX") {
+        if let Some(folder) = var(app, "RUPERT_TEST_INBOX") {
             let mut saved = state.saved.lock().unwrap();
             saved.saved.inbox = Some(SavedFolder {
                 name: Path::new(&folder)
@@ -1112,7 +1126,7 @@ mod test_hooks {
                 bookmark: String::new(),
             });
         }
-        if let Ok(js) = std::env::var("RUPERT_TEST_JS") {
+        if let Some(js) = var(app, "RUPERT_TEST_JS") {
             let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(Duration::from_secs(4));

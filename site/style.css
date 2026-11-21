@@ -493,6 +493,11 @@ h2,
   box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.25);
 }
 
+/* Five platforms wrap on narrow phones: keep both rows centred. */
+.platforms {
+  justify-content: center;
+}
+
 .ticks {
   list-style: none;
   padding: 0;
@@ -661,7 +666,7 @@ h2,
 }
 
 /* The window (its frame drawn for each desktop platform) and the phone share
-   one spot: switching to iPhone shrinks the window away as the phone rises. */
+   one spot: switching to a phone shrinks the window away as the phone rises. */
 .device,
 .handset {
   grid-area: 1 / 1;
@@ -695,12 +700,35 @@ h2,
   box-shadow: var(--shadow);
 }
 
-.device-stage[data-platform="phone"] .device {
+/* Android phones: squarer corners and a punch-hole camera over the status bar. */
+.handset.android {
+  position: relative;
+}
+
+.handset.android img {
+  border-radius: clamp(18px, 5vw, 30px);
+}
+
+.handset.android::after {
+  content: "";
+  position: absolute;
+  top: 1.6%;
+  left: 50%;
+  width: 3.4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #1d1b19;
+  transform: translateX(-50%);
+}
+
+.device-stage[data-platform="phone"] .device,
+.device-stage[data-platform="android"] .device {
   opacity: 0;
   transform: scale(0.86);
 }
 
-.device-stage[data-platform="phone"] .handset {
+.device-stage[data-platform="phone"] .handset.iphone,
+.device-stage[data-platform="android"] .handset.android {
   opacity: 1;
   transform: none;
   transition-delay: 0.15s;
