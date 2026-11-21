@@ -39,7 +39,7 @@ AN INBOX THAT FILES ITSELF
 ASK RUPERT
 • Ask in plain words: "How much did the plumber charge in April?" or "Show my car insurance."
 • Rupert searches your library and answers from your own documents.
-• Uses Local AI on your Mac by default: a free app such as LM Studio or Ollama. You can choose Claude or ChatGPT instead; Rupert always shows when a cloud service is in use.
+• Uses Apple Intelligence on your Mac by default, or a free app such as LM Studio or Ollama. You can choose Claude or ChatGPT instead; Rupert always shows when a cloud service is in use.
 
 YOUR DOCUMENTS STAY YOURS
 • Titles, tags and dates are stored inside the PDFs (or in a small hidden file next to other kinds), so they go wherever the file goes and appear on your iPhone too.
@@ -67,7 +67,7 @@ Rupert organizes PDF documents in folders the user picks. No account is needed.
 
 To try it: click "Add a folder…" (or the + next to Sources) and choose any folder with PDF files. Rupert lists them; the search field finds them by name and by the text inside them. Gallery and Large icons (top right of a folder) show the pages.
 
-Inbox: Settings ▸ Inbox, choose a folder, then put a PDF in it. Rupert reads it and, if a Local AI app (a free app that runs language models on the Mac, such as LM Studio, lmstudio.ai, or Ollama, ollama.com) is running with a model, suggests a title, date, tags and folder; "File" moves it there. Without one the inbox still works, with the details entered by hand.
+Inbox: Settings ▸ Inbox, choose a folder, then put a PDF in it. Rupert reads it and suggests a title, date, tags and folder with Local AI: Apple Intelligence on a Mac that has it (the default there; macOS 26 or later with Apple Intelligence turned on), or a Local AI app (LM Studio, lmstudio.ai, or Ollama, ollama.com) running with a model; "File" moves it there. Without either, the inbox still works, with the details entered by hand.
 
 Ask Rupert (the speech bubble, bottom right) also uses Local AI by default; cloud models (Claude, ChatGPT) are optional in Settings ▸ Assistant and need the user's own key or account.
 

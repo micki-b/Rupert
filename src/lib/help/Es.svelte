@@ -429,7 +429,7 @@
     <p>
       <b>Con Apple Intelligence</b> (una Mac con Apple silicon y macOS 26 o posterior): no hay nada que instalar.
       Activá Apple Intelligence en <b>Configuración del Sistema ▸ Apple Intelligence y Siri</b>, y en Rupert elegí
-      <b>Apple Intelligence</b> en <b>Configuración ▸ IA local ▸ Servidor</b>. Responde en segundos y nada sale de la
+      <b>Apple Intelligence</b> en <b>Configuración ▸ IA local ▸ Servidor</b> (en una Mac así, Rupert empieza con él). Responde en segundos y nada sale de la
       Mac. Eso sí, es un modelo chico: uno más grande en LM Studio u Ollama archiva y responde mejor.
     </p>
   {/if}

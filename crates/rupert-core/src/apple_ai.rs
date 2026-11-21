@@ -66,6 +66,18 @@ impl Unavailable {
     }
 }
 
+impl Status {
+    /// This Mac can run Apple Intelligence, even if it's still turned off
+    /// or downloading its model (Settings then says what to do).
+    pub fn capable(&self) -> bool {
+        self.available
+            || matches!(
+                self.reason,
+                Some(Unavailable::AppleIntelligenceNotEnabled | Unavailable::ModelNotReady)
+            )
+    }
+}
+
 /// Whether Apple Intelligence can be used now. Cheap: asks the system, not
 /// the model.
 pub fn status() -> Status {
