@@ -13,7 +13,7 @@
     { id: "scansnap", title: "Moving from ScanSnap Home" },
     { id: "assistant", title: "Ask Rupert" },
     { id: "ai-models", title: "Setting up AI models" },
-    { id: "lm-studio", title: "LM Studio (on this computer)", sub: true },
+    { id: "local-ai", title: "Local AI (on this computer)", sub: true },
     { id: "claude", title: "Claude", sub: true },
     { id: "chatgpt-plan", title: "ChatGPT with your plan", sub: true },
     { id: "openai", title: "OpenAI-compatible services", sub: true },
@@ -58,8 +58,8 @@
       recognizes their text and suggests how to file them. See <a href="#inbox">The inbox</a>.
     </li>
     <li>
-      <strong>Set up LM Studio</strong> (optional) for filing suggestions and the chat assistant. See
-      <a href="#lm-studio">LM Studio</a>.
+      <strong>Set up Local AI</strong> (optional) for filing suggestions and the chat assistant, with LM Studio, Ollama
+      or a similar app. See <a href="#local-ai">Local AI</a>.
     </li>
   </ol>
   <div class="note">
@@ -242,15 +242,15 @@
       Turn it on or off in <b>Settings ▸ Text recognition</b>.
     </li>
     <li>
-      <b>Suggests a title, date, tags and folder</b>, using LM Studio on this computer, if it's running. Rupert suggests
-      folders where similar documents already are.
+      <b>Suggests a title, date, tags and folder</b>, using <a href="#local-ai">Local AI</a> (LM Studio, Ollama or a
+      similar app), if it's running. Rupert suggests folders where similar documents already are.
     </li>
     <li>Waits for you. Nothing moves until you say so.</li>
   </ol>
   <p>
     Click <b>Inbox</b> in the sidebar to review. Check the suggestion, change anything, and click <b>File</b>
     ({cmd}{mac ? "↩" : "Enter"}). Rupert writes the details into the file, renames it and moves it to the folder.
-    <b>Suggest again</b> asks LM Studio for a new suggestion.
+    <b>Suggest again</b> asks Local AI for a new suggestion.
   </p>
   <p>
     To get rid of a scan instead, click <b>{windows ? "Delete…" : "Move to Trash…"}</b> under the form, right-click
@@ -333,7 +333,7 @@
     reads the text Rupert already knows, so he never downloads online-only files.
   </p>
   <p>
-    By default he runs on LM Studio, on this computer. You can choose Claude or another cloud service instead: see
+    By default he runs on Local AI, on this computer. You can choose Claude or another cloud service instead: see
     <a href="#ai-models">Setting up AI models</a>.
   </p>
 </section>
@@ -347,12 +347,12 @@
     <tbody>
       <tr>
         <td>Inbox suggestions (title, date, tags, folder)</td>
-        <td>LM Studio on this computer, always</td>
-        <td><b>Settings ▸ Suggestions</b></td>
+        <td>Local AI, always (on this computer or your local network)</td>
+        <td><b>Settings ▸ Local AI</b> and <b>Suggestions</b></td>
       </tr>
       <tr>
         <td>Ask Rupert (the chat)</td>
-        <td>LM Studio by default, or a cloud model you choose</td>
+        <td>Local AI by default, or a cloud model you choose</td>
         <td><b>Settings ▸ Assistant</b></td>
       </tr>
     </tbody>
@@ -362,7 +362,10 @@
     <b>Model</b> menu picks one of three kinds of connection:
   </p>
   <ul>
-    <li><a href="#lm-studio"><b>LM Studio on this computer</b></a>: private and free, needs a capable computer.</li>
+    <li>
+      <a href="#local-ai"><b>Local AI</b></a> (LM Studio, Ollama or a similar app): private and free, needs a capable
+      computer.
+    </li>
     <li>
       <a href="#claude"><b>Claude (Anthropic, cloud)</b></a>: with an API key or your Anthropic account (a Max,
       Ultra or Team plan's monthly credits can pay for it).
@@ -379,34 +382,50 @@
     <b>☁ About privacy.</b> With a cloud model, your questions and what the assistant looks at (document titles, tags,
     folder names, and the text of documents it reads) are sent to that service. Whenever a cloud model is in use, the
     chat panel shows <span class="cloud">☁</span> and the model's name under “Ask Rupert”. Inbox suggestions and text
-    recognition stay on this computer either way.
+    recognition never use a cloud service.
   </div>
 </section>
 
-<!-- MARK: LM Studio -->
-<section id="lm-studio">
-  <h3 class="sub-h">LM Studio (on this computer)</h3>
+<!-- MARK: Local AI -->
+<section id="local-ai">
+  <h3 class="sub-h">Local AI (on this computer)</h3>
   <p>
-    <a href="https://lmstudio.ai">LM Studio</a> is a free app that runs AI models on your own computer. Nothing leaves
-    the computer. It works best on a Mac with Apple silicon and plenty of memory, or a PC with a recent graphics card.
+    Local AI runs a model on your own computer, so nothing goes to the internet. Rupert works with any app that offers an
+    OpenAI-compatible server. It's tested with <a href="https://lmstudio.ai">LM Studio</a> and
+    <a href="https://ollama.com">Ollama</a>; others, such as llama.cpp's <code>llama-server</code> or Jan, should work
+    too. Local AI works best on a Mac with Apple silicon and plenty of memory, or a PC with a recent graphics card.
   </p>
+  <p><b>With LM Studio:</b></p>
   <ol>
     <li>Install LM Studio from <a href="https://lmstudio.ai">lmstudio.ai</a> and open it.</li>
     <li>
       Download a model in LM Studio's search. For the assistant, choose one that supports <b>tool use</b> (LM Studio marks
       these); for example a recent Qwen model. Bigger models give better answers but are slower.
     </li>
+    <li>Start the local server: in LM Studio's <b>Developer</b> tab, switch the server on. Load your model there too.</li>
+  </ol>
+  <p><b>With Ollama:</b></p>
+  <ol>
+    <li>Install Ollama from <a href="https://ollama.com">ollama.com</a> and open it. It runs in the background.</li>
     <li>
-      Start the local server: in LM Studio's <b>Developer</b> tab, switch the server on. It listens at
-      <code>http://localhost:1234</code>. Load your model there too.
+      Download a model that supports <b>tools</b> (Ollama's model library marks these), for example in a terminal:
+      <code>ollama pull qwen3:4b</code>.
+    </li>
+  </ol>
+  <p><b>Then, in Rupert:</b></p>
+  <ol>
+    <li>
+      Open <b>Settings ▸ Local AI</b>. Under <b>Server</b>, choose LM Studio or Ollama, which fills in the
+      <b>Address</b> (<code>http://localhost:1234</code> or <code>http://localhost:11434</code>); for another server,
+      type its address. It should show <span class="ok">Connected</span>.
     </li>
     <li>
-      In Rupert, open <b>Settings ▸ Suggestions</b>. <b>Server</b> should say <code>http://localhost:1234</code> and show
-      <span class="ok">Connected</span>. Under <b>Model</b>, keep “The model loaded in LM Studio” or pick one.
+      Under <b>Model</b>, pick your model. “Automatic” takes the first model the server lists: with LM Studio that's the
+      loaded model, but Ollama lists every model you've downloaded, so pick one there.
     </li>
     <li>
-      In <b>Settings ▸ Assistant</b>, choose <b>LM Studio on this computer</b>. The assistant uses the same server and
-      model as the suggestions. Changes in Settings apply right away; click <b>Done</b> when you're finished.
+      In <b>Settings ▸ Assistant</b>, choose <b>Local AI</b>. The assistant uses the same server and model as the inbox
+      suggestions. Changes in Settings apply right away; click <b>Done</b> when you're finished.
     </li>
   </ol>
   <p class="tip">
@@ -414,9 +433,15 @@
     meanwhile, and stop the answer at any time.
   </p>
   <p class="tip">
-    LM Studio can run on another computer in your home, too: switch on its option to serve on the local network, and
-    enter that computer's address in <b>Server</b> (for example <code>http://192.168.1.20:1234</code>). Only do this on a
-    network you trust; the server has no password.
+    If answers stop short or the assistant loses track of what it read, give the model more room (its context length):
+    in Ollama's settings, or when you load the model in LM Studio.
+  </p>
+  <p class="tip">
+    The server can run on another computer in your home, too: let it serve on the local network (LM Studio's option to
+    serve on the local network, or Ollama's “Expose Ollama to the network”), and enter that computer's address, for
+    example <code>http://192.168.1.20:11434</code>. Only do this on a network you trust; these servers have no password.
+    Settings says where documents' text goes. An address outside your home network counts as a cloud service: Ask
+    Rupert shows <span class="cloud">☁</span>, and inbox suggestions don't use it.
   </p>
 </section>
 
@@ -558,8 +583,12 @@
     <thead><tr><th>Message or symptom</th><th>What to do</th></tr></thead>
     <tbody>
       <tr>
-        <td>“LM Studio isn't running, or has no model loaded.”</td>
-        <td>Open LM Studio, start its server and load a model. Settings ▸ Suggestions should say Connected.</td>
+        <td>“Local AI isn't running, or has no model.”</td>
+        <td>Open LM Studio or Ollama, start its server and make sure it has a model. Settings ▸ Local AI should say Connected.</td>
+      </tr>
+      <tr>
+        <td>“The model ran out of room before answering…”</td>
+        <td>A thinking model spent its room thinking. Choose a model that doesn't think, or thinks less.</td>
       </tr>
       <tr>
         <td>“Add an Anthropic API key…” or “Add an API key…”</td>
@@ -609,7 +638,7 @@
       </tr>
       <tr>
         <td>Very slow answers</td>
-        <td>Normal for big local models. Choose a smaller model in LM Studio, or a cloud model.</td>
+        <td>Normal for big local models. Choose a smaller model in Settings ▸ Local AI, or a cloud model.</td>
       </tr>
     </tbody>
   </table>

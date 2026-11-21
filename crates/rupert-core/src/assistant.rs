@@ -2,9 +2,9 @@
 //! using a language model with tools.
 //!
 //! Backends:
-//! - **OpenAI-compatible chat completions**: LM Studio on this computer
-//!   (the default; nothing leaves the machine) or a cloud endpoint with an
-//!   API key.
+//! - **OpenAI-compatible chat completions**: Local AI (LM Studio,
+//!   Ollama, … on this computer or the local network; the default) or a
+//!   cloud endpoint with an API key.
 //! - **Anthropic's Messages API** over HTTP (there is no official Rust SDK),
 //!   with an API key or an OAuth token from the `ant` CLI login.
 //!

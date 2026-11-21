@@ -246,18 +246,18 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "nothing to import; review the import first",
         "Nichts zu importieren; prüfen Sie zuerst den Import",
     ),
-    // MARK: - LM Studio and Ask Rupert
+    // MARK: - Local AI and Ask Rupert
     (
-        "LM Studio has no chat model",
-        "LM Studio hat kein Chat-Modell",
+        "The Local AI server has no chat model",
+        "Der Server für lokale KI hat kein Chat-Modell",
     ),
     (
-        "LM Studio answered oddly: {0}",
-        "LM Studio hat unerwartet geantwortet: {0}",
+        "The Local AI server answered oddly: {0}",
+        "Der Server für lokale KI hat unerwartet geantwortet: {0}",
     ),
     (
-        "LM Studio isn't reachable ({0})",
-        "LM Studio ist nicht erreichbar ({0})",
+        "The Local AI server isn't reachable ({0})",
+        "Der Server für lokale KI ist nicht erreichbar ({0})",
     ),
     (
         "the model didn't answer with JSON",
@@ -349,12 +349,12 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     ("Not signed in", "Nicht angemeldet"),
     (
-        "LM Studio isn't running, or has no model loaded.",
-        "LM Studio läuft nicht oder hat kein Modell geladen.",
+        "Local AI isn't running, or has no model.",
+        "Die lokale KI läuft nicht oder hat kein Modell.",
     ),
     (
-        "LM Studio has no model loaded.",
-        "LM Studio hat kein Modell geladen.",
+        "The Local AI server has no model.",
+        "Der Server für lokale KI hat kein Modell.",
     ),
     (
         "Add an Anthropic API key in Settings ▸ Assistant.",
@@ -375,6 +375,17 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("ChatGPT plan · {0}", "ChatGPT-Abo · {0}"),
     ("ChatGPT plan", "ChatGPT-Abo"),
     ("Cloud · {0}", "Cloud · {0}"),
+    ("Local AI", "Lokale KI"),
+    ("Local AI on {0}", "Lokale KI auf {0}"),
+    ("AI at {0}", "KI bei {0}"),
+    (
+        "The model ran out of room before answering (thinking models can). Choose a model that doesn't think, or thinks less.",
+        "Dem Modell ging vor der Antwort der Platz aus (das kann bei Modellen passieren, die nachdenken). Wählen Sie ein Modell, das nicht oder weniger nachdenkt.",
+    ),
+    (
+        "Suggestions only use a Local AI server on this computer or your local network.",
+        "Vorschläge verwenden nur einen Server für lokale KI auf diesem Computer oder in Ihrem lokalen Netzwerk.",
+    ),
     ("Cloud (no model chosen)", "Cloud (kein Modell gewählt)"),
     (
         "I couldn't finish that in a reasonable number of steps.",

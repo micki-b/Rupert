@@ -233,18 +233,18 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "nothing to import; review the import first",
         "no hay nada para importar; revisá la importación primero",
     ),
-    // MARK: - LM Studio and Ask Rupert
+    // MARK: - Local AI and Ask Rupert
     (
-        "LM Studio has no chat model",
-        "LM Studio no tiene un modelo de chat",
+        "The Local AI server has no chat model",
+        "El servidor de IA local no tiene un modelo de chat",
     ),
     (
-        "LM Studio answered oddly: {0}",
-        "LM Studio respondió algo raro: {0}",
+        "The Local AI server answered oddly: {0}",
+        "El servidor de IA local respondió algo raro: {0}",
     ),
     (
-        "LM Studio isn't reachable ({0})",
-        "no se puede conectar con LM Studio ({0})",
+        "The Local AI server isn't reachable ({0})",
+        "No se puede conectar con el servidor de IA local ({0})",
     ),
     (
         "the model didn't answer with JSON",
@@ -336,12 +336,12 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     ("Not signed in", "No se inició sesión"),
     (
-        "LM Studio isn't running, or has no model loaded.",
-        "LM Studio no está abierto, o no tiene ningún modelo cargado.",
+        "Local AI isn't running, or has no model.",
+        "La IA local no está funcionando, o no tiene ningún modelo.",
     ),
     (
-        "LM Studio has no model loaded.",
-        "LM Studio no tiene ningún modelo cargado.",
+        "The Local AI server has no model.",
+        "El servidor de IA local no tiene ningún modelo.",
     ),
     (
         "Add an Anthropic API key in Settings ▸ Assistant.",
@@ -362,6 +362,17 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("ChatGPT plan · {0}", "Plan de ChatGPT · {0}"),
     ("ChatGPT plan", "Plan de ChatGPT"),
     ("Cloud · {0}", "Nube · {0}"),
+    ("Local AI", "IA local"),
+    ("Local AI on {0}", "IA local en {0}"),
+    ("AI at {0}", "IA en {0}"),
+    (
+        "The model ran out of room before answering (thinking models can). Choose a model that doesn't think, or thinks less.",
+        "El modelo se quedó sin espacio antes de responder (les pasa a los modelos que razonan). Elegí un modelo que no razone, o que razone menos.",
+    ),
+    (
+        "Suggestions only use a Local AI server on this computer or your local network.",
+        "Las sugerencias solo usan un servidor de IA local en esta computadora o en tu red local.",
+    ),
     ("Cloud (no model chosen)", "Nube (sin modelo elegido)"),
     (
         "I couldn't finish that in a reasonable number of steps.",

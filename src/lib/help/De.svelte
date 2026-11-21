@@ -13,7 +13,7 @@
     { id: "scansnap", title: "Umstieg von ScanSnap Home" },
     { id: "assistant", title: "Rupert fragen" },
     { id: "ai-models", title: "KI-Modelle einrichten" },
-    { id: "lm-studio", title: "LM Studio (auf diesem Computer)", sub: true },
+    { id: "local-ai", title: "Lokale KI (auf diesem Computer)", sub: true },
     { id: "claude", title: "Claude", sub: true },
     { id: "chatgpt-plan", title: "ChatGPT mit Ihrem Abo", sub: true },
     { id: "openai", title: "OpenAI-kompatible Dienste", sub: true },
@@ -61,8 +61,8 @@
       <a href="#inbox">Der Eingang</a>.
     </li>
     <li>
-      <strong>Richten Sie LM Studio ein</strong> (optional), für Ablagevorschläge und den Assistenten. Siehe
-      <a href="#lm-studio">LM Studio</a>.
+      <strong>Richten Sie lokale KI ein</strong> (optional), für Ablagevorschläge und den Assistenten, mit LM Studio,
+      Ollama oder einer ähnlichen App. Siehe <a href="#local-ai">Lokale KI</a>.
     </li>
   </ol>
   <div class="note">
@@ -266,15 +266,15 @@
         : "mit Tesseract, falls installiert"}). Ein- und ausschalten unter <b>Einstellungen ▸ Texterkennung</b>.
     </li>
     <li>
-      <b>Es schlägt Titel, Datum, Tags und Ordner vor</b>, mit LM Studio auf diesem Computer, sofern es läuft. Rupert
-      schlägt Ordner vor, in denen bereits ähnliche Dokumente liegen.
+      <b>Es schlägt Titel, Datum, Tags und Ordner vor</b>, mit <a href="#local-ai">lokaler KI</a> (LM Studio, Ollama oder
+      einer ähnlichen App), sofern sie läuft. Rupert schlägt Ordner vor, in denen bereits ähnliche Dokumente liegen.
     </li>
     <li>Es wartet auf Sie. Nichts wird bewegt, bevor Sie es sagen.</li>
   </ol>
   <p>
     Klicken Sie in der Seitenleiste auf <b>Eingang</b>, um zu prüfen. Sehen Sie sich den Vorschlag an, ändern Sie, was
     Sie möchten, und klicken Sie auf <b>Ablegen</b> ({cmd}{mac ? "↩" : "Enter"}). Rupert schreibt die Angaben in die
-    Datei, benennt sie um und bewegt sie in den Ordner. <b>Neu vorschlagen</b> bittet LM Studio um einen neuen Vorschlag.
+    Datei, benennt sie um und bewegt sie in den Ordner. <b>Neu vorschlagen</b> bittet die lokale KI um einen neuen Vorschlag.
   </p>
   <p>
     Um einen Scan stattdessen loszuwerden, klicken Sie unter dem Formular auf
@@ -362,7 +362,7 @@
     liest nur den Text, den Rupert bereits kennt, und lädt daher nie Dateien herunter, die nur online verfügbar sind.
   </p>
   <p>
-    Standardmäßig läuft er mit LM Studio auf diesem Computer. Stattdessen können Sie Claude oder einen anderen
+    Standardmäßig läuft er mit lokaler KI auf diesem Computer. Stattdessen können Sie Claude oder einen anderen
     Cloud-Dienst wählen: siehe <a href="#ai-models">KI-Modelle einrichten</a>.
   </p>
   <p class="tip">Wenn Rupert Deutsch spricht, trägt die Eule Lederhosen.</p>
@@ -377,12 +377,12 @@
     <tbody>
       <tr>
         <td>Vorschläge im Eingang (Titel, Datum, Tags, Ordner)</td>
-        <td>LM Studio auf diesem Computer, immer</td>
-        <td><b>Einstellungen ▸ Vorschläge</b></td>
+        <td>Lokale KI, immer (auf diesem Computer oder in Ihrem lokalen Netzwerk)</td>
+        <td><b>Einstellungen ▸ Lokale KI</b> und <b>Vorschläge</b></td>
       </tr>
       <tr>
         <td>Rupert fragen (der Chat)</td>
-        <td>Standardmäßig LM Studio, oder ein Cloud-Modell Ihrer Wahl</td>
+        <td>Standardmäßig lokale KI, oder ein Cloud-Modell Ihrer Wahl</td>
         <td><b>Einstellungen ▸ Assistent</b></td>
       </tr>
     </tbody>
@@ -393,8 +393,8 @@
   </p>
   <ul>
     <li>
-      <a href="#lm-studio"><b>LM Studio auf diesem Computer</b></a>: privat und kostenlos, braucht einen leistungsfähigen
-      Computer.
+      <a href="#local-ai"><b>Lokale KI</b></a> (LM Studio, Ollama oder eine ähnliche App): privat und kostenlos, braucht
+      einen leistungsfähigen Computer.
     </li>
     <li>
       <a href="#claude"><b>Claude (Anthropic, Cloud)</b></a>: mit einem API-Schlüssel oder Ihrem Anthropic-Konto (die
@@ -413,18 +413,21 @@
     <b>☁ Zum Datenschutz.</b> Mit einem Cloud-Modell werden Ihre Fragen und das, was der Assistent ansieht (Titel, Tags,
     Ordnernamen und der Text gelesener Dokumente), an diesen Dienst gesendet. Sobald ein Cloud-Modell verwendet wird, zeigt
     der Chat <span class="cloud">☁</span> und den Namen des Modells unter „Rupert fragen“. Vorschläge im Eingang und die
-    Texterkennung bleiben in jedem Fall auf diesem Computer.
+    Texterkennung verwenden nie einen Cloud-Dienst.
   </div>
 </section>
 
-<!-- MARK: LM Studio -->
-<section id="lm-studio">
-  <h3 class="sub-h">LM Studio (auf diesem Computer)</h3>
+<!-- MARK: Lokale KI -->
+<section id="local-ai">
+  <h3 class="sub-h">Lokale KI (auf diesem Computer)</h3>
   <p>
-    <a href="https://lmstudio.ai">LM Studio</a> ist eine kostenlose App, die KI-Modelle auf Ihrem eigenen Computer
-    ausführt. Nichts verlässt den Computer. Am besten läuft es auf einem Mac mit Apple-Chip und viel Arbeitsspeicher
-    oder auf einem PC mit aktueller Grafikkarte.
+    Lokale KI führt ein Modell auf Ihrem eigenen Computer aus, sodass nichts ins Internet geht. Rupert funktioniert mit
+    jeder App, die einen OpenAI-kompatiblen Server anbietet. Getestet ist er mit
+    <a href="https://lmstudio.ai">LM Studio</a> und <a href="https://ollama.com">Ollama</a>; andere, etwa
+    <code>llama-server</code> von llama.cpp oder Jan, sollten ebenfalls funktionieren. Lokale KI läuft am besten auf einem
+    Mac mit Apple-Chip und viel Arbeitsspeicher oder auf einem PC mit einer aktuellen Grafikkarte.
   </p>
+  <p><b>Mit LM Studio:</b></p>
   <ol>
     <li>Installieren Sie LM Studio von <a href="https://lmstudio.ai">lmstudio.ai</a> und öffnen Sie es.</li>
     <li>
@@ -433,28 +436,53 @@
       besser, sind aber langsamer.
     </li>
     <li>
-      Starten Sie den lokalen Server: Schalten Sie ihn im Bereich <b>Developer</b> von LM Studio ein. Er lauscht unter
-      <code>http://localhost:1234</code>. Laden Sie dort auch Ihr Modell.
+      Starten Sie den lokalen Server: Schalten Sie ihn im Bereich <b>Developer</b> von LM Studio ein. Laden Sie dort
+      auch Ihr Modell.
+    </li>
+  </ol>
+  <p><b>Mit Ollama:</b></p>
+  <ol>
+    <li>
+      Installieren Sie Ollama von <a href="https://ollama.com">ollama.com</a> und öffnen Sie es. Es läuft im Hintergrund.
     </li>
     <li>
-      Öffnen Sie in Rupert <b>Einstellungen ▸ Vorschläge</b>. Unter <b>Server</b> sollte
-      <code>http://localhost:1234</code> stehen und <span class="ok">Verbunden</span> erscheinen. Unter <b>Modell</b>
-      lassen Sie „Das in LM Studio geladene Modell“ stehen oder wählen eines aus.
+      Laden Sie ein Modell, das <b>Werkzeuge</b> unterstützt (die Modellbibliothek von Ollama kennzeichnet diese), zum
+      Beispiel in einem Terminal: <code>ollama pull qwen3:4b</code>.
+    </li>
+  </ol>
+  <p><b>Dann in Rupert:</b></p>
+  <ol>
+    <li>
+      Öffnen Sie <b>Einstellungen ▸ Lokale KI</b>. Wählen Sie unter <b>Server</b> LM Studio oder Ollama; damit wird die
+      <b>Adresse</b> ausgefüllt (<code>http://localhost:1234</code> oder <code>http://localhost:11434</code>). Für einen
+      anderen Server geben Sie seine Adresse ein. Dort sollte <span class="ok">Verbunden</span> stehen.
     </li>
     <li>
-      Wählen Sie unter <b>Einstellungen ▸ Assistent</b> die Option <b>LM Studio auf diesem Computer</b>. Der Assistent
-      verwendet denselben Server und dasselbe Modell wie die Vorschläge. Änderungen in den Einstellungen gelten sofort.
+      Wählen Sie unter <b>Modell</b> Ihr Modell. „Automatisch“ nimmt das erste Modell, das der Server auflistet: Bei LM
+      Studio ist das das geladene Modell, Ollama listet dagegen alle heruntergeladenen Modelle auf. Wählen Sie dort also
+      eines aus.
+    </li>
+    <li>
+      Wählen Sie unter <b>Einstellungen ▸ Assistent</b> die Option <b>Lokale KI</b>. Der Assistent verwendet denselben
+      Server und dasselbe Modell wie die Vorschläge im Eingang. Änderungen in den Einstellungen gelten sofort; klicken Sie
+      auf <b>Fertig</b>, wenn Sie fertig sind.
     </li>
   </ol>
   <p class="tip">
-    Lokale Modelle lassen sich Zeit: Eine Frage kann ein bis zwei Minuten dauern, meist mit Nachdenken. Sie können
-    Rupert währenddessen weiter verwenden und die Antwort jederzeit stoppen.
+    Lokale Modelle brauchen Zeit: Eine Frage kann ein bis zwei Minuten dauern, meist zum Nachdenken. Sie können Rupert
+    währenddessen weiter verwenden und die Antwort jederzeit abbrechen.
   </p>
   <p class="tip">
-    LM Studio kann auch auf einem anderen Computer bei Ihnen zu Hause laufen: Schalten Sie seine Option zum Bereitstellen
-    im lokalen Netzwerk ein und tragen Sie die Adresse dieses Computers unter <b>Server</b> ein (zum Beispiel
-    <code>http://192.168.1.20:1234</code>). Tun Sie das nur in einem vertrauenswürdigen Netzwerk; der Server hat kein
-    Passwort.
+    Wenn Antworten abbrechen oder der Assistent den Überblick über Gelesenes verliert, geben Sie dem Modell mehr Platz
+    (seine Kontextlänge): in den Einstellungen von Ollama oder beim Laden des Modells in LM Studio.
+  </p>
+  <p class="tip">
+    Der Server kann auch auf einem anderen Computer bei Ihnen zu Hause laufen: Lassen Sie ihn im lokalen Netzwerk
+    bereitstellen (die entsprechende Option in LM Studio oder „Expose Ollama to the network“ in Ollama) und geben Sie die
+    Adresse dieses Computers ein, zum Beispiel <code>http://192.168.1.20:11434</code>. Tun Sie das nur in einem Netzwerk,
+    dem Sie vertrauen; diese Server haben kein Passwort. Die Einstellungen zeigen, wohin der Text von Dokumenten geht. Eine
+    Adresse außerhalb Ihres Heimnetzwerks gilt als Cloud-Dienst: „Rupert fragen“ zeigt <span class="cloud">☁</span>, und
+    Vorschläge im Eingang verwenden sie nicht.
   </p>
 </section>
 
@@ -607,10 +635,17 @@
     <thead><tr><th>Meldung oder Anzeichen</th><th>Was zu tun ist</th></tr></thead>
     <tbody>
       <tr>
-        <td>„LM Studio läuft nicht oder hat kein Modell geladen.“</td>
+        <td>„Die lokale KI läuft nicht oder hat kein Modell.“</td>
         <td>
-          Öffnen Sie LM Studio, starten Sie seinen Server und laden Sie ein Modell. Unter Einstellungen ▸ Vorschläge
-          sollte Verbunden stehen.
+          Öffnen Sie LM Studio oder Ollama, starten Sie den Server und sorgen Sie dafür, dass er ein Modell hat. Unter
+          Einstellungen ▸ Lokale KI sollte Verbunden stehen.
+        </td>
+      </tr>
+      <tr>
+        <td>„Dem Modell ging vor der Antwort der Platz aus …“</td>
+        <td>
+          Ein Modell, das nachdenkt, hat seinen Platz mit Nachdenken verbraucht. Wählen Sie ein Modell, das nicht oder
+          weniger nachdenkt.
         </td>
       </tr>
       <tr>
@@ -668,7 +703,7 @@
       </tr>
       <tr>
         <td>Sehr langsame Antworten</td>
-        <td>Bei großen lokalen Modellen normal. Wählen Sie ein kleineres Modell in LM Studio oder ein Cloud-Modell.</td>
+        <td>Bei großen lokalen Modellen normal. Wählen Sie unter Einstellungen ▸ Lokale KI ein kleineres Modell oder ein Cloud-Modell.</td>
       </tr>
     </tbody>
   </table>

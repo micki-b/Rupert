@@ -24,11 +24,15 @@ pub struct Settings {
     pub inbox: Option<InboxLocation>,
     /// Add a text layer to scans in the inbox.
     pub ocr: bool,
-    /// Ask LM Studio for a title, date, tags and folder.
+    /// Ask Local AI for a title, date, tags and folder.
     pub suggestions: bool,
-    pub lm_studio_url: String,
-    /// `None` = whichever chat model LM Studio lists first.
-    pub lm_studio_model: Option<String>,
+    /// Local AI: an OpenAI-compatible server on this computer or the local
+    /// network (LM Studio, Ollama, …). Saved as `lmStudioUrl` up to 0.3.
+    #[serde(alias = "lmStudioUrl")]
+    pub local_url: String,
+    /// `None` = whichever chat model the server lists first.
+    #[serde(alias = "lmStudioModel")]
+    pub local_model: Option<String>,
     /// How filed documents are named: `{date}` and `{title}` are replaced.
     pub name_pattern: String,
     /// The chat assistant. (API keys are kept in the system's keychain,
@@ -44,7 +48,7 @@ pub struct Settings {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AssistantProvider {
-    /// LM Studio on this computer (the LM Studio settings above).
+    /// Local AI (the server and model above).
     #[default]
     Local,
     /// Claude, through Anthropic's API.
@@ -61,7 +65,7 @@ pub enum AssistantProvider {
 pub struct AssistantSettings {
     pub provider: AssistantProvider,
     /// Model for a cloud provider (`None`: Anthropic's default; required
-    /// for OpenAI-compatible services). The local one uses LM Studio's.
+    /// for OpenAI-compatible services). Local AI uses `local_model`.
     pub model: Option<String>,
     /// OpenAI-compatible service address (`None`: OpenAI's).
     pub base_url: Option<String>,
@@ -75,8 +79,8 @@ impl Default for Settings {
             inbox: None,
             ocr: true,
             suggestions: true,
-            lm_studio_url: llm::DEFAULT_URL.into(),
-            lm_studio_model: None,
+            local_url: llm::DEFAULT_URL.into(),
+            local_model: None,
             name_pattern: "{date} {title}".into(),
             assistant: AssistantSettings::default(),
             check_updates: true,
@@ -170,5 +174,14 @@ mod tests {
         let loaded = SettingsStore::load(&path).unwrap();
         assert!(!loaded.get().ocr);
         assert_eq!(loaded.get().name_pattern, "{date} {title}");
+        // Files from before Local AI keep their server and model.
+        fs::write(
+            &path,
+            r#"{"lmStudioUrl": "http://localhost:11434", "lmStudioModel": "qwen3:4b"}"#,
+        )
+        .unwrap();
+        let loaded = SettingsStore::load(&path).unwrap();
+        assert_eq!(loaded.get().local_url, "http://localhost:11434");
+        assert_eq!(loaded.get().local_model.as_deref(), Some("qwen3:4b"));
     }
 }

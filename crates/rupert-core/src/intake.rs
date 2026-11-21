@@ -5,7 +5,7 @@
 //! 1. **OCR:** PDFs with pages that have no text get an invisible text
 //!    layer ([`crate::ocr`]). Scanned images get their text recognized into
 //!    their sidecar, so they can be searched too.
-//! 2. **Suggestion:** LM Studio proposes a title, document date, tags and
+//! 2. **Suggestion:** Local AI proposes a title, document date, tags and
 //!    one of the folders where similar documents already live
 //!    ([`crate::llm`]).
 //!
@@ -28,7 +28,7 @@ use crate::fileops;
 use crate::i18n::{tr, trf};
 use crate::index::Index;
 use crate::listing::{CloudState, cloud_state, list_dir, relative, resolve};
-use crate::llm::{self, LmStudio, Suggestion};
+use crate::llm::{self, LocalAi, Reach, Suggestion};
 use crate::meta::{self, DocMeta};
 use crate::ocr::{self, Engine};
 use crate::settings::Settings;
@@ -82,7 +82,7 @@ pub struct IntakeItem {
     pub suggested_folder: Option<FolderChoice>,
     /// Folders where similar documents are filed, best first.
     pub folders: Vec<FolderChoice>,
-    /// Problems worth showing (e.g. LM Studio not running).
+    /// Problems worth showing (e.g. Local AI not running).
     pub note: Option<String>,
 }
 
@@ -418,7 +418,14 @@ impl Worker {
         });
         let mut folders = Vec::new();
         let mut suggestion = None;
-        if self.settings.suggestions && !text.trim().is_empty() {
+        let elsewhere = llm::reach(&self.settings.local_url) == Reach::Elsewhere;
+        if self.settings.suggestions && elsewhere {
+            // Inbox suggestions never use a cloud service.
+            notes.push(
+                tr("Suggestions only use a Local AI server on this computer or your local network.")
+                    .into(),
+            );
+        } else if self.settings.suggestions && !text.trim().is_empty() {
             self.update(index, |i| {
                 i.stage = Stage::Suggesting;
                 i.progress = None;
@@ -428,9 +435,9 @@ impl Worker {
             let tags = Index::open(&self.index_path)
                 .and_then(|i| i.top_tags(150))
                 .unwrap_or_default();
-            let lm = LmStudio {
-                url: self.settings.lm_studio_url.clone(),
-                model: self.settings.lm_studio_model.clone(),
+            let lm = LocalAi {
+                url: self.settings.local_url.clone(),
+                model: self.settings.local_model.clone(),
             };
             let year = crate::pdf_meta::utc_today()[..4].to_string();
             let req = llm::Request {
@@ -701,7 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn inbox_lists_and_processes_without_lm_studio() {
+    fn inbox_lists_and_processes_without_local_ai() {
         let dir = tempfile::tempdir().unwrap();
         fs::create_dir_all(dir.path().join("Scans")).unwrap();
         fs::write(dir.path().join("Scans/note.txt"), "Harbor invoice").unwrap();
@@ -719,7 +726,7 @@ mod tests {
                 source_id: "s".into(),
                 rel_path: "Scans".into(),
             }),
-            lm_studio_url: "http://127.0.0.1:9".into(), // nothing listens here
+            local_url: "http://127.0.0.1:9".into(), // nothing listens here
             ..Default::default()
         };
         handle.configure(settings.clone(), vec![source(dir.path())]);
@@ -730,7 +737,7 @@ mod tests {
                 let item = &items[0];
                 assert_eq!(item.rel_path, "Scans/note.txt");
                 assert!(
-                    item.note.as_deref().unwrap_or("").contains("LM Studio"),
+                    item.note.as_deref().unwrap_or("").contains("Local AI"),
                     "{item:?}"
                 );
                 break;

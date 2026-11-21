@@ -1,5 +1,5 @@
 // One-time setup of the capture copy: the sample library as a source, its
-// Inbox folder as the inbox, suggestions and the assistant on LM Studio.
+// Inbox folder as the inbox, suggestions and the assistant on Local AI (LM Studio, the default address).
 try {
   let src = (await T.invoke("list_sources")).find((s) => s.name === "Home Documents");
   if (!src) src = await T.invoke("add_source", { path: "__LIB__/Home Documents" });

@@ -12,7 +12,7 @@ Screenshots come from the iOS Simulator (iPhone 17 Pro Max for `large/`, scaled 
 
 ## Mac (`../macos/`)
 
-Needs: Google Chrome (renders images), ffmpeg, LM Studio running with a model (inbox suggestions and Ask Rupert), and Screen Recording permission for the terminal (System Settings ▸ Privacy & Security). The recorder captures only Rupert's window, even under other windows.
+Needs: Google Chrome (renders images), ffmpeg, Local AI running with a model (LM Studio at its default address; inbox suggestions and Ask Rupert), and Screen Recording permission for the terminal (System Settings ▸ Privacy & Security). The recorder captures only Rupert's window, even under other windows.
 
 1. **Capture copy** of Rupert: the App Store feature set, the test identifier (its own data, separate from your Rupert), titled "Rupert", light mode, with the debug test hooks:
 
@@ -32,7 +32,7 @@ Needs: Google Chrome (renders images), ffmpeg, LM Studio running with a model (i
    cp -p docs/app-store/tools/inbox-scans/*.pdf "$RUPERT_MEDIA_LIB/Home Documents/Inbox/"
    ```
 
-3. **Set up once** (adds the library, sets the inbox and LM Studio, waits for the suggestions):
+3. **Set up once** (adds the library, sets the inbox and Local AI, waits for the suggestions):
 
    ```sh
    T=docs/app-store/tools/mac

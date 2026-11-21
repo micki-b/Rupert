@@ -1,10 +1,13 @@
-//! Filing suggestions from a local model in LM Studio (its OpenAI-compatible
-//! server, `http://localhost:1234` by default). Nothing leaves the machine;
-//! if LM Studio isn't running, suggestions are simply unavailable.
+//! Filing suggestions from Local AI: a model on an OpenAI-compatible server
+//! on this computer or the local network (LM Studio at
+//! `http://localhost:1234` by default; Ollama, llama.cpp's `llama-server`
+//! and others speak the same API). Nothing goes to the internet: an address
+//! elsewhere is refused ([`reach`]). If the server isn't running,
+//! suggestions are simply unavailable.
 //!
 //! The model gets the document's text (the start of it), its file name,
 //! the folders where similar documents already live, and the tags already
-//! in use, and answers with JSON matching a schema (LM Studio enforces it).
+//! in use, and answers with JSON matching a schema (the server enforces it).
 
 use std::time::Duration;
 
@@ -15,6 +18,7 @@ use crate::error::{Error, Result};
 use crate::i18n::{tr, trf};
 use crate::meta::is_iso_date;
 
+/// LM Studio's server, the default.
 pub const DEFAULT_URL: &str = "http://localhost:1234";
 /// Characters of document text sent to the model.
 const MAX_TEXT: usize = 6000;
@@ -49,16 +53,92 @@ pub struct Suggestion {
     pub model: String,
 }
 
+// MARK: - Where the server is
+
+/// Where a Local AI address points, judged from the address alone (no DNS
+/// lookup, so the answer is predictable and nothing is sent anywhere).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Reach {
+    /// `localhost` or a loopback address.
+    ThisComputer,
+    /// A private, link-local or shared (e.g. Tailscale) address, or a name
+    /// only the local network knows (`studio`, `mac-mini.local`, `*.lan`).
+    LocalNetwork,
+    /// Anywhere else: treated like a cloud service.
+    Elsewhere,
+}
+
+/// Where `url` points. Unparseable addresses count as elsewhere.
+pub fn reach(url: &str) -> Reach {
+    use std::net::IpAddr;
+    let Some(host) = host(url) else {
+        return Reach::Elsewhere;
+    };
+    if let Ok(ip) = host
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .parse::<IpAddr>()
+    {
+        return match ip {
+            IpAddr::V4(v4) if v4.is_loopback() => Reach::ThisComputer,
+            IpAddr::V4(v4)
+                if v4.is_private()
+                    || v4.is_link_local()
+                    // 100.64.0.0/10, shared address space (Tailscale).
+                    || (v4.octets()[0] == 100 && (v4.octets()[1] & 0xc0) == 64) =>
+            {
+                Reach::LocalNetwork
+            }
+            IpAddr::V6(v6) if v6.is_loopback() => Reach::ThisComputer,
+            IpAddr::V6(v6)
+                if (v6.segments()[0] & 0xfe00) == 0xfc00 // unique local
+                    || (v6.segments()[0] & 0xffc0) == 0xfe80 =>
+            // link-local
+            {
+                Reach::LocalNetwork
+            }
+            _ => Reach::Elsewhere,
+        };
+    }
+    let host = host.to_ascii_lowercase();
+    if host == "localhost" || host.ends_with(".localhost") {
+        Reach::ThisComputer
+    } else if !host.contains('.')
+        || [".local", ".lan", ".home.arpa", ".internal"]
+            .iter()
+            .any(|s| host.ends_with(s))
+    {
+        Reach::LocalNetwork
+    } else {
+        Reach::Elsewhere
+    }
+}
+
+/// The host part of an address (`http://host:port/path` → `host`).
+pub fn host(url: &str) -> Option<&str> {
+    let rest = url.trim().split_once("://").map_or(url.trim(), |(_, r)| r);
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let authority = authority.rsplit_once('@').map_or(authority, |(_, a)| a);
+    let host = if authority.starts_with('[') {
+        &authority[..=authority.find(']')?]
+    } else {
+        authority.split(':').next()?
+    };
+    (!host.is_empty()).then_some(host)
+}
+
 // MARK: - Client
 
 #[derive(Debug, Clone)]
-pub struct LmStudio {
+pub struct LocalAi {
     pub url: String,
-    /// `None` = the first chat model LM Studio lists (normally the loaded one).
+    /// `None` = the first chat model the server lists (LM Studio lists the
+    /// loaded one first; Ollama lists every installed model).
     pub model: Option<String>,
 }
 
-impl LmStudio {
+impl LocalAi {
     fn agent(timeout: Duration) -> ureq::Agent {
         ureq::Agent::config_builder()
             .timeout_global(Some(timeout))
@@ -70,7 +150,7 @@ impl LmStudio {
         format!("{}/v1/{path}", self.url.trim_end_matches('/'))
     }
 
-    /// Chat models LM Studio offers (embedding models left out). Fails fast
+    /// Chat models the server offers (embedding models left out). Fails fast
     /// when it isn't running.
     pub fn models(&self) -> Result<Vec<String>> {
         #[derive(Deserialize)]
@@ -100,16 +180,16 @@ impl LmStudio {
     pub fn suggest(&self, req: &Request) -> Result<Suggestion> {
         let model = match &self.model {
             Some(m) => m.clone(),
-            None => self
-                .models()?
-                .into_iter()
-                .next()
-                .ok_or_else(|| Error::InvalidValue(tr("LM Studio has no chat model").into()))?,
+            None => self.models()?.into_iter().next().ok_or_else(|| {
+                Error::InvalidValue(tr("The Local AI server has no chat model").into())
+            })?,
         };
         let body = json!({
             "model": model,
             "temperature": 0.1,
-            "max_tokens": 4000,
+            // Room for thinking models, which can spend thousands of
+            // tokens before the answer.
+            "max_tokens": 8000,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt(req)},
@@ -126,11 +206,12 @@ impl LmStudio {
         #[derive(Deserialize)]
         struct Choice {
             message: Message,
+            finish_reason: Option<String>,
         }
         #[derive(Deserialize)]
         struct Message {
             content: Option<String>,
-            // Reasoning models: LM Studio may put the (schema-constrained)
+            // Reasoning models: the server may put the (schema-constrained)
             // answer here and leave `content` empty.
             reasoning_content: Option<String>,
             reasoning: Option<String>,
@@ -141,9 +222,15 @@ impl LmStudio {
             .map_err(unreachable)?
             .body_mut()
             .read_json()
-            .map_err(|e| Error::InvalidValue(trf("LM Studio answered oddly: {0}", &[&e])))?;
-        let message = reply.choices.into_iter().next().map(|c| c.message);
-        let content = message
+            .map_err(|e| {
+                Error::InvalidValue(trf("The Local AI server answered oddly: {0}", &[&e]))
+            })?;
+        let choice = reply.choices.into_iter().next();
+        let ran_out = choice
+            .as_ref()
+            .is_some_and(|c| c.finish_reason.as_deref() == Some("length"));
+        let content = choice
+            .map(|c| c.message)
             .map(|m| {
                 [m.content, m.reasoning_content, m.reasoning]
                     .into_iter()
@@ -152,12 +239,17 @@ impl LmStudio {
                     .unwrap_or_default()
             })
             .unwrap_or_default();
+        if ran_out && !content.contains('{') {
+            return Err(Error::InvalidValue(
+                tr("The model ran out of room before answering (thinking models can). Choose a model that doesn't think, or thinks less.").into(),
+            ));
+        }
         parse(&content, req, model)
     }
 }
 
 fn unreachable(e: impl std::fmt::Display) -> Error {
-    Error::InvalidValue(trf("LM Studio isn't reachable ({0})", &[&e]))
+    Error::InvalidValue(trf("The Local AI server isn't reachable ({0})", &[&e]))
 }
 
 // MARK: - Prompt
@@ -312,8 +404,36 @@ mod tests {
     }
 
     #[test]
+    fn tells_where_a_server_is() {
+        use Reach::*;
+        for (url, want) in [
+            ("http://localhost:1234", ThisComputer),
+            ("http://127.0.0.1:11434/", ThisComputer),
+            ("http://[::1]:8080", ThisComputer),
+            ("localhost:1234", ThisComputer),
+            ("http://192.168.1.20:1234", LocalNetwork),
+            ("http://10.0.0.5", LocalNetwork),
+            ("http://172.20.1.1:11434", LocalNetwork),
+            ("http://100.101.102.103:11434", LocalNetwork),
+            ("http://[fd12:3456::1]:1234", LocalNetwork),
+            ("http://mac-mini.local:11434", LocalNetwork),
+            ("http://studio:1234", LocalNetwork),
+            ("http://user@nas.lan:8080/v1", LocalNetwork),
+            ("http://172.32.0.1", Elsewhere),
+            ("http://100.128.0.1", Elsewhere),
+            ("https://api.example.com", Elsewhere),
+            ("http://8.8.8.8:1234", Elsewhere),
+            ("", Elsewhere),
+        ] {
+            assert_eq!(reach(url), want, "{url}");
+        }
+        assert_eq!(host("http://[::1]:8080/v1"), Some("[::1]"));
+        assert_eq!(host("https://example.com/v1?x"), Some("example.com"));
+    }
+
+    #[test]
     fn unreachable_server_fails_fast() {
-        let lm = LmStudio {
+        let lm = LocalAi {
             url: "http://127.0.0.1:9".into(),
             model: None,
         };

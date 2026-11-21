@@ -7,7 +7,7 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 1. **The folders on disk are the library.** Rupert never owns files. Anything done in Finder, Explorer, a shell or a sync client shows up in Rupert, and anything done in Rupert is a normal file operation.
 2. **Metadata travels with the document.** Titles, tags, dates and notes live inside the file wherever the format allows, so another machine, another copy of Rupert, or another program can read them.
 3. **Rupert's database is disposable.** The local index is a cache that can be deleted and rebuilt from disk at any time.
-4. **Nothing private leaves the machine.** OCR and AI classification run locally (AI through LM Studio).
+4. **Nothing private leaves the machine.** OCR and AI classification run locally (AI through Local AI: an OpenAI-compatible server such as LM Studio or Ollama, on this computer or the local network).
 
 ## Decisions so far
 
@@ -22,8 +22,8 @@ Rupert is a librarian for scanned documents (mainly PDFs) on macOS, Windows and 
 | Metadata | Embedded in the file by default; hidden sidecar for formats that can't hold it. |
 | Organization | Folders + tags (one document, many tags). |
 | Search | Full-text search across all documents. |
-| Auto-naming / filing | Yes, using only a local model via LM Studio. |
-| Chat assistant | Local LM Studio by default; a cloud model (Claude, or OpenAI-compatible) only if the user picks one (decided 2026-11-18). |
+| Auto-naming / filing | Yes, using only a local model (Local AI: LM Studio, Ollama, …; generalized from LM Studio-only in #26). |
+| Chat assistant | Local AI by default; a cloud model (Claude, or OpenAI-compatible) only if the user picks one (decided 2026-11-18). |
 | Page editing | Out of scope (no rotate/reorder/merge/split). |
 | File operations | Rename/move change the real file right away; delete goes to the system Trash / Recycle Bin (built: right-click ▸ Move to Trash, ⌘⌫ / Delete), taking the sidecar along. Moving is built: drag onto a folder, or right-click ▸ Move to…. |
 | Migration | Import from ScanSnap Home. |
@@ -107,17 +107,17 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 ## Chat assistant (desktop)
 
 - A chat button in the lower right (⌘J) opens "Ask Rupert": find documents, answer questions about them, and show things in the window ("open the Boat folder", "show everything tagged Taxes and 2025").
-- **Engine** (`assistant.rs`): one tool loop for two API shapes: OpenAI-compatible chat completions (LM Studio locally, or a cloud service with an API key) and Anthropic's Messages API over HTTP (no official Rust SDK). At most 8 tool rounds per message; a failed request leaves the conversation as it was.
+- **Engine** (`assistant.rs`): one tool loop for two API shapes: OpenAI-compatible chat completions (Local AI, or a cloud service with an API key) and Anthropic's Messages API over HTTP (no official Rust SDK). At most 8 tool rounds per message; a failed request leaves the conversation as it was.
 - **Tools, read-only:** search (text, tags any/all, favorites), list tags, sources and favorite folders, list a folder, read a document's indexed text (from the index: nothing is downloaded), and three window requests (open folder, show document, show results) that the UI carries out. The assistant can't change files; it says so.
 - **Models (Settings ▸ Assistant):**
-  - **LM Studio** (default): the server and model from the inbox settings; nothing leaves the computer. Tested with Qwen 3.6 35B: search, read and show all worked, slowly (a minute or two per question, mostly the model's reasoning).
+  - **Local AI** (default): the server and model from Settings ▸ Local AI; nothing goes to the internet. An address outside this computer and the local network (`llm::reach`) counts as cloud: ☁ in the panel. Tested with Qwen 3.6 35B: search, read and show all worked, slowly (a minute or two per question, mostly the model's reasoning).
   - **Claude:** default `claude-opus-5-5`, adaptive thinking, and server-side refusal fallbacks (`fallbacks: "default"`); assistant turns are echoed back unchanged (thinking included), except reasoning before a fallback boundary, as the API requires. Sign-in with an API key, or with the user's Anthropic account through the `ant` CLI (`ant auth login`, then a short-lived token per message).
   - **OpenAI-compatible service:** address, model and API key.
   - **ChatGPT, with the user's plan** ("Sign in with ChatGPT" plan usage for local and open-source apps, OpenAI preview, added 2026-11-18; `chatgpt.rs`): OAuth with PKCE as a public client, registered dynamically on first sign-in (`client_id=dynamic_agent_client` → an issued `oaiapp_…` id), a per-computer `ext_agent_host_id`, the browser returning to a one-time listener on `127.0.0.1` (port 1455, else any). The ID token's claims are checked (issuer, audience, nonce, the `chatgpt.tokens.use.direct` scope); its signature isn't, since it comes straight from the token endpoint over TLS (OpenID Connect Core 3.1.3.7). Credentials (access token 1 h, rotating 30-day refresh token) are one keychain entry. Requests use the Responses API with `store: false` and `stream: true` (both required), `instructions` for the system prompt, the whole conversation in `input` each time (reasoning items echoed with their encrypted content; other items without ids), function tools; plan-limit errors (`subscription_sharing_*`) get plain messages.
   - **Claude subscriptions** can't be used by other apps (Anthropic's terms); Max, Ultra and Team plans include monthly API credits that Rupert's Claude options spend once linked to a Console organization. The help explains it.
   - **HTTPS:** until 2026-11-18 the desktop build's `ureq` had no TLS (only the phone enabled `rustls`), so the cloud options above failed with "TLS required"; `rustls` is now always on.
   - API keys are kept in the system keychain (`keyring`), never in `settings.json`.
-- **Privacy:** with a cloud model, the question and whatever the tools return (titles, tags, folder names, the text of documents the model reads) go to that service. The panel shows "☁" and the model name whenever a cloud model is active, the first screen says what is sent, and Settings repeats it. Inbox suggestions and OCR stay on LM Studio and the local OCR engine regardless.
+- **Privacy:** with a cloud model, the question and whatever the tools return (titles, tags, folder names, the text of documents the model reads) go to that service. The panel shows "☁" and the model name whenever a cloud model is active, the first screen says what is sent, and Settings repeats it. Inbox suggestions and OCR stay on Local AI and the local OCR engine regardless.
 
 ## Views and deleting (desktop)
 
@@ -135,7 +135,7 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 - **Sandbox:** access only to folders the user picked. Each source keeps a **security-scoped bookmark** (`bookmark.rs`, `Source::bookmark`, base64 in `sources.json`): made right after the pick, opened at every launch before watching and indexing (`SourceStore::open_bookmarks`, which also follows moved folders and quietly adds bookmarks to older sources, in both editions). A source that can't be opened shows **Allow access…** (macOS) / **Locate…** (elsewhere), a folder picker at its old place (`relocate_source`). The inbox lives inside a source; the ScanSnap import asks for ScanSnap Home's "Managed" folder (its automatic lookup points into the container); "Add as source" from the import goes through the folder picker.
 - **Gated off in that edition:** the self-updater (the App Store updates it) and the `ant` command sign-in (a sandboxed app can't run other programs); Claude with an API key works. `app_info` reports the edition; the window hides what's absent.
 - **macOS packaging (both editions):** PDFium ships in `Contents/Frameworks` (`tauri.macos.conf.json`), where it's signed with the app; in Resources it wasn't, and notarization refused it.
-- **To verify in the sandbox:** freeing iCloud/OneDrive space after indexing, Move to Trash, file watching, LM Studio, network scanners, the ChatGPT sign-in's local listener.
+- **To verify in the sandbox:** freeing iCloud/OneDrive space after indexing, Move to Trash, file watching, Local AI, network scanners, the ChatGPT sign-in's local listener.
 
 ## Favorite folders
 
@@ -153,7 +153,7 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 
 ### Pipeline
 
-Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, document date, tags and destination folder → user reviews and accepts → file is renamed, metadata written, file moved. **Built in milestone 4.**
+Inbox folder → OCR if the PDF has no text layer → Local AI suggests title, document date, tags and destination folder → user reviews and accepts → file is renamed, metadata written, file moved. **Built in milestone 4.**
 
 - **Inbox:** a folder inside one of the sources (Settings; e.g. the folder a ScanSnap Home profile saves to). A background thread (`intake.rs`) processes new files one at a time and caches the results by size and modification time in the app's data folder, so nothing is redone after a restart.
 - **OCR** (`ocr.rs`, `text_layer.rs`) adds an invisible text layer to every PDF page without text, so other programs can search it too. Scanned images get their recognized text in their sidecar instead.
@@ -164,7 +164,7 @@ Inbox folder → OCR if the PDF has no text layer → LM Studio suggests title, 
   - If the text layer still can't be written, the recognized text goes into the sidecar (searchable) and the suggestion uses it.
   - Written as an incremental update like metadata, checked before writing (the updated file must parse and PDFium must read back ≥ 90 % of the words). Tested on real ScanSnap scans: original bytes intact, pages render identically, text found by PDFKit, PDFium and Poppler, selection boxes line up with the printed words.
   - PDFium can be loaded once per process and is then tied to its thread, so it lives on one service thread (`text.rs`); the indexer and the intake share a handle.
-- **LM Studio** (`llm.rs`) via its OpenAI-compatible server on `localhost:1234`, with a JSON schema for the answer. If it isn't running, the review simply has no suggestion.
+- **Local AI** (`llm.rs`): any OpenAI-compatible server (`/v1/models`, `/v1/chat/completions` with a JSON schema for the answer). LM Studio on `localhost:1234` is the default; Ollama (`localhost:11434`) is tested too, and Settings offers both as presets. If it isn't running, the review simply has no suggestion. Suggestions are refused for an address outside this computer and the local network (`llm::reach`, judged from the address alone, no DNS), since inbox suggestions never use a cloud service. `max_tokens` is 8000 because thinking models can spend thousands of tokens before answering; a reply cut off before any JSON gets its own message. Settings were `lmStudioUrl`/`lmStudioModel` up to 0.3 and are still read under those names.
   - The model sees the start of the text, the file name, the current year (not today's date, which models copy as the document date), the tags in use, and up to 12 **folders where similar documents live** — found by a full-text OR query of the document's most telling words against the index — so the prompt stays small even with 1,200+ folders. It may only pick one of those folders.
   - Some reasoning models return the JSON in `reasoning_content` instead of `content`; both are read.
   - With qwen3.6-35b-a3b: 1–5 s per document; titles, dates and folders were right on 7 of 8 real scans.

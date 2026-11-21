@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 mdns-sd = { version = "0.22.0", default-features = false }
 png = "0.18.1"
-# rustls: the assistant's cloud models are HTTPS (LM Studio and scanners stay plain HTTP).
+# rustls: the assistant's cloud models are HTTPS (Local AI and scanners stay plain HTTP).
 ureq = { version = "3.4.0", default-features = false, features = ["json", "rustls"] }
 flate2 = "1.1.11"
 lopdf = "0.47.0"

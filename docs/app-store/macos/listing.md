@@ -39,7 +39,7 @@ AN INBOX THAT FILES ITSELF
 ASK RUPERT
 • Ask in plain words: "How much did the plumber charge in April?" or "Show my car insurance."
 • Rupert searches your library and answers from your own documents.
-• Uses a model on your Mac through LM Studio by default. You can choose Claude or ChatGPT instead; Rupert always shows when a cloud service is in use.
+• Uses Local AI on your Mac by default: a free app such as LM Studio or Ollama. You can choose Claude or ChatGPT instead; Rupert always shows when a cloud service is in use.
 
 YOUR DOCUMENTS STAY YOURS
 • Titles, tags and dates are stored inside the PDFs (or in a small hidden file next to other kinds), so they go wherever the file goes and appear on your iPhone too.
@@ -51,7 +51,7 @@ Rupert is free and open source.
 
 ## Keywords [100]
 
-`scanner,documents,pdf,search,ocr,receipts,paperless,files,inbox,filing,archive,tags,lm studio,scan`
+`scanner,documents,pdf,search,ocr,receipts,paperless,files,inbox,filing,archive,tags,lm studio,ollama`
 
 ## URLs and copyright
 
@@ -67,9 +67,9 @@ Rupert organizes PDF documents in folders the user picks. No account is needed.
 
 To try it: click "Add a folder…" (or the + next to Sources) and choose any folder with PDF files. Rupert lists them; the search field finds them by name and by the text inside them. Gallery and Large icons (top right of a folder) show the pages.
 
-Inbox: Settings ▸ Inbox, choose a folder, then put a PDF in it. Rupert reads it and, if LM Studio (a free app that runs language models on the Mac, lmstudio.ai) is running with a model loaded, suggests a title, date, tags and folder; "File" moves it there. Without LM Studio the inbox still works, with the details entered by hand.
+Inbox: Settings ▸ Inbox, choose a folder, then put a PDF in it. Rupert reads it and, if a Local AI app (a free app that runs language models on the Mac, such as LM Studio, lmstudio.ai, or Ollama, ollama.com) is running with a model, suggests a title, date, tags and folder; "File" moves it there. Without one the inbox still works, with the details entered by hand.
 
-Ask Rupert (the speech bubble, bottom right) also uses LM Studio by default; cloud models (Claude, ChatGPT) are optional in Settings ▸ Assistant and need the user's own key or account.
+Ask Rupert (the speech bubble, bottom right) also uses Local AI by default; cloud models (Claude, ChatGPT) are optional in Settings ▸ Assistant and need the user's own key or account.
 
 Network server entitlement (com.apple.security.network.server): Rupert receives incoming connections in two places. (1) Scanning from network scanners (File ▸ Scan…): Rupert finds AirScan/eSCL scanners with Bonjour (mDNS), which binds UDP port 5353 and receives the scanners' multicast replies. (2) "Sign in with ChatGPT…" (Settings ▸ Assistant ▸ ChatGPT, with your plan): OpenAI's sign-in redirects the browser to http://127.0.0.1:1455/auth/callback, so Rupert listens on the loopback address for that one request and stops listening right after. Nothing else in the app accepts incoming connections.
 

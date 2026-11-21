@@ -1,7 +1,7 @@
 <script lang="ts">
   // The chat assistant, lower right: ask for documents or tell it what to
-  // show. Uses the model chosen in Settings ▸ Assistant (LM Studio on this
-  // computer by default; a cloud model only when chosen there).
+  // show. Uses the model chosen in Settings ▸ Assistant (Local AI by default;
+  // a cloud model only when chosen there).
   import { onMount, tick } from "svelte";
   import { api, onAssistantStep, type AssistantAction, type AssistantInfo, type AssistantStep } from "#lib/api.ts";
   import Icon from "#lib/Icon.svelte";
