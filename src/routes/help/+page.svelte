@@ -5,11 +5,11 @@
   import { onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { invoke } from "@tauri-apps/api/core";
-  import { editionLabel, type AppInfo } from "$lib/api";
-  import { currentLang, m } from "$lib/i18n";
-  import HelpEn, { sections as enSections } from "$lib/help/En.svelte";
-  import HelpEs, { sections as esSections } from "$lib/help/Es.svelte";
-  import HelpDe, { sections as deSections } from "$lib/help/De.svelte";
+  import { editionLabel, type AppInfo } from "#lib/api.ts";
+  import { currentLang, m } from "#lib/i18n/index.ts";
+  import HelpEn, { sections as enSections } from "#lib/help/En.svelte";
+  import HelpEs, { sections as esSections } from "#lib/help/Es.svelte";
+  import HelpDe, { sections as deSections } from "#lib/help/De.svelte";
 
   /** Each language's complete help, with the same section ids. */
   const helps = {

@@ -3,10 +3,10 @@
   // show. Uses the model chosen in Settings ▸ Assistant (LM Studio on this
   // computer by default; a cloud model only when chosen there).
   import { onMount, tick } from "svelte";
-  import { api, onAssistantStep, type AssistantAction, type AssistantInfo, type AssistantStep } from "$lib/api";
-  import Icon from "$lib/Icon.svelte";
-  import RupertOwl, { type OwlMood } from "$lib/RupertOwl.svelte";
-  import { m } from "$lib/i18n";
+  import { api, onAssistantStep, type AssistantAction, type AssistantInfo, type AssistantStep } from "#lib/api.ts";
+  import Icon from "#lib/Icon.svelte";
+  import RupertOwl, { type OwlMood } from "#lib/RupertOwl.svelte";
+  import { m } from "#lib/i18n/index.ts";
 
   let { onaction, onsettings }: { onaction: (a: AssistantAction) => void; onsettings: () => void } = $props();
 

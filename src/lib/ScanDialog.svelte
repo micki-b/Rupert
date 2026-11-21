@@ -11,8 +11,8 @@
     type ScanDone,
     type ScanRequest,
     type Scanner,
-  } from "$lib/api";
-  import { m } from "$lib/i18n";
+  } from "#lib/api.ts";
+  import { m } from "#lib/i18n/index.ts";
 
   let {
     hasInbox,

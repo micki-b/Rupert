@@ -7,7 +7,7 @@
   import Icon from "./Icon.svelte";
   import FolderNode from "./FolderNode.svelte";
   import { dropTarget, isDropOver, type MoveItem } from "./drag.svelte";
-  import { m } from "$lib/i18n";
+  import { m } from "#lib/i18n/index.ts";
 
   interface Props {
     sourceId: string;

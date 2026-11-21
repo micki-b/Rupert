@@ -3,14 +3,14 @@
   // gallery (the selected document large, with its pages to flip through,
   // and a filmstrip below). The list view stays in the page itself.
   import { tick } from "svelte";
-  import Icon from "$lib/Icon.svelte";
-  import Thumb, { thumbUrl } from "$lib/Thumb.svelte";
-  import MarkdownView from "$lib/MarkdownView.svelte";
-  import { isMarkdown } from "$lib/markdown";
-  import { api, type ListedEntry } from "$lib/api";
-  import { formatDate } from "$lib/format";
-  import { dragSource, dropTarget, isDropOver, type MoveItem } from "$lib/drag.svelte";
-  import { m } from "$lib/i18n";
+  import Icon from "#lib/Icon.svelte";
+  import Thumb, { thumbUrl } from "#lib/Thumb.svelte";
+  import MarkdownView from "#lib/MarkdownView.svelte";
+  import { isMarkdown } from "#lib/markdown.ts";
+  import { api, type ListedEntry } from "#lib/api.ts";
+  import { formatDate } from "#lib/format.ts";
+  import { dragSource, dropTarget, isDropOver, type MoveItem } from "#lib/drag.svelte.ts";
+  import { m } from "#lib/i18n/index.ts";
 
   let {
     mode,

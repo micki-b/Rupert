@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { m } from "$lib/i18n";
+import { m } from "#lib/i18n/index.ts";
 
 export type Provider = "local" | "icloud" | "onedrive" | "googledrive" | "dropbox";
 export type FileKind = "pdf" | "image" | "office" | "text" | "email" | "other";

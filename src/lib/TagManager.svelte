@@ -12,8 +12,8 @@
     type TagEdit,
     type TagEditPreview,
     type TagEditReport,
-  } from "$lib/api";
-  import { m } from "$lib/i18n";
+  } from "#lib/api.ts";
+  import { m } from "#lib/i18n/index.ts";
 
   let { onclose, onchanged }: { onclose: () => void; onchanged: () => void } = $props();
 

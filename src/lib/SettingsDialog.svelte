@@ -3,10 +3,10 @@
   // and the chat assistant's model.
   import { onMount, tick } from "svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
-  import Icon from "$lib/Icon.svelte";
-  import { updates } from "$lib/updates.svelte";
-  import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "$lib/api";
-  import { LANGS, languageNames, loadLanguage, m, type Lang } from "$lib/i18n";
+  import Icon from "#lib/Icon.svelte";
+  import { updates } from "#lib/updates.svelte.ts";
+  import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "#lib/api.ts";
+  import { LANGS, languageNames, loadLanguage, m, type Lang } from "#lib/i18n/index.ts";
 
   let {
     sources,

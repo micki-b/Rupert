@@ -1,5 +1,5 @@
-import { locale, m } from "$lib/i18n";
-import type { FileKind } from "$lib/api";
+import { locale, m } from "#lib/i18n/index.ts";
+import type { FileKind } from "#lib/api.ts";
 
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

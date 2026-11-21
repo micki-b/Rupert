@@ -3,7 +3,7 @@
   // its sidecar, so it only happens when the user presses Save.
   import { api, type DocMeta, type Entry, type MetaRecord } from "./api";
   import Icon from "./Icon.svelte";
-  import { m } from "$lib/i18n";
+  import { m } from "#lib/i18n/index.ts";
 
   let { sourceId, entry }: { sourceId: string; entry: Entry } = $props();
 

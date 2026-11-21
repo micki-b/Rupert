@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Updated the screens' framework to SvelteKit 3. This closes five security alerts in SvelteKit's server features, which Rupert doesn't use (it has no server).
+
 ## 0.3.0 — 2026-11-20
 
 - **Rupert speaks Spanish** (Rioplatense, as in Argentina): the screens, menus, messages and help, on the computer and on the iPhone. Rupert follows the system's language; **Settings ▸ Language** can choose another. Ask Rupert answers in the language you write in.

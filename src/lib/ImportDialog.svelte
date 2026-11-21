@@ -11,8 +11,8 @@
     type ImportReport,
     type ImportSummary,
     type Source,
-  } from "$lib/api";
-  import { m, num } from "$lib/i18n";
+  } from "#lib/api.ts";
+  import { m, num } from "#lib/i18n/index.ts";
 
   let {
     sources,
