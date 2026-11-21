@@ -88,6 +88,7 @@
           <button role="tab" data-platform="win" aria-selected="false">Windows</button>
           <button role="tab" data-platform="linux" aria-selected="false">Linux</button>
           <button role="tab" data-platform="phone" aria-selected="false">iPhone</button>
+          <button role="tab" data-platform="android" aria-selected="false">Android</button>
         </div>
         <div class="device-stage" data-platform="mac">
           <div class="device">
@@ -102,15 +103,20 @@
               <img src="{{img}}/app-library-light.png" alt="{{t.every.altDesktop}}" width="1440" height="872" />
             </picture>
           </div>
-          <picture class="handset">
+          <picture class="handset iphone">
             <source srcset="{{img}}/phone-folder-dark.png" media="(prefers-color-scheme: dark)" />
             <img src="{{img}}/phone-folder-light.png" alt="{{t.every.altPhone}}" width="603" height="1311" />
+          </picture>
+          <picture class="handset android">
+            <source srcset="{{img}}/android-folder-dark.png" media="(prefers-color-scheme: dark)" />
+            <img src="{{img}}/android-folder-light.png" alt="{{t.every.altAndroid}}" width="603" height="1340" loading="lazy" />
           </picture>
         </div>
         <p class="platform-note" data-note="mac">{{t.every.note.mac}}</p>
         <p class="platform-note" data-note="win" hidden>{{t.every.note.win}}</p>
         <p class="platform-note" data-note="linux" hidden>{{t.every.note.linux}}</p>
         <p class="platform-note" data-note="phone" hidden>{{t.every.note.phone}}</p>
+        <p class="platform-note" data-note="android" hidden>{{t.every.note.android}}</p>
       </section>
 
       <!-- MARK: Scan with the phone -->

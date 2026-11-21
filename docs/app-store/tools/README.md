@@ -33,6 +33,25 @@ Screenshots and App Previews come from the iOS Simulator ("Rupert Media", an iPh
 
 5. Delete the simulator's app afterwards if you like (`xcrun simctl uninstall "Rupert Media" io.github.micki-b.rupert`); its data is only the sample library.
 
+## Android (website screenshots)
+
+The website's Android screens (`site/img/<lang>/android-folder-{light,dark}.png`, 603 × 1340) come from the "Rupert Pixel" emulator and a debug build. Android can't pass environment variables to an app, so the debug test hooks read the same names from `rupert-test.env` in the app's data folder.
+
+1. Catalog a copy of the sample library: `CATALOG=1 target/release/examples/index_check src-tauri/pdfium "<copy>/Home Documents" /tmp/index.db`.
+2. Install the debug APK, then `adb shell pm clear io.github.micki_b.rupert`. This wipes the app's sign-ins on the emulator.
+3. Copy the library in through `/data/local/tmp` and `run-as`:
+   - put it at `/data/user/0/io.github.micki_b.rupert/files/Home Documents`;
+   - write `rupert-test.env` with `RUPERT_TEST_FOLDER=…/files/Home Documents` and `RUPERT_TEST_INBOX=…/files/Home Documents/Inbox`.
+4. Clean status bar: `adb shell settings put global sysui_demo_allowed 1`, then `am broadcast -a com.android.systemui.demo -e command …`:
+   - `enter`;
+   - `clock -e hhmm 0941`;
+   - `network -e mobile hide`;
+   - `notifications -e visible false`.
+5. Open Home Documents ▸ Insurance and take `adb exec-out screencap -p` shots:
+   - switch dark mode with `adb shell cmd uimode night yes|no`;
+   - switch the language in Settings ▸ Language;
+   - scale the shots to 1340 px high (`sips -Z 1340`).
+
 ## Mac (`../macos/`)
 
 Needs: Google Chrome (renders images), ffmpeg, Local AI running with a model (LM Studio at its default address; inbox suggestions and Ask Rupert), and Screen Recording permission for the terminal (System Settings ▸ Privacy & Security). The recorder captures only Rupert's window, even under other windows.
