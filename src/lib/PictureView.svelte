@@ -6,6 +6,8 @@
   import Icon from "#lib/Icon.svelte";
   import Thumb, { thumbUrl } from "#lib/Thumb.svelte";
   import MarkdownView from "#lib/MarkdownView.svelte";
+  import DocStar from "#lib/DocStar.svelte";
+  import CloudBadge from "#lib/CloudBadge.svelte";
   import { isMarkdown } from "#lib/markdown.ts";
   import { api, type ListedEntry } from "#lib/api.ts";
   import { formatDate } from "#lib/format.ts";
@@ -21,6 +23,8 @@
     onactivate,
     onmenu,
     onmove,
+    onstar,
+    ondownload,
   }: {
     mode: "icons" | "gallery";
     sourceId: string;
@@ -31,6 +35,10 @@
     onmenu: (e: ListedEntry, ev: MouseEvent) => void;
     /** Moves a dropped document or folder into a folder here. */
     onmove: (item: MoveItem, sourceId: string, relPath: string) => void;
+    /** Stars or unstars a document (its star was clicked). */
+    onstar: (e: ListedEntry) => void;
+    /** Downloads an online-only document (its cloud was clicked). */
+    ondownload: (e: ListedEntry) => void;
   } = $props();
 
   let strip: HTMLDivElement | undefined = $state();
@@ -119,6 +127,7 @@
 {#if mode === "icons"}
   <div class="grid" bind:this={grid}>
     {#each entries as e (e.relPath)}
+      <div class="tile-wrap doc-host" class:selected={e.relPath === selectedRelPath}>
       <button
         class="tile"
         class:selected={e.relPath === selectedRelPath}
@@ -136,12 +145,19 @@
           {:else}
             <Thumb {sourceId} entry={e} side={320} iconSize={48} />
           {/if}
-          {#if e.cloud === "cloudOnly"}
-            <span class="badge" title={m.pictures.onlineOnlyBadge}><Icon name="cloud" size={13} /></span>
-          {/if}
         </span>
-        <span class="label">{#if e.favorite}<span class="fav">★</span>{/if}{e.name}</span>
+        <span class="label">{e.name}</span>
       </button>
+      <!-- Over the picture, outside the tile's button (buttons can't hold buttons). -->
+      <span class="pic-marks">
+        {#if !e.isDir}
+          <span class="star"><DocStar {sourceId} doc={e} round onclick={() => onstar(e)} /></span>
+        {/if}
+        {#if e.cloud === "cloudOnly"}
+          <span class="badge"><CloudBadge {sourceId} doc={e} size={13} round onclick={() => ondownload(e)} /></span>
+        {/if}
+      </span>
+      </div>
     {/each}
   </div>
 {:else}
@@ -170,8 +186,12 @@
             </button>
           {/if}
         </div>
-        <div class="caption">
-          <strong>{#if current.favorite}<span class="fav">★</span>{/if}{current.title ?? current.name}</strong>
+        <div class="caption doc-host selected">
+          <strong class="cap-title">
+            {#if !current.isDir}<DocStar {sourceId} doc={current} onclick={() => onstar(current!)} />{/if}
+            <span>{current.title ?? current.name}</span>
+            {#if current.cloud === "cloudOnly"}<CloudBadge {sourceId} doc={current} onclick={() => ondownload(current!)} />{/if}
+          </strong>
           <span class="muted">
             {#if current.title}{current.name} · {/if}{current.documentDate ?? formatDate(current.modifiedMs)}
             {#if pages && pages > 1}· {m.pictures.pageOf(page + 1, pages)}{/if}
@@ -245,18 +265,36 @@
     border: 1px solid var(--border);
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
   }
-  .badge {
+  .tile-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .tile-wrap > .tile {
+    flex: 1;
+  }
+  /* The picture's place in the tile (8px padding, 110 × 140, centered). */
+  .pic-marks {
     position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 110px;
+    height: 140px;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .pic-marks > span {
+    position: absolute;
+    pointer-events: auto;
+  }
+  .pic-marks .star {
+    top: 2px;
+    right: 2px;
+  }
+  .pic-marks .badge {
     right: 2px;
     bottom: 2px;
-    display: grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--bg);
-    color: var(--cloud);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
   }
   .label {
     max-width: 100%;
@@ -270,11 +308,6 @@
     -webkit-box-orient: vertical;
     overflow-wrap: anywhere;
   }
-  .fav {
-    color: #d9a520;
-    margin-right: 3px;
-  }
-
   /* MARK: Gallery */
   .gallery {
     flex: 1;
@@ -355,6 +388,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .cap-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
   .caption .muted {
     font-size: 12px;

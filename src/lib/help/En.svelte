@@ -145,7 +145,8 @@
   <p>
     iCloud Drive, OneDrive and Google Drive can keep files in the cloud only, to save space. Rupert shows them with a cloud icon
     <span class="cloud">☁</span> and never opens them on its own, because opening one downloads it. You can still find
-    them by name and by the details Rupert knows about them, and opening one downloads it as usual.
+    them by name and by the details Rupert knows about them, and opening one downloads it as usual. Click the cloud to
+    download just that file: Rupert then reads its text, and the file stays on the computer.
   </p>
   <p>
     On Windows, Google Drive set to <b>Stream files</b> doesn't tell other apps which files are on the computer, so
@@ -186,8 +187,10 @@
   <p>The tag filter combines with the search text and with Favorites. Click a chip's × above the list to remove it.</p>
   <h3>Favorites</h3>
   <p>
-    Mark a document with the ☆ in its details. Mark a folder with the ☆ next to its path above the document list.
-    <b>Favorites</b> in the sidebar lists both. Favorites are saved with the files, so they show up on your other
+    Click the ☆ on a document to make it a favorite. It shows when you point at a document in the list, the icons or
+    the search results, and always in its details and in the gallery; favorites keep a ★. Click the ★ to remove it.
+    Removing the star from an online-only PDF downloads it, because the star is stored inside the file. Mark a folder
+    with the ☆ next to its path above the document list. <b>Favorites</b> in the sidebar lists both. Favorites are saved with the files, so they show up on your other
     computers and on the iPhone.
   </p>
 </section>

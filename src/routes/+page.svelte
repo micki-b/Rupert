@@ -45,6 +45,9 @@
   import SettingsDialog from "#lib/SettingsDialog.svelte";
   import MetaEditor from "#lib/MetaEditor.svelte";
   import PictureView from "#lib/PictureView.svelte";
+  import DocStar from "#lib/DocStar.svelte";
+  import CloudBadge from "#lib/CloudBadge.svelte";
+  import * as docActions from "#lib/doc-actions.svelte.ts";
   import MarkdownReader from "#lib/MarkdownReader.svelte";
   import { isMarkdown } from "#lib/markdown.ts";
   import { checkNowAndThen, updates } from "#lib/updates.svelte.ts";
@@ -579,6 +582,14 @@
 
   /** Moves a document (with its details) or a folder into another folder,
    * in this source or another. Resolves to whether it worked. */
+  // The star and the cloud on a document in a list.
+  function starDoc(sourceId: string, e: Entry & { favorite?: boolean }) {
+    run(() => docActions.toggleFavorite(sourceId, e));
+  }
+  function downloadDoc(sourceId: string, e: Entry) {
+    run(() => docActions.download(sourceId, e));
+  }
+
   async function moveItem(item: MoveItem, destSourceId: string, destDir: string): Promise<boolean> {
     const done = await run(async () => {
       await api.moveEntry(item.sourceId, item.entry.relPath, destSourceId, destDir);
@@ -847,7 +858,7 @@
       </p>
       <ul class="results">
         {#each hits as h (h.sourceId + "\n" + h.relPath)}
-          <li>
+          <li class="doc-host" class:selected={selected?.sourceId === h.sourceId && selected?.entry.relPath === h.relPath}>
             <button
               class="result"
               class:selected={selected?.sourceId === h.sourceId && selected?.entry.relPath === h.relPath}
@@ -858,12 +869,8 @@
             >
               <div class="r-title">
                 <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
-                {#if h.favorite}<span class="fav">★</span>{/if}
                 <strong>{h.title ?? h.name}</strong>
                 {#if h.title}<span class="muted r-name">{h.name}</span>{/if}
-                {#if h.cloud === "cloudOnly"}
-                  <span class="cloud" title={m.main.onlineOnly}><Icon name="cloud" size={13} /></span>
-                {/if}
               </div>
               {#if h.snippet}
                 <div class="snippet">
@@ -876,6 +883,11 @@
                 {@render tagChips(h.tags)}
               </div>
             </button>
+            <!-- Beside the result's button (buttons can't hold buttons). -->
+            <span class="r-marks">
+              {#if h.cloud === "cloudOnly"}<CloudBadge sourceId={h.sourceId} doc={h} size={13} onclick={() => downloadDoc(h.sourceId, h)} />{/if}
+              <DocStar sourceId={h.sourceId} doc={h} onclick={() => starDoc(h.sourceId, h)} />
+            </span>
           </li>
         {/each}
       </ul>
@@ -919,6 +931,8 @@
           onactivate={(e) => activate(source.id, e)}
           onmenu={(e, ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
           onmove={moveItem}
+          onstar={(e) => starDoc(source.id, e)}
+          ondownload={(e) => downloadDoc(source.id, e)}
         />
       {:else}
         <table>
@@ -933,6 +947,7 @@
           <tbody>
             {#each entries as e (e.relPath)}
               <tr
+                class="doc-host"
                 class:selected={selected?.entry.relPath === e.relPath}
                 class:drop={e.isDir && isDropOver(source.id, e.relPath)}
                 onclick={() => (selected = { sourceId: source.id, entry: e })}
@@ -945,13 +960,11 @@
                   <span class="file-icon" class:folder={e.isDir}>
                     <Icon name={e.isDir ? "folder" : e.kind === "pdf" ? "pdf" : "file"} size={15} />
                   </span>
-                  {#if e.favorite}<span class="fav">★</span>{/if}
+                  {#if e.isDir}<span class="star-space"></span>{:else}<DocStar sourceId={source.id} doc={e} onclick={() => starDoc(source.id, e)} />{/if}
                   <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
                   {@render tagChips(e.tags)}
                   {#if e.cloud === "cloudOnly"}
-                    <span class="cloud" title={m.main.onlineOnlyTip}>
-                      <Icon name="cloud" size={14} />
-                    </span>
+                    <CloudBadge sourceId={source.id} doc={e} onclick={() => downloadDoc(source.id, e)} />
                   {/if}
                 </td>
                 <td class="muted">{kindLabel(e.isDir ? "folder" : e.kind)}</td>
@@ -1594,10 +1607,6 @@
   .file-icon.folder {
     color: var(--folder);
   }
-  .fav {
-    color: #d9a520;
-    flex: none;
-  }
   .chip {
     flex: none;
     font-size: 11px;
@@ -1605,11 +1614,6 @@
     border-radius: 8px;
     background: var(--accent-soft);
     color: var(--accent-strong);
-  }
-  .cloud {
-    display: grid;
-    color: var(--cloud);
-    flex: none;
   }
   .num {
     text-align: right;
@@ -1674,6 +1678,26 @@
     background: none;
     padding: 8px 10px;
     margin-bottom: 2px;
+  }
+  .results li {
+    position: relative;
+  }
+  .result {
+    padding-right: 56px;
+  }
+  /* The star and cloud, at the end of a result's title line. */
+  .r-marks {
+    position: absolute;
+    top: 9px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  /* A folder row's place for the star documents have. */
+  .star-space {
+    flex: none;
+    width: 16px;
   }
   .result:hover {
     background: var(--hover);

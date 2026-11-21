@@ -155,6 +155,8 @@
     iCloud Drive, OneDrive y Google Drive pueden dejar archivos solo en la nube, para ahorrar espacio. Rupert los muestra
     con un ícono de nube <span class="cloud">☁</span> y nunca los abre por su cuenta, porque abrir uno lo descarga. Igual
     los podés encontrar por el nombre y por los detalles que Rupert conoce, y al abrir uno se descarga como siempre.
+    Hacé clic en la nube para descargar solo ese archivo: Rupert lee entonces su texto, y el archivo queda en la
+    computadora.
   </p>
   <p>
     En Windows, Google Drive configurado en <b>Transmitir archivos</b> no les dice a otras apps qué archivos están en la
@@ -202,8 +204,11 @@
   </p>
   <h3>Favoritos</h3>
   <p>
-    Marcá un documento con la ☆ en sus detalles. Marcá una carpeta con la ☆ al lado de su ruta, arriba de la lista de
-    documentos. <b>Favoritos</b> en la barra lateral muestra los dos. Los favoritos se guardan con los archivos, así que
+    Hacé clic en la ☆ de un documento para marcarlo como favorito. Aparece cuando apuntás a un documento en la lista,
+    en los íconos o en los resultados de búsqueda, y siempre en sus detalles y en la galería; los favoritos conservan
+    la ★. Hacé clic en la ★ para quitarla. Quitarle la estrella a un PDF solo en línea lo descarga, porque la estrella
+    se guarda dentro del archivo. Marcá una carpeta con la ☆ al lado de su ruta, arriba de la lista de documentos.
+    <b>Favoritos</b> en la barra lateral muestra los dos. Los favoritos se guardan con los archivos, así que
     aparecen en tus otras computadoras y en el iPhone.
   </p>
 </section>

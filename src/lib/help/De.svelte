@@ -156,7 +156,8 @@
     iCloud Drive, OneDrive und Google Drive können Dateien nur in der Cloud behalten, um Platz zu sparen. Rupert zeigt
     sie mit einem Wolkensymbol <span class="cloud">☁</span> und öffnet sie nie von sich aus, denn Öffnen lädt sie
     herunter. Sie finden sie trotzdem über ihren Namen und die Angaben, die Rupert über sie kennt, und beim Öffnen werden
-    sie wie gewohnt heruntergeladen.
+    sie wie gewohnt heruntergeladen. Klicken Sie auf die Wolke, um nur diese Datei herunterzuladen: Rupert liest dann
+    ihren Text, und die Datei bleibt auf dem Computer.
   </p>
   <p>
     Unter Windows teilt Google Drive in der Einstellung <b>Dateien streamen</b> anderen Apps nicht mit, welche Dateien
@@ -203,8 +204,12 @@
   </p>
   <h3>Favoriten</h3>
   <p>
-    Markieren Sie ein Dokument mit dem ☆ in seinen Angaben. Markieren Sie einen Ordner mit dem ☆ neben seinem Pfad über
-    der Dokumentliste. <b>Favoriten</b> in der Seitenleiste zeigt beides. Favoriten werden mit den Dateien gespeichert und
+    Klicken Sie auf den ☆ an einem Dokument, um es zum Favoriten zu machen. Er erscheint, wenn Sie in der Liste, bei
+    den Symbolen oder in den Suchergebnissen auf ein Dokument zeigen, und immer in seinen Angaben und in der Galerie;
+    Favoriten behalten ihren ★. Klicken Sie auf den ★, um ihn zu entfernen. Bei einem PDF, das nur online verfügbar
+    ist, lädt das Entfernen des Sterns die Datei herunter, weil der Stern in der Datei gespeichert ist. Markieren Sie
+    einen Ordner mit dem ☆ neben seinem Pfad über der Dokumentliste. <b>Favoriten</b> in der Seitenleiste zeigt
+    beides. Favoriten werden mit den Dateien gespeichert und
     erscheinen deshalb auch auf Ihren anderen Computern und auf dem iPhone.
   </p>
 </section>

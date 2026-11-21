@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A star on every document** (#22): in the list, the icons, the gallery and the search results, the ☆ shows when you point at a document (favorites keep their ★), and one click stars or unstars it. The star in the details pane also saves at once now; it no longer waits for **Save**.
+- **Click the cloud to download a file** (#22): an online-only document's cloud badge downloads just that file, and Rupert reads its text.
 - **Rupert for Android is in the works** (#24): the phone app also builds for Android, with Google Drive and OneDrive libraries, Google's document scanner, Rupert's own icon, the back gesture and Android's wording. Not released yet.
 
 ## 0.4.1 — 2026-11-20

@@ -1,6 +1,7 @@
 <script lang="ts">
   // Editable details for one document. Saving writes into the file (PDF) or
   // its sidecar, so it only happens when the user presses Save.
+  import { untrack } from "svelte";
   import { api, type DocMeta, type Entry, type MetaRecord } from "./api";
   import Icon from "./Icon.svelte";
   import { m } from "#lib/i18n/index.ts";
@@ -72,6 +73,35 @@
       load();
     }
   });
+
+  // The star saves at once, here as on the document in the list. When the
+  // list's star changes this document, follow it.
+  let seenFavorite: boolean | undefined;
+  $effect(() => {
+    const f = (entry as Entry & { favorite?: boolean }).favorite;
+    const before = seenFavorite;
+    seenFavorite = f;
+    if (f === undefined || before === undefined || f === before) return;
+    untrack(() => {
+      saved.favorite = f;
+      form.favorite = f;
+    });
+  });
+
+  let starring = $state(false);
+  async function toggleStar() {
+    starring = true;
+    error = null;
+    try {
+      const meta = await api.setFavorite(sourceId, entry.relPath, !form.favorite);
+      saved.favorite = meta.favorite;
+      form.favorite = meta.favorite;
+    } catch (e) {
+      error = String(e);
+    } finally {
+      starring = false;
+    }
+  }
 
   function addTag() {
     const parts = tagDraft.split(",").map((t) => t.trim()).filter(Boolean);
@@ -165,7 +195,8 @@
         class:on={form.favorite}
         title={form.favorite ? m.details.removeFavorite : m.details.markFavorite}
         aria-pressed={form.favorite}
-        onclick={() => (form.favorite = !form.favorite)}>{form.favorite ? "★" : "☆"}</button
+        disabled={loading || starring}
+        onclick={toggleStar}>{form.favorite ? "★" : "☆"}</button
       >
     </div>
 
