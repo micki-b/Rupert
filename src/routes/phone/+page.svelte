@@ -2,11 +2,11 @@
   // Rupert for iPhone: browse and search the library, open documents, and
   // scan paper into the inbox folder. Read-only for the library itself.
   import { onMount } from "svelte";
-  import Icon from "$lib/Icon.svelte";
-  import RupertOwl, { type OwlMood } from "$lib/RupertOwl.svelte";
-  import TagFilter from "$lib/TagFilter.svelte";
-  import { snippetParts, type TagMode } from "$lib/api";
-  import { formatSize } from "$lib/format";
+  import Icon from "#lib/Icon.svelte";
+  import RupertOwl, { type OwlMood } from "#lib/RupertOwl.svelte";
+  import TagFilter from "#lib/TagFilter.svelte";
+  import { snippetParts, type TagMode } from "#lib/api.ts";
+  import { formatSize } from "#lib/format.ts";
   import {
     formatDocDate,
     onFoldersReady,
@@ -28,8 +28,8 @@
     type Progress,
     type ScanSettings,
     type TagCount,
-  } from "$lib/phone/api";
-  import { LANGS, languageNames, loadLanguage, m, useLanguage, type Lang } from "$lib/i18n";
+  } from "#lib/phone/api.ts";
+  import { LANGS, languageNames, loadLanguage, m, useLanguage, type Lang } from "#lib/i18n/index.ts";
 
   type Tab = "library" | "search" | "scan" | "settings";
   type Crumb = { sourceId: string; relPath: string; name: string };

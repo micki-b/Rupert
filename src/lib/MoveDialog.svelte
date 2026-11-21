@@ -1,10 +1,10 @@
 <script lang="ts">
   // "Move to…": pick a folder (in any source) for a document or folder.
   // The window does the moving; this only chooses where.
-  import type { Source } from "$lib/api";
-  import FolderNode from "$lib/FolderNode.svelte";
-  import { canMoveInto, type MoveItem } from "$lib/drag.svelte";
-  import { m } from "$lib/i18n";
+  import type { Source } from "#lib/api.ts";
+  import FolderNode from "#lib/FolderNode.svelte";
+  import { canMoveInto, type MoveItem } from "#lib/drag.svelte.ts";
+  import { m } from "#lib/i18n/index.ts";
 
   let {
     item,

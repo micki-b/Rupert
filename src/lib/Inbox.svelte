@@ -13,9 +13,9 @@
     type IntakeItem,
     type Settings,
     type Source,
-  } from "$lib/api";
-  import Icon from "$lib/Icon.svelte";
-  import { m } from "$lib/i18n";
+  } from "#lib/api.ts";
+  import Icon from "#lib/Icon.svelte";
+  import { m } from "#lib/i18n/index.ts";
 
   let {
     sources,

@@ -2,10 +2,10 @@
   // Rupert's reader for Markdown documents: opened by double-clicking one
   // (or Open). Links to other Markdown files in the same source open here
   // too, with Back.
-  import { api } from "$lib/api";
-  import Icon from "$lib/Icon.svelte";
-  import MarkdownView from "$lib/MarkdownView.svelte";
-  import { m } from "$lib/i18n";
+  import { api } from "#lib/api.ts";
+  import Icon from "#lib/Icon.svelte";
+  import MarkdownView from "#lib/MarkdownView.svelte";
+  import { m } from "#lib/i18n/index.ts";
 
   let { sourceId, relPath, onclose }: { sourceId: string; relPath: string; onclose: () => void } = $props();
 

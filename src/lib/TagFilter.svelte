@@ -2,8 +2,8 @@
   // The tag filter: type to narrow a short list of tags (most used first),
   // pick several, and choose whether documents need any or all of them.
   // Used in the desktop sidebar and the phone's tag sheet.
-  import { api, type TagList, type TagMode } from "$lib/api";
-  import { m } from "$lib/i18n";
+  import { api, type TagList, type TagMode } from "#lib/api.ts";
+  import { m } from "#lib/i18n/index.ts";
 
   let {
     selected = $bindable([]),

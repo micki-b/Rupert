@@ -29,27 +29,27 @@
     type TagMode,
     type FavoriteFolder,
     type AssistantAction,
-  } from "$lib/api";
-  import { changes } from "$lib/changes.svelte";
-  import { formatDate, formatSize, kindLabel } from "$lib/format";
-  import FolderNode from "$lib/FolderNode.svelte";
-  import MoveDialog from "$lib/MoveDialog.svelte";
-  import { dragSource, dropTarget, isDropOver, type MoveItem } from "$lib/drag.svelte";
-  import Icon from "$lib/Icon.svelte";
-  import ImportDialog from "$lib/ImportDialog.svelte";
-  import Inbox from "$lib/Inbox.svelte";
-  import TagFilter from "$lib/TagFilter.svelte";
-  import TagManager from "$lib/TagManager.svelte";
-  import Assistant from "$lib/Assistant.svelte";
-  import ScanDialog from "$lib/ScanDialog.svelte";
-  import SettingsDialog from "$lib/SettingsDialog.svelte";
-  import MetaEditor from "$lib/MetaEditor.svelte";
-  import PictureView from "$lib/PictureView.svelte";
-  import MarkdownReader from "$lib/MarkdownReader.svelte";
-  import { isMarkdown } from "$lib/markdown";
-  import { checkNowAndThen, updates } from "$lib/updates.svelte";
-  import RupertOwl from "$lib/RupertOwl.svelte";
-  import { m } from "$lib/i18n";
+  } from "#lib/api.ts";
+  import { changes } from "#lib/changes.svelte.ts";
+  import { formatDate, formatSize, kindLabel } from "#lib/format.ts";
+  import FolderNode from "#lib/FolderNode.svelte";
+  import MoveDialog from "#lib/MoveDialog.svelte";
+  import { dragSource, dropTarget, isDropOver, type MoveItem } from "#lib/drag.svelte.ts";
+  import Icon from "#lib/Icon.svelte";
+  import ImportDialog from "#lib/ImportDialog.svelte";
+  import Inbox from "#lib/Inbox.svelte";
+  import TagFilter from "#lib/TagFilter.svelte";
+  import TagManager from "#lib/TagManager.svelte";
+  import Assistant from "#lib/Assistant.svelte";
+  import ScanDialog from "#lib/ScanDialog.svelte";
+  import SettingsDialog from "#lib/SettingsDialog.svelte";
+  import MetaEditor from "#lib/MetaEditor.svelte";
+  import PictureView from "#lib/PictureView.svelte";
+  import MarkdownReader from "#lib/MarkdownReader.svelte";
+  import { isMarkdown } from "#lib/markdown.ts";
+  import { checkNowAndThen, updates } from "#lib/updates.svelte.ts";
+  import RupertOwl from "#lib/RupertOwl.svelte";
+  import { m } from "#lib/i18n/index.ts";
 
   type Folder = { sourceId: string; relPath: string };
   type Selected = { sourceId: string; entry: Entry };

@@ -11,8 +11,8 @@
   // lederhosen (#18): the picture is then drawn in
   // an SVG with the outfit's area cut out, so nothing shows through where
   // both fade out at the bottom.
-  import owlUrl from "$lib/assets/rupert-owl.png";
-  import { currentLang, m } from "$lib/i18n";
+  import owlUrl from "#lib/assets/rupert-owl.png";
+  import { currentLang, m } from "#lib/i18n/index.ts";
 
   let { mood = "idle", size = 44 }: { mood?: OwlMood; size?: number } = $props();
 

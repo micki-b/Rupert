@@ -2,8 +2,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { locale, type LanguageInfo } from "$lib/i18n";
-import type { Entry, FavoriteFolder, Hit, IndexStats, Progress, Provider, TagCount, TagMode } from "$lib/api";
+import { locale, type LanguageInfo } from "#lib/i18n/index.ts";
+import type { Entry, FavoriteFolder, Hit, IndexStats, Progress, Provider, TagCount, TagMode } from "#lib/api.ts";
 
 export type { FavoriteFolder };
 

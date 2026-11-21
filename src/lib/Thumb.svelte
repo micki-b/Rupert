@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import type { Entry } from "$lib/api";
+  import type { Entry } from "#lib/api.ts";
 
   /** The `thumb:` URL of a document's picture (see `src-tauri/src/thumbs.rs`). */
   export function thumbUrl(sourceId: string, entry: Entry, page: number, side: number): string {
@@ -15,7 +15,7 @@
   // `thumb:` URL scheme, or its kind icon when there's none: folders, other
   // kinds, online-only files (never read, since that would download them),
   // and anything that fails to load.
-  import Icon from "$lib/Icon.svelte";
+  import Icon from "#lib/Icon.svelte";
 
   let {
     sourceId,

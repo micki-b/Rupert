@@ -5,8 +5,8 @@
 // handled by the view (see `MarkdownView.svelte`).
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import type { Entry } from "$lib/api";
-import { thumbUrl } from "$lib/Thumb.svelte";
+import type { Entry } from "#lib/api.ts";
+import { thumbUrl } from "#lib/Thumb.svelte";
 
 /** Whether an entry is a Markdown file. */
 export function isMarkdown(e: Pick<Entry, "name" | "isDir">): boolean {

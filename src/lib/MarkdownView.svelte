@@ -3,9 +3,9 @@
   // `compact`) on a large-icon tile. Online-only files aren't read, since
   // that would download them.
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import { api } from "$lib/api";
-  import { renderMarkdown, resolveRel } from "$lib/markdown";
-  import { m } from "$lib/i18n";
+  import { api } from "#lib/api.ts";
+  import { renderMarkdown, resolveRel } from "#lib/markdown.ts";
+  import { m } from "#lib/i18n/index.ts";
 
   let {
     sourceId,
