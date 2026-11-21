@@ -296,7 +296,7 @@ fn utc_now() -> String {
 }
 
 /// Today's date (UTC) as `YYYY-MM-DD`.
-pub(crate) fn utc_today() -> String {
+pub fn utc_today() -> String {
     utc_now()[..10].to_string()
 }
 

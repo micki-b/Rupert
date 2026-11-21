@@ -248,6 +248,18 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     // MARK: - Local AI and Ask Rupert
     (
+        "This iPhone can't run Apple Intelligence.",
+        "Dieses iPhone kann Apple Intelligence nicht ausführen.",
+    ),
+    (
+        "Apple Intelligence is turned off. Turn it on in Settings ▸ Apple Intelligence & Siri.",
+        "Apple Intelligence ist ausgeschaltet. Schalten Sie es unter Einstellungen ▸ Apple Intelligence & Siri ein.",
+    ),
+    (
+        "Apple Intelligence needs iOS 26 or later.",
+        "Apple Intelligence erfordert iOS 26 oder neuer.",
+    ),
+    (
         "This Mac can't run Apple Intelligence.",
         "Dieser Mac kann Apple Intelligence nicht ausführen.",
     ),
