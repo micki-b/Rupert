@@ -3,9 +3,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { locale, type LanguageInfo } from "#lib/i18n/index.ts";
-import type { Entry, FavoriteFolder, Hit, IndexStats, Progress, Provider, TagCount, TagMode } from "#lib/api.ts";
+import type {
+  AssistantAction,
+  AssistantStep,
+  Entry,
+  FavoriteFolder,
+  Hit,
+  IndexStats,
+  Progress,
+  Provider,
+  TagCount,
+  TagMode,
+} from "#lib/api.ts";
 
-export type { FavoriteFolder };
+export type { AssistantAction, AssistantStep, FavoriteFolder };
 
 export type { Entry, Hit, Progress, TagCount };
 
@@ -58,6 +69,24 @@ export interface ScanSettings {
   dpi: number;
 }
 
+/** Ask Rupert on this iPhone (Apple Intelligence). */
+export interface AssistantStatus {
+  /** It can answer now. */
+  available: boolean;
+  /** The iPhone can run Apple Intelligence: offer Ask Rupert, with `message`. */
+  capable: boolean;
+  /** Why it can't answer now. */
+  message: string | null;
+}
+
+export interface AssistantReply {
+  text: string;
+  steps: AssistantStep[];
+  actions: AssistantAction[];
+  /** Stopped; nothing was answered or shown. */
+  stopped: boolean;
+}
+
 export interface OneDriveStatus {
   /** This build has the app's Microsoft registration. */
   configured: boolean;
@@ -108,6 +137,10 @@ export const phone = {
   /** `path`: the folders from the top of OneDrive down to the inbox. */
   setOnedriveInbox: (itemId: string, name: string, path: OneDriveFolder[]) =>
     invoke<void>("set_onedrive_inbox", { itemId, name, path }),
+  assistantStatus: () => invoke<AssistantStatus>("assistant_status"),
+  assistantSend: (text: string) => invoke<AssistantReply>("assistant_send", { text }),
+  assistantCancel: () => invoke<void>("assistant_cancel"),
+  assistantReset: () => invoke<void>("assistant_reset"),
   gdriveStatus: () => invoke<CloudStatus>("gdrive_status"),
   /** `false` if cancelled. */
   gdriveSignIn: () => invoke<boolean>("gdrive_sign_in"),
@@ -139,3 +172,5 @@ export function formatDocDate(iso: string | null): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(locale(), { dateStyle: "medium" });
 }
+export const onAssistantStep = (f: (step: AssistantStep) => void): Promise<UnlistenFn> =>
+  listen<AssistantStep>("assistant-step", (e) => f(e.payload));

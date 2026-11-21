@@ -5,6 +5,7 @@
   import Icon from "#lib/Icon.svelte";
   import RupertOwl, { type OwlMood } from "#lib/RupertOwl.svelte";
   import TagFilter from "#lib/TagFilter.svelte";
+  import Ask from "#lib/phone/Ask.svelte";
   import { snippetParts, type TagMode } from "#lib/api.ts";
   import { formatSize } from "#lib/format.ts";
   import {
@@ -24,6 +25,8 @@
     type CloudService,
     type CloudStatus,
     type AppVersion,
+    type AssistantAction,
+    type AssistantStatus,
     type Overview,
     type Progress,
     type ScanSettings,
@@ -31,12 +34,15 @@
   } from "#lib/phone/api.ts";
   import { LANGS, languageNames, loadLanguage, m, useLanguage, type Lang } from "#lib/i18n/index.ts";
 
-  type Tab = "library" | "search" | "scan" | "settings";
+  type Tab = "library" | "search" | "scan" | "ask" | "settings";
   type Crumb = { sourceId: string; relPath: string; name: string };
   /** What the document sheet shows: indexed details, or just the file. */
   type Sheet = { sourceId: string; relPath: string; name: string; cloudOnly: boolean; size: number; info: DocInfo | null };
 
   let tab = $state<Tab>("library");
+  /** Ask Rupert (Apple Intelligence); the tab is offered when the iPhone can run it. */
+  let askStatus = $state<AssistantStatus | null>(null);
+  let ask: Ask | undefined = $state();
   let overview = $state<Overview | null>(null);
   let favFolders = $state<FavoriteFolder[]>([]);
 
@@ -150,7 +156,9 @@
         ? m.phone.search
         : tab === "scan"
           ? m.phone.scan
-          : m.phone.settings,
+          : tab === "ask"
+            ? m.assistant.title
+            : m.phone.settings,
   );
 
   // MARK: Loading
@@ -205,6 +213,7 @@
     loadOverview();
     phone.appVersion().then((v) => (version = v));
     loadLanguageInfo();
+    loadAskStatus();
     phone.tags().then((t) => (tags = t));
     const unlisten = [
       onProgress((p) => {
@@ -291,8 +300,38 @@
     if (here) loadFolder();
   }
 
+  async function loadAskStatus() {
+    askStatus = await phone.assistantStatus().catch(() => null);
+  }
+
+  /** Shows what Rupert's answer points to (its buttons under the answer). */
+  async function askAction(a: AssistantAction) {
+    const last = (p: string) => p.split("/").pop() ?? p;
+    switch (a.kind) {
+      case "openFolder":
+        tab = "library";
+        stack = [{ sourceId: a.sourceId, relPath: a.relPath, name: a.relPath ? last(a.relPath) : sourceName(a.sourceId) }];
+        entries = [];
+        loadFolder();
+        break;
+      case "showDocument": {
+        const info = await phone.document(a.sourceId, a.relPath).catch(() => null);
+        showDoc(a.sourceId, a.relPath, last(a.relPath), info?.cloud === "cloudOnly", info?.size ?? 0);
+        break;
+      }
+      case "search":
+        query = a.text;
+        selectedTags = [...a.tags];
+        tagMode = a.tagMode;
+        favoritesOnly = a.favoritesOnly;
+        switchTab("search");
+        break;
+    }
+  }
+
   function switchTab(t: Tab) {
     if (t === tab && t === "library") stack = [];
+    if (t === "ask") loadAskStatus();
     tab = t;
     if (t === "search") runSearch();
     if (t === "settings" || t === "scan") loadOverview();
@@ -444,6 +483,11 @@
         >{hereFav ? "★" : "☆"}</button
       >
     {/if}
+    {#if tab === "ask"}
+      <button class="star" onclick={() => ask?.reset()} aria-label={m.assistant.newConversation}>
+        <Icon name="new-chat" size={22} />
+      </button>
+    {/if}
     {#if busyIndexing && shownProgress}
       <span class="indexing" title={shownProgress.current ?? ""}>
         <span class="spinner"></span>{shownProgress.total ? `${shownProgress.done} / ${shownProgress.total}` : ""}
@@ -451,7 +495,7 @@
     {/if}
   </header>
 
-  <main>
+  <main hidden={tab === "ask"}>
     {#if tab === "library"}
       {#if !here}
         {#if overview && library.length === 0 && !overview.inboxPlace}
@@ -837,11 +881,14 @@
       {#if settingsError}<p class="error pad">{settingsError}</p>{/if}
     {/if}
   </main>
+  {#if askStatus?.capable}
+    <Ask bind:this={ask} status={askStatus} hidden={tab !== "ask"} onaction={askAction} />
+  {/if}
 
   <nav>
-    {#each [["library", m.phone.library], ["search", m.phone.search], ["scan", m.phone.scan], ["settings", m.phone.settings]] as [t, label] (t)}
+    {#each [["library", m.phone.library], ["search", m.phone.search], ["scan", m.phone.scan], ...(askStatus?.capable ? [["ask", m.phone.ask]] : []), ["settings", m.phone.settings]] as [t, label] (t)}
       <button class:on={tab === t} onclick={() => switchTab(t as Tab)} data-tab={t}>
-        <Icon name={t === "scan" ? "camera" : (t as "library" | "search" | "settings")} size={24} />
+        <Icon name={t === "scan" ? "camera" : t === "ask" ? "chat" : (t as "library" | "search" | "settings")} size={24} />
         <span>{label}</span>
       </button>
     {/each}
@@ -994,6 +1041,9 @@
     gap: 6px;
     font-size: 12px;
     color: var(--muted);
+  }
+  main[hidden] {
+    display: none;
   }
   main {
     flex: 1;

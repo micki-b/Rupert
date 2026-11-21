@@ -52,14 +52,20 @@ pub struct Status {
 impl Unavailable {
     /// What to tell people.
     pub fn message(self) -> &'static str {
+        let iphone = cfg!(target_os = "ios");
         match self {
+            Self::DeviceNotEligible if iphone => tr("This iPhone can't run Apple Intelligence."),
             Self::DeviceNotEligible => tr("This Mac can't run Apple Intelligence."),
+            Self::AppleIntelligenceNotEnabled if iphone => tr(
+                "Apple Intelligence is turned off. Turn it on in Settings ▸ Apple Intelligence & Siri.",
+            ),
             Self::AppleIntelligenceNotEnabled => tr(
                 "Apple Intelligence is turned off. Turn it on in System Settings ▸ Apple Intelligence & Siri.",
             ),
             Self::ModelNotReady => {
                 tr("Apple Intelligence is still getting ready (downloading its model).")
             }
+            Self::SystemTooOld if iphone => tr("Apple Intelligence needs iOS 26 or later."),
             Self::SystemTooOld => tr("Apple Intelligence needs macOS 26 or later."),
             Self::NotSupported | Self::Unknown => tr("Apple Intelligence isn't available here."),
         }

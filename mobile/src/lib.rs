@@ -19,6 +19,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::time::Duration;
 
+mod assistant;
 mod cloud;
 mod gdrive;
 mod onedrive;
@@ -1030,6 +1031,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     i18n::set(i18n::resolve(saved.saved.language.as_deref()));
     let index_path = data_dir.join("index.sqlite");
     let index = Index::open(&index_path)?;
+    app.manage(assistant::AssistantState::default());
     app.manage(OneDrive::default());
     app.manage(GoogleDrive::default());
 
@@ -1153,6 +1155,10 @@ pub fn run() {
             gdrive::gdrive_folders,
             gdrive::add_gdrive_folder,
             gdrive::set_gdrive_inbox,
+            assistant::assistant_status,
+            assistant::assistant_send,
+            assistant::assistant_cancel,
+            assistant::assistant_reset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");
