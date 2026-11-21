@@ -1139,11 +1139,30 @@ mod test_hooks {
 }
 
 /// Test scripts (`RUPERT_TEST_JS`) report what they're doing through this, to
-/// the app's console (`simctl launch --console-pty`). Release builds ignore it.
+/// the app's console (`simctl launch --console-pty`), or on Android to logcat
+/// (`adb logcat -s Rupert`). Release builds ignore it.
 #[tauri::command]
 fn test_log(message: String) {
     if cfg!(debug_assertions) {
+        #[cfg(target_os = "android")]
+        android_log(&format!("rupert-test: {message}"));
+        #[cfg(not(target_os = "android"))]
         eprintln!("rupert-test: {message}");
+    }
+}
+
+/// Android sends an app's stderr nowhere; this writes an info line to logcat.
+#[cfg(target_os = "android")]
+fn android_log(text: &str) {
+    use std::ffi::{CString, c_char, c_int};
+    #[link(name = "log")]
+    unsafe extern "C" {
+        fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
+    }
+    const INFO: c_int = 4;
+    if let Ok(text) = CString::new(text) {
+        // SAFETY: both strings are NUL-terminated and outlive the call.
+        unsafe { __android_log_write(INFO, c"Rupert".as_ptr(), text.as_ptr()) };
     }
 }
 

@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --cream: #f8f5ef; --paper: #efe7dc; --ink: #33241a; --muted: #7b6857; --brown: #8a5a2b; }
+  html, body { margin: 0; padding: 0; }
+  body { overflow: hidden; font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif; }
+  .canvas {
+    position: relative; overflow: hidden; width: 1024px; height: 500px;
+    background: radial-gradient(ellipse at 30% 50%, #fffdf9 0%, var(--cream) 40%, var(--paper) 100%);
+  }
+  .glow {
+    position: absolute; border-radius: 50%; left: -120px; top: -150px; width: 760px; height: 800px;
+    background: radial-gradient(circle, rgba(196,150,100,.25) 0%, rgba(196,150,100,0) 70%);
+  }
+  .text { position: absolute; left: 56px; top: 0; height: 500px; width: 560px; display: flex; align-items: center; gap: 30px; }
+  .owl { height: 190px; filter: drop-shadow(0 10px 16px rgba(80,45,20,.22)); }
+  .title { color: var(--ink); font-weight: 700; font-size: 58px; letter-spacing: -0.02em; line-height: 1; }
+  .rule { background: var(--brown); border-radius: 99px; opacity: .85; width: 70px; height: 6px; margin: 18px 0; }
+  .tag { color: var(--ink); font-weight: 600; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-weight: 500; font-size: 19px; line-height: 1.3; margin-top: 12px; }
+  /* Android phones: thin dark frame, rounded screen. */
+  .phone {
+    position: absolute; box-sizing: border-box; width: 222px; height: 395px;
+    background: #1d1511; padding: 6px; border-radius: 30px;
+    box-shadow: 0 22px 44px rgba(60,35,20,.28), 0 4px 12px rgba(60,35,20,.18);
+  }
+  .phone img { display: block; width: 100%; height: 100%; border-radius: 24px; object-fit: cover; object-position: top; }
+</style>
+</head>
+<body>
+<!-- Google Play feature graphic (1024 × 500), per language (en, es, de), from that language's
+     screenshots (screenshots/<lang>/). Render with headless Chrome:
+       Chrome --headless=new --hide-scrollbars --force-device-scale-factor=1 --allow-file-access-from-files
+         --window-size=1024,500 --screenshot=feature.png "file://…/feature.html?lang=es"
+     then remove the alpha channel: ffmpeg -i feature.png -pix_fmt rgb24 feature-<lang>.png
+     The owl wears his outfit in Spanish and German (../ios/creative/owl-*.svg). -->
+<script>
+  const lang = new URLSearchParams(location.search).get("lang") || "en";
+  const owl = { en: "../../../src/lib/assets/rupert-owl.png", es: "../ios/creative/owl-jersey.svg", de: "../ios/creative/owl-lederhosen.svg" }[lang];
+  const T = {
+    en: { tag: "Your scanned documents, found.", sub: "Search and scan, right where your files live: Google Drive and OneDrive." },
+    es: { tag: "Tus documentos escaneados, a mano.", sub: "Buscá y escaneá donde ya están tus archivos: Google Drive y OneDrive." },
+    de: { tag: "Ihre Scans, sofort gefunden.", sub: "Suchen und scannen, wo Ihre Dateien liegen: Google Drive und OneDrive." },
+  }[lang];
+  const shots = `screenshots/${lang}/`;
+  document.body.innerHTML = `
+    <div class="canvas">
+      <div class="glow"></div>
+      <div class="text">
+        <img class="owl" src="${owl}">
+        <div>
+          <div class="title">Rupert</div>
+          <div class="rule"></div>
+          <div class="tag">${T.tag}</div>
+          <div class="sub">${T.sub}</div>
+        </div>
+      </div>
+      <div class="phone" style="left:612px;top:78px;transform:rotate(-5deg);z-index:1"><img src="${shots}1-folder.png"></div>
+      <div class="phone" style="left:772px;top:112px;transform:rotate(5deg);z-index:2"><img src="${shots}2-search.png"></div>
+    </div>`;
+</script>
+</body>
+</html>

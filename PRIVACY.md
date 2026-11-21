@@ -1,9 +1,9 @@
 # Rupert privacy policy
 
-*Last updated: November 20, 2026*
+*Last updated: November 21, 2026*
 
 Rupert is a free, open-source app for organizing your scanned documents, made by Micki Braun. It runs on your
-computer (macOS, Windows, Linux) and on your iPhone. This policy explains what happens to your information when you
+computer (macOS, Windows, Linux) and on your iPhone or Android phone. This policy explains what happens to your information when you
 use it.
 
 ## The short version
@@ -26,8 +26,8 @@ use it.
   Rupert has read from your documents, so your other devices can search documents that are stored only online.
   It stays in your cloud storage.
 - **Settings** are stored on your device. **Sign-ins and API keys** for optional services are stored in your
-  device's secure storage (the macOS or iOS Keychain, the Windows Credential Manager, or the Linux keyring), never
-  in plain files.
+  device's secure storage (the macOS or iOS Keychain, the Windows Credential Manager, the Linux keyring, or
+  Android's encrypted app storage with a key in the Android Keystore), never in plain files.
 
 ## Optional features that use other services
 
@@ -48,17 +48,17 @@ None of these is on unless you turn it on.
   - **An OpenAI-compatible service** you enter yourself (with your API key): that service's policy applies.
 
   While a cloud model is in use, the chat panel shows a cloud symbol and the model's name.
-- **OneDrive on iPhone**: when you sign in with your Microsoft account, Rupert reads the OneDrive folders you choose
+- **OneDrive on iPhone and Android**: when you sign in with your Microsoft account, Rupert reads the OneDrive folders you choose
   through Microsoft Graph, and saves new scans to your inbox folder there. It asks only for access to your files
   (`Files.ReadWrite`) and to stay signed in. [Microsoft's privacy statement](https://privacy.microsoft.com/privacystatement).
-- **Google Drive on iPhone** (preview): when you sign in with your Google account, Rupert reads the Google Drive
+- **Google Drive on iPhone and Android** (preview): when you sign in with your Google account, Rupert reads the Google Drive
   folders you choose through the Google Drive API: their file lists, Rupert's own small catalog and details files,
   and a document when you open it. It saves new scans to your inbox folder there and, when you star a folder, that
-  folder's small details file. It asks for access to your Drive files (`drive`); the sign-in stays in your iPhone's
-  Keychain, and nothing goes to us. Rupert's use and transfer of information received from Google APIs adheres to
+  folder's small details file. It asks for access to your Drive files (`drive`); the sign-in stays in your phone's secure
+  storage, and nothing goes to us. On Android, Google's own sign-in (Google Play services) grants that access. Rupert's use and transfer of information received from Google APIs adheres to
   the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy),
   including the Limited Use requirements: it is used only to show, search and open your documents and to save your
-  scans, on your iPhone, and is never sold, shared or used for advertising.
+  scans, on your phone, and is never sold, shared or used for advertising.
   [Google's privacy policy](https://policies.google.com/privacy).
 - **Network scanners**: Rupert looks for scanners on your local network (Bonjour) and talks to the one you choose
   directly. Nothing leaves your network.
@@ -67,10 +67,12 @@ None of these is on unless you turn it on.
 - **Updates** (desktop): Rupert checks GitHub for a newer version and downloads it from there. GitHub sees the
   request, as with any download. [GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
 
-## Camera and photos (iPhone)
+## Camera and photos (iPhone and Android)
 
 The camera is used only while you scan, to take pictures of pages. They become a PDF in the inbox folder you chose
-and are not kept anywhere else.
+and are not kept anywhere else. On Android, scanning uses Google's document scanner, part of Google Play services on
+the phone: it takes the pictures (or lets you pick them from your photos) and hands them to Rupert. Rupert sends
+them to no one but your inbox folder.
 
 ## Children
 

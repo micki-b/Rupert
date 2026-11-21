@@ -54,6 +54,35 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
 
+  # The Android app (mobile/) still compiles and passes clippy. Only the Rust
+  # side: the Gradle build and signing happen in scripts/build-android.sh.
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      # The runner's preinstalled NDK compiles the C parts (SQLite).
+      - name: NDK compiler
+        shell: bash
+        run: |
+          BIN="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          echo "CC_aarch64_linux_android=$BIN/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+          echo "AR_aarch64_linux_android=$BIN/llvm-ar" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$BIN/aarch64-linux-android24-clang" >> "$GITHUB_ENV"
+      - run: npm ci
+      # The app embeds the built pages.
+      - run: npm run build
+      - run: cargo clippy -p rupert-mobile --target aarch64-linux-android -- -D warnings
+
   # Unsigned app bundles for each desktop platform.
   build:
     needs: check

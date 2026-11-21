@@ -14,6 +14,11 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Release signing with the upload key, which is kept outside the repo.
+// scripts/build-android.sh passes its path and its password (from the macOS
+// keychain); without them a release build comes out unsigned.
+val uploadKeystore: String? = System.getenv("RUPERT_UPLOAD_KEYSTORE")
+
 android {
     compileSdk = 37
     namespace = "io.github.micki_b.rupert"
@@ -24,6 +29,16 @@ android {
         targetSdk = 37
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+    }
+    signingConfigs {
+        if (uploadKeystore != null) {
+            create("upload") {
+                storeFile = file(uploadKeystore)
+                storePassword = System.getenv("RUPERT_UPLOAD_PASSWORD")
+                keyAlias = "upload"
+                keyPassword = System.getenv("RUPERT_UPLOAD_PASSWORD")
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -39,6 +54,9 @@ android {
             }
         }
         getByName("release") {
+            if (uploadKeystore != null) {
+                signingConfig = signingConfigs.getByName("upload")
+            }
             optimization {
                enable = true
             }
