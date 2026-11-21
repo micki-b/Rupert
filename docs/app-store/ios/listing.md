@@ -18,7 +18,7 @@ Draft texts and answers for App Store Connect. Character limits in brackets.
 
 ## Promotional text [170]
 
-Find any scanned document in seconds. Rupert searches the folders you already keep in iCloud Drive and OneDrive, and scans new paper straight into your inbox.
+Ask Rupert about your documents and get answers right on your iPhone. Find any scan in seconds in iCloud Drive or OneDrive, and scan paper straight into your inbox.
 
 ## Description [4000]
 
@@ -55,7 +55,7 @@ Rupert is free and open source.
 
 ## Keywords [100]
 
-`scanner,documents,pdf,search,ocr,receipts,paperless,files,onedrive,icloud,archive,tags,inbox,scan`
+`scanner,documents,pdf,search,ocr,receipts,paperless,files,onedrive,icloud,archive,tags,ai,assistant`
 
 ## What's new (first version)
 
@@ -105,11 +105,14 @@ The Ask tab (Ask Rupert) appears only on iPhones that can run Apple Intelligence
 
 Rupert is free and open source: https://github.com/micki-b/Rupert
 
-## Screenshots
+## Screenshots, App Previews and artwork
 
-Made in the iPhone 17 Pro Max simulator with a made-up sample library: a folder, search with snippets, a document, Scan. Upload them in that order. PNG without transparency (App Store Connect refuses alpha channels).
+Per language (`en`, `es` for Spanish (Mexico), `de`), made in the iPhone 17 Pro Max simulator with the made-up sample library (`docs/app-store/tools/ios/`). The app's screens are in each language; the sample documents are in English. Ask Rupert's answers are real (in the simulator, through a model on the Mac, since the Simulator can't run Apple's model; on an iPhone it's Apple Intelligence). PNGs without transparency (App Store Connect refuses alpha channels).
 
-- `docs/app-store/ios/screenshots/medium/` (1206 × 2622): **iPhone with Dynamic Island (medium display)**, the required slot.
-- `docs/app-store/ios/screenshots/large/` (1320 × 2868): **iPhone with Dynamic Island (large display)**, optional; without it the medium set is scaled up.
+- **Screenshots**, upload in this order: `1-folder`, `2-search`, `3-document`, `4-ask`, `5-scan`.
+  - `screenshots/<lang>/medium/` (1206 × 2622): **iPhone with Dynamic Island (medium display)**, the required slot.
+  - `screenshots/<lang>/large/` (1320 × 2868): **iPhone with Dynamic Island (large display)**, optional; without it the medium set is scaled up.
+- **App Preview**: `previews/<lang>-ask.mp4` (886 × 1920, 30 fps, H.264, silent stereo AAC, under 30 s): browse, search, a document, a question to Ask Rupert and its answer, the Scan tab. Upload it as the first item of each language's previews and screenshots.
+- **Artwork** (App Store Connect ▸ the app ▸ App Store ▸ media for featuring): `creative/<lang>-header-3840x1646.png` (**Header**) and `creative/<lang>-search-results-3840x2560.png` (**Search Results**), rendered by `creative/creative.html` from that language's screenshots, with the owl in his outfit in Spanish and German.
 
-Sizes per slot: [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications).
+Sizes: [Apple's screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications), [app preview specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/app-preview-specifications).

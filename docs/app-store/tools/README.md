@@ -8,7 +8,30 @@ Everything shown in the App Store screenshots and previews comes from a made-up 
 
 ## iPhone (`../ios/`)
 
-Screenshots come from the iOS Simulator (iPhone 17 Pro Max for `large/`, scaled to `medium/`), with the library copied into the app's container and the debug hooks `SIMCTL_CHILD_RUPERT_TEST_FOLDER`, `…_INBOX` and `…_JS` (see `mobile/src/lib.rs`). They must be PNGs without alpha. `../ios/creative/creative.html` renders the header and search-results artwork from those screenshots.
+Screenshots and App Previews come from the iOS Simulator ("Rupert Media", an iPhone 17 Pro Max the scripts create once), per language, with a copy of the sample library in the app's container. The scripts in `ios/` drive a debug build through its test hooks (`mobile/src/lib.rs`, `mobile/src/assistant.rs`): `RUPERT_TEST_FOLDER`/`_INBOX` add the library, `RUPERT_TEST_JS` runs a scene, `test_log` reports to the simulator's log (the scripts read it to know when to shoot), and `RUPERT_TEST_ASSISTANT=<url>|<model>` points Ask Rupert at a model on the Mac, because the Simulator can't run Apple's model (default: LM Studio with qwen/qwen3.6-35b-a3b; set `RUPERT_MEDIA_ASSISTANT` for another).
+
+1. Build the simulator app and the catalog writer (the phone reads text from the catalog Rupert on a computer writes):
+
+   ```sh
+   npm run phone -- ios build --debug --target aarch64-sim
+   git checkout mobile/gen/apple/rupert-mobile_iOS/Info.plist
+   cargo build --release -p rupert-core --example index_check
+   ```
+
+2. Screenshots, one language at a time (light mode, 9:41, then `1-folder` … `5-scan` in the output folder, 1320 × 2868):
+
+   ```sh
+   T=docs/app-store/tools/ios
+   $T/capture.sh es "¿Cuál es la franquicia del seguro del auto?" /tmp/shots-es
+   ```
+
+   Store them without alpha as `../ios/screenshots/<lang>/large/`, and scaled to 1206 × 2622 as `…/medium/` (`ffmpeg -i in.png -vf scale=1206:2622:flags=lanczos -pix_fmt rgb24 out.png`).
+
+3. App Preview, after `capture.sh` for the same language (it leaves the app installed with the library): `$T/preview.sh es "<question>" docs/app-store/ios/previews/es-ask.mp4`. It records a take, makes it a steady 30 fps, jump-cuts the model's thinking to 1.5 s, and encodes 886 × 1920, 30 fps, H.264 High 4.0, silent stereo AAC, at most 29.5 s.
+
+4. Artwork: `../ios/creative/creative.html?layout=header|search&lang=<lang>` in headless Chrome (the command is at the top of the file), saved without alpha as `<lang>-header-3840x1646.png` and `<lang>-search-results-3840x2560.png`.
+
+5. Delete the simulator's app afterwards if you like (`xcrun simctl uninstall "Rupert Media" io.github.micki-b.rupert`); its data is only the sample library.
 
 ## Mac (`../macos/`)
 

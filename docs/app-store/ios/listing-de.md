@@ -12,7 +12,7 @@ The German localization in App Store Connect: add **German**. Formal "Sie", like
 
 ## Promotional text [170]
 
-Finden Sie jedes gescannte Dokument in Sekunden. Rupert durchsucht Ihre Ordner in iCloud Drive und OneDrive und scannt Papier direkt in Ihren Eingang.
+Fragen Sie Rupert nach Ihren Dokumenten: Er antwortet direkt auf dem iPhone. Finden Sie jeden Scan in iCloud Drive oder OneDrive und scannen Sie Papier in den Eingang.
 
 ## Description [4000]
 
@@ -49,7 +49,7 @@ Rupert ist kostenlos und quelloffen.
 
 ## Keywords [100]
 
-`scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,dateien,onedrive,icloud,archiv,tags`
+`scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
 ## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
 
@@ -64,6 +64,6 @@ IN IHRER SPRACHE
 • Die Eule zieht sich passend an: Lederhosen auf Deutsch, das hellblau-weiß gestreifte Trikot auf Spanisch.
 • Ordner, Dateien und Scans heißen in jeder Sprache gleich, sodass eine Familie eine Bibliothek auch mit iPhones in verschiedenen Sprachen teilen kann.
 
-## Screenshots
+## Screenshots, App Previews and artwork
 
-The English screenshots work (App Store Connect uses them when a localization has none). German ones can be made the same way, with the app set to Deutsch (Einstellungen ▸ Sprache).
+In this language: `screenshots/de/medium/` and `screenshots/de/large/` (upload in order 1–5), the App Preview `previews/de-ask.mp4`, and the artwork `creative/de-header-3840x1646.png` (Header) and `creative/de-search-results-3840x2560.png` (Search Results). How they're made and which slot each goes in: see `listing.md`.

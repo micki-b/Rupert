@@ -1118,6 +1118,15 @@ mod test_hooks {
     }
 }
 
+/// Test scripts (`RUPERT_TEST_JS`) report what they're doing through this, to
+/// the app's console (`simctl launch --console-pty`). Release builds ignore it.
+#[tauri::command]
+fn test_log(message: String) {
+    if cfg!(debug_assertions) {
+        eprintln!("rupert-test: {message}");
+    }
+}
+
 // MARK: - Entry point
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1159,6 +1168,7 @@ pub fn run() {
             assistant::assistant_send,
             assistant::assistant_cancel,
             assistant::assistant_reset,
+            test_log,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");
