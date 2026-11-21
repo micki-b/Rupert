@@ -26,6 +26,8 @@ pub struct Settings {
     pub ocr: bool,
     /// Ask Local AI for a title, date, tags and folder.
     pub suggestions: bool,
+    /// Which Local AI: a server (the address below) or Apple Intelligence.
+    pub local_engine: LocalEngine,
     /// Local AI: an OpenAI-compatible server on this computer or the local
     /// network (LM Studio, Ollama, …). Saved as `lmStudioUrl` up to 0.3.
     #[serde(alias = "lmStudioUrl")]
@@ -42,6 +44,17 @@ pub struct Settings {
     pub check_updates: bool,
     /// Rupert's language ("en", "es"); `None` follows the system.
     pub language: Option<String>,
+}
+
+/// Where Local AI runs.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LocalEngine {
+    /// An OpenAI-compatible server (LM Studio, Ollama, …) at `local_url`.
+    #[default]
+    Server,
+    /// Apple Intelligence, Apple's on-device model (macOS 26 or later).
+    Apple,
 }
 
 /// Which model the assistant talks to.
@@ -79,6 +92,7 @@ impl Default for Settings {
             inbox: None,
             ocr: true,
             suggestions: true,
+            local_engine: LocalEngine::Server,
             local_url: llm::DEFAULT_URL.into(),
             local_model: None,
             name_pattern: "{date} {title}".into(),

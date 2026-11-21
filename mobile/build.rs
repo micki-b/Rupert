@@ -17,5 +17,11 @@ fn main() {
     {
         println!("cargo:rustc-env=RUPERT_GOOGLE_CLIENT_ID={}", id.trim());
     }
+    // rupert-core's Swift bridge (Apple Intelligence) is built for macOS
+    // targets, i.e. this crate's tests on a Mac: the Swift runtime is at
+    // /usr/lib/swift.
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+        println!("cargo::rustc-link-arg=-Wl,-rpath,/usr/lib/swift");
+    }
     tauri_build::build()
 }

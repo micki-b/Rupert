@@ -23,6 +23,7 @@ use std::time::Duration;
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use crate::apple_ai;
 use crate::error::{Error, Result};
 use crate::i18n::{tr, trf};
 use crate::index::{Index, SearchQuery, TagMode};
@@ -73,6 +74,9 @@ pub enum Backend {
         model: String,
         access_token: String,
     },
+    /// Apple Intelligence, on this Mac (see `apple_ai`): the model runs
+    /// the tools itself, through the Swift bridge.
+    Apple,
 }
 
 #[derive(Debug, Clone)]
@@ -100,6 +104,7 @@ impl Backend {
             Self::OpenAiCompatible { model, .. }
             | Self::Anthropic { model, .. }
             | Self::ChatGptPlan { model, .. } => model,
+            Self::Apple => crate::llm::APPLE_MODEL,
         }
     }
 
@@ -108,6 +113,7 @@ impl Backend {
             Self::OpenAiCompatible { .. } => Format::OpenAi,
             Self::Anthropic { .. } => Format::Anthropic,
             Self::ChatGptPlan { .. } => Format::Responses,
+            Self::Apple => Format::Plain,
         }
     }
 }
@@ -243,6 +249,8 @@ enum Format {
     OpenAi,
     Anthropic,
     Responses,
+    /// `{"role", "content"}` text turns (Apple Intelligence).
+    Plain,
 }
 
 /// A conversation. Its history is kept in the backend's own format, so
@@ -307,6 +315,7 @@ impl Chat {
                 model,
                 access_token,
             } => self.send_responses(base_url, model, access_token, tools, text, cancel, on_step),
+            Backend::Apple => self.send_apple(tools, text, cancel, on_step),
         };
         if result.is_err() {
             self.history.truncate(mark);
@@ -334,6 +343,70 @@ impl Chat {
                 Ok((id.clone(), tools.call(name, input)))
             })
             .collect()
+    }
+
+    // MARK: Apple Intelligence
+
+    /// Each turn is a new session on Apple's side, so earlier turns go into
+    /// the instructions. The context is short (4,096 or 8,192 tokens), so
+    /// earlier turns and tool results are kept short.
+    fn send_apple(
+        &mut self,
+        tools: &dyn ToolBox,
+        text: &str,
+        cancel: &Cancel,
+        on_step: &mut dyn FnMut(&Step),
+    ) -> Result<Reply> {
+        let roomy = apple_ai::status().context_size >= 8192;
+        let max_result = if roomy { 3000 } else { 1200 };
+        let specs: Vec<Value> = tools
+            .specs()
+            .into_iter()
+            .map(|t| json!({"name": t.name, "description": t.description, "schema": t.schema}))
+            .collect();
+        let mut instructions = self.system.clone();
+        let earlier = recent_turns(&self.history, if roomy { 2500 } else { 1000 });
+        if !earlier.is_empty() {
+            instructions.push_str("\n\nThe conversation so far:\n");
+            instructions.push_str(&earlier);
+        }
+        let mut steps = Vec::new();
+        let answer = apple_ai::chat(
+            &apple_ai::Turn {
+                instructions: &instructions,
+                prompt: text,
+                tools: &specs,
+                temperature: 0.2,
+                max_tokens: 1000,
+            },
+            &mut |name, input| {
+                if cancel.is_cancelled() {
+                    return "The person stopped this. Don't call more tools.".into();
+                }
+                let step = Step {
+                    tool: name.to_string(),
+                    summary: describe_call(name, input),
+                };
+                on_step(&step);
+                steps.push(step);
+                let out = tools.call(name, input);
+                if out.chars().count() > max_result {
+                    out.chars().take(max_result).collect::<String>() + " …(cut short)"
+                } else {
+                    out
+                }
+            },
+        )?;
+        cancel.check()?;
+        let answer = answer.trim().to_string();
+        self.history.push(json!({"role": "user", "content": text}));
+        self.history
+            .push(json!({"role": "assistant", "content": answer}));
+        Ok(Reply {
+            text: answer,
+            steps,
+            model: crate::llm::APPLE_MODEL.into(),
+        })
     }
 
     // MARK: Anthropic
@@ -882,6 +955,28 @@ fn strip_think(s: &str) -> String {
 }
 
 /// "Searching for “impeller”", for the chat's progress lines.
+/// The latest text turns, oldest first, within `budget` characters, as
+/// "Person: …" / "Rupert: …" lines.
+fn recent_turns(history: &[Value], budget: usize) -> String {
+    let mut lines = Vec::new();
+    let mut used = 0;
+    for turn in history.iter().rev() {
+        let who = if turn["role"] == "user" {
+            "Person"
+        } else {
+            "Rupert"
+        };
+        let line = format!("{who}: {}", turn["content"].as_str().unwrap_or_default());
+        used += line.chars().count();
+        if used > budget {
+            break;
+        }
+        lines.push(line);
+    }
+    lines.reverse();
+    lines.join("\n")
+}
+
 fn describe_call(name: &str, input: &Value) -> String {
     let s = |k: &str| input.get(k).and_then(Value::as_str).unwrap_or_default();
     let tags = input

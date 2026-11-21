@@ -248,6 +248,46 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     // MARK: - Local AI and Ask Rupert
     (
+        "This Mac can't run Apple Intelligence.",
+        "Dieser Mac kann Apple Intelligence nicht ausführen.",
+    ),
+    (
+        "Apple Intelligence is turned off. Turn it on in System Settings ▸ Apple Intelligence & Siri.",
+        "Apple Intelligence ist ausgeschaltet. Schalten Sie es unter Systemeinstellungen ▸ Apple Intelligence & Siri ein.",
+    ),
+    (
+        "Apple Intelligence is still getting ready (downloading its model).",
+        "Apple Intelligence wird noch vorbereitet (das Modell wird geladen).",
+    ),
+    (
+        "Apple Intelligence needs macOS 26 or later.",
+        "Apple Intelligence erfordert macOS 26 oder neuer.",
+    ),
+    (
+        "Apple Intelligence isn't available here.",
+        "Apple Intelligence ist hier nicht verfügbar.",
+    ),
+    (
+        "Apple Intelligence couldn't answer: {0}",
+        "Apple Intelligence konnte nicht antworten: {0}",
+    ),
+    (
+        "The document is too long for Apple Intelligence.",
+        "Das Dokument ist zu lang für Apple Intelligence.",
+    ),
+    (
+        "Apple Intelligence declined to answer for this document.",
+        "Apple Intelligence hat eine Antwort zu diesem Dokument abgelehnt.",
+    ),
+    (
+        "Apple Intelligence doesn't support this document's language.",
+        "Apple Intelligence unterstützt die Sprache dieses Dokuments nicht.",
+    ),
+    (
+        "Apple Intelligence is busy. Try again in a moment.",
+        "Apple Intelligence ist beschäftigt. Versuchen Sie es gleich noch einmal.",
+    ),
+    (
         "The Local AI server has no chat model",
         "Der Server für lokale KI hat kein Chat-Modell",
     ),

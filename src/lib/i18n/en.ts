@@ -265,8 +265,11 @@ const en = {
       elsewhere: (host: string) =>
         `☁ ${host} isn't on this computer or your local network. Ask Rupert treats it as a cloud service, and inbox suggestions won't use it.`,
     },
+    appleWhere: "Runs on this Mac, with Apple's built-in model. Nothing leaves it.",
+    appleNote:
+      "Quick, and needs no other app. It's a small model: a larger one in LM Studio or Ollama files and answers better.",
     localAiNote: "Tested with LM Studio and Ollama. Other servers with an OpenAI-compatible API should work too.",
-    suggestionsNote: "Only document text from the inbox is sent, and only to the Local AI server.",
+    suggestionsNote: "Only document text from the inbox is sent, and only to Local AI.",
     assistant: "Assistant",
     providerLocal: "Local AI (set up above)",
     providerAnthropic: "Claude (Anthropic, cloud)",
@@ -296,7 +299,7 @@ const en = {
     howToSetUp: "How to set up each kind of model",
     chatgptNote:
       "Answers count against your ChatGPT plan's limits, not an API key. You can cap Rupert's share in ChatGPT's settings. This is a preview from OpenAI and may change.",
-    localNote: "Uses the Local AI server and model above. Nothing goes to the internet.",
+    localNote: "Uses the Local AI set up above. Nothing goes to the internet.",
     cloudNote:
       "☁ With a cloud model, your questions and what the assistant looks at (document titles, tags, folders and the text of documents it reads) are sent to that service. Inbox suggestions still use Local AI only.",
     updates: "Updates",

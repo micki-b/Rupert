@@ -279,8 +279,11 @@ const de: Messages = {
       elsewhere: (host: string) =>
         `☁ ${host} ist weder dieser Computer noch in Ihrem lokalen Netzwerk. „Rupert fragen“ behandelt ihn wie einen Cloud-Dienst, und Vorschläge für den Eingang verwenden ihn nicht.`,
     },
+    appleWhere: "Läuft auf diesem Mac, mit dem eingebauten Modell von Apple. Nichts verlässt ihn.",
+    appleNote:
+      "Schnell und ohne weitere App. Es ist ein kleines Modell: Ein größeres in LM Studio oder Ollama legt besser ab und antwortet besser.",
     localAiNote: "Getestet mit LM Studio und Ollama. Andere Server mit einer OpenAI-kompatiblen API sollten ebenfalls funktionieren.",
-    suggestionsNote: "Nur der Text von Dokumenten im Eingang wird gesendet, und nur an den Server für lokale KI.",
+    suggestionsNote: "Nur der Text von Dokumenten im Eingang wird gesendet, und nur an die lokale KI.",
     assistant: "Assistent",
     providerLocal: "Lokale KI (oben eingerichtet)",
     providerAnthropic: "Claude (Anthropic, Cloud)",
@@ -310,7 +313,7 @@ const de: Messages = {
     howToSetUp: "So richten Sie jede Art von Modell ein",
     chatgptNote:
       "Antworten zählen zu den Limits Ihres ChatGPT-Abos, nicht zu einem API-Schlüssel. Sie können Ruperts Anteil in den ChatGPT-Einstellungen begrenzen. Dies ist eine Vorschau von OpenAI und kann sich ändern.",
-    localNote: "Verwendet den Server und das Modell für lokale KI von oben. Nichts geht ins Internet.",
+    localNote: "Verwendet die oben eingerichtete lokale KI. Nichts geht ins Internet.",
     cloudNote:
       "☁ Mit einem Cloud-Modell werden Ihre Fragen und das, was der Assistent ansieht (Titel, Tags, Ordner und der Text gelesener Dokumente), an diesen Dienst gesendet. Vorschläge für den Eingang verwenden weiterhin nur die lokale KI.",
     updates: "Updates",

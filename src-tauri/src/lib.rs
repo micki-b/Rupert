@@ -826,6 +826,23 @@ struct LocalAiPlace {
     host: String,
 }
 
+/// Whether Apple Intelligence can be used on this Mac, and why not.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppleAiInfo {
+    #[serde(flatten)]
+    status: rupert_core::apple_ai::Status,
+    /// Why it can't be used, to show (None when available).
+    message: Option<String>,
+}
+
+#[tauri::command]
+fn apple_ai_status() -> AppleAiInfo {
+    let status = rupert_core::apple_ai::status();
+    let message = status.reason.map(|r| r.message().to_string());
+    AppleAiInfo { status, message }
+}
+
 /// Where a Local AI address points (this computer, the local network or
 /// elsewhere), so Settings can say where documents' text goes.
 #[tauri::command]
@@ -1422,6 +1439,7 @@ pub fn run() {
             ocr_engine,
             lm_models,
             local_ai_place,
+            apple_ai_status,
             inbox_items,
             inbox_redo,
             all_folders,

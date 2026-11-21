@@ -8,6 +8,7 @@
   import {
     api,
     fileNameFor,
+    type AppleAiStatus,
     type AssistantProvider,
     type ChatGptStatus,
     type LocalAiPlace,
@@ -35,13 +36,22 @@
   let lmStatus = $state<"checking" | "ok" | "down">("checking");
   /** Where the Local AI address points. */
   let place = $state<LocalAiPlace | null>(null);
+  /** Apple Intelligence on this Mac; offered unless it's not supported at all. */
+  let apple = $state<AppleAiStatus | null>(null);
+  const offerApple = $derived(apple !== null && apple.reason !== "notSupported");
   /** Local AI servers people are likely to run, by their usual address. */
   const PRESETS = [
     { id: "lmstudio", name: "LM Studio", url: "http://localhost:1234" },
     { id: "ollama", name: "Ollama", url: "http://localhost:11434" },
   ];
   const norm = (u: string) => u.trim().replace(/\/+$/, "").replace("127.0.0.1", "localhost");
-  const preset = $derived(PRESETS.find((p) => settings && norm(settings.localUrl) === p.url)?.id ?? "other");
+  const preset = $derived(
+    settings?.localEngine === "apple"
+      ? "apple"
+      : (PRESETS.find((p) => settings && norm(settings.localUrl) === p.url)?.id ?? "other"),
+  );
+  /** Elsewhere only matters for a server. */
+  const elsewhere = $derived(settings?.localEngine !== "apple" && place?.reach === "elsewhere");
   let error = $state<string | null>(null);
   // Assistant: keys go straight to the keychain, never into settings.
   let hasKey = $state<Record<string, boolean>>({});
@@ -71,6 +81,7 @@
     }
     engine = await api.ocrEngine();
     checkLm();
+    api.appleAiStatus().then((s) => (apple = s), () => (apple = null));
     for (const p of ["anthropic", "openai"] as AssistantProvider[]) {
       hasKey[p] = await api.assistantHasKey(p).catch(() => false);
     }
@@ -142,8 +153,14 @@
   }
 
   function choosePreset(id: string) {
+    if (!settings) return;
+    if (id === "apple") {
+      settings.localEngine = "apple";
+      return;
+    }
     const p = PRESETS.find((x) => x.id === id);
-    if (!p || !settings) return;
+    if (!p) return;
+    settings.localEngine = "server";
     settings.localUrl = p.url;
     settings.localModel = null; // model names differ between servers
     checkLm();
@@ -291,37 +308,47 @@
         <div class="grid">
           <label for="lm-preset">{m.settings.server}</label>
           <select id="lm-preset" value={preset} onchange={(e) => choosePreset(e.currentTarget.value)}>
+            {#if offerApple || preset === "apple"}<option value="apple">Apple Intelligence</option>{/if}
             {#each PRESETS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
             <option value="other" disabled={preset !== "other"}>{m.settings.otherServer}</option>
           </select>
-          <label for="lm-url">{m.settings.address}</label>
-          <div class="row">
-            <input id="lm-url" bind:value={settings.localUrl} onchange={checkLm} />
-            <span class="status {lmStatus}">
-              {lmStatus === "ok" ? m.settings.connected : lmStatus === "down" ? m.settings.notRunning : m.settings.checking}
-            </span>
-          </div>
-          <label for="lm-model">{m.settings.model}</label>
-          <select
-            id="lm-model"
-            value={settings.localModel ?? ""}
-            onchange={(e) => (settings!.localModel = e.currentTarget.value || null)}
-          >
-            <option value="">{m.settings.loadedModel}</option>
-            {#each models as name (name)}<option value={name}>{name}</option>{/each}
-            {#if settings.localModel && !models.includes(settings.localModel)}
-              <option value={settings.localModel}>{settings.localModel}</option>
-            {/if}
-          </select>
+          {#if settings.localEngine !== "apple"}
+            <label for="lm-url">{m.settings.address}</label>
+            <div class="row">
+              <input id="lm-url" bind:value={settings.localUrl} onchange={checkLm} />
+              <span class="status {lmStatus}">
+                {lmStatus === "ok" ? m.settings.connected : lmStatus === "down" ? m.settings.notRunning : m.settings.checking}
+              </span>
+            </div>
+            <label for="lm-model">{m.settings.model}</label>
+            <select
+              id="lm-model"
+              value={settings.localModel ?? ""}
+              onchange={(e) => (settings!.localModel = e.currentTarget.value || null)}
+            >
+              <option value="">{m.settings.loadedModel}</option>
+              {#each models as name (name)}<option value={name}>{name}</option>{/each}
+              {#if settings.localModel && !models.includes(settings.localModel)}
+                <option value={settings.localModel}>{settings.localModel}</option>
+              {/if}
+            </select>
+          {/if}
         </div>
-        {#if place?.reach === "elsewhere"}
+        {#if settings.localEngine === "apple"}
+          {#if apple?.available}
+            <p class="muted small">{m.settings.appleWhere}</p>
+          {:else}
+            <p class="small warn">{apple?.message ?? m.settings.checking}</p>
+          {/if}
+          <p class="muted small">{m.settings.appleNote}</p>
+        {:else if place?.reach === "elsewhere"}
           <p class="small cloud-note">{m.settings.localWhere.elsewhere(place.host)}</p>
         {:else if place?.reach === "localNetwork"}
           <p class="muted small">{m.settings.localWhere.localNetwork(place.host)}</p>
         {:else}
           <p class="muted small">{m.settings.localWhere.thisComputer}</p>
         {/if}
-        <p class="muted small">{m.settings.localAiNote}</p>
+        {#if settings.localEngine !== "apple"}<p class="muted small">{m.settings.localAiNote}</p>{/if}
       </section>
 
       <section>
@@ -444,7 +471,7 @@
         {#if provider === "chatgpt"}
           <p class="muted small">{m.settings.chatgptNote}</p>
         {/if}
-        {#if provider === "local" && place?.reach !== "elsewhere"}
+        {#if provider === "local" && !elsewhere}
           <p class="muted small">{m.settings.localNote}</p>
         {:else}
           <p class="small cloud-note">{m.settings.cloudNote}</p>
@@ -635,6 +662,9 @@
   }
   .cloud-note {
     color: var(--cloud);
+  }
+  .warn {
+    color: #c0392b;
   }
   button.link {
     border: 0;

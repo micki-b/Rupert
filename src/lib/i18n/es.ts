@@ -275,8 +275,11 @@ const es: Messages = {
       elsewhere: (host: string) =>
         `☁ ${host} no está en esta computadora ni en tu red local. Preguntale a Rupert lo trata como un servicio en la nube, y las sugerencias de la bandeja de entrada no lo usan.`,
     },
+    appleWhere: "Funciona en esta Mac, con el modelo incluido de Apple. Nada sale de ella.",
+    appleNote:
+      "Es rápido y no necesita otra app. Es un modelo chico: uno más grande en LM Studio u Ollama archiva y responde mejor.",
     localAiNote: "Probado con LM Studio y Ollama. Otros servidores con una API compatible con OpenAI también deberían funcionar.",
-    suggestionsNote: "Solo se manda el texto de los documentos de la bandeja de entrada, y solo al servidor de IA local.",
+    suggestionsNote: "Solo se manda el texto de los documentos de la bandeja de entrada, y solo a la IA local.",
     assistant: "Asistente",
     providerLocal: "IA local (configurada arriba)",
     providerAnthropic: "Claude (Anthropic, en la nube)",
@@ -306,7 +309,7 @@ const es: Messages = {
     howToSetUp: "Cómo configurar cada tipo de modelo",
     chatgptNote:
       "Las respuestas cuentan para los límites de tu plan de ChatGPT, no para una clave de API. Podés limitar la parte de Rupert en la configuración de ChatGPT. Es una vista previa de OpenAI y puede cambiar.",
-    localNote: "Usa el servidor y el modelo de IA local de arriba. Nada va a internet.",
+    localNote: "Usa la IA local configurada arriba. Nada va a internet.",
     cloudNote:
       "☁ Con un modelo en la nube, tus preguntas y lo que mira el asistente (títulos, etiquetas, carpetas y el texto de los documentos que lee) se mandan a ese servicio. Las sugerencias de la bandeja de entrada siguen usando solo la IA local.",
     updates: "Actualizaciones",
