@@ -1,9 +1,14 @@
-//! iOS services for Rupert's phone app (Swift in `ios/`): folder access
-//! through the Files picker with bookmarks, fetching files from the sync
-//! service, Quick Look, the document camera, web sign-in and the Keychain.
+//! Phone services for Rupert's phone app, on iOS (Swift in `ios/`) and
+//! Android (Kotlin in `android/`): folder access through the Files picker
+//! with bookmarks, fetching files from the sync service, previews, the
+//! document camera, web sign-in and the keychain.
 //!
-//! Every call blocks until iOS answers, so call from a background thread.
-//! Elsewhere every call fails with [`Error::Unsupported`].
+//! Android has the camera (Google's ML Kit scanner), sign-in, the keychain,
+//! previews and Google's own Drive authorization ([`Device::google_token`]);
+//! the Files-picker calls are iOS-only for now.
+//!
+//! Every call blocks until the phone answers, so call from a background
+//! thread. On a computer every call fails with [`Error::Unsupported`].
 
 use serde::{Deserialize, Serialize};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -23,7 +28,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unsupported => f.write_str("only available on iPhone and iPad"),
+            Self::Unsupported => f.write_str("not available on this device"),
             Self::Failed(msg) => f.write_str(msg),
         }
     }
@@ -81,16 +86,16 @@ struct PathArgs<'a> {
 
 // MARK: - Device
 
-/// Handle to the iOS side, managed as app state.
+/// Handle to the phone side, managed as app state.
 pub struct Device<R: Runtime> {
-    #[cfg(target_os = "ios")]
+    #[cfg(any(target_os = "ios", target_os = "android"))]
     handle: tauri::plugin::PluginHandle<R>,
-    #[cfg(not(target_os = "ios"))]
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
     _runtime: std::marker::PhantomData<fn() -> R>,
 }
 
 impl<R: Runtime> Device<R> {
-    #[cfg(target_os = "ios")]
+    #[cfg(any(target_os = "ios", target_os = "android"))]
     fn call<T: serde::de::DeserializeOwned>(
         &self,
         command: &str,
@@ -101,7 +106,7 @@ impl<R: Runtime> Device<R> {
             .map_err(|e| Error::Failed(clean(e.to_string())))
     }
 
-    #[cfg(not(target_os = "ios"))]
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
     fn call<T: serde::de::DeserializeOwned>(
         &self,
         _command: &str,
@@ -213,6 +218,25 @@ impl<R: Runtime> Device<R> {
             .map(drop)
     }
 
+    /// Android: an access token for Google Drive with `scope`, from Google
+    /// Play services (asks the person the first time; afterwards answers
+    /// silently). `None` if they declined. Google allows the web sign-in
+    /// used on iOS only for iOS apps.
+    pub fn google_token(&self, scope: &str) -> Result<Option<String>> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            scope: &'a str,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Token {
+            access_token: Option<String>,
+        }
+        Ok(self
+            .call::<Token>("googleToken", Args { scope })?
+            .access_token)
+    }
+
     pub fn keychain_get(&self, key: &str) -> Result<Option<String>> {
         #[derive(Serialize)]
         struct Args<'a> {
@@ -247,7 +271,7 @@ impl<R: Runtime> Device<R> {
 }
 
 /// Plugin errors arrive as JSON-ish text; keep just the message.
-#[cfg_attr(not(target_os = "ios"), allow(dead_code))]
+#[cfg_attr(not(any(target_os = "ios", target_os = "android")), allow(dead_code))]
 fn clean(message: String) -> String {
     serde_json::from_str::<serde_json::Value>(&message)
         .ok()
@@ -258,13 +282,18 @@ fn clean(message: String) -> String {
 // MARK: - Plugin
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    Builder::new("rupert-ios")
+    Builder::new("rupert-phone")
         .setup(|app, _api| {
             #[cfg(target_os = "ios")]
             let device = Device {
                 handle: _api.register_ios_plugin(init_plugin_rupert_ios)?,
             };
-            #[cfg(not(target_os = "ios"))]
+            #[cfg(target_os = "android")]
+            let device = Device {
+                handle: _api
+                    .register_android_plugin("io.github.micki_b.rupert.phone", "RupertPlugin")?,
+            };
+            #[cfg(not(any(target_os = "ios", target_os = "android")))]
             let device = Device::<R> {
                 _runtime: std::marker::PhantomData,
             };

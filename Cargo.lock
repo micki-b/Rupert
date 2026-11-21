@@ -3713,7 +3713,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
- "tauri-plugin-rupert-ios",
+ "tauri-plugin-rupert-phone",
 ]
 
 [[package]]
@@ -4793,7 +4793,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-plugin-rupert-ios"
+name = "tauri-plugin-rupert-phone"
 version = "0.4.1"
 dependencies = [
  "serde",

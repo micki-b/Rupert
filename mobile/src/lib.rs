@@ -37,7 +37,7 @@ use rupert_core::{
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Wry};
-use tauri_plugin_rupert_ios::{Device, Error as DeviceError};
+use tauri_plugin_rupert_phone::{Device, Error as DeviceError};
 
 /// Indexing progress. Payload: `Progress`.
 const INDEX_PROGRESS: &str = "index-progress";
@@ -914,7 +914,7 @@ async fn scan(
             // Show it in the inbox once the service lists it.
             cloud::start_sync(&handle, remote.service);
             return result.map(|name| {
-                Some(tauri_plugin_rupert_ios::Placed {
+                Some(tauri_plugin_rupert_phone::Placed {
                     path: String::new(),
                     name,
                 })
@@ -1132,7 +1132,7 @@ fn test_log(message: String) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_rupert_ios::init())
+        .plugin(tauri_plugin_rupert_phone::init())
         .setup(setup)
         .invoke_handler(tauri::generate_handler![
             overview,
