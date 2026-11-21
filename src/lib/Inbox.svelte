@@ -1,5 +1,5 @@
 <script lang="ts">
-  // The inbox: new scans, their recognized text and LM Studio's suggestion,
+  // The inbox: new scans, their recognized text and Local AI's suggestion,
   // reviewed and filed one at a time.
   import { onMount, untrack } from "svelte";
   import { ask } from "@tauri-apps/plugin-dialog";

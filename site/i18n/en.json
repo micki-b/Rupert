@@ -38,7 +38,8 @@
   "ask.h2b": "He answers in it, and dresses for it.",
   "ask.p": "Ask for a document in plain words. Rupert searches your library, reads what he finds and shows it in the window. He speaks English, Spanish and German, and so does the rest of the app.",
   "ask.langs": "Language",
-  "ask.tick1": "Runs on your computer with LM Studio, or with Claude or ChatGPT if you choose.",
+  "ask.model": "Local AI",
+  "ask.tick1": "Runs on your computer with Local AI (LM Studio, Ollama and the like), or with Claude or ChatGPT if you choose.",
   "ask.tick2": "Reads, finds and shows. Never renames, moves or deletes.",
 
   "every.eyebrow": "Mac · Windows · Linux · iPhone",
@@ -87,7 +88,7 @@
   "dl.linux.req": "x86-64 · AppImage, Debian/Ubuntu, Fedora",
   "dl.ios.req": "iOS 16 or later · scan, browse and search",
   "dl.ios.file": "App Store",
-  "dl.fine": "All downloads, checksums and release notes are on <a href=\"https://github.com/micki-b/Rupert/releases\">GitHub</a>. Optional: <a href=\"https://lmstudio.ai\">LM Studio</a> for filing suggestions and Ask Rupert; on Windows and Linux, <a href=\"https://github.com/tesseract-ocr/tesseract\">Tesseract</a> for text recognition.",
+  "dl.fine": "All downloads, checksums and release notes are on <a href=\"https://github.com/micki-b/Rupert/releases\">GitHub</a>. Optional: a Local AI app such as <a href=\"https://lmstudio.ai\">LM Studio</a> or <a href=\"https://ollama.com\">Ollama</a> for filing suggestions and Ask Rupert; on Windows and Linux, <a href=\"https://github.com/tesseract-ocr/tesseract\">Tesseract</a> for text recognition.",
 
   "support.title": "Rupert support",
   "support.description": "Help with Rupert, the librarian for your documents: the built-in help, reporting a problem, and ideas.",

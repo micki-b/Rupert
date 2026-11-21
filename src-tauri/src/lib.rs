@@ -12,7 +12,7 @@ mod thumbs;
 use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
 use rupert_core::folder_info::{self, FolderInfo};
 use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, IntakeItem};
-use rupert_core::llm::LmStudio;
+use rupert_core::llm::{self, LocalAi, Reach};
 use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
 use rupert_core::settings::{Settings, SettingsStore};
 use rupert_core::tag_edit::{self, Preview, TagEdit};
@@ -819,10 +819,28 @@ fn ocr_engine() -> Option<&'static str> {
     rupert_core::ocr::Engine::detect().map(|e| e.name())
 }
 
-/// Chat models LM Studio offers at `url` (fails if it isn't running).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LocalAiPlace {
+    reach: Reach,
+    host: String,
+}
+
+/// Where a Local AI address points (this computer, the local network or
+/// elsewhere), so Settings can say where documents' text goes.
+#[tauri::command]
+fn local_ai_place(url: String) -> LocalAiPlace {
+    LocalAiPlace {
+        reach: llm::reach(&url),
+        host: llm::host(&url).unwrap_or_default().to_string(),
+    }
+}
+
+/// Chat models the Local AI server at `url` offers (fails if it isn't
+/// running).
 #[tauri::command]
 async fn lm_models(url: String) -> CmdResult<Vec<String>> {
-    tauri::async_runtime::spawn_blocking(move || LmStudio { url, model: None }.models())
+    tauri::async_runtime::spawn_blocking(move || LocalAi { url, model: None }.models())
         .await
         .map_err(err)?
         .map_err(err)
@@ -1403,6 +1421,7 @@ pub fn run() {
             set_settings,
             ocr_engine,
             lm_models,
+            local_ai_place,
             inbox_items,
             inbox_redo,
             all_folders,

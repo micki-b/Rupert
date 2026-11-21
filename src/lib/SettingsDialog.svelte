@@ -1,11 +1,19 @@
 <script lang="ts">
-  // Settings: the inbox, text recognition, LM Studio suggestions, naming,
-  // and the chat assistant's model.
+  // Settings: the inbox, text recognition, Local AI and its suggestions,
+  // naming, and the chat assistant's model.
   import { onMount, tick } from "svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import Icon from "#lib/Icon.svelte";
   import { updates } from "#lib/updates.svelte.ts";
-  import { api, fileNameFor, type AssistantProvider, type ChatGptStatus, type Settings, type Source } from "#lib/api.ts";
+  import {
+    api,
+    fileNameFor,
+    type AssistantProvider,
+    type ChatGptStatus,
+    type LocalAiPlace,
+    type Settings,
+    type Source,
+  } from "#lib/api.ts";
   import { LANGS, languageNames, loadLanguage, m, type Lang } from "#lib/i18n/index.ts";
 
   let {
@@ -25,6 +33,15 @@
   let engine = $state<string | null | undefined>(undefined);
   let models = $state<string[]>([]);
   let lmStatus = $state<"checking" | "ok" | "down">("checking");
+  /** Where the Local AI address points. */
+  let place = $state<LocalAiPlace | null>(null);
+  /** Local AI servers people are likely to run, by their usual address. */
+  const PRESETS = [
+    { id: "lmstudio", name: "LM Studio", url: "http://localhost:1234" },
+    { id: "ollama", name: "Ollama", url: "http://localhost:11434" },
+  ];
+  const norm = (u: string) => u.trim().replace(/\/+$/, "").replace("127.0.0.1", "localhost");
+  const preset = $derived(PRESETS.find((p) => settings && norm(settings.localUrl) === p.url)?.id ?? "other");
   let error = $state<string | null>(null);
   // Assistant: keys go straight to the keychain, never into settings.
   let hasKey = $state<Record<string, boolean>>({});
@@ -124,11 +141,20 @@
     }
   }
 
+  function choosePreset(id: string) {
+    const p = PRESETS.find((x) => x.id === id);
+    if (!p || !settings) return;
+    settings.localUrl = p.url;
+    settings.localModel = null; // model names differ between servers
+    checkLm();
+  }
+
   async function checkLm() {
     if (!settings) return;
     lmStatus = "checking";
+    place = await api.localAiPlace(settings.localUrl).catch(() => null);
     try {
-      models = await api.lmModels(settings.lmStudioUrl);
+      models = await api.lmModels(settings.localUrl);
       lmStatus = "ok";
     } catch {
       models = [];
@@ -261,15 +287,16 @@
       </section>
 
       <section>
-        <h2>{m.settings.suggestions}</h2>
-        <label class="check">
-          <input type="checkbox" bind:checked={settings.suggestions} />
-          {m.settings.suggest}
-        </label>
+        <h2 id="settings-local-ai">{m.settings.localAi}</h2>
         <div class="grid">
-          <label for="lm-url">{m.settings.server}</label>
+          <label for="lm-preset">{m.settings.server}</label>
+          <select id="lm-preset" value={preset} onchange={(e) => choosePreset(e.currentTarget.value)}>
+            {#each PRESETS as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+            <option value="other" disabled={preset !== "other"}>{m.settings.otherServer}</option>
+          </select>
+          <label for="lm-url">{m.settings.address}</label>
           <div class="row">
-            <input id="lm-url" bind:value={settings.lmStudioUrl} onchange={checkLm} />
+            <input id="lm-url" bind:value={settings.localUrl} onchange={checkLm} />
             <span class="status {lmStatus}">
               {lmStatus === "ok" ? m.settings.connected : lmStatus === "down" ? m.settings.notRunning : m.settings.checking}
             </span>
@@ -277,16 +304,32 @@
           <label for="lm-model">{m.settings.model}</label>
           <select
             id="lm-model"
-            value={settings.lmStudioModel ?? ""}
-            onchange={(e) => (settings!.lmStudioModel = e.currentTarget.value || null)}
+            value={settings.localModel ?? ""}
+            onchange={(e) => (settings!.localModel = e.currentTarget.value || null)}
           >
             <option value="">{m.settings.loadedModel}</option>
             {#each models as name (name)}<option value={name}>{name}</option>{/each}
-            {#if settings.lmStudioModel && !models.includes(settings.lmStudioModel)}
-              <option value={settings.lmStudioModel}>{settings.lmStudioModel}</option>
+            {#if settings.localModel && !models.includes(settings.localModel)}
+              <option value={settings.localModel}>{settings.localModel}</option>
             {/if}
           </select>
         </div>
+        {#if place?.reach === "elsewhere"}
+          <p class="small cloud-note">{m.settings.localWhere.elsewhere(place.host)}</p>
+        {:else if place?.reach === "localNetwork"}
+          <p class="muted small">{m.settings.localWhere.localNetwork(place.host)}</p>
+        {:else}
+          <p class="muted small">{m.settings.localWhere.thisComputer}</p>
+        {/if}
+        <p class="muted small">{m.settings.localAiNote}</p>
+      </section>
+
+      <section>
+        <h2>{m.settings.suggestions}</h2>
+        <label class="check">
+          <input type="checkbox" bind:checked={settings.suggestions} />
+          {m.settings.suggest}
+        </label>
         <p class="muted small">{m.settings.suggestionsNote}</p>
       </section>
 
@@ -401,7 +444,7 @@
         {#if provider === "chatgpt"}
           <p class="muted small">{m.settings.chatgptNote}</p>
         {/if}
-        {#if provider === "local"}
+        {#if provider === "local" && place?.reach !== "elsewhere"}
           <p class="muted small">{m.settings.localNote}</p>
         {:else}
           <p class="small cloud-note">{m.settings.cloudNote}</p>

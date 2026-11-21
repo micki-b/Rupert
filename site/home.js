@@ -68,6 +68,7 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
   const text = {
     en: {
       title: "Ask Rupert",
+      model: "Local AI",
       q: "What's the deductible on my car insurance?",
       steps: "Searching for “car insurance” · Reading Insurance/Car insurance renewal.pdf",
       a: "Your Acme Mutual car policy, renewed March 2, 2026, has a $500 collision deductible. The yearly premium is $1,184 and roadside assistance is included. Shall I open it?",
@@ -75,6 +76,7 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
     },
     es: {
       title: "Preguntale a Rupert",
+      model: "IA local",
       q: "¿Cuál es la franquicia del seguro del auto?",
       steps: "Buscando «seguro auto» · Leyendo Insurance/Car insurance renewal.pdf",
       a: "Tu póliza de auto de Acme Mutual, renovada el 2 de marzo de 2026, tiene una franquicia de USD 500 por choque. La prima anual es de USD 1.184 e incluye auxilio mecánico. ¿Querés que la abra?",
@@ -82,6 +84,7 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
     },
     de: {
       title: "Rupert fragen",
+      model: "Lokale KI",
       q: "Wie hoch ist die Selbstbeteiligung meiner Autoversicherung?",
       steps: "Suche nach „Autoversicherung“ · Insurance/Car insurance renewal.pdf wird gelesen",
       a: "Ihre Kfz-Police bei Acme Mutual, verlängert am 2. März 2026, hat eine Selbstbeteiligung von 500 USD bei Kollisionen. Die Jahresprämie beträgt 1.184 USD, Pannenhilfe ist inklusive. Soll ich sie öffnen?",
@@ -103,7 +106,7 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
     chat.setAttribute("lang", lang);
     chat.dataset.lang = lang;
     for (const b of tabs) b.setAttribute("aria-selected", String(b.dataset.lang === lang));
-    for (const k of ["title", "q", "steps", "placeholder"]) field(k).textContent = t[k];
+    for (const k of ["title", "model", "q", "steps", "placeholder"]) field(k).textContent = t[k];
     const answer = field("a");
     clearInterval(typing);
     if (!animate || reduceMotion) {

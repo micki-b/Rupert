@@ -193,8 +193,9 @@ export interface Settings {
   inbox: InboxLocation | null;
   ocr: boolean;
   suggestions: boolean;
-  lmStudioUrl: string;
-  lmStudioModel: string | null;
+  /** Local AI: an OpenAI-compatible server (LM Studio, Ollama, …). */
+  localUrl: string;
+  localModel: string | null;
   /** `{date}` and `{title}` are replaced. */
   namePattern: string;
   assistant: AssistantSettings;
@@ -225,6 +226,12 @@ export interface AssistantSettings {
   baseUrl: string | null;
   /** Claude through the `ant` command-line login instead of an API key. */
   anthropicCliLogin: boolean;
+}
+
+/** Where a Local AI address points. */
+export interface LocalAiPlace {
+  reach: "thisComputer" | "localNetwork" | "elsewhere";
+  host: string;
 }
 
 export interface AssistantInfo {
@@ -420,6 +427,7 @@ export const api = {
   setSettings: (settings: Settings) => invoke<Settings>("set_settings", { settings }),
   ocrEngine: () => invoke<string | null>("ocr_engine"),
   lmModels: (url: string) => invoke<string[]>("lm_models", { url }),
+  localAiPlace: (url: string) => invoke<LocalAiPlace>("local_ai_place", { url }),
   inboxItems: () => invoke<IntakeItem[]>("inbox_items"),
   inboxRedo: (relPath: string) => invoke<void>("inbox_redo", { relPath }),
   allFolders: () => invoke<FolderChoice[]>("all_folders"),

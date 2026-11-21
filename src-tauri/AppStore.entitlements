@@ -13,7 +13,7 @@
 	<!-- Keeping access to them across launches (security-scoped bookmarks) -->
 	<key>com.apple.security.files.bookmarks.app-scope</key>
 	<true/>
-	<!-- LM Studio, cloud models, network scanners, OneDrive/ChatGPT sign-in -->
+	<!-- Local AI (LM Studio, Ollama, …), cloud models, network scanners, OneDrive/ChatGPT sign-in -->
 	<key>com.apple.security.network.client</key>
 	<true/>
 	<!-- Scanner discovery (Bonjour multicast) and the ChatGPT sign-in's one-time local listener -->

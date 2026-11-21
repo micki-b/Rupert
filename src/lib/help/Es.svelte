@@ -13,7 +13,7 @@
     { id: "scansnap", title: "Venir de ScanSnap Home" },
     { id: "assistant", title: "Preguntale a Rupert" },
     { id: "ai-models", title: "Configurar modelos de IA" },
-    { id: "lm-studio", title: "LM Studio (en esta computadora)", sub: true },
+    { id: "local-ai", title: "IA local (en esta computadora)", sub: true },
     { id: "claude", title: "Claude", sub: true },
     { id: "chatgpt-plan", title: "ChatGPT con tu plan", sub: true },
     { id: "openai", title: "Servicios compatibles con OpenAI", sub: true },
@@ -65,8 +65,8 @@
       <a href="#inbox">La bandeja de entrada</a>.
     </li>
     <li>
-      <strong>Configurá LM Studio</strong> (opcional) para las sugerencias de archivo y el asistente. Mirá
-      <a href="#lm-studio">LM Studio</a>.
+      <strong>Configurá la IA local</strong> (opcional) para las sugerencias de archivo y el asistente, con LM Studio,
+      Ollama o una app parecida. Mirá <a href="#local-ai">IA local</a>.
     </li>
   </ol>
   <div class="note">
@@ -265,15 +265,15 @@
         : "con Tesseract, si está instalado"}). Activalo o desactivalo en <b>Configuración ▸ Reconocimiento de texto</b>.
     </li>
     <li>
-      <b>Sugiere título, fecha, etiquetas y carpeta</b> con LM Studio en esta computadora, si está abierto. Rupert sugiere
-      carpetas donde ya hay documentos parecidos.
+      <b>Sugiere título, fecha, etiquetas y carpeta</b> con la <a href="#local-ai">IA local</a> (LM Studio, Ollama o una
+      app parecida), si está funcionando. Rupert sugiere carpetas donde ya hay documentos parecidos.
     </li>
     <li>Te espera. Nada se mueve hasta que lo digas.</li>
   </ol>
   <p>
     Hacé clic en <b>Bandeja de entrada</b> en la barra lateral para revisar. Mirá la sugerencia, cambiá lo que quieras y
     hacé clic en <b>Archivar</b> ({cmd}{mac ? "↩" : "Enter"}). Rupert escribe los detalles en el archivo, le cambia el
-    nombre y lo mueve a la carpeta. <b>Sugerir de nuevo</b> le pide a LM Studio una sugerencia nueva.
+    nombre y lo mueve a la carpeta. <b>Sugerir de nuevo</b> le pide a la IA local una sugerencia nueva.
   </p>
   <p>
     Para deshacerte de un escaneo, hacé clic en <b>{windows ? "Eliminar…" : "Trasladar a la Papelera…"}</b> debajo del
@@ -361,7 +361,7 @@
     el texto que Rupert ya conoce, así que nunca descarga archivos solo en línea.
   </p>
   <p>
-    De entrada funciona con LM Studio, en esta computadora. En su lugar podés elegir Claude u otro servicio en la nube:
+    De entrada funciona con la IA local, en esta computadora. En su lugar podés elegir Claude u otro servicio en la nube:
     mirá <a href="#ai-models">Configurar modelos de IA</a>.
   </p>
   <p class="tip">Cuando Rupert habla español, el búho se pone la camiseta albiceleste.</p>
@@ -376,12 +376,12 @@
     <tbody>
       <tr>
         <td>Sugerencias de la bandeja de entrada (título, fecha, etiquetas, carpeta)</td>
-        <td>LM Studio en esta computadora, siempre</td>
-        <td><b>Configuración ▸ Sugerencias</b></td>
+        <td>IA local, siempre (en esta computadora o en tu red local)</td>
+        <td><b>Configuración ▸ IA local</b> y <b>Sugerencias</b></td>
       </tr>
       <tr>
         <td>Preguntale a Rupert (el chat)</td>
-        <td>LM Studio de entrada, o un modelo en la nube que elijas</td>
+        <td>IA local de entrada, o un modelo en la nube que elijas</td>
         <td><b>Configuración ▸ Asistente</b></td>
       </tr>
     </tbody>
@@ -391,7 +391,10 @@
     el menú <b>Modelo</b> elige un tipo de conexión:
   </p>
   <ul>
-    <li><a href="#lm-studio"><b>LM Studio en esta computadora</b></a>: privado y gratis, necesita una computadora potente.</li>
+    <li>
+      <a href="#local-ai"><b>IA local</b></a> (LM Studio, Ollama o una app parecida): privado y gratis, necesita una
+      computadora potente.
+    </li>
     <li>
       <a href="#claude"><b>Claude (Anthropic, en la nube)</b></a>: con una clave de API o con tu cuenta de Anthropic (los
       créditos mensuales de un plan Max, Ultra o Team lo pueden pagar).
@@ -408,18 +411,21 @@
     <b>☁ Sobre la privacidad.</b> Con un modelo en la nube, tus preguntas y lo que mira el asistente (títulos, etiquetas,
     nombres de carpetas y el texto de los documentos que lee) se mandan a ese servicio. Siempre que se usa un modelo en la
     nube, el panel del chat muestra <span class="cloud">☁</span> y el nombre del modelo debajo de “Preguntale a Rupert”.
-    Las sugerencias de la bandeja de entrada y el reconocimiento de texto se quedan en esta computadora igual.
+    Las sugerencias de la bandeja de entrada y el reconocimiento de texto nunca usan un servicio en la nube.
   </div>
 </section>
 
-<!-- MARK: LM Studio -->
-<section id="lm-studio">
-  <h3 class="sub-h">LM Studio (en esta computadora)</h3>
+<!-- MARK: IA local -->
+<section id="local-ai">
+  <h3 class="sub-h">IA local (en esta computadora)</h3>
   <p>
-    <a href="https://lmstudio.ai">LM Studio</a> es una app gratuita que ejecuta modelos de IA en tu propia computadora.
-    Nada sale de la computadora. Funciona mejor en una Mac con Apple silicon y bastante memoria, o en una PC con una
-    placa de video reciente.
+    La IA local ejecuta un modelo en tu propia computadora, así que nada va a internet. Rupert funciona con cualquier app
+    que ofrezca un servidor compatible con OpenAI. Está probado con <a href="https://lmstudio.ai">LM Studio</a> y
+    <a href="https://ollama.com">Ollama</a>; otras, como <code>llama-server</code> de llama.cpp o Jan, también deberían
+    funcionar. La IA local anda mejor en una Mac con Apple silicon y mucha memoria, o en una PC con una placa de video
+    reciente.
   </p>
+  <p><b>Con LM Studio:</b></p>
   <ol>
     <li>Instalá LM Studio desde <a href="https://lmstudio.ai">lmstudio.ai</a> y abrilo.</li>
     <li>
@@ -428,27 +434,50 @@
       lentos.
     </li>
     <li>
-      Iniciá el servidor local: en la pestaña <b>Developer</b> de LM Studio, encendé el servidor. Escucha en
-      <code>http://localhost:1234</code>. Cargá ahí también tu modelo.
+      Iniciá el servidor local: en la pestaña <b>Developer</b> de LM Studio, encendé el servidor. Cargá tu modelo ahí
+      también.
+    </li>
+  </ol>
+  <p><b>Con Ollama:</b></p>
+  <ol>
+    <li>Instalá Ollama desde <a href="https://ollama.com">ollama.com</a> y abrilo. Queda funcionando en segundo plano.</li>
+    <li>
+      Descargá un modelo que admita <b>herramientas</b> (la biblioteca de modelos de Ollama los marca), por ejemplo en una
+      terminal: <code>ollama pull qwen3:4b</code>.
+    </li>
+  </ol>
+  <p><b>Después, en Rupert:</b></p>
+  <ol>
+    <li>
+      Abrí <b>Configuración ▸ IA local</b>. En <b>Servidor</b>, elegí LM Studio u Ollama, y se completa la
+      <b>Dirección</b> (<code>http://localhost:1234</code> o <code>http://localhost:11434</code>); para otro servidor,
+      escribí su dirección. Tiene que decir <span class="ok">Conectado</span>.
     </li>
     <li>
-      En Rupert, abrí <b>Configuración ▸ Sugerencias</b>. <b>Servidor</b> tiene que decir
-      <code>http://localhost:1234</code> y mostrar <span class="ok">Conectado</span>. En <b>Modelo</b>, dejá “El modelo
-      cargado en LM Studio” o elegí uno.
+      En <b>Modelo</b>, elegí tu modelo. “Automático” toma el primer modelo que lista el servidor: con LM Studio es el
+      modelo cargado, pero Ollama lista todos los modelos que descargaste, así que ahí elegí uno.
     </li>
     <li>
-      En <b>Configuración ▸ Asistente</b>, elegí <b>LM Studio en esta computadora</b>. El asistente usa el mismo servidor
-      y el mismo modelo que las sugerencias. Los cambios en la Configuración se aplican en el acto.
+      En <b>Configuración ▸ Asistente</b>, elegí <b>IA local</b>. El asistente usa el mismo servidor y el mismo modelo que
+      las sugerencias de la bandeja de entrada. Los cambios en Configuración se aplican enseguida; hacé clic en
+      <b>Listo</b> cuando termines.
     </li>
   </ol>
   <p class="tip">
     Los modelos locales se toman su tiempo: una pregunta puede tardar uno o dos minutos, casi todo pensando. Mientras
-    tanto podés seguir usando Rupert, y cortar la respuesta cuando quieras.
+    tanto podés seguir usando Rupert, y frenar la respuesta cuando quieras.
   </p>
   <p class="tip">
-    LM Studio también puede funcionar en otra computadora de tu casa: activá su opción para servir en la red local, y
-    poné la dirección de esa computadora en <b>Servidor</b> (por ejemplo <code>http://192.168.1.20:1234</code>). Hacelo
-    solo en una red de confianza; el servidor no tiene contraseña.
+    Si las respuestas se cortan o el asistente pierde el hilo de lo que leyó, dale más espacio al modelo (su largo de
+    contexto): en la configuración de Ollama, o al cargar el modelo en LM Studio.
+  </p>
+  <p class="tip">
+    El servidor también puede funcionar en otra computadora de tu casa: dejá que sirva en la red local (la opción de LM
+    Studio para servir en la red local, o “Expose Ollama to the network” en Ollama), y escribí la dirección de esa
+    computadora, por ejemplo <code>http://192.168.1.20:11434</code>. Hacelo solo en una red de confianza: estos servidores
+    no tienen contraseña. Configuración te dice adónde va el texto de los documentos. Una dirección fuera de tu red de casa
+    cuenta como un servicio en la nube: Preguntale a Rupert muestra <span class="cloud">☁</span>, y las sugerencias de la
+    bandeja de entrada no la usan.
   </p>
 </section>
 
@@ -599,10 +628,15 @@
     <thead><tr><th>Mensaje o síntoma</th><th>Qué hacer</th></tr></thead>
     <tbody>
       <tr>
-        <td>“LM Studio no está abierto, o no tiene ningún modelo cargado.”</td>
+        <td>“La IA local no está funcionando, o no tiene ningún modelo.”</td>
         <td>
-          Abrí LM Studio, iniciá su servidor y cargá un modelo. Configuración ▸ Sugerencias tiene que decir Conectado.
+          Abrí LM Studio u Ollama, iniciá su servidor y fijate que tenga un modelo. Configuración ▸ IA local tiene que decir
+          Conectado.
         </td>
+      </tr>
+      <tr>
+        <td>“El modelo se quedó sin espacio antes de responder…”</td>
+        <td>Un modelo que razona gastó su espacio pensando. Elegí un modelo que no razone, o que razone menos.</td>
       </tr>
       <tr>
         <td>“Agregá una clave de API de Anthropic…” o “Agregá una clave de API…”</td>
@@ -653,7 +687,7 @@
       </tr>
       <tr>
         <td>Respuestas muy lentas</td>
-        <td>Es normal con modelos locales grandes. Elegí un modelo más chico en LM Studio, o un modelo en la nube.</td>
+        <td>Es normal con modelos locales grandes. Elegí un modelo más chico en Configuración ▸ IA local, o un modelo en la nube.</td>
       </tr>
     </tbody>
   </table>

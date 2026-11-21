@@ -1,4 +1,4 @@
-//! Dev tool: run the inbox pipeline (OCR → LM Studio) on a test folder and
+//! Dev tool: run the inbox pipeline (OCR → Local AI) on a test folder and
 //! file the first document. Use copies!
 //! Usage: cargo run --release -p rupert-core --example intake_check -- <pdfium-dir> <test-root> <inbox-rel> <index-copy> <sources.json>
 

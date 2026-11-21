@@ -1,11 +1,12 @@
-//! Dev tool: ask LM Studio for filing suggestions for PDFs, using a copy
-//! of an index for folders and tags.
+//! Dev tool: ask Local AI (`RUPERT_LOCAL_AI`, LM Studio by default;
+//! `RUPERT_LOCAL_MODEL`) for filing suggestions for PDFs, using a copy of an
+//! index for folders and tags.
 //! Usage: cargo run --release -p rupert-core --example llm_check -- <pdfium-dir> <index-copy> <sources.json> <pdf>...
 
 use std::path::PathBuf;
 use std::time::Instant;
 
-use rupert_core::llm::{self, LmStudio};
+use rupert_core::llm::{self, LocalAi};
 use rupert_core::text::TextExtractor;
 use rupert_core::{Index, SourceStore};
 
@@ -15,9 +16,9 @@ fn main() {
     let index = Index::open(&PathBuf::from(args.next().unwrap())).unwrap();
     let store = SourceStore::load(PathBuf::from(args.next().unwrap())).unwrap();
     let name = |id: &str| store.get(id).map(|s| s.name.clone()).unwrap_or_default();
-    let lm = LmStudio {
-        url: llm::DEFAULT_URL.into(),
-        model: None,
+    let lm = LocalAi {
+        url: std::env::var("RUPERT_LOCAL_AI").unwrap_or_else(|_| llm::DEFAULT_URL.into()),
+        model: std::env::var("RUPERT_LOCAL_MODEL").ok(),
     };
     println!("models: {:?}", lm.models());
     let tags = index.top_tags(150).unwrap();

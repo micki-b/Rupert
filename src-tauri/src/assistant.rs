@@ -13,7 +13,7 @@ use rupert_core::assistant::{
     self, AnthropicAuth, Backend, Cancel, Chat, LibraryTools, Step, UiAction,
 };
 use rupert_core::chatgpt::{self, Credentials, PlanModel, SignIn};
-use rupert_core::llm::LmStudio;
+use rupert_core::llm::{self, LocalAi, Reach};
 use rupert_core::settings::{AssistantProvider, Settings};
 use rupert_core::{Error, Index};
 use serde::Serialize;
@@ -414,31 +414,34 @@ pub fn chatgpt_sign_out() -> CmdResult<()> {
 
 // MARK: - Backend
 
+/// Whether documents' details and text leave this computer and the local
+/// network: a cloud provider, or a "local" address that is elsewhere.
 fn is_cloud(settings: &Settings) -> bool {
     settings.assistant.provider != AssistantProvider::Local
+        || llm::reach(&settings.local_url) == Reach::Elsewhere
 }
 
-/// The backend the settings describe (may ask LM Studio for its model, or
-/// `ant` for a token).
+/// The backend the settings describe (may ask the Local AI server for its
+/// model, or `ant` for a token).
 fn backend(settings: &Settings) -> Result<Backend, String> {
     let a = &settings.assistant;
     let model = a.model.as_deref().map(str::trim).filter(|m| !m.is_empty());
     match a.provider {
         AssistantProvider::Local => {
-            let model = match &settings.lm_studio_model {
+            let model = match &settings.local_model {
                 Some(m) => m.clone(),
-                None => LmStudio {
-                    url: settings.lm_studio_url.clone(),
+                None => LocalAi {
+                    url: settings.local_url.clone(),
                     model: None,
                 }
                 .models()
-                .map_err(|_| tr("LM Studio isn't running, or has no model loaded.").to_string())?
+                .map_err(|_| tr("Local AI isn't running, or has no model.").to_string())?
                 .into_iter()
                 .next()
-                .ok_or(tr("LM Studio has no model loaded."))?,
+                .ok_or(tr("The Local AI server has no model."))?,
             };
             Ok(Backend::OpenAiCompatible {
-                base_url: format!("{}/v1", settings.lm_studio_url.trim_end_matches('/')),
+                base_url: format!("{}/v1", settings.local_url.trim_end_matches('/')),
                 model,
                 api_key: None,
             })
@@ -494,7 +497,7 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
 pub struct AssistantInfo {
     /// Documents' details and text go to a cloud service.
     cloud: bool,
-    /// "LM Studio", "Claude (claude-opus-5-5)", …
+    /// "Local AI · qwen3:4b", "Claude · claude-opus-5-5", …
     label: String,
 }
 
@@ -505,10 +508,18 @@ pub fn assistant_info(state: State<AppState>) -> AssistantInfo {
     let a = &settings.assistant;
     let model = a.model.clone().filter(|m| !m.trim().is_empty());
     let label = match a.provider {
-        AssistantProvider::Local => match &settings.lm_studio_model {
-            Some(m) => format!("LM Studio · {m}"),
-            None => "LM Studio".into(),
-        },
+        AssistantProvider::Local => {
+            let host = llm::host(&settings.local_url).unwrap_or_default();
+            let place = match llm::reach(&settings.local_url) {
+                Reach::ThisComputer => tr("Local AI").to_string(),
+                Reach::LocalNetwork => trf("Local AI on {0}", &[&host]),
+                Reach::Elsewhere => trf("AI at {0}", &[&host]),
+            };
+            match &settings.local_model {
+                Some(m) => format!("{place} · {m}"),
+                None => place,
+            }
+        }
         AssistantProvider::Anthropic => format!(
             "Claude · {}",
             model.unwrap_or_else(|| assistant::ANTHROPIC_DEFAULT_MODEL.into())
