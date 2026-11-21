@@ -32,6 +32,9 @@ ESCANEÁ DIRECTO A TU BANDEJA DE ENTRADA
 FUNCIONA CON RUPERT EN TU COMPUTADORA
 Rupert para Mac, Windows y Linux (gratis) reconoce el texto de los escaneos nuevos, sugiere título, fecha, etiquetas y carpeta, y los archiva cuando estás de acuerdo. Los títulos, las etiquetas y las fechas se guardan dentro de los PDF, así que también aparecen en tu iPhone.
 
+PREGUNTALE A RUPERT
+En un iPhone con Apple Intelligence (iOS 26 o posterior), preguntá por tus documentos con tus palabras. Rupert los busca y los lee en el mismo iPhone, y te responde con botones para abrir lo que encontró. Nada sale de tu iPhone.
+
 EN TU IDIOMA
 Rupert habla español, inglés y alemán, y usa el idioma de tu iPhone. En español, el búho se pone la camiseta albiceleste.
 
@@ -48,9 +51,15 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,escanear`
 
-## What's new in 0.3.0 [4000]
+## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
 
-Rupert ahora habla español y alemán.
+Rupert ahora responde tus preguntas, y habla español y alemán.
+
+PREGUNTALE A RUPERT
+• En un iPhone con Apple Intelligence (iOS 26 o posterior), la nueva pestaña Preguntar responde preguntas sobre tus documentos, como "¿Cuál es la franquicia del seguro del auto?". Rupert busca, lee y responde en el mismo iPhone; nada sale de él.
+• Los botones debajo de su respuesta abren los documentos, carpetas y resultados que encontró.
+
+EN TU IDIOMA
 • Cada pantalla, mensaje y ajuste está también en español (rioplatense) y en alemán. Rupert usa el idioma de tu iPhone; en Configuración ▸ Idioma podés elegir otro.
 • El búho se viste para la ocasión: la camiseta albiceleste en español, lederhosen en alemán.
 • Las carpetas, los archivos y los escaneos se llaman igual en todos los idiomas, así una familia puede compartir una biblioteca entre teléfonos en idiomas distintos.

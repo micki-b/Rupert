@@ -32,6 +32,9 @@ DIREKT IN DEN EINGANG SCANNEN
 ZUSAMMEN MIT RUPERT AUF IHREM COMPUTER
 Rupert für Mac, Windows und Linux (kostenlos) erkennt den Text neuer Scans, schlägt Titel, Datum, Tags und Ordner vor und legt sie ab, wenn Sie zustimmen. Titel, Tags und Daten werden in den PDFs gespeichert und erscheinen deshalb auch auf Ihrem iPhone.
 
+RUPERT FRAGEN
+Auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer) fragen Sie in eigenen Worten nach Ihren Dokumenten. Rupert sucht und liest sie auf dem iPhone selbst und antwortet, mit Tasten zum Öffnen des Gefundenen. Nichts verlässt Ihr iPhone.
+
 IN IHRER SPRACHE
 Rupert spricht Deutsch, Englisch und Spanisch und verwendet die Sprache Ihres iPhones. Auf Deutsch trägt die Eule Lederhosen.
 
@@ -48,9 +51,15 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,dateien,onedrive,icloud,archiv,tags`
 
-## What's new in 0.3.0 [4000]
+## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
 
-Rupert spricht jetzt Deutsch und Spanisch.
+Rupert beantwortet jetzt Ihre Fragen und spricht Deutsch und Spanisch.
+
+RUPERT FRAGEN
+• Auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer) beantwortet der neue Bereich „Fragen“ Fragen zu Ihren Dokumenten, etwa „Wie hoch ist die Selbstbeteiligung meiner Autoversicherung?“. Rupert sucht, liest und antwortet auf dem iPhone selbst; nichts verlässt es.
+• Tasten unter seiner Antwort öffnen die gefundenen Dokumente, Ordner und Suchergebnisse.
+
+IN IHRER SPRACHE
 • Jeder Bildschirm, jede Meldung und jede Einstellung gibt es jetzt auch auf Deutsch und Spanisch. Rupert verwendet die Sprache Ihres iPhones; unter Einstellungen ▸ Sprache können Sie eine andere wählen.
 • Die Eule zieht sich passend an: Lederhosen auf Deutsch, das hellblau-weiß gestreifte Trikot auf Spanisch.
 • Ordner, Dateien und Scans heißen in jeder Sprache gleich, sodass eine Familie eine Bibliothek auch mit iPhones in verschiedenen Sprachen teilen kann.
