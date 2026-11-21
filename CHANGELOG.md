@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed: a library folder's **…** menu ran off the window when the folder's path was long (as Google Drive paths are), hiding **Remove from Rupert…**. The path now wraps inside the menu.
+
 ## 0.4.0 — 2026-11-20
 
 - **Ask Rupert on the iPhone.** On an iPhone with Apple Intelligence (iOS 26 or later), the new **Ask** tab answers questions about your documents on the phone itself; what Rupert would show appears as buttons under his answer.
