@@ -21,6 +21,11 @@
   "hero.download": "Kostenlos laden",
   "hero.iphone": "iPhone-App",
 
+  "android.status": "In Entwicklung",
+  "android.hero": "Eine Android-Version ist in Arbeit.",
+  "android.heading": "Rupert für Android ist in Arbeit.",
+  "android.detail": "Wir arbeiten an einer Android-Version. Einen Veröffentlichungstermin gibt es noch nicht. Bis dahin können Sie Rupert auf Mac, Windows, Linux und iPhone nutzen.",
+
   "dn.label": "Rupert auf einem Mac, im hellen und im dunklen Modus",
   "dn.alt": "Rupert auf einem Mac im hellen Modus: ein Ordner mit Versicherungsdokumenten als große Symbole, mit Titel, Datum und Tags des ausgewählten Dokuments",
   "dn.light": "Hell",

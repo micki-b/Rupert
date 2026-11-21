@@ -21,6 +21,11 @@
   "hero.download": "Descargar gratis",
   "hero.iphone": "App para iPhone",
 
+  "android.status": "En desarrollo",
+  "android.hero": "La versión para Android está en marcha.",
+  "android.heading": "Rupert para Android está en marcha.",
+  "android.detail": "Estamos trabajando en una versión para Android. Todavía no hay fecha de lanzamiento; por ahora, podés usar Rupert en Mac, Windows, Linux y iPhone.",
+
   "dn.label": "Rupert en una Mac, en modo claro y oscuro",
   "dn.alt": "Rupert en una Mac en modo claro: una carpeta de documentos de seguros como íconos grandes, con el título, la fecha y las etiquetas del documento elegido",
   "dn.light": "Claro",

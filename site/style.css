@@ -273,6 +273,53 @@ h2,
   justify-content: center;
 }
 
+/* Android is announced separately from the available downloads. */
+.development-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.android-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 22px 0 0;
+  font-size: 1rem;
+}
+
+.android-announcement {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.android-announcement > div {
+  flex: 1 1 240px;
+}
+
+.android-announcement h3 {
+  margin: 0 0 6px;
+  font-size: 1.125rem;
+}
+
+.android-announcement p {
+  margin: 0;
+  font-size: 1rem;
+}
+
 /* Light and dark: the dark picture is cut along a slanted line that the
    handle moves. */
 .daynight-wrap {
