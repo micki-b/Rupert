@@ -19,6 +19,7 @@
     { id: "openai", title: "Servicios compatibles con OpenAI", sub: true },
     { id: "ai-trouble", title: "Cuando el asistente no funciona", sub: true },
     { id: "iphone", title: "La app del iPhone" },
+    { id: "android", title: "La app de Android" },
     { id: "storage", title: "Dónde guarda Rupert las cosas" },
     { id: "keys", title: "Atajos de teclado" },
     { id: "about", title: "Acerca de Rupert" },
@@ -742,6 +743,32 @@
   <p>
     La app del iPhone no cambia tus documentos: solo Rupert en la computadora edita detalles y archiva escaneos.
   </p>
+</section>
+
+<!-- MARK: Android -->
+<section id="android">
+  <h2>La app de Android</h2>
+  <p>Rupert para Android (en marcha) muestra la misma biblioteca en un teléfono Android, como la app del iPhone.</p>
+  <ul>
+    <li>
+      <b>Agregá carpetas</b> de <b>Google Drive</b> u <b>OneDrive</b>: iniciá sesión en <b>Configuración</b> y después
+      agregá las mismas carpetas que usa Rupert en tu computadora. iCloud Drive no existe en Android, y todavía no se
+      pueden usar carpetas del propio teléfono.
+    </li>
+    <li>
+      <b>Buscá, recorré y abrí</b> documentos. Al abrir uno, se descarga y se muestra en otra app, como tu visor de PDF.
+    </li>
+    <li>
+      <b>Escaneá</b> con el escáner de documentos de Google: en la pestaña Escanear, elegí la carpeta de la bandeja de
+      entrada en Google Drive u OneDrive. Las páginas se guardan ahí como un solo PDF.
+    </li>
+    <li><b>Marcá carpetas con la estrella</b> y elegí el <b>Idioma</b> en Configuración, como en el iPhone.</li>
+    <li>
+      El gesto de volver cierra lo que esté abierto y después sube una carpeta. Preguntale a Rupert todavía no está en
+      Android.
+    </li>
+  </ul>
+  <p>La app de Android no cambia tus documentos: solo Rupert en la computadora edita detalles y archiva escaneos.</p>
 </section>
 
 <!-- MARK: Almacenamiento -->

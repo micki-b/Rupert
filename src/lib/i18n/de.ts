@@ -582,6 +582,19 @@ const de: Messages = {
     ],
     language: "Sprache",
     languageNote: "Rupert verwendet die Sprache Ihres iPhone, sofern Sie hier keine andere wählen.",
+    android: {
+      pickFolders:
+        "Wählen Sie die Ordner mit Ihren Dokumenten, dieselben, die Rupert auf Ihrem Computer verwendet: in Google Drive oder OneDrive. Melden Sie sich zuerst in den Einstellungen an.",
+      notAvailable: "Auf diesem Telefon nicht verfügbar",
+      scanIntro:
+        "Scans werden als PDFs im Eingangsordner von Rupert gespeichert. Rupert auf Ihrem Computer liest sie dann und schlägt Namen und Ordner vor. Wählen Sie hier denselben Eingangsordner, in Google Drive oder OneDrive.",
+      removingNote: "Das Entfernen eines Ordners entfernt ihn nur aus Rupert auf diesem Telefon. Es wird nichts gelöscht.",
+      languageNote: "Rupert verwendet die Sprache Ihres Telefons, sofern Sie hier keine andere wählen.",
+      oneDriveNote:
+        "OneDrive gibt seine Ordner nicht an andere Apps weiter, daher liest Rupert sie direkt aus OneDrive. Es liest nur seine eigenen kleinen Katalogdateien, lädt ein Dokument, wenn Sie es öffnen, und legt Scans in den Eingang.",
+      googleNote:
+        "Rupert liest Google Drive-Ordner auf dieselbe Weise direkt aus Google Drive. Google hat Rupert nicht geprüft, daher kann eine Warnung erscheinen, dass die App nicht überprüft ist; Sie können sie trotzdem zulassen.",
+    },
     index: "Index",
     indexNote: (documents: number, searchable: number) =>
       `${docs(documents)}; ${num(searchable)} ${plural(searchable, "ist", "sind")} im Text durchsuchbar. Der Text kommt von Rupert auf Ihrem Computer, über den versteckten Katalog in jedem Ordner. Dokumente bleiben in der Cloud, bis Sie sie öffnen.`,

@@ -22,6 +22,9 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.webkit.MimeTypeMap
+import android.webkit.WebView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.browser.customtabs.CustomTabsIntent
@@ -81,6 +84,34 @@ class PathArgs {
 
 @TauriPlugin
 class RupertPlugin(private val activity: Activity) : Plugin(activity) {
+
+  // MARK: - Screen edges
+
+  private var webView: WebView? = null
+  private var navInset = 0f
+
+  /** Android's web view doesn't report the navigation bar (gesture handle or
+   * buttons) as a safe area, so the page gets it as `--nav-inset` (CSS px). */
+  override fun load(webView: WebView) {
+    this.webView = webView
+    // Read the insets without taking over their handling (the web view uses
+    // it for the status bar): on layout changes, and once the page is there.
+    webView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateNavInset() }
+    Handler(Looper.getMainLooper()).postDelayed({ updateNavInset() }, 1500)
+  }
+
+  private fun updateNavInset() {
+    val view = webView ?: return
+    val insets = ViewCompat.getRootWindowInsets(view) ?: return
+    val bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+    navInset = bottom / activity.resources.displayMetrics.density
+    applyNavInset()
+  }
+
+  private fun applyNavInset() {
+    webView?.evaluateJavascript(
+      "document.documentElement.style.setProperty('--nav-inset', '${navInset}px')", null)
+  }
 
   // MARK: - Scanning
 
@@ -194,6 +225,7 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
   }
 
   override fun onResume() {
+    updateNavInset()
     // Back from the browser: the redirect arrives just before this, through
     // onNewIntent. If it hasn't come in a moment, the sign-in was cancelled.
     if (signIn == null || !leftForBrowser) return

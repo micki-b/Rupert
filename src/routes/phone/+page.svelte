@@ -2,6 +2,8 @@
   // Rupert for iPhone: browse and search the library, open documents, and
   // scan paper into the inbox folder. Read-only for the library itself.
   import { onMount } from "svelte";
+  import { onBackButtonPress } from "@tauri-apps/api/app";
+  import type { PluginListener } from "@tauri-apps/api/core";
   import Icon from "#lib/Icon.svelte";
   import RupertOwl, { type OwlMood } from "#lib/RupertOwl.svelte";
   import TagFilter from "#lib/TagFilter.svelte";
@@ -35,6 +37,10 @@
   import { LANGS, languageNames, loadLanguage, m, useLanguage, type Lang } from "#lib/i18n/index.ts";
 
   type Tab = "library" | "search" | "scan" | "ask" | "settings";
+  /** Android: Google Drive and OneDrive only (no iCloud Drive or Files), the
+   * back gesture, its own wording. Known at once from the web view. */
+  const android = /Android/i.test(navigator.userAgent);
+  const tx = $derived(android ? m.phone.android : null);
   type Crumb = { sourceId: string; relPath: string; name: string };
   /** What the document sheet shows: indexed details, or just the file. */
   type Sheet = { sourceId: string; relPath: string; name: string; cloudOnly: boolean; size: number; info: DocInfo | null };
@@ -227,6 +233,36 @@
       onFoldersReady(loadOverview),
     ];
     return () => unlisten.forEach((u) => u.then((f) => f()));
+  });
+
+  // MARK: Back gesture (Android)
+
+  /** Something the back gesture can close or leave, innermost first. */
+  function goBack(): boolean {
+    if (chooser) chooser = null;
+    else if (sheet) sheet = null;
+    else if (tagSheet) tagSheet = false;
+    else if (confirmRemove) confirmRemove = null;
+    else if (tab === "library" && stack.length) back();
+    else if (tab !== "library") switchTab("library");
+    else return false;
+    return true;
+  }
+  const canGoBack = $derived(
+    Boolean(chooser || sheet || tagSheet || confirmRemove || stack.length || tab !== "library"),
+  );
+  // Listen only while there's something to go back from; otherwise Android's
+  // own back gesture leaves the app.
+  let backListener: Promise<PluginListener> | null = null;
+  $effect(() => {
+    if (!android) return;
+    if (canGoBack && !backListener) {
+      backListener = onBackButtonPress(() => goBack());
+    } else if (!canGoBack && backListener) {
+      const listener = backListener;
+      backListener = null;
+      listener.then((l) => l.unregister());
+    }
   });
 
   // MARK: Navigation
@@ -500,8 +536,10 @@
       {#if !here}
         {#if overview && library.length === 0 && !overview.inboxPlace}
           <div class="empty">
-            <p>{m.phone.pickFolders}</p>
-            <button class="primary" disabled={busy} onclick={() => act(phone.addFolder)}>{m.phone.addFolder}</button>
+            <p>{tx?.pickFolders ?? m.phone.pickFolders}</p>
+            {#if !android}
+              <button class="primary" disabled={busy} onclick={() => act(phone.addFolder)}>{m.phone.addFolder}</button>
+            {/if}
             {#if od?.signedIn}
               <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "library")}>{m.phone.addOneDrive}</button>
             {:else if od?.configured}
@@ -566,7 +604,7 @@
                   <span class="icon folder"><Icon name="library" size={22} /></span>
                   <span class="main">
                     <span class="name">{s.name}</span>
-                    <span class="sub">{s.available ? providerName[s.provider] : m.phone.notAvailable}</span>
+                    <span class="sub">{s.available ? providerName[s.provider] : (tx?.notAvailable ?? m.phone.notAvailable)}</span>
                   </span>
                   <Icon name="chevron" />
                 </button>
@@ -666,8 +704,10 @@
     {:else if tab === "scan"}
       <div class="scan">
         {#if overview && !overview.inbox}
-          <p>{m.phone.scanIntro}</p>
-          <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>{m.phone.chooseInFiles}</button>
+          <p>{tx?.scanIntro ?? m.phone.scanIntro}</p>
+          {#if !android}
+            <button class="primary" disabled={busy} onclick={() => act(phone.chooseInbox)}>{m.phone.chooseInFiles}</button>
+          {/if}
           {#if od?.signedIn}
             <button class="primary" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>{m.phone.chooseInOneDrive}</button>
           {/if}
@@ -752,11 +792,13 @@
               {/if}
             </li>
           {/each}
-          <li class="setting">
-            <button class="plain add" disabled={busy} onclick={() => act(phone.addFolder)}>
-              <Icon name="plus" /> {m.phone.addFolder}
-            </button>
-          </li>
+          {#if !android}
+            <li class="setting">
+              <button class="plain add" disabled={busy} onclick={() => act(phone.addFolder)}>
+                <Icon name="plus" /> {m.phone.addFolder}
+              </button>
+            </li>
+          {/if}
           {#if od?.signedIn}
             <li class="setting">
               <button class="plain add" disabled={busy} onclick={() => openChooser("onedrive", "library")}>
@@ -772,7 +814,7 @@
             </li>
           {/if}
         </ul>
-        <p class="note small">{m.phone.removingNote}</p>
+        <p class="note small">{tx?.removingNote ?? m.phone.removingNote}</p>
       </section>
       <section>
         <h2>{m.phone.inboxForScans}</h2>
@@ -782,7 +824,9 @@
               <span class="name">{overview.inbox ?? m.phone.notChosen}</span>
               {#if overview.inbox}<span class="sub">{overview.inboxService ? serviceName[overview.inboxService] : m.phone.files}</span>{/if}
             </span>
-            <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>{m.phone.inFiles}</button>
+            {#if !android}
+              <button class="plain" disabled={busy} onclick={() => act(phone.chooseInbox)}>{m.phone.inFiles}</button>
+            {/if}
             {#if od?.signedIn}
               <button class="plain" disabled={busy} onclick={() => openChooser("onedrive", "inbox")}>{m.phone.inOneDrive}</button>
             {/if}
@@ -814,7 +858,7 @@
             {/if}
           </li>
         </ul>
-        <p class="note small left">{m.phone.oneDriveNote}</p>
+        <p class="note small left">{tx?.oneDriveNote ?? m.phone.oneDriveNote}</p>
       </section>
       {#if gd?.configured}
         <section>
@@ -838,7 +882,9 @@
             </li>
           </ul>
           <p class="note small left">
+            {#if tx}{tx.googleNote}{:else}
             {m.phone.googleNote[0]} <b>{m.phone.googleNote[1]}</b>{m.phone.googleNote[2]} <b>{m.phone.googleNote[3]}</b>{m.phone.googleNote[4]}
+            {/if}
           </p>
         </section>
       {/if}
@@ -862,7 +908,7 @@
             </select>
           </li>
         </ul>
-        <p class="note small left">{m.phone.languageNote}</p>
+        <p class="note small left">{tx?.languageNote ?? m.phone.languageNote}</p>
       </section>
       <section>
         <h2>{m.phone.about}</h2>
@@ -1055,7 +1101,8 @@
     display: flex;
     border-top: 1px solid var(--border);
     background: var(--panel);
-    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* --nav-inset: Android's navigation bar, which its web view doesn't report (set by the plugin). */
+    padding: 0 env(safe-area-inset-right) max(env(safe-area-inset-bottom), var(--nav-inset, 0px)) env(safe-area-inset-left);
   }
   nav button {
     flex: 1;
@@ -1415,7 +1462,7 @@
     overflow-y: auto;
     background: var(--bg);
     border-radius: 16px 16px 0 0;
-    padding: 8px calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 16px)
+    padding: 8px calc(env(safe-area-inset-right) + 20px) calc(max(env(safe-area-inset-bottom), var(--nav-inset, 0px)) + 16px)
       calc(env(safe-area-inset-left) + 20px);
     box-shadow: 0 -8px 30px rgb(0 0 0 / 0.2);
   }

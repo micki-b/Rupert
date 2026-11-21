@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.rupert_mobile" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- The app's own background colour (bg in src/app.css), so starting shows no white or black flash. -->
+        <item name="android:windowBackground">#faf8f5</item>
     </style>
 </resources>

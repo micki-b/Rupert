@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Rupert for Android is in the works** (#24): the phone app also builds for Android, with Google Drive and OneDrive libraries, Google's document scanner, Rupert's own icon, the back gesture and Android's wording. Not released yet.
+
 ## 0.4.1 — 2026-11-20
 
 (The first release since 0.3.0; 0.4.0 was tagged but never released.)

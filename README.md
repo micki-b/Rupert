@@ -22,7 +22,7 @@ Rupert is free and open source ([MIT](LICENSE)). It collects nothing about you; 
 |---|---|
 | `crates/rupert-core/` | Library engine (sources, indexing, metadata). Plain Rust, no Tauri. |
 | `src-tauri/` | Desktop shell: Tauri commands that call `rupert-core`. |
-| `mobile/` | iPhone app: Tauri commands (`src/`), Swift for iOS services (`plugin/ios/`), Xcode project (`gen/apple/`). |
+| `mobile/` | Phone app (iPhone, and Android in the works): Tauri commands (`src/`), the phone plugin with Swift for iOS (`plugin/ios/`) and Kotlin for Android (`plugin/android/`), the Xcode project (`gen/apple/`) and the Android project (`gen/android/`). |
 | `src/` | UI (SvelteKit + TypeScript, static SPA). The phone UI is the `/phone` route. |
 
 ## Development

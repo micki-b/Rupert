@@ -962,7 +962,13 @@ fn open_saved_folders(app: &AppHandle) {
         }
         (ids, marks)
     };
-    match device(app).resolve_bookmarks(&bookmarks) {
+    // Nothing to reopen (always so on Android, which has no Files folders).
+    let resolved = if bookmarks.is_empty() {
+        Ok(Vec::new())
+    } else {
+        device(app).resolve_bookmarks(&bookmarks)
+    };
+    match resolved {
         Ok(resolved) => {
             let mut store = state.store.lock().unwrap();
             let mut saved = state.saved.lock().unwrap();
