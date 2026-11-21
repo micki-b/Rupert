@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-- Fixed: a library folder's **…** menu ran off the window when the folder's path was long (as Google Drive paths are), hiding **Remove from Rupert…**. The path now wraps inside the menu.
+## 0.4.1 — 2026-11-20
 
-## 0.4.0 — 2026-11-20
+(The first release since 0.3.0; 0.4.0 was tagged but never released.)
 
 - **Ask Rupert on the iPhone.** On an iPhone with Apple Intelligence (iOS 26 or later), the new **Ask** tab answers questions about your documents on the phone itself; what Rupert would show appears as buttons under his answer.
 - **Apple Intelligence on the Mac.** On a Mac with Apple silicon and macOS 26 or later, choose **Apple Intelligence** in Settings ▸ Local AI: inbox suggestions and Ask Rupert run on Apple's built-in model, with nothing to install and nothing leaving the Mac. It's where Rupert starts on such a Mac, unless you've already set up LM Studio or another server. It answers in seconds; a larger model in LM Studio or Ollama still files and answers better.
@@ -12,6 +12,7 @@
 - **Rupert says where Local AI runs.** On this computer, on another computer on your network, or elsewhere. An address outside your network counts as a cloud service: Ask Rupert shows ☁, and inbox suggestions don't use it.
 - Thinking models get more room for inbox suggestions, and a clear message if they still run out.
 - Updated the screens' framework to SvelteKit 3. This closes five security alerts in SvelteKit's server features, which Rupert doesn't use (it has no server).
+- Fixed: a library folder's **…** menu ran off the window when the folder's path was long (as Google Drive paths are), hiding **Remove from Rupert…**. The path now wraps inside the menu.
 
 ## 0.3.0 — 2026-11-20
 
