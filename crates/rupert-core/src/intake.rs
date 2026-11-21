@@ -28,10 +28,10 @@ use crate::fileops;
 use crate::i18n::{tr, trf};
 use crate::index::Index;
 use crate::listing::{CloudState, cloud_state, list_dir, relative, resolve};
-use crate::llm::{self, LocalAi, Reach, Suggestion};
+use crate::llm::{self, AppleAi, LocalAi, Reach, Suggestion};
 use crate::meta::{self, DocMeta};
 use crate::ocr::{self, Engine};
-use crate::settings::Settings;
+use crate::settings::{LocalEngine, Settings};
 use crate::sidecar;
 use crate::source::Source;
 use crate::text::TextExtractor;
@@ -418,7 +418,8 @@ impl Worker {
         });
         let mut folders = Vec::new();
         let mut suggestion = None;
-        let elsewhere = llm::reach(&self.settings.local_url) == Reach::Elsewhere;
+        let apple = self.settings.local_engine == LocalEngine::Apple;
+        let elsewhere = !apple && llm::reach(&self.settings.local_url) == Reach::Elsewhere;
         if self.settings.suggestions && elsewhere {
             // Inbox suggestions never use a cloud service.
             notes.push(
@@ -435,10 +436,6 @@ impl Worker {
             let tags = Index::open(&self.index_path)
                 .and_then(|i| i.top_tags(150))
                 .unwrap_or_default();
-            let lm = LocalAi {
-                url: self.settings.local_url.clone(),
-                model: self.settings.local_model.clone(),
-            };
             let year = crate::pdf_meta::utc_today()[..4].to_string();
             let req = llm::Request {
                 text: &text,
@@ -447,7 +444,16 @@ impl Worker {
                 folders: &labels,
                 tags: &tags,
             };
-            match lm.suggest(&req) {
+            let result = if apple {
+                AppleAi.suggest(&req)
+            } else {
+                LocalAi {
+                    url: self.settings.local_url.clone(),
+                    model: self.settings.local_model.clone(),
+                }
+                .suggest(&req)
+            };
+            match result {
                 Ok(s) => suggestion = Some(s),
                 Err(e) => notes.push(e.to_string()),
             }

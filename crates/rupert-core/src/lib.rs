@@ -3,6 +3,7 @@
 //! Everything that is not UI lives here so it can be tested without Tauri and
 //! reused by other front ends (mobile viewer, CLI). See `docs/DESIGN.md`.
 
+pub mod apple_ai;
 pub mod assistant;
 pub mod bookmark;
 pub mod camera;

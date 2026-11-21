@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Apple Intelligence on the Mac.** On a Mac with Apple silicon and macOS 26 or later, choose **Apple Intelligence** in Settings ▸ Local AI: inbox suggestions and Ask Rupert run on Apple's built-in model, with nothing to install and nothing leaving the Mac. It answers in seconds; a larger model in LM Studio or Ollama still files and answers better.
 - **Local AI, not just LM Studio.** Rupert works with any app that runs AI models on your computer behind an OpenAI-compatible server: tested with LM Studio and Ollama, and others such as llama.cpp's server or Jan should work too. **Settings ▸ Local AI** has presets for LM Studio and Ollama, and Ask Rupert shows "Local AI · *model*".
 - **Rupert says where Local AI runs.** On this computer, on another computer on your network, or elsewhere. An address outside your network counts as a cloud service: Ask Rupert shows ☁, and inbox suggestions don't use it.
 - Thinking models get more room for inbox suggestions, and a clear message if they still run out.

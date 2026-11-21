@@ -193,6 +193,8 @@ export interface Settings {
   inbox: InboxLocation | null;
   ocr: boolean;
   suggestions: boolean;
+  /** Local AI: a server (below) or Apple Intelligence. */
+  localEngine: "server" | "apple";
   /** Local AI: an OpenAI-compatible server (LM Studio, Ollama, …). */
   localUrl: string;
   localModel: string | null;
@@ -226,6 +228,16 @@ export interface AssistantSettings {
   baseUrl: string | null;
   /** Claude through the `ant` command-line login instead of an API key. */
   anthropicCliLogin: boolean;
+}
+
+/** Whether Apple Intelligence can be used here. */
+export interface AppleAiStatus {
+  available: boolean;
+  /** "notSupported": not a Mac, or built without it (don't offer it). */
+  reason: string | null;
+  contextSize: number;
+  /** Why it can't be used, to show. */
+  message: string | null;
 }
 
 /** Where a Local AI address points. */
@@ -428,6 +440,7 @@ export const api = {
   ocrEngine: () => invoke<string | null>("ocr_engine"),
   lmModels: (url: string) => invoke<string[]>("lm_models", { url }),
   localAiPlace: (url: string) => invoke<LocalAiPlace>("local_ai_place", { url }),
+  appleAiStatus: () => invoke<AppleAiStatus>("apple_ai_status"),
   inboxItems: () => invoke<IntakeItem[]>("inbox_items"),
   inboxRedo: (relPath: string) => invoke<void>("inbox_redo", { relPath }),
   allFolders: () => invoke<FolderChoice[]>("all_folders"),

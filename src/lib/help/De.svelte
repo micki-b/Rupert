@@ -427,6 +427,15 @@
     <code>llama-server</code> von llama.cpp oder Jan, sollten ebenfalls funktionieren. Lokale KI läuft am besten auf einem
     Mac mit Apple-Chip und viel Arbeitsspeicher oder auf einem PC mit einer aktuellen Grafikkarte.
   </p>
+  {#if mac}
+    <p>
+      <b>Mit Apple Intelligence</b> (ein Mac mit Apple-Chip und macOS 26 oder neuer): Es gibt nichts zu installieren.
+      Schalten Sie Apple Intelligence unter <b>Systemeinstellungen ▸ Apple Intelligence &amp; Siri</b> ein und wählen
+      Sie in Rupert unter <b>Einstellungen ▸ Lokale KI ▸ Server</b> die Option <b>Apple Intelligence</b>. Es antwortet in
+      Sekunden, und nichts verlässt den Mac. Es ist allerdings ein kleines Modell: Ein größeres in LM Studio oder Ollama
+      legt besser ab und antwortet besser.
+    </p>
+  {/if}
   <p><b>Mit LM Studio:</b></p>
   <ol>
     <li>Installieren Sie LM Studio von <a href="https://lmstudio.ai">lmstudio.ai</a> und öffnen Sie es.</li>

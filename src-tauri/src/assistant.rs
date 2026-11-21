@@ -14,7 +14,7 @@ use rupert_core::assistant::{
 };
 use rupert_core::chatgpt::{self, Credentials, PlanModel, SignIn};
 use rupert_core::llm::{self, LocalAi, Reach};
-use rupert_core::settings::{AssistantProvider, Settings};
+use rupert_core::settings::{AssistantProvider, LocalEngine, Settings};
 use rupert_core::{Error, Index};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -418,7 +418,8 @@ pub fn chatgpt_sign_out() -> CmdResult<()> {
 /// network: a cloud provider, or a "local" address that is elsewhere.
 fn is_cloud(settings: &Settings) -> bool {
     settings.assistant.provider != AssistantProvider::Local
-        || llm::reach(&settings.local_url) == Reach::Elsewhere
+        || (settings.local_engine == LocalEngine::Server
+            && llm::reach(&settings.local_url) == Reach::Elsewhere)
 }
 
 /// The backend the settings describe (may ask the Local AI server for its
@@ -427,6 +428,9 @@ fn backend(settings: &Settings) -> Result<Backend, String> {
     let a = &settings.assistant;
     let model = a.model.as_deref().map(str::trim).filter(|m| !m.is_empty());
     match a.provider {
+        AssistantProvider::Local if settings.local_engine == LocalEngine::Apple => {
+            Ok(Backend::Apple)
+        }
         AssistantProvider::Local => {
             let model = match &settings.local_model {
                 Some(m) => m.clone(),
@@ -508,6 +512,9 @@ pub fn assistant_info(state: State<AppState>) -> AssistantInfo {
     let a = &settings.assistant;
     let model = a.model.clone().filter(|m| !m.trim().is_empty());
     let label = match a.provider {
+        AssistantProvider::Local if settings.local_engine == LocalEngine::Apple => {
+            llm::APPLE_MODEL.to_string()
+        }
         AssistantProvider::Local => {
             let host = llm::host(&settings.local_url).unwrap_or_default();
             let place = match llm::reach(&settings.local_url) {

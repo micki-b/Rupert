@@ -4,7 +4,7 @@ Rupert, the librarian: scanned-document management for macOS, Windows and Linux,
 
 - Your folders stay the library. Changes made in Finder or Explorer appear in Rupert, and Rupert's changes are ordinary file operations.
 - Titles, tags and dates are stored inside the PDFs (XMP), so they go wherever the file goes.
-- OCR and AI filing suggestions run locally (AI through Local AI: LM Studio, Ollama or another OpenAI-compatible server on your computer or home network).
+- OCR and AI filing suggestions run locally (AI through Local AI: Apple Intelligence on the Mac, or LM Studio, Ollama or another OpenAI-compatible server on your computer or home network).
 - An "Ask Rupert" chat finds and opens documents for you, with the local model by default, or with Claude or another cloud model if you choose.
 - In English, Spanish (Rioplatense) and German, following the system's language or the one chosen in Settings.
 

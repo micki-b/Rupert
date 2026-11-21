@@ -14,6 +14,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::apple_ai;
 use crate::error::{Error, Result};
 use crate::i18n::{tr, trf};
 use crate::meta::is_iso_date;
@@ -192,7 +193,7 @@ impl LocalAi {
             "max_tokens": 8000,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt(req)},
+                {"role": "user", "content": user_prompt(req, MAX_TEXT)},
             ],
             "response_format": {
                 "type": "json_schema",
@@ -248,6 +249,49 @@ impl LocalAi {
     }
 }
 
+// MARK: - Apple Intelligence
+
+/// The model name recorded with suggestions from Apple Intelligence.
+pub const APPLE_MODEL: &str = "Apple Intelligence";
+
+/// Suggestions from Apple Intelligence, Apple's on-device model (macOS 26
+/// or later; see [`apple_ai`]). The same prompt and checks as [`LocalAi`],
+/// sized for its shorter context, with the folder chosen from the list
+/// rather than copied (easier for a small model).
+pub struct AppleAi;
+
+impl AppleAi {
+    pub fn suggest(&self, req: &Request) -> Result<Suggestion> {
+        // About 4 characters a token; leave room for the instructions,
+        // folders, tags and the answer.
+        let max_text = if apple_ai::status().context_size >= 8192 {
+            MAX_TEXT
+        } else {
+            2500
+        };
+        let mut schema = schema();
+        let mut folders: Vec<&str> = req.folders.iter().map(String::as_str).collect();
+        folders.push("");
+        schema["properties"]["folder"] = json!({"type": "string", "enum": folders});
+        // Apple's framework shows the model these descriptions; without
+        // them it fills every tag slot and dates notes from the file name.
+        schema["properties"]["tags"]["description"] = json!(
+            "Only tags that clearly describe this document; often just one or two. Never pad the list."
+        );
+        schema["properties"]["document_date"]["description"] = json!(
+            "A date printed in the document text, as YYYY-MM-DD. \"\" if the text shows none. Never the file name's date."
+        );
+        let content = apple_ai::generate(&apple_ai::Ask {
+            instructions: SYSTEM_PROMPT,
+            prompt: &user_prompt(req, max_text),
+            schema: Some(&schema),
+            temperature: 0.1,
+            max_tokens: 600,
+        })?;
+        parse(&content, req, APPLE_MODEL.into())
+    }
+}
+
 fn unreachable(e: impl std::fmt::Display) -> Error {
     Error::InvalidValue(trf("The Local AI server isn't reachable ({0})", &[&e]))
 }
@@ -258,8 +302,8 @@ const SYSTEM_PROMPT: &str = "You are a careful archivist filing scanned personal
 (bills, statements, letters, receipts, forms, manuals). You get a document's text, which may \
 contain OCR errors, and answer only with JSON.";
 
-fn user_prompt(req: &Request) -> String {
-    let text: String = req.text.chars().take(MAX_TEXT).collect();
+fn user_prompt(req: &Request, max_text: usize) -> String {
+    let text: String = req.text.chars().take(max_text).collect();
     let folders = if req.folders.is_empty() {
         "(none known)".to_string()
     } else {

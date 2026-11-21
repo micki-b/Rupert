@@ -395,6 +395,14 @@
     <a href="https://ollama.com">Ollama</a>; others, such as llama.cpp's <code>llama-server</code> or Jan, should work
     too. Local AI works best on a Mac with Apple silicon and plenty of memory, or a PC with a recent graphics card.
   </p>
+  {#if mac}
+    <p>
+      <b>With Apple Intelligence</b> (a Mac with Apple silicon and macOS 26 or later): nothing to install. Turn on
+      Apple Intelligence in <b>System Settings ▸ Apple Intelligence &amp; Siri</b>, then in Rupert choose
+      <b>Apple Intelligence</b> under <b>Settings ▸ Local AI ▸ Server</b>. It answers in seconds and nothing leaves the
+      Mac. It's a small model, though: a larger model in LM Studio or Ollama files and answers better.
+    </p>
+  {/if}
   <p><b>With LM Studio:</b></p>
   <ol>
     <li>Install LM Studio from <a href="https://lmstudio.ai">lmstudio.ai</a> and open it.</li>
