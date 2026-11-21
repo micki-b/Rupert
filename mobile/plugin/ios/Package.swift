@@ -3,22 +3,22 @@
 import PackageDescription
 
 let package = Package(
-  name: "tauri-plugin-rupert-ios",
+  name: "tauri-plugin-rupert-phone",
   platforms: [
     .iOS(.v15)
   ],
   products: [
     .library(
-      name: "tauri-plugin-rupert-ios",
+      name: "tauri-plugin-rupert-phone",
       type: .static,
-      targets: ["tauri-plugin-rupert-ios"])
+      targets: ["tauri-plugin-rupert-phone"])
   ],
   dependencies: [
     .package(name: "Tauri", path: "../.tauri/tauri-api")
   ],
   targets: [
     .target(
-      name: "tauri-plugin-rupert-ios",
+      name: "tauri-plugin-rupert-phone",
       dependencies: [
         .byName(name: "Tauri")
       ],

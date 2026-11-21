@@ -19,6 +19,7 @@
     { id: "openai", title: "OpenAI-compatible services", sub: true },
     { id: "ai-trouble", title: "When the assistant doesn't work", sub: true },
     { id: "iphone", title: "The iPhone app" },
+    { id: "android", title: "The Android app" },
     { id: "storage", title: "Where Rupert keeps things" },
     { id: "keys", title: "Keyboard shortcuts" },
     { id: "about", title: "About Rupert" },
@@ -689,6 +690,30 @@
   </ul>
   <p>Its version and build number are at the bottom of its <b>Settings</b>, under <b>About</b>.</p>
   <p>The iPhone app doesn't change your documents: only Rupert on the computer edits details and files scans.</p>
+</section>
+
+<!-- MARK: Android -->
+<section id="android">
+  <h2>The Android app</h2>
+  <p>Rupert for Android (in the works) shows the same library on an Android phone, like the iPhone app.</p>
+  <ul>
+    <li>
+      <b>Add folders</b> from <b>Google Drive</b> or <b>OneDrive</b>: sign in under <b>Settings</b>, then add the same
+      folders Rupert uses on your computer. iCloud Drive doesn't exist on Android, and folders on the phone itself aren't
+      supported yet.
+    </li>
+    <li>
+      <b>Search, browse and open</b> documents. Opening one downloads it and shows it in another app, such as your PDF
+      viewer.
+    </li>
+    <li>
+      <b>Scan</b> with Google's document scanner: in the Scan tab, choose the inbox folder in Google Drive or OneDrive.
+      The pages are saved there as one PDF.
+    </li>
+    <li><b>Star folders</b>, and choose the <b>Language</b> in Settings, as on the iPhone.</li>
+    <li>The back gesture closes what's open, then goes up a folder. Ask Rupert isn't on Android yet.</li>
+  </ul>
+  <p>The Android app doesn't change your documents: only Rupert on the computer edits details and files scans.</p>
 </section>
 
 <!-- MARK: Storage -->

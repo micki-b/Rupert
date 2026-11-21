@@ -1,0 +1,365 @@
+// Rupert's phone services on Android (the Rust side is mobile/plugin/src/lib.rs):
+// Google's document scanner, web sign-in in a Custom Tab, Google's own Drive
+// authorization, a Keystore-protected keychain, and opening documents in
+// another app. The Files-picker calls are iOS-only for now.
+
+package io.github.micki_b.rupert.phone
+
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import android.webkit.MimeTypeMap
+import android.webkit.WebView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.content.FileProvider
+import app.tauri.annotation.ActivityCallback
+import app.tauri.annotation.Command
+import app.tauri.annotation.InvokeArg
+import app.tauri.annotation.TauriPlugin
+import app.tauri.plugin.Invoke
+import app.tauri.plugin.JSArray
+import app.tauri.plugin.JSObject
+import app.tauri.plugin.Plugin
+import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.common.api.Scope
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import java.io.File
+import org.json.JSONObject
+import java.io.FileOutputStream
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+@InvokeArg
+class ScanArgs {
+  var mode: String = "gray"
+  var dpi: Int = 300
+}
+
+@InvokeArg
+class SignInArgs {
+  lateinit var url: String
+  lateinit var callbackScheme: String
+}
+
+@InvokeArg
+class TokenArgs {
+  lateinit var scope: String
+}
+
+@InvokeArg
+class KeyArgs {
+  lateinit var key: String
+  var value: String? = null
+}
+
+@InvokeArg
+class PathArgs {
+  lateinit var path: String
+}
+
+@TauriPlugin
+class RupertPlugin(private val activity: Activity) : Plugin(activity) {
+
+  // MARK: - Screen edges
+
+  private var webView: WebView? = null
+  private var navInset = 0f
+
+  /** Android's web view doesn't report the navigation bar (gesture handle or
+   * buttons) as a safe area, so the page gets it as `--nav-inset` (CSS px). */
+  override fun load(webView: WebView) {
+    this.webView = webView
+    // Read the insets without taking over their handling (the web view uses
+    // it for the status bar): on layout changes, and once the page is there.
+    webView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateNavInset() }
+    Handler(Looper.getMainLooper()).postDelayed({ updateNavInset() }, 1500)
+  }
+
+  private fun updateNavInset() {
+    val view = webView ?: return
+    val insets = ViewCompat.getRootWindowInsets(view) ?: return
+    val bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+    navInset = bottom / activity.resources.displayMetrics.density
+    applyNavInset()
+  }
+
+  private fun applyNavInset() {
+    webView?.evaluateJavascript(
+      "document.documentElement.style.setProperty('--nav-inset', '${navInset}px')", null)
+  }
+
+  // MARK: - Scanning
+
+  private var scanMode = "gray"
+  private var scanDpi = 300
+
+  /** Google's document scanner; answers `{pages: [paths]}` (empty if cancelled). */
+  @Command
+  fun scan(invoke: Invoke) {
+    val args = invoke.parseArgs(ScanArgs::class.java)
+    scanMode = args.mode
+    scanDpi = args.dpi
+    val options = GmsDocumentScannerOptions.Builder()
+      .setGalleryImportAllowed(true)
+      .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+      .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+      .build()
+    GmsDocumentScanning.getClient(options).getStartScanIntent(activity)
+      .addOnSuccessListener { sender ->
+        startIntentSenderForResult(invoke, IntentSenderRequest.Builder(sender).build(), "scanDone")
+      }
+      .addOnFailureListener { invoke.reject(it.message ?: "The scanner isn't available on this phone.") }
+  }
+
+  @ActivityCallback
+  fun scanDone(invoke: Invoke, result: ActivityResult) {
+    val pages = JSArray()
+    val scan = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+    if (result.resultCode != Activity.RESULT_OK || scan == null) {
+      invoke.resolve(JSObject().put("pages", pages))
+      return
+    }
+    // Pages go to a folder of their own; Rust removes it when done.
+    Thread {
+      try {
+        val dir = File(activity.cacheDir, "scan-${System.currentTimeMillis()}").apply { mkdirs() }
+        scan.pages?.forEachIndexed { i, page -> pages.put(savePage(page.imageUri, dir, i).absolutePath) }
+        invoke.resolve(JSObject().put("pages", pages))
+      } catch (e: Exception) {
+        invoke.reject(e.message ?: "Couldn't save the scan.")
+      }
+    }.start()
+  }
+
+  /** One page at the chosen resolution (the long side as 11 inches, never
+   * enlarged): color or grayscale as JPEG, black and white as a PNG. */
+  private fun savePage(uri: Uri, dir: File, index: Int): File {
+    val source = activity.contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it) }
+      ?: throw IllegalStateException("Couldn't read a scanned page.")
+    val longSide = (scanDpi * 11.0).roundToInt()
+    val scale = minOf(1.0, longSide.toDouble() / max(source.width, source.height))
+    val w = max(1, (source.width * scale).roundToInt())
+    val h = max(1, (source.height * scale).roundToInt())
+    val page = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    if (scanMode != "color") {
+      paint.colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
+    }
+    Canvas(page).drawBitmap(Bitmap.createScaledBitmap(source, w, h, true), 0f, 0f, paint)
+    if (scanMode == "bw") {
+      val px = IntArray(w * h)
+      page.getPixels(px, 0, w, 0, 0, w, h)
+      for (i in px.indices) {
+        val gray = px[i] and 0xff
+        px[i] = if (gray < 128) 0xff000000.toInt() else 0xffffffff.toInt()
+      }
+      page.setPixels(px, 0, w, 0, 0, w, h)
+      val file = File(dir, "page-${index + 1}.png")
+      FileOutputStream(file).use { page.compress(Bitmap.CompressFormat.PNG, 100, it) }
+      return file
+    }
+    val file = File(dir, "page-${index + 1}.jpg")
+    FileOutputStream(file).use { page.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+    return file
+  }
+
+  // MARK: - Sign-in
+
+  private var signIn: Invoke? = null
+  private var signInScheme: String? = null
+  private var leftForBrowser = false
+
+  /** Shows a sign-in page in a Custom Tab; answers `{url}` with the redirect,
+   * or `{url: null}` when the person comes back without signing in. */
+  @Command
+  fun signIn(invoke: Invoke) {
+    val args = invoke.parseArgs(SignInArgs::class.java)
+    signIn?.resolve(JSObject().put("url", JSONObject.NULL))
+    signIn = invoke
+    signInScheme = args.callbackScheme.lowercase()
+    leftForBrowser = false
+    try {
+      CustomTabsIntent.Builder().build().launchUrl(activity, Uri.parse(args.url))
+    } catch (e: ActivityNotFoundException) {
+      signIn = null
+      invoke.reject("There's no web browser to sign in with.")
+    }
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    val data = intent.data ?: return
+    val pending = signIn ?: return
+    if (data.scheme?.lowercase() == signInScheme) {
+      signIn = null
+      pending.resolve(JSObject().put("url", data.toString()))
+    }
+  }
+
+  override fun onPause() {
+    if (signIn != null) leftForBrowser = true
+  }
+
+  override fun onResume() {
+    updateNavInset()
+    // Back from the browser: the redirect arrives just before this, through
+    // onNewIntent. If it hasn't come in a moment, the sign-in was cancelled.
+    if (signIn == null || !leftForBrowser) return
+    Handler(Looper.getMainLooper()).postDelayed({
+      signIn?.let {
+        signIn = null
+        it.resolve(JSObject().put("url", JSONObject.NULL))
+      }
+    }, 800)
+  }
+
+  // MARK: - Google Drive
+
+  /** An access token for `scope` from Google Play services: `{accessToken}`,
+   * null if the person declined. Asks only the first time. */
+  @Command
+  fun googleToken(invoke: Invoke) {
+    val args = invoke.parseArgs(TokenArgs::class.java)
+    val request = AuthorizationRequest.builder().setRequestedScopes(listOf(Scope(args.scope))).build()
+    Identity.getAuthorizationClient(activity).authorize(request)
+      .addOnSuccessListener { result ->
+        val pending = result.pendingIntent
+        if (result.hasResolution() && pending != null) {
+          startIntentSenderForResult(invoke, IntentSenderRequest.Builder(pending.intentSender).build(), "tokenDone")
+        } else {
+          invoke.resolve(JSObject().put("accessToken", result.accessToken))
+        }
+      }
+      .addOnFailureListener { invoke.reject(it.message ?: "Google sign-in failed.") }
+  }
+
+  @ActivityCallback
+  fun tokenDone(invoke: Invoke, result: ActivityResult) {
+    if (result.resultCode != Activity.RESULT_OK) {
+      invoke.resolve(JSObject().put("accessToken", JSONObject.NULL))
+      return
+    }
+    try {
+      val auth = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(result.data)
+      invoke.resolve(JSObject().put("accessToken", auth.accessToken))
+    } catch (e: Exception) {
+      invoke.reject(e.message ?: "Google sign-in failed.")
+    }
+  }
+
+  // MARK: - Keychain
+
+  private val prefs by lazy { activity.getSharedPreferences("rupert-keychain", Context.MODE_PRIVATE) }
+
+  /** An AES key that never leaves the Android Keystore. */
+  private fun secretKey(): SecretKey {
+    val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+    (store.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+    val spec = KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+      .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+      .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+      .build()
+    return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply { init(spec) }.generateKey()
+  }
+
+  @Command
+  fun keychainGet(invoke: Invoke) {
+    val args = invoke.parseArgs(KeyArgs::class.java)
+    val stored = prefs.getString(args.key, null)
+    val value = stored?.let {
+      try {
+        val (iv, data) = it.split(":").map { part -> Base64.decode(part, Base64.NO_WRAP) }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, iv))
+        String(cipher.doFinal(data), Charsets.UTF_8)
+      } catch (e: Exception) {
+        null // e.g. restored from a backup onto another phone: sign in again
+      }
+    }
+    invoke.resolve(JSObject().put("value", value))
+  }
+
+  @Command
+  fun keychainSet(invoke: Invoke) {
+    val args = invoke.parseArgs(KeyArgs::class.java)
+    try {
+      val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+      cipher.init(Cipher.ENCRYPT_MODE, secretKey())
+      val data = cipher.doFinal((args.value ?: "").toByteArray(Charsets.UTF_8))
+      val stored = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(data, Base64.NO_WRAP)
+      prefs.edit().putString(args.key, stored).apply()
+      invoke.resolve()
+    } catch (e: Exception) {
+      invoke.reject(e.message ?: "Couldn't save to the keychain.")
+    }
+  }
+
+  @Command
+  fun keychainDelete(invoke: Invoke) {
+    val args = invoke.parseArgs(KeyArgs::class.java)
+    prefs.edit().remove(args.key).apply()
+    invoke.resolve()
+  }
+
+  // MARK: - Opening documents
+
+  /** Opens a downloaded document (in the app's cache) in another app. */
+  @Command
+  fun preview(invoke: Invoke) {
+    val args = invoke.parseArgs(PathArgs::class.java)
+    val file = File(args.path)
+    try {
+      val uri = FileProvider.getUriForFile(activity, activity.packageName + ".fileprovider", file)
+      val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase())
+        ?: "application/octet-stream"
+      val view = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      activity.startActivity(Intent.createChooser(view, null))
+      invoke.resolve()
+    } catch (e: ActivityNotFoundException) {
+      invoke.reject("No app on this phone can open this file.")
+    } catch (e: Exception) {
+      invoke.reject(e.message ?: "Couldn't open the file.")
+    }
+  }
+
+  // MARK: - iOS only for now
+
+  @Command fun pickFolder(invoke: Invoke) = notYet(invoke)
+  @Command fun resolveBookmarks(invoke: Invoke) = notYet(invoke)
+  @Command fun fetchFolder(invoke: Invoke) = notYet(invoke)
+  @Command fun download(invoke: Invoke) = notYet(invoke)
+  @Command fun place(invoke: Invoke) = notYet(invoke)
+  @Command fun writeFile(invoke: Invoke) = notYet(invoke)
+  @Command fun removeFile(invoke: Invoke) = notYet(invoke)
+
+  private fun notYet(invoke: Invoke) =
+    invoke.reject("Folders on the phone aren't available on Android yet; use Google Drive or OneDrive.")
+
+  private companion object {
+    const val KEY_ALIAS = "rupert-keychain"
+  }
+}

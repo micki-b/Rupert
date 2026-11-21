@@ -39,6 +39,30 @@ fn client_id() -> Option<&'static str> {
     CLIENT_ID.map(str::trim).filter(|s| !s.is_empty())
 }
 
+/// Whether Google Drive can be used in this build. On Android, Google Play
+/// services signs in (the Android OAuth client is matched by package name
+/// and signing key, not an id in the app); on iOS it needs the client id.
+fn configured() -> bool {
+    cfg!(target_os = "android") || client_id().is_some()
+}
+
+/// Android: a marker that the person signed in (there's no refresh token
+/// to keep; Play services hands out access tokens).
+#[cfg(target_os = "android")]
+const SIGNED_IN_KEY: &str = "gdrive-signed-in";
+
+/// Android: an access token from Google Play services, kept for 50 minutes
+/// (Google's last about an hour). `None` if the person declined.
+#[cfg(target_os = "android")]
+fn android_tokens(app: &AppHandle) -> Result<Option<Tokens>, String> {
+    let token = device(app).google_token(gdrive::SCOPES).map_err(err)?;
+    Ok(token.map(|access_token| Tokens {
+        access_token,
+        refresh_token: None,
+        expires_at: std::time::Instant::now() + std::time::Duration::from_secs(50 * 60),
+    }))
+}
+
 // MARK: - State
 
 #[derive(Default)]
@@ -62,11 +86,20 @@ impl GoogleDrive {
 
     /// A connection with a current access token, refreshing it if needed.
     pub fn drive(&self, app: &AppHandle) -> Result<Drive, String> {
-        let client = client_id().ok_or(not_set_up())?;
         let mut tokens = self.tokens.lock().unwrap();
         if let Some(t) = tokens.as_ref().filter(|t| t.is_fresh()) {
             return Ok(Drive::new(&t.access_token));
         }
+        #[cfg(target_os = "android")]
+        {
+            let fresh =
+                android_tokens(app)?.ok_or(tr("Sign in to Google Drive first (Settings)."))?;
+            let drive = Drive::new(&fresh.access_token);
+            *tokens = Some(fresh);
+            return Ok(drive);
+        }
+        #[allow(unreachable_code)]
+        let client = client_id().ok_or(not_set_up())?;
         let refresh = device(app)
             .keychain_get(REFRESH_KEY)
             .map_err(err)?
@@ -79,6 +112,9 @@ impl GoogleDrive {
 
     /// Checks the Keychain once at launch.
     pub fn restore(&self, app: &AppHandle) {
+        #[cfg(target_os = "android")]
+        let stored = device(app).keychain_get(SIGNED_IN_KEY).ok().flatten();
+        #[cfg(not(target_os = "android"))]
         let stored = device(app).keychain_get(REFRESH_KEY).ok().flatten();
         self.signed_in.store(stored.is_some(), Ordering::SeqCst);
     }
@@ -121,7 +157,7 @@ pub struct Status {
 #[tauri::command]
 pub fn gdrive_status(gd: State<GoogleDrive>) -> Status {
     Status {
-        configured: client_id().is_some(),
+        configured: configured(),
         signed_in: gd.is_signed_in(),
         account: gd.account.lock().unwrap().clone(),
         error: gd.last_error.lock().unwrap().clone(),
@@ -134,6 +170,23 @@ pub fn gdrive_status(gd: State<GoogleDrive>) -> Status {
 pub async fn gdrive_sign_in(app: AppHandle) -> CmdResult<bool> {
     let handle = app.clone();
     let signed_in = blocking(move || {
+        #[cfg(target_os = "android")]
+        {
+            let Some(tokens) = android_tokens(&handle)? else {
+                return Ok(false);
+            };
+            device(&handle)
+                .keychain_set(SIGNED_IN_KEY, "1")
+                .map_err(err)?;
+            let gd = handle.state::<GoogleDrive>();
+            let account = Drive::new(&tokens.access_token).account_name().ok();
+            *gd.tokens.lock().unwrap() = Some(tokens);
+            *gd.account.lock().unwrap() = account;
+            *gd.last_error.lock().unwrap() = None;
+            gd.signed_in.store(true, Ordering::SeqCst);
+            return Ok(true);
+        }
+        #[allow(unreachable_code)]
         let client = client_id().ok_or(not_set_up())?;
         let (redirect, scheme) = gdrive::redirect_for(client).ok_or(not_set_up())?;
         let pkce = Pkce::new();
@@ -169,6 +222,8 @@ pub async fn gdrive_sign_in(app: AppHandle) -> CmdResult<bool> {
 /// (unavailable) until removed or signed in again.
 #[tauri::command]
 pub fn gdrive_sign_out(app: AppHandle, gd: State<GoogleDrive>) -> CmdResult<()> {
+    #[cfg(target_os = "android")]
+    device(&app).keychain_delete(SIGNED_IN_KEY).map_err(err)?;
     device(&app).keychain_delete(REFRESH_KEY).map_err(err)?;
     *gd.tokens.lock().unwrap() = None;
     *gd.account.lock().unwrap() = None;

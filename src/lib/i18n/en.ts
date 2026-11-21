@@ -569,6 +569,20 @@ const en = {
     ],
     language: "Language",
     languageNote: "Rupert follows your iPhone's language unless you choose one here.",
+    /** The same, on Android: no iCloud Drive or Files there; Google Drive and OneDrive through their own sign-in. */
+    android: {
+      pickFolders:
+        "Pick the folders that hold your documents, the same ones Rupert uses on your computer: in Google Drive or OneDrive. Sign in to them in Settings first.",
+      notAvailable: "Not available on this phone",
+      scanIntro:
+        "Scans are saved as PDFs to your Rupert inbox folder. Rupert on your computer then reads them and suggests names and folders. Choose the same inbox folder here, in Google Drive or OneDrive.",
+      removingNote: "Removing a folder only removes it from Rupert on this phone. Nothing is deleted.",
+      languageNote: "Rupert follows your phone's language unless you choose one here.",
+      oneDriveNote:
+        "Rupert reads your OneDrive folders directly from OneDrive; the OneDrive app isn't needed. It reads only its own small catalog files, downloads a document when you open it, and adds scans to the inbox.",
+      googleNote:
+        "Rupert reads Google Drive folders directly from Google Drive, the same way. Google hasn't reviewed Rupert, so it may warn that the app isn't verified; you can still allow it.",
+    },
     index: "Index",
     indexNote: (documents: number, searchable: number) =>
       `${num(documents)} ${plural(documents, "document", "documents")}; ${num(searchable)} can be searched by their text. Text comes from Rupert on your computer, through the hidden catalog in each folder. Documents stay in the cloud until you open them.`,

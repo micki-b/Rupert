@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "THIRD_PARTY_NOTICES.md"
-FIRST_PARTY = {"rupert", "rupert-core", "rupert-mobile", "tauri-plugin-rupert-ios"}
+FIRST_PARTY = {"rupert", "rupert-core", "rupert-mobile", "tauri-plugin-rupert-phone"}
 LICENSE_FILE = re.compile(r"^(licen[cs]e|copying|notice)([-._].*)?$", re.I)
 # Runtime code compiled into the window although it's a dev dependency.
 JS_RUNTIMES = ["svelte", "@sveltejs/kit"]

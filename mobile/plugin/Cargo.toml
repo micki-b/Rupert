@@ -1,12 +1,12 @@
 [package]
-name = "tauri-plugin-rupert-ios"
-description = "iOS services for Rupert's phone app: folder access, downloads, preview, document camera"
+name = "tauri-plugin-rupert-phone"
+description = "Phone services for Rupert's phone app (iOS and Android): folder access, downloads, preview, document camera, sign-in"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-links = "tauri-plugin-rupert-ios"
+links = "tauri-plugin-rupert-phone"
 
 [dependencies]
 tauri = { version = "2", features = [] }

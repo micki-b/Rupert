@@ -581,6 +581,19 @@ const es: Messages = {
     ],
     language: "Idioma",
     languageNote: "Rupert usa el idioma de tu iPhone, salvo que elijas otro acá.",
+    android: {
+      pickFolders:
+        "Elegí las carpetas donde tenés tus documentos, las mismas que usa Rupert en tu computadora: en Google Drive u OneDrive. Primero iniciá sesión en Configuración.",
+      notAvailable: "No disponible en este teléfono",
+      scanIntro:
+        "Los escaneos se guardan como PDF en la carpeta de la bandeja de entrada de Rupert. Después Rupert en tu computadora los lee y sugiere nombres y carpetas. Elegí acá la misma carpeta de la bandeja de entrada, en Google Drive u OneDrive.",
+      removingNote: "Quitar una carpeta solo la saca de Rupert en este teléfono. No se borra nada.",
+      languageNote: "Rupert usa el idioma de tu teléfono, salvo que elijas otro acá.",
+      oneDriveNote:
+        "Rupert lee tus carpetas de OneDrive directamente de OneDrive; no hace falta la app de OneDrive. Solo lee sus propios archivos chiquitos de catálogo, descarga un documento cuando lo abrís y agrega los escaneos a la bandeja de entrada.",
+      googleNote:
+        "Rupert lee las carpetas de Google Drive directamente de Google Drive, de la misma manera. Google no revisó Rupert, así que puede avisar que la app no está verificada; igual podés permitirla.",
+    },
     index: "Índice",
     indexNote: (documents: number, searchable: number) =>
       `${docs(documents)}; ${num(searchable)} se ${plural(searchable, "puede", "pueden")} buscar por su texto. El texto viene de Rupert en tu computadora, a través del catálogo oculto de cada carpeta. Los documentos quedan en la nube hasta que los abrís.`,

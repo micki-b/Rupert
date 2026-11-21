@@ -19,6 +19,7 @@
     { id: "openai", title: "OpenAI-kompatible Dienste", sub: true },
     { id: "ai-trouble", title: "Wenn der Assistent nicht funktioniert", sub: true },
     { id: "iphone", title: "Die iPhone-App" },
+    { id: "android", title: "Die Android-App" },
     { id: "storage", title: "Wo Rupert was speichert" },
     { id: "keys", title: "Tastenkürzel" },
     { id: "about", title: "Über Rupert" },
@@ -760,6 +761,35 @@
   <p>
     Die iPhone-App ändert Ihre Dokumente nicht: Nur Rupert auf dem Computer bearbeitet Angaben und legt Scans ab.
   </p>
+</section>
+
+<!-- MARK: Android -->
+<section id="android">
+  <h2>Die Android-App</h2>
+  <p>Rupert für Android (in Arbeit) zeigt dieselbe Bibliothek auf einem Android-Telefon, wie die iPhone-App.</p>
+  <ul>
+    <li>
+      <b>Fügen Sie Ordner</b> aus <b>Google Drive</b> oder <b>OneDrive</b> hinzu: Melden Sie sich in den
+      <b>Einstellungen</b> an und fügen Sie dann dieselben Ordner hinzu, die Rupert auf Ihrem Computer verwendet. iCloud
+      Drive gibt es unter Android nicht, und Ordner auf dem Telefon selbst werden noch nicht unterstützt.
+    </li>
+    <li>
+      <b>Suchen, stöbern und öffnen</b> Sie Dokumente. Ein geöffnetes Dokument wird geladen und in einer anderen App
+      angezeigt, etwa in Ihrem PDF-Betrachter.
+    </li>
+    <li>
+      <b>Scannen</b> Sie mit dem Dokumentscanner von Google: Wählen Sie im Bereich Scannen den Eingangsordner in Google
+      Drive oder OneDrive. Die Seiten werden dort als ein PDF gespeichert.
+    </li>
+    <li>
+      <b>Markieren Sie Ordner mit dem Stern</b> und wählen Sie die <b>Sprache</b> in den Einstellungen, wie auf dem iPhone.
+    </li>
+    <li>
+      Die Zurück-Geste schließt, was geöffnet ist, und geht dann einen Ordner nach oben. „Rupert fragen“ gibt es unter
+      Android noch nicht.
+    </li>
+  </ul>
+  <p>Die Android-App ändert Ihre Dokumente nicht: Nur Rupert auf dem Computer bearbeitet Angaben und legt Scans ab.</p>
 </section>
 
 <!-- MARK: Speicherorte -->
