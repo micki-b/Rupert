@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-20
+
 - **Ask Rupert on the iPhone.** On an iPhone with Apple Intelligence (iOS 26 or later), the new **Ask** tab answers questions about your documents on the phone itself; what Rupert would show appears as buttons under his answer.
 - **Apple Intelligence on the Mac.** On a Mac with Apple silicon and macOS 26 or later, choose **Apple Intelligence** in Settings ▸ Local AI: inbox suggestions and Ask Rupert run on Apple's built-in model, with nothing to install and nothing leaving the Mac. It's where Rupert starts on such a Mac, unless you've already set up LM Studio or another server. It answers in seconds; a larger model in LM Studio or Ollama still files and answers better.
 - **Local AI, not just LM Studio.** Rupert works with any app that runs AI models on your computer behind an OpenAI-compatible server: tested with LM Studio and Ollama, and others such as llama.cpp's server or Jan should work too. **Settings ▸ Local AI** has presets for LM Studio and Ollama, and Ask Rupert shows "Local AI · *model*".
