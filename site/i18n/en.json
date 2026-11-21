@@ -21,6 +21,11 @@
   "hero.download": "Download, free",
   "hero.iphone": "iPhone app",
 
+  "android.status": "In development",
+  "android.hero": "Android is in the works.",
+  "android.heading": "Rupert for Android is in the works.",
+  "android.detail": "We’re working on an Android version. There’s no release date yet; for now, Rupert is available for Mac, Windows, Linux and iPhone.",
+
   "dn.label": "Rupert on a Mac, in light and dark mode",
   "dn.alt": "Rupert on a Mac in light mode: a folder of insurance documents as large icons, with the selected document's title, date and tags",
   "dn.light": "Light",
