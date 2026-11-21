@@ -579,7 +579,7 @@ const en = {
       removingNote: "Removing a folder only removes it from Rupert on this phone. Nothing is deleted.",
       languageNote: "Rupert follows your phone's language unless you choose one here.",
       oneDriveNote:
-        "OneDrive doesn't share its folders with other apps, so Rupert reads them directly from OneDrive. It reads only its own small catalog files, downloads a document when you open it, and adds scans to the inbox.",
+        "Rupert reads your OneDrive folders directly from OneDrive; the OneDrive app isn't needed. It reads only its own small catalog files, downloads a document when you open it, and adds scans to the inbox.",
       googleNote:
         "Rupert reads Google Drive folders directly from Google Drive, the same way. Google hasn't reviewed Rupert, so it may warn that the app isn't verified; you can still allow it.",
     },

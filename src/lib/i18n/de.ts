@@ -591,7 +591,7 @@ const de: Messages = {
       removingNote: "Das Entfernen eines Ordners entfernt ihn nur aus Rupert auf diesem Telefon. Es wird nichts gelöscht.",
       languageNote: "Rupert verwendet die Sprache Ihres Telefons, sofern Sie hier keine andere wählen.",
       oneDriveNote:
-        "OneDrive gibt seine Ordner nicht an andere Apps weiter, daher liest Rupert sie direkt aus OneDrive. Es liest nur seine eigenen kleinen Katalogdateien, lädt ein Dokument, wenn Sie es öffnen, und legt Scans in den Eingang.",
+        "Rupert liest Ihre OneDrive-Ordner direkt aus OneDrive; die OneDrive-App wird nicht benötigt. Es liest nur seine eigenen kleinen Katalogdateien, lädt ein Dokument, wenn Sie es öffnen, und legt Scans in den Eingang.",
       googleNote:
         "Rupert liest Google Drive-Ordner auf dieselbe Weise direkt aus Google Drive. Google hat Rupert nicht geprüft, daher kann eine Warnung erscheinen, dass die App nicht überprüft ist; Sie können sie trotzdem zulassen.",
     },

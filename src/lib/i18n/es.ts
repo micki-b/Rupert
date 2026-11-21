@@ -590,7 +590,7 @@ const es: Messages = {
       removingNote: "Quitar una carpeta solo la saca de Rupert en este teléfono. No se borra nada.",
       languageNote: "Rupert usa el idioma de tu teléfono, salvo que elijas otro acá.",
       oneDriveNote:
-        "OneDrive no comparte sus carpetas con otras apps, así que Rupert las lee directamente de OneDrive. Solo lee sus propios archivos chiquitos de catálogo, descarga un documento cuando lo abrís y agrega los escaneos a la bandeja de entrada.",
+        "Rupert lee tus carpetas de OneDrive directamente de OneDrive; no hace falta la app de OneDrive. Solo lee sus propios archivos chiquitos de catálogo, descarga un documento cuando lo abrís y agrega los escaneos a la bandeja de entrada.",
       googleNote:
         "Rupert lee las carpetas de Google Drive directamente de Google Drive, de la misma manera. Google no revisó Rupert, así que puede avisar que la app no está verificada; igual podés permitirla.",
     },
