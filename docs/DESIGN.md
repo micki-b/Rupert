@@ -210,7 +210,7 @@ Every ScanSnap Home folder records its full disk path (`ZINDEXPATH`, a `file://`
 
 ## Phone app (iPhone)
 
-A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mobile/plugin/ios`), on the same `rupert-core`. The UI is the `/phone` route of the shared SvelteKit front end. Android isn't planned: OneDrive and iCloud Drive there don't expose folders the app could read in place.
+A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mobile/plugin/ios`), on the same `rupert-core`. The UI is the `/phone` route of the shared SvelteKit front end. Android (#24, decided 2026-11-20, in progress): the same crate and UI as a Tauri Android app (`mobile/gen/android`, package `io.github.micki_b.rupert`). OneDrive and Google Drive there don't hand folders to other apps either, so the first version reads them through their APIs like the iPhone does; iCloud Drive doesn't exist on Android, and folders on the phone (Storage Access Framework) come later. Scanning uses Google's ML Kit document scanner. Tested on the emulator ("Rupert_Pixel", Android 36 with Play services).
 
 - **Library:** the user picks folders in the Files picker (iCloud Drive, On My iPhone), the same folders Rupert uses on the computer. Access is kept with bookmarks, which are resolved at every launch because iOS paths can change.
 - **OneDrive** can't be used that way: its iOS file provider doesn't let other apps pick folders (they show greyed out; a long-standing limitation of third-party providers). So OneDrive folders are read through **Microsoft Graph** (decided 2026-11-18, phone only; the desktop still uses the synced folders):

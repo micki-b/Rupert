@@ -31,7 +31,13 @@ npm run check
 npm run tauri dev
 npm run tauri build
 npm run phone -- ios build --debug --target aarch64-sim   # iPhone app (mobile/), simulator
+# Android app (mobile/, gen/android): JDK 17 and the SDK from Homebrew/sdkmanager
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+  ANDROID_HOME=$HOME/Library/Android/sdk NDK_HOME=$HOME/Library/Android/sdk/ndk/29.0.14206865
+npm run phone -- android build --debug --target aarch64 --apk
+$ANDROID_HOME/emulator/emulator -avd Rupert_Pixel -no-window -no-audio &   # then adb install -r …/app-universal-debug.apk
 ```
 
 - The phone app is read-only toward the library (`indexer::Mode::Viewer`), with exactly two exceptions: saving scans into the inbox, and starring folders (writing only that folder's `.rupert/.folder.json`). Keep it that way: no catalog writes, no document metadata edits, Quick Look markup off.
+- The Android app (#24, in progress) is the same `mobile/` crate and `/phone` UI; its package is `io.github.micki_b.rupert` (Android names can't contain "-"). The phone rules above apply to it too. Don't rerun `tauri android init`: it regenerates `mobile/gen/android`.
 - `tauri ios init` installs and upgrades Homebrew packages. Run it with `HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_UPGRADE=1`, and don't rerun it casually: it regenerates `mobile/gen/apple`, whose build script was edited to set `TAURI_APP_PATH`.
