@@ -41,7 +41,8 @@
    * back gesture, its own wording. Known at once from the web view. */
   const android = /Android/i.test(navigator.userAgent);
   const tx = $derived(android ? m.phone.android : null);
-  type Crumb = { sourceId: string; relPath: string; name: string };
+  /** `inbox`: shown as "Inbox" in the current language, whatever `name` says. */
+  type Crumb = { sourceId: string; relPath: string; name: string; inbox?: boolean };
   /** What the document sheet shows: indexed details, or just the file. */
   type Sheet = { sourceId: string; relPath: string; name: string; cloudOnly: boolean; size: number; info: DocInfo | null };
 
@@ -157,7 +158,9 @@
   const shownProgress = $derived(remoteProgress?.active ? remoteProgress : progress);
   const title = $derived(
     tab === "library"
-      ? (here?.name ?? m.phone.library)
+      ? here?.inbox
+        ? m.phone.inbox
+        : (here?.name ?? m.phone.library)
       : tab === "search"
         ? m.phone.search
         : tab === "scan"
@@ -275,7 +278,7 @@
     const place = overview?.inboxPlace;
     if (!place) return;
     tab = "library";
-    stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: m.phone.inbox }];
+    stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: m.phone.inbox, inbox: true }];
     entries = [];
     loadFolder();
   }
