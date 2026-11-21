@@ -431,7 +431,7 @@
     <p>
       <b>Mit Apple Intelligence</b> (ein Mac mit Apple-Chip und macOS 26 oder neuer): Es gibt nichts zu installieren.
       Schalten Sie Apple Intelligence unter <b>Systemeinstellungen ▸ Apple Intelligence &amp; Siri</b> ein und wählen
-      Sie in Rupert unter <b>Einstellungen ▸ Lokale KI ▸ Server</b> die Option <b>Apple Intelligence</b>. Es antwortet in
+      Sie in Rupert unter <b>Einstellungen ▸ Lokale KI ▸ Server</b> die Option <b>Apple Intelligence</b> (auf einem solchen Mac beginnt Rupert damit). Es antwortet in
       Sekunden, und nichts verlässt den Mac. Es ist allerdings ein kleines Modell: Ein größeres in LM Studio oder Ollama
       legt besser ab und antwortet besser.
     </p>

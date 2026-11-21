@@ -399,7 +399,7 @@
     <p>
       <b>With Apple Intelligence</b> (a Mac with Apple silicon and macOS 26 or later): nothing to install. Turn on
       Apple Intelligence in <b>System Settings ▸ Apple Intelligence &amp; Siri</b>, then in Rupert choose
-      <b>Apple Intelligence</b> under <b>Settings ▸ Local AI ▸ Server</b>. It answers in seconds and nothing leaves the
+      <b>Apple Intelligence</b> under <b>Settings ▸ Local AI ▸ Server</b> (on such a Mac, Rupert starts with it). It answers in seconds and nothing leaves the
       Mac. It's a small model, though: a larger model in LM Studio or Ollama files and answers better.
     </p>
   {/if}

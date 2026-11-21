@@ -104,6 +104,18 @@ impl Default for Settings {
 }
 
 impl Settings {
+    /// Settings for a first start: on a Mac that can run Apple Intelligence,
+    /// Local AI is Apple Intelligence, so inbox suggestions and Ask Rupert
+    /// work without installing anything. (Settings saved before, without
+    /// `localEngine`, stay on the server they were set up with.)
+    pub fn first_start() -> Self {
+        let mut settings = Self::default();
+        if crate::apple_ai::status().capable() {
+            settings.local_engine = LocalEngine::Apple;
+        }
+        settings
+    }
+
     /// The file name (without extension) for a document, from the pattern.
     pub fn file_name(&self, date: Option<&str>, title: &str) -> String {
         self.name_pattern
@@ -129,7 +141,7 @@ impl SettingsStore {
         let path = path.into();
         let settings = match fs::read(&path) {
             Ok(bytes) => serde_json::from_slice(&bytes)?,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Settings::default(),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Settings::first_start(),
             Err(e) => return Err(e.into()),
         };
         Ok(Self { path, settings })
@@ -176,6 +188,9 @@ mod tests {
         let path = dir.path().join("settings.json");
         let mut store = SettingsStore::load(&path).unwrap();
         assert!(store.get().ocr && store.get().suggestions);
+        // A first start picks Apple Intelligence where the Mac can run it.
+        let apple = crate::apple_ai::status().capable();
+        assert_eq!(store.get().local_engine == LocalEngine::Apple, apple);
         let mut s = store.get().clone();
         s.inbox = Some(InboxLocation {
             source_id: "a".into(),
@@ -195,6 +210,7 @@ mod tests {
         )
         .unwrap();
         let loaded = SettingsStore::load(&path).unwrap();
+        assert_eq!(loaded.get().local_engine, LocalEngine::Server);
         assert_eq!(loaded.get().local_url, "http://localhost:11434");
         assert_eq!(loaded.get().local_model.as_deref(), Some("qwen3:4b"));
     }
