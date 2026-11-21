@@ -730,7 +730,7 @@
     <li>
       <b>Preguntale a Rupert</b> en la pestaña <b>Preguntar</b>, en un iPhone con Apple Intelligence (iOS 26 o posterior,
       con Apple Intelligence activado en la configuración de iOS). Funciona en el iPhone y nada sale de él. Busca y lee
-      como en la computadora; lo que mostraría aparece como botones debajo de su respuesta. En otros iPhone la pestaña no
+      como en la computadora; los documentos, carpetas y resultados que encontró aparecen como botones debajo de su respuesta. En otros iPhone la pestaña no
       aparece.
     </li>
     <li>

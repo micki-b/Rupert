@@ -93,12 +93,21 @@ pub async fn assistant_send(text: String, app: AppHandle) -> CmdResult<Assistant
             let _ = app.emit(ASSISTANT_STEP, step);
         });
         match result {
-            Ok(reply) => Ok(AssistantReply {
-                text: reply.text,
-                steps: reply.steps,
-                actions: tools.take_actions(),
-                stopped: false,
-            }),
+            Ok(reply) => {
+                // Buttons under the answer: what Rupert asked to show, or
+                // else what he read or found (Apple's small model often
+                // answers without asking to show anything).
+                let mut actions = tools.take_actions();
+                if actions.is_empty() {
+                    actions = tools.take_suggestions();
+                }
+                Ok(AssistantReply {
+                    text: reply.text,
+                    steps: reply.steps,
+                    actions,
+                    stopped: false,
+                })
+            }
             Err(rupert_core::Error::Cancelled) => Ok(AssistantReply {
                 text: String::new(),
                 steps: Vec::new(),

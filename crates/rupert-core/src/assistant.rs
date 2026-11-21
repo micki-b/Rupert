@@ -1038,6 +1038,10 @@ pub struct LibraryTools<'a> {
     pub index: &'a Index,
     pub sources: &'a [Source],
     actions: RefCell<Vec<UiAction>>,
+    /// Documents read this turn, and the last search that found something
+    /// (for [`LibraryTools::take_suggestions`]).
+    read: RefCell<Vec<(String, String)>>,
+    searched: RefCell<Option<UiAction>>,
 }
 
 impl<'a> LibraryTools<'a> {
@@ -1046,12 +1050,141 @@ impl<'a> LibraryTools<'a> {
             index,
             sources,
             actions: RefCell::new(Vec::new()),
+            read: RefCell::new(Vec::new()),
+            searched: RefCell::new(None),
         }
     }
 
     /// The UI requests made during the conversation turn.
     pub fn take_actions(&self) -> Vec<UiAction> {
         std::mem::take(&mut self.actions.borrow_mut())
+    }
+
+    /// What the turn looked at, as things the person could choose to show:
+    /// the documents read (up to three), or else the last search that found
+    /// something. For the phone, which offers these as buttons when the
+    /// model didn't ask to show anything itself (small models often don't).
+    pub fn take_suggestions(&self) -> Vec<UiAction> {
+        let read = std::mem::take(&mut *self.read.borrow_mut());
+        let searched = self.searched.borrow_mut().take();
+        let mut out: Vec<UiAction> = Vec::new();
+        for (source_id, rel_path) in read {
+            let a = UiAction::ShowDocument {
+                source_id,
+                rel_path,
+            };
+            if !out.contains(&a) && out.len() < 3 {
+                out.push(a);
+            }
+        }
+        if out.is_empty() {
+            out.extend(searched);
+        }
+        out
+    }
+
+    /// The source and document a tool means, forgiving the slips small
+    /// models make: a folder (or nothing) given as the source, the source's
+    /// name repeated in the path, another extension or letter case.
+    fn find_document(&self, input: &Value) -> std::result::Result<(&Source, String), String> {
+        let rel = Self::rel(input);
+        let sources = self.candidates(input)?;
+        for source in &sources {
+            let rel = strip_source(&source.name, &rel);
+            if let Some(found) = self.match_document(source, &rel) {
+                return Ok((source, found));
+            }
+        }
+        let names: Vec<&str> = sources.iter().map(|s| s.name.as_str()).collect();
+        Err(format!("No document “{rel}” in {}", names.join(", ")))
+    }
+
+    fn match_document(&self, source: &Source, rel: &str) -> Option<String> {
+        if self
+            .index
+            .document(&source.id, rel)
+            .ok()
+            .flatten()
+            .is_some()
+        {
+            return Some(rel.to_string());
+        }
+        let (dir, name) = rel.rsplit_once('/').unwrap_or(("", rel));
+        let stem = |n: &str| n.rsplit_once('.').map_or(n, |(s, _)| s).to_lowercase();
+        let dir = self
+            .match_folder(source, dir)
+            .unwrap_or_else(|| dir.to_string());
+        let (_, hits) = self.index.list_folder(&source.id, &dir).ok()?;
+        hits.into_iter()
+            .find(|h| h.name.eq_ignore_ascii_case(name) || stem(&h.name) == stem(name))
+            .map(|h| h.rel_path)
+    }
+
+    /// The source and folder a tool means, forgiving the same slips; a bare
+    /// folder name is looked up anywhere in the source.
+    fn find_folder(&self, input: &Value) -> std::result::Result<(&Source, String), String> {
+        let mut rel = Self::rel(input);
+        let key = input
+            .get("source")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        // A folder named as the source, with no path.
+        if rel.is_empty()
+            && !self
+                .sources
+                .iter()
+                .any(|s| s.id == key || s.name.eq_ignore_ascii_case(key))
+        {
+            rel = key.trim_matches('/').to_string();
+        }
+        let sources = self.candidates(input)?;
+        for source in &sources {
+            let rel = strip_source(&source.name, &rel);
+            if let Some(found) = self.match_folder(source, &rel) {
+                return Ok((source, found));
+            }
+            // A document given: the folder it's in.
+            if let Some(doc) = self.match_document(source, &rel) {
+                let dir = doc.rsplit_once('/').map_or("", |(d, _)| d).to_string();
+                return Ok((source, dir));
+            }
+        }
+        let names: Vec<&str> = sources.iter().map(|s| s.name.as_str()).collect();
+        Err(format!("No folder “{rel}” in {}", names.join(", ")))
+    }
+
+    /// The folder's path as the index spells it (disks may ignore case,
+    /// the index doesn't), else as given if it exists on disk.
+    fn match_folder(&self, source: &Source, rel: &str) -> Option<String> {
+        if rel.is_empty() {
+            return Some(String::new());
+        }
+        let want = rel.to_lowercase();
+        let folders = self.index.folders().ok()?;
+        let mut matches: Vec<&String> = folders
+            .iter()
+            .filter(|(s, d)| s == &source.id && !d.is_empty())
+            .map(|(_, d)| d)
+            .filter(|d| {
+                let d = d.to_lowercase();
+                d == want || d.ends_with(&format!("/{want}"))
+            })
+            .collect();
+        matches.sort_by_key(|d| d.len());
+        matches
+            .first()
+            .map(|d| (*d).clone())
+            .or_else(|| rupert_dir_exists(&source.root, rel).then(|| rel.to_string()))
+    }
+
+    /// The source named in the input first, else every source (a model may
+    /// put a folder's name there).
+    fn candidates(&self, input: &Value) -> std::result::Result<Vec<&Source>, String> {
+        match self.source(input) {
+            Ok(s) => Ok(vec![s]),
+            Err(_) if !self.sources.is_empty() => Ok(self.sources.iter().collect()),
+            Err(e) => Err(e),
+        }
     }
 
     fn source(&self, input: &Value) -> std::result::Result<&Source, String> {
@@ -1125,6 +1258,14 @@ impl<'a> LibraryTools<'a> {
             "search_documents" => {
                 let q = Self::query(input);
                 let hits = self.index.search(&q).map_err(|e| e.to_string())?;
+                if !hits.is_empty() {
+                    *self.searched.borrow_mut() = Some(UiAction::Search {
+                        text: q.text.clone(),
+                        tags: q.tags.clone(),
+                        tag_mode: q.tag_mode,
+                        favorites_only: q.favorites_only,
+                    });
+                }
                 Ok(json!(hits.iter().map(|h| json!({
                     "source": self.source_name(&h.source_id),
                     "path": h.rel_path,
@@ -1184,8 +1325,7 @@ impl<'a> LibraryTools<'a> {
                 )
             }
             "read_document" => {
-                let source = self.source(input)?;
-                let rel = Self::rel(input);
+                let (source, rel) = self.find_document(input)?;
                 let max = input
                     .get("max_chars")
                     .and_then(Value::as_u64)
@@ -1196,6 +1336,9 @@ impl<'a> LibraryTools<'a> {
                     .document(&source.id, &rel)
                     .map_err(|e| e.to_string())?
                     .ok_or_else(|| format!("No document “{rel}” in {}", source.name))?;
+                self.read
+                    .borrow_mut()
+                    .push((source.id.clone(), rel.clone()));
                 let text = self
                     .index
                     .document_text(&source.id, &rel)
@@ -1212,11 +1355,7 @@ impl<'a> LibraryTools<'a> {
                 }))
             }
             "open_folder" => {
-                let source = self.source(input)?;
-                let rel = Self::rel(input);
-                if !rupert_dir_exists(&source.root, &rel) {
-                    return Err(format!("No folder “{rel}” in {}", source.name));
-                }
+                let (source, rel) = self.find_folder(input)?;
                 self.actions.borrow_mut().push(UiAction::OpenFolder {
                     source_id: source.id.clone(),
                     rel_path: rel,
@@ -1224,16 +1363,7 @@ impl<'a> LibraryTools<'a> {
                 Ok(json!("Shown."))
             }
             "show_document" => {
-                let source = self.source(input)?;
-                let rel = Self::rel(input);
-                if self
-                    .index
-                    .document(&source.id, &rel)
-                    .map_err(|e| e.to_string())?
-                    .is_none()
-                {
-                    return Err(format!("No document “{rel}” in {}", source.name));
-                }
+                let (source, rel) = self.find_document(input)?;
                 self.actions.borrow_mut().push(UiAction::ShowDocument {
                     source_id: source.id.clone(),
                     rel_path: rel,
@@ -1252,6 +1382,18 @@ impl<'a> LibraryTools<'a> {
             }
             other => Err(format!("Unknown tool {other}")),
         }
+    }
+}
+
+/// `rel` without a leading copy of the source's name (`Home Documents/Tax`).
+fn strip_source(name: &str, rel: &str) -> String {
+    let n = name.len();
+    match rel.get(..n) {
+        Some(head) if head.eq_ignore_ascii_case(name) && rel.len() == n => String::new(),
+        Some(head) if head.eq_ignore_ascii_case(name) && rel[n..].starts_with('/') => {
+            rel[n + 1..].to_string()
+        }
+        _ => rel.to_string(),
     }
 }
 
@@ -1364,7 +1506,8 @@ pub fn system_prompt(today: &str) -> String {
          first, then refine with tags or other words. Read a document's text before answering a \
          question about its contents.\n\n\
          When the user asks to open, show or go to something, do it with open_folder, show_document \
-         or show_results. You can't change, move, rename, tag or delete files; say so if asked.\n\n\
+         or show_results, and only say something is shown or open after the tool answered \
+         \"Shown.\". You can't change, move, rename, tag or delete files; say so if asked.\n\n\
          Answer briefly in plain text. Name documents by title (or file name) and folder.\n\n\
          Answer in the language the user writes in; if that's unclear, in {language}.",
         language = crate::i18n::current().english_name()
@@ -1423,6 +1566,73 @@ mod tests {
         (dir, idx, sources)
     }
 
+    /// Small models get names slightly wrong; the tools still find what
+    /// they meant, and the turn offers what it looked at.
+    #[test]
+    fn tools_forgive_slips_and_suggest_what_was_seen() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        let shown = |input: Value, tool: &str| tools.call(tool, &input);
+        // A folder's name as the source, and a bare folder name.
+        assert_eq!(
+            shown(json!({"source": "Engine", "path": ""}), "open_folder"),
+            "\"Shown.\""
+        );
+        assert_eq!(
+            shown(json!({"source": "Engine", "path": "engine"}), "open_folder"),
+            "\"Shown.\""
+        );
+        // The source's name in the path, and a document for a folder.
+        assert_eq!(
+            shown(
+                json!({"source": "Documents", "path": "Documents/Boat/Engine/impeller.pdf"}),
+                "open_folder"
+            ),
+            "\"Shown.\""
+        );
+        // Another extension and letter case.
+        assert_eq!(
+            shown(
+                json!({"source": "Documents", "path": "boat/engine/Impeller.html"}),
+                "show_document"
+            ),
+            "\"Shown.\""
+        );
+        let doc = UiAction::ShowDocument {
+            source_id: "s1".into(),
+            rel_path: "Boat/Engine/impeller.pdf".into(),
+        };
+        let folder = UiAction::OpenFolder {
+            source_id: "s1".into(),
+            rel_path: "Boat/Engine".into(),
+        };
+        assert_eq!(
+            tools.take_actions(),
+            [folder.clone(), folder.clone(), folder, doc.clone()]
+        );
+        assert!(
+            shown(
+                json!({"source": "Documents", "path": "Boat/nothing.pdf"}),
+                "show_document"
+            )
+            .starts_with("Error")
+        );
+
+        // What the turn looked at: the documents read, else the last search.
+        tools.call("search_documents", &json!({"query": "impeller"}));
+        assert!(matches!(
+            tools.take_suggestions()[..],
+            [UiAction::Search { .. }]
+        ));
+        tools.call("search_documents", &json!({"query": "impeller"}));
+        tools.call(
+            "read_document",
+            &json!({"path": "Boat/Engine/impeller.PDF"}),
+        );
+        assert_eq!(tools.take_suggestions(), [doc]);
+        assert!(tools.take_suggestions().is_empty());
+    }
+
     #[test]
     fn tools_search_read_and_request_ui() {
         let (_dir, idx, sources) = library();
@@ -1443,7 +1653,7 @@ mod tests {
         assert!(
             tools
                 .call("read_document", &json!({"source": "Nope", "path": "x"}))
-                .starts_with("Error: Unknown source")
+                .starts_with("Error: No document")
         );
         assert!(
             tools

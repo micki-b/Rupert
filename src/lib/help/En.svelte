@@ -680,7 +680,7 @@
     <li>
       <b>Ask Rupert</b> in the <b>Ask</b> tab, on an iPhone with Apple Intelligence (iOS 26 or later, with Apple
       Intelligence turned on in iOS Settings). It runs on the iPhone, and nothing leaves it. It searches and reads like
-      on the computer; what it would show appears as buttons under its answer. On other iPhones the tab isn't there.
+      on the computer; the documents, folders and results it found appear as buttons under its answer. On other iPhones the tab isn't there.
     </li>
     <li>
       <b>Language</b>: the app follows the iPhone's language, or the one you choose in <b>Settings ▸ Language</b> (or

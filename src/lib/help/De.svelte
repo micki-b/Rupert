@@ -747,7 +747,8 @@
     <li>
       <b>Rupert fragen</b> im Bereich <b>Fragen</b>, auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer, mit
       eingeschaltetem Apple Intelligence in den iOS-Einstellungen). Es läuft auf dem iPhone, und nichts verlässt es. Es
-      sucht und liest wie auf dem Computer; was es anzeigen würde, erscheint als Tasten unter seiner Antwort. Auf anderen
+      sucht und liest wie auf dem Computer; die gefundenen Dokumente, Ordner und Ergebnisse erscheinen als Tasten unter
+      seiner Antwort. Auf anderen
       iPhones gibt es diesen Bereich nicht.
     </li>
     <li>
