@@ -51,18 +51,17 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
-## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
+## What's new in 0.5.0 [4000]
 
-Rupert ahora responde tus preguntas, y habla español y alemán.
+Mirá tus documentos, y mandale documentos nuevos a Rupert desde cualquier app.
 
-PREGUNTALE A RUPERT
-• En un iPhone con Apple Intelligence (iOS 26 o posterior), la nueva pestaña Preguntar responde preguntas sobre tus documentos, como "¿Cuál es la franquicia del seguro del auto?". Rupert busca, lee y responde en el mismo iPhone; nada sale de él.
-• Los botones debajo de su respuesta abren los documentos, carpetas y resultados que encontró.
+ÍCONOS GRANDES Y GALERÍA
+• Arriba de cada carpeta, elegí entre la lista, íconos grandes y una galería. Rupert recuerda la vista de cada carpeta.
+• Las imágenes vienen de OneDrive y Google Drive, que las hacen sin descargar tus documentos, y del mismo iPhone para los documentos de carpetas de Archivos que están en el teléfono.
 
-EN TU IDIOMA
-• Cada pantalla, mensaje y ajuste está también en español (rioplatense) y en alemán. Rupert usa el idioma de tu iPhone; en Configuración ▸ Idioma podés elegir otro.
-• El búho se viste para la ocasión: la camiseta albiceleste en español, lederhosen en alemán.
-• Las carpetas, los archivos y los escaneos se llaman igual en todos los idiomas, así una familia puede compartir una biblioteca entre teléfonos en idiomas distintos.
+COMPARTIR A LA BANDEJA DE ENTRADA
+• En Mail, Archivos, Fotos o Safari, tocá Compartir y elegí Rupert: el documento se guarda en tu bandeja de entrada (en Archivos, OneDrive o Google Drive) con su propio nombre, sin abrir Rupert. Rupert en tu computadora lo lee y te sugiere dónde archivarlo, como un escaneo nuevo.
+• Si no se puede guardar en ese momento, Rupert lo manda la próxima vez que abras la app.
 
 ## Screenshots, App Previews and artwork
 

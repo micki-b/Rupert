@@ -51,18 +51,17 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
-## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
+## What's new in 0.5.0 [4000]
 
-Rupert beantwortet jetzt Ihre Fragen und spricht Deutsch und Spanisch.
+Sehen Sie Ihre Dokumente, und senden Sie Rupert neue aus jeder App.
 
-RUPERT FRAGEN
-• Auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer) beantwortet der neue Bereich „Fragen“ Fragen zu Ihren Dokumenten, etwa „Wie hoch ist die Selbstbeteiligung meiner Autoversicherung?“. Rupert sucht, liest und antwortet auf dem iPhone selbst; nichts verlässt es.
-• Tasten unter seiner Antwort öffnen die gefundenen Dokumente, Ordner und Suchergebnisse.
+GROSSE SYMBOLE UND GALERIE
+• Oben in jedem Ordner wählen Sie zwischen Liste, großen Symbolen und einer Galerie. Rupert merkt sich die Ansicht für jeden Ordner.
+• Die Bilder kommen von OneDrive und Google Drive, die sie erstellen, ohne Ihre Dokumente herunterzuladen, und vom iPhone selbst für Dokumente in Dateien-Ordnern, die auf dem Telefon sind.
 
-IN IHRER SPRACHE
-• Jeder Bildschirm, jede Meldung und jede Einstellung gibt es jetzt auch auf Deutsch und Spanisch. Rupert verwendet die Sprache Ihres iPhones; unter Einstellungen ▸ Sprache können Sie eine andere wählen.
-• Die Eule zieht sich passend an: Lederhosen auf Deutsch, das hellblau-weiß gestreifte Trikot auf Spanisch.
-• Ordner, Dateien und Scans heißen in jeder Sprache gleich, sodass eine Familie eine Bibliothek auch mit iPhones in verschiedenen Sprachen teilen kann.
+AN DEN EINGANG TEILEN
+• Tippen Sie in Mail, Dateien, Fotos oder Safari auf Teilen und wählen Sie Rupert: Das Dokument wird unter seinem eigenen Namen in Ihrem Eingang gespeichert (in Dateien, OneDrive oder Google Drive), ohne Rupert zu öffnen. Rupert auf Ihrem Computer liest es und schlägt vor, wo es abgelegt wird, wie bei einem neuen Scan.
+• Kann es nicht sofort gespeichert werden, sendet Rupert es beim nächsten Öffnen der App.
 
 ## Screenshots, App Previews and artwork
 

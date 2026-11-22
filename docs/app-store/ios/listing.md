@@ -61,18 +61,17 @@ Rupert is free and open source.
 
 First release.
 
-## What's new in 0.4.1 (includes 0.3.0, which wasn't released) [4000]
+## What's new in 0.5.0 [4000]
 
-Rupert now answers your questions, and speaks Spanish and German.
+See your documents, and send new ones to Rupert from any app.
 
-ASK RUPERT
-• On an iPhone with Apple Intelligence (iOS 26 or later), the new Ask tab answers questions about your documents, like "What's the deductible on my car insurance?". Rupert searches, reads and answers on the iPhone itself; nothing leaves it.
-• Buttons under his answer open the documents, folders and search results he found.
+LARGE ICONS AND A GALLERY
+• At the top of a folder, switch between the list, large icons and a gallery. Rupert remembers the view for each folder.
+• The pictures come from OneDrive and Google Drive, which make them without downloading your documents, and from the iPhone itself for documents in Files folders that are on the phone.
 
-IN YOUR LANGUAGE
-• Every screen, message and setting is also in Spanish (as spoken in Argentina) and German. Rupert uses your iPhone's language; Settings ▸ Language can choose another.
-• The owl dresses for the occasion: a sky-blue and white striped jersey in Spanish, lederhosen in German.
-• Folders, files and scans keep the same names in every language, so a family can share a library across phones set to different languages.
+SHARE TO THE INBOX
+• In Mail, Files, Photos or Safari, tap Share and choose Rupert: the document is saved to your inbox (in Files, OneDrive or Google Drive) under its own name, without opening Rupert. Rupert on your computer reads it and suggests where to file it, like a new scan.
+• If it can't be saved right away, Rupert sends it the next time you open the app.
 
 ## App Privacy
 
@@ -102,6 +101,8 @@ OneDrive is optional (Settings ▸ OneDrive) and needs a personal Microsoft acco
 Google Drive is optional too (Settings ▸ Google Drive, marked "preview"). Rupert's Google project is used by a few known people and isn't verified by Google, so Google's sign-in page shows its "Google hasn't verified this app" warning; that is expected. It isn't needed to review the app.
 
 The Ask tab (Ask Rupert) appears only on iPhones that can run Apple Intelligence (iPhone 15 Pro or later with iOS 26 or later) and answers once Apple Intelligence is turned on in Settings; it runs entirely on the device. On other iPhones the tab is hidden by design. To try it, add a folder with PDFs first, then ask, for example, "Which documents mention insurance?".
+
+The share extension ("Rupert" in the share sheet) saves a shared document (PDF, image, Word, Excel, PowerPoint or RTF) into the inbox folder chosen on the Scan tab. To try it: choose an inbox as above, then in Files (or Safari, Mail, Photos) tap Share ▸ Rupert. The extension uses the app group only to read the inbox setting and to hand over documents it couldn't save, which the app sends the next time it opens.
 
 Rupert is free and open source: https://github.com/micki-b/Rupert
 
