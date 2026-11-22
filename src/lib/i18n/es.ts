@@ -153,7 +153,6 @@ const es: Messages = {
     reading: "Leyendo…",
   },
   pictures: {
-    onlineOnlyBadge: "Solo en línea: abrirlo lo descarga",
     previousPage: "Página anterior",
     previousPageKey: "Página anterior (↑)",
     nextPage: "Página siguiente",
@@ -447,7 +446,6 @@ const es: Messages = {
     noMatches: "Ningún documento coincide.",
     hits: (n: number, more: boolean) =>
       `${num(n)}${more ? "+" : ""} ${plural(n, "documento", "documentos")}`,
-    onlineOnly: "Solo en línea",
     folderPath: "Ruta de la carpeta",
     unfavoriteFolder: "Quitar esta carpeta de Favoritos",
     favoriteFolder: "Agregar esta carpeta a Favoritos",
@@ -461,7 +459,11 @@ const es: Messages = {
     kind: "Tipo",
     size: "Tamaño",
     modified: "Modificado",
-    onlineOnlyTip: "Solo en línea: abrirlo lo descarga",
+    onlineOnlyTip: "Solo en línea. Hacé clic para descargarlo, así Rupert lo puede leer.",
+    downloadingFile: "Descargando…",
+    addFavorite: "Agregar a Favoritos",
+    removeFavorite: "Quitar de Favoritos",
+    removeFavoriteDownloads: "Quitar de Favoritos (descarga el archivo: la estrella se guarda dentro del PDF)",
     askRupertKey: "Preguntale a Rupert (⌘J)",
     askRupert: "Preguntale a Rupert",
     tagline: "El bibliotecario de tus documentos escaneados.",

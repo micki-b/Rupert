@@ -727,6 +727,18 @@ impl Index {
             .map_err(db)
     }
 
+    /// Records a document's new star right away, so lists show it before the
+    /// indexer has read the changed file again.
+    pub fn set_doc_favorite(&self, source_id: &str, rel_path: &str, favorite: bool) -> Result<()> {
+        self.conn
+            .execute(
+                "UPDATE docs SET favorite = ?3 WHERE source_id = ?1 AND rel_path = ?2",
+                params![source_id, rel_path, favorite as i64],
+            )
+            .map(|_| ())
+            .map_err(db)
+    }
+
     pub fn tags(&self) -> Result<Vec<TagCount>> {
         let mut stmt = self
             .conn

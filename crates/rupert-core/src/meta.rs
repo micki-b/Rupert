@@ -279,6 +279,52 @@ pub fn write_meta_beside(path: &Path, meta: DocMeta) -> Result<DocMeta> {
     Ok(meta)
 }
 
+/// Stars or unstars a document (the star on it in the list), keeping its
+/// other details. `indexed` is what the index knows about it.
+///
+/// Starring an online-only PDF doesn't download it: the star waits beside the
+/// file (pending, starting from the indexed details) until its next save.
+/// Unstarring one reads the file, which downloads it, because a pending "not a
+/// favorite" can't override a star inside the PDF. Other formats keep their
+/// details in the sidecar, so they're never downloaded.
+pub fn set_favorite(
+    path: &Path,
+    favorite: bool,
+    file_is_local: bool,
+    indexed: Option<DocMeta>,
+) -> Result<DocMeta> {
+    let pdf = FileKind::from_path(path) == FileKind::Pdf;
+    if pdf
+        && !file_is_local
+        && favorite
+        && let Some(current) = indexed
+    {
+        if current.favorite {
+            return Ok(current);
+        }
+        return write_meta_beside(
+            path,
+            DocMeta {
+                favorite,
+                ..current
+            },
+        );
+    }
+    let current = read_meta(path)?.meta;
+    if current.favorite == favorite {
+        return Ok(current);
+    }
+    Ok(write_meta(
+        path,
+        DocMeta {
+            favorite,
+            ..current
+        },
+        file_is_local,
+    )?
+    .meta)
+}
+
 fn prepare(meta: DocMeta) -> Result<DocMeta> {
     let mut meta = meta.normalized()?;
     if meta.id.is_none() {
@@ -380,6 +426,64 @@ mod tests {
         assert_eq!(saved.storage, Storage::Sidecar);
         assert_eq!(saved.meta.title.as_deref(), Some("Lease"));
         assert!(saved.meta.id.is_some());
+        assert_eq!(std::fs::read(&file).unwrap(), b"doc", "file untouched");
+    }
+
+    #[test]
+    fn star_goes_into_a_local_pdf_and_keeps_its_details() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = dir.path().join("deed.pdf");
+        crate::pdf_meta::tests::make_pdf(&pdf, None);
+        let titled = DocMeta {
+            title: Some("Deed".into()),
+            ..Default::default()
+        };
+        let id = write_meta(&pdf, titled, true).unwrap().meta.id;
+
+        let starred = set_favorite(&pdf, true, true, None).unwrap();
+        assert!(starred.favorite);
+        let record = read_meta(&pdf).unwrap();
+        assert_eq!(record.storage, Storage::Embedded);
+        assert!(record.meta.favorite);
+        assert_eq!(record.meta.title.as_deref(), Some("Deed"));
+        assert_eq!(record.meta.id, id);
+
+        assert!(!set_favorite(&pdf, false, true, None).unwrap().favorite);
+        assert!(!read_meta(&pdf).unwrap().meta.favorite);
+    }
+
+    #[test]
+    fn starring_an_online_only_pdf_waits_beside_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = dir.path().join("deed.pdf");
+        crate::pdf_meta::tests::make_pdf(&pdf, None);
+        let before = std::fs::read(&pdf).unwrap();
+        let indexed = DocMeta {
+            id: Some("doc-1".into()),
+            title: Some("Deed".into()),
+            ..Default::default()
+        };
+
+        set_favorite(&pdf, true, false, Some(indexed)).unwrap();
+        assert_eq!(std::fs::read(&pdf).unwrap(), before, "PDF untouched");
+        let (side, pending) = read_meta_beside(&pdf).unwrap().unwrap();
+        assert!(pending);
+        assert!(side.favorite);
+        assert_eq!(side.id.as_deref(), Some("doc-1"));
+        assert_eq!(side.title.as_deref(), Some("Deed"));
+        // Once it's local, the star is part of what it says.
+        assert!(read_meta(&pdf).unwrap().meta.favorite);
+    }
+
+    #[test]
+    fn stars_other_formats_in_the_sidecar() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("lease.docx");
+        std::fs::write(&file, b"doc").unwrap();
+        assert!(set_favorite(&file, true, false, None).unwrap().favorite);
+        assert!(read_meta(&file).unwrap().meta.favorite);
+        assert!(!set_favorite(&file, false, false, None).unwrap().favorite);
+        assert!(!read_meta(&file).unwrap().meta.favorite);
         assert_eq!(std::fs::read(&file).unwrap(), b"doc", "file untouched");
     }
 }

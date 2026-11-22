@@ -509,6 +509,63 @@ async fn write_meta(
     Ok(record)
 }
 
+/// Stars or unstars a document from its star in a list (see
+/// `rupert_core::meta::set_favorite`: an online-only PDF is downloaded only
+/// to unstar it).
+#[tauri::command]
+async fn set_favorite(
+    source_id: String,
+    rel_path: String,
+    favorite: bool,
+    app: AppHandle,
+) -> CmdResult<DocMeta> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let indexed = state
+        .index
+        .lock()
+        .unwrap()
+        .doc_meta(&source_id, &rel_path)
+        .map_err(err)?;
+    let (root, rel) = (source.root.clone(), rel_path.clone());
+    let meta = tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&root, &rel).map_err(err)?;
+        let local = rupert_core::cloud_state(&path).map_err(err)? == CloudState::Local;
+        rupert_core::meta::set_favorite(&path, favorite, local, indexed).map_err(err)
+    })
+    .await
+    .map_err(err)??;
+    state
+        .index
+        .lock()
+        .unwrap()
+        .set_doc_favorite(&source_id, &rel_path, meta.favorite)
+        .map_err(err)?;
+    let _ = app.emit(INDEX_CHANGED, ());
+    state.indexer.send(Job::File { source, rel_path });
+    Ok(meta)
+}
+
+/// Downloads one online-only document (its cloud badge was clicked), then
+/// has the indexer read it.
+#[tauri::command]
+async fn download_file(
+    source_id: String,
+    rel_path: String,
+    state: State<'_, AppState>,
+) -> CmdResult<()> {
+    let source = state.source(&source_id)?;
+    let (root, rel) = (source.root.clone(), rel_path.clone());
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&root, &rel).map_err(err)?;
+        rupert_core::cloud::download(&path).map_err(err)
+    })
+    .await
+    .map_err(err)??;
+    state.indexer.send(Job::File { source, rel_path });
+    Ok(())
+}
+
 // MARK: - Test hook (debug builds only)
 
 /// Runs `RUPERT_TEST_JS` in the page once it has loaded, so a test
@@ -1410,6 +1467,8 @@ pub fn run() {
             test_log,
             read_meta,
             write_meta,
+            set_favorite,
+            download_file,
             search,
             list_tags,
             tag_suggestions,

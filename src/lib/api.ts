@@ -405,6 +405,11 @@ export const api = {
     invoke<MetaResponse>("read_meta", { sourceId, relPath, allowDownload }),
   writeMeta: (sourceId: string, relPath: string, meta: DocMeta) =>
     invoke<MetaRecord>("write_meta", { sourceId, relPath, meta }),
+  /** Stars or unstars a document at once (an online-only PDF is downloaded only to unstar it). */
+  setFavorite: (sourceId: string, relPath: string, favorite: boolean) =>
+    invoke<DocMeta>("set_favorite", { sourceId, relPath, favorite }),
+  /** Downloads an online-only document; Rupert then reads it. */
+  downloadFile: (sourceId: string, relPath: string) => invoke<void>("download_file", { sourceId, relPath }),
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
   listTags: () => invoke<TagCount[]>("list_tags"),
   /** Tags matching `filter`, best first, without the selected ones (with
