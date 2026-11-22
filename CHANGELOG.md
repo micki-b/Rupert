@@ -4,6 +4,7 @@
 
 - **A star on every document** (#22): in the list, the icons, the gallery and the search results, the ☆ shows when you point at a document (favorites keep their ★), and one click stars or unstars it. The star in the details pane also saves at once now; it no longer waits for **Save**.
 - **Click the cloud to download a file** (#22): an online-only document's cloud badge downloads just that file, and Rupert reads its text.
+- **Drag files in** (#36): drop files from the Finder, File Explorer or another app onto a folder (the open one, or one in the sidebar or the folder view), and Rupert copies them there, keeping their names and dates. Drop them on **Inbox** instead, and Rupert reads them and suggests where to file them, like a new scan.
 - **Rupert for Android is in the works** (#24): the phone app also builds for Android, with Google Drive and OneDrive libraries, Google's document scanner, Rupert's own icon, the back gesture and Android's wording. Not released yet.
 
 ## 0.4.1 — 2026-11-20

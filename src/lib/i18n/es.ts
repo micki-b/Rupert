@@ -403,6 +403,9 @@ const es: Messages = {
     start: "Empezar",
     trashFolderAsk: (name: string, bin: string) => `¿Mandar «${name}» y todo lo que tiene a la ${bin}?`,
     moveFailed: "No se pudo mover.",
+    copying: (done: number, total: number) => `Copiando ${num(done)} de ${num(total)}…`,
+    copyFailed: (name: string, reason: string) => `No se pudo copiar «${name}»: ${reason}.`,
+    folderNotCopied: (name: string) => `«${name}» es una carpeta. Acá solo se pueden soltar archivos; soltá los archivos que tiene adentro.`,
     indexing: (done: number, total: number) => `Indexando ${num(done)} de ${num(total)}…`,
     checkingChanges: "Buscando cambios…",
     downloadingToRead: (done: number, total: number) =>

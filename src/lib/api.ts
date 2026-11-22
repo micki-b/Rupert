@@ -394,6 +394,13 @@ export const api = {
    * `destSourceId`; resolves to its new path there. */
   moveEntry: (sourceId: string, relPath: string, destSourceId: string, destDir: string) =>
     invoke<string>("move_entry", { sourceId, relPath, destSourceId, destDir }),
+  /** Copies a file dropped from another app into a folder, keeping its name. Resolves to its path. */
+  copyIn: async (sourceId: string, destDir: string, file: File) => {
+    const into = { sourceId, destDir, name: file.name, modifiedMs: file.lastModified || null };
+    // Headers are ASCII: escape everything else the JSON way.
+    const header = JSON.stringify(into).replace(/[\u007f-￿]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+    return invoke<string>("copy_in", new Uint8Array(await file.arrayBuffer()), { headers: { "rupert-copy": header } });
+  },
   /** A Markdown file's text (its first `limit` bytes if given); null when it's online-only. */
   readMarkdown: (sourceId: string, relPath: string, limit?: number) =>
     invoke<string | null>("read_markdown", { sourceId, relPath, limit: limit ?? null }),

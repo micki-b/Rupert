@@ -1,13 +1,15 @@
-//! File operations Rupert performs on the user's behalf: renaming, moving
-//! and trashing documents. They change the real files right away, take the
+//! File operations Rupert performs on the user's behalf: renaming, moving,
+//! copying in and trashing documents. They change the real files right away, take the
 //! document's sidecar along, and never overwrite anything.
 
 use std::fs;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use crate::catalog;
 use crate::error::{Error, Result};
+use crate::file_kind::{FileKind, is_ignored_name};
 use crate::i18n::{tr, trf};
 use crate::listing::{CloudState, cloud_state, list_dir};
 use crate::sidecar;
@@ -348,6 +350,67 @@ fn walk_files(root: &Path, rel_dir: &str, out: &mut Vec<(String, CloudState)>) -
     Ok(())
 }
 
+// MARK: - Copying files in
+
+/// Copies a file dropped onto Rupert from another app (its `name` and
+/// contents) into `dest_dir`. It keeps its name, with " (2)" etc. added if
+/// that's taken, and its modification time. With `only_documents`, files
+/// Rupert wouldn't show there (see [`FileKind::is_document`]) are refused.
+///
+/// The file is written under a hidden name first and renamed when complete,
+/// so the indexer and the inbox never see half of it. Returns its path.
+pub fn copy_in(
+    dest_dir: &Path,
+    name: &str,
+    contents: &[u8],
+    modified: Option<SystemTime>,
+    only_documents: bool,
+) -> Result<PathBuf> {
+    if !dest_dir.is_dir() {
+        return Err(Error::NotADirectory(dest_dir.to_path_buf()));
+    }
+    // Only the last part, in case a path came along.
+    let name = name.rsplit(['/', '\\']).next().unwrap_or(name);
+    let name_path = Path::new(name);
+    let ext = name_path
+        .extension()
+        .map(|e| e.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let stem = clean_name(name, &ext);
+    if stem.is_empty() || name.starts_with('.') || is_ignored_name(name) {
+        return Err(Error::InvalidValue(
+            tr("it's a hidden or system file").into(),
+        ));
+    }
+    if only_documents && !FileKind::from_path(name_path).is_document() {
+        return Err(Error::InvalidValue(
+            tr(
+                "it isn't a kind of document Rupert shows in this source. To add it, turn on \
+                “Show all file types” for the source first",
+            )
+            .into(),
+        ));
+    }
+
+    let part = dest_dir.join(format!(".{stem}.rupert-copy"));
+    let written = (|| -> Result<PathBuf> {
+        let mut file = fs::File::create_new(&part)?;
+        file.write_all(contents)?;
+        if let Some(time) = modified {
+            file.set_modified(time)?;
+        }
+        file.sync_all()?;
+        drop(file);
+        let target = free_name(&part, dest_dir, &stem, &ext);
+        fs::rename(&part, &target)?;
+        Ok(target)
+    })();
+    if written.is_err() {
+        let _ = fs::remove_file(&part);
+    }
+    written
+}
+
 // MARK: - Trash
 
 /// Moves the document at `rel_path` (with its sidecar), or a whole folder,
@@ -420,6 +483,45 @@ mod tests {
         assert_eq!(clean_name("Bill.PDF", "pdf"), "Bill");
         assert_eq!(clean_name("  ..Notes.  ", "txt"), "Notes");
         assert_eq!(clean_name(&"é".repeat(200), "pdf").len(), 150);
+    }
+
+    #[test]
+    fn copies_in_keeping_name_and_time() {
+        let dir = tempfile::tempdir().unwrap();
+        let when = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+        let first = copy_in(dir.path(), "Bill March.pdf", b"one", Some(when), true).unwrap();
+        assert_eq!(first, dir.path().join("Bill March.pdf"));
+        assert_eq!(fs::read(&first).unwrap(), b"one");
+        assert_eq!(fs::metadata(&first).unwrap().modified().unwrap(), when);
+
+        // Never overwrites; and only the name of a path is used.
+        let second = copy_in(
+            dir.path(),
+            "../elsewhere/Bill March.pdf",
+            b"two",
+            None,
+            true,
+        )
+        .unwrap();
+        assert_eq!(second, dir.path().join("Bill March (2).pdf"));
+        assert_eq!(fs::read(&first).unwrap(), b"one");
+
+        // Nothing half-written is left behind.
+        let names: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(names.len(), 2, "{names:?}");
+    }
+
+    #[test]
+    fn copies_in_only_what_the_source_shows() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(copy_in(dir.path(), "archive.zip", b"z", None, true).is_err());
+        assert!(copy_in(dir.path(), "archive.zip", b"z", None, false).is_ok());
+        assert!(copy_in(dir.path(), ".DS_Store", b"", None, false).is_err());
+        assert!(copy_in(dir.path(), ".hidden.pdf", b"", None, false).is_err());
+        assert!(copy_in(&dir.path().join("missing"), "a.pdf", b"", None, true).is_err());
     }
 
     #[test]

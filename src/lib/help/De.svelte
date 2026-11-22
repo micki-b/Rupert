@@ -121,6 +121,20 @@
     lassen sich nur innerhalb desselben Laufwerks bewegen. Der Ordner mit dem <a href="#inbox">Eingang</a> kann erst
     bewegt werden, wenn Sie unter <b>Einstellungen ▸ Eingang</b> einen anderen Eingang wählen.
   </p>
+  <h3 id="adding">Dateien hinzufügen</h3>
+  <p>
+    Ziehen Sie Dateien aus {mac ? "dem Finder" : windows ? "dem Explorer" : "Ihrem Dateimanager"} oder einer anderen
+    App auf einen Ordner in Rupert: den geöffneten Ordner oder einen Ordner in der Seitenleiste oder der Ordneransicht.
+    Rupert kopiert sie dorthin und öffnet diesen Ordner; die Originale bleiben, wo sie waren. Jede Kopie behält ihren
+    Namen und ihr Datum, mit angehängtem „ (2)“, wenn der Name schon vergeben ist. Legen Sie sie stattdessen auf
+    <b>Eingang</b> in der Seitenleiste ab, liest Rupert sie und schlägt vor, wo sie abgelegt werden, wie bei einem neuen
+    Scan.
+  </p>
+  <p>
+    Abgelegt werden können nur Dateien, keine Ordner. Eine Quelle zeigt nur Dokumente, solange
+    <b>Alle Dateitypen zeigen</b> nicht eingeschaltet ist; andere Dateiarten werden daher mit einem Hinweis auf den Grund
+    abgelehnt.
+  </p>
   <h3 id="deleting">Löschen</h3>
   <p>
     Klicken Sie mit der rechten Maustaste auf ein Dokument oder einen Ordner und wählen Sie
@@ -261,7 +275,8 @@
   <p>
     Der Eingang ist ein Ordner, in dem neue Scans ankommen: der Ordner, in den Ihre Scannersoftware speichert, oder der,
     in den Scans aus Rupert und vom iPhone gehen. Er muss in einem Ihrer Bibliotheksordner liegen. Wählen Sie ihn unter
-    <b>Einstellungen ▸ Eingang</b>.
+    <b>Einstellungen ▸ Eingang</b>. Um Dateien von Ihrem Computer hinzuzufügen, ziehen Sie sie auf <b>Eingang</b> in
+    der Seitenleiste oder in den geöffneten Eingang.
   </p>
   <p>Mit jeder neuen Datei macht Rupert Folgendes:</p>
   <ol>

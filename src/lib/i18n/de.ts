@@ -407,6 +407,9 @@ const de: Messages = {
     start: "Starten",
     trashFolderAsk: (name: string, bin: string) => `„${name}“ mit dem ganzen Inhalt in den ${bin} legen?`,
     moveFailed: "Das Bewegen hat nicht funktioniert.",
+    copying: (done: number, total: number) => `${num(done)} von ${num(total)} werden kopiert …`,
+    copyFailed: (name: string, reason: string) => `„${name}“ konnte nicht kopiert werden: ${reason}.`,
+    folderNotCopied: (name: string) => `„${name}“ ist ein Ordner. Hier können nur Dateien abgelegt werden; legen Sie stattdessen die Dateien darin ab.`,
     indexing: (done: number, total: number) => `${num(done)} von ${num(total)} werden indexiert …`,
     checkingChanges: "Änderungen werden gesucht …",
     downloadingToRead: (done: number, total: number) =>

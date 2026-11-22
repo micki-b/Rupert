@@ -34,7 +34,7 @@
   import { formatDate, formatSize, kindLabel } from "#lib/format.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import MoveDialog from "#lib/MoveDialog.svelte";
-  import { dragSource, dropTarget, isDropOver, type MoveItem } from "#lib/drag.svelte.ts";
+  import { dragSource, dropTarget, isDropOver, type Dropped, type MoveItem } from "#lib/drag.svelte.ts";
   import Icon from "#lib/Icon.svelte";
   import ImportDialog from "#lib/ImportDialog.svelte";
   import Inbox from "#lib/Inbox.svelte";
@@ -220,6 +220,7 @@
 
   function selectFolder(sourceId: string, relPath: string) {
     inboxOpen = false;
+    copyProblems = null;
     query = "";
     selectedTags = [];
     favoritesOnly = false;
@@ -601,11 +602,59 @@
     return true;
   }
 
+  // MARK: Files dropped from other apps
+
+  let copying = $state<{ done: number; total: number } | null>(null);
+  /** What couldn't be copied. Kept apart from `error`, which every reload
+   * of the folder clears. */
+  let copyProblems = $state<string | null>(null);
+
+  /** Copies files dropped from another app into a folder (or the inbox),
+   * keeping their names, then shows where they went. */
+  async function copyFiles(dropped: Dropped, sourceId: string, relPath: string) {
+    copyProblems = null;
+    const problems = dropped.folders.map((name) => m.main.folderNotCopied(name));
+    let copied = 0;
+    copying = { done: 0, total: dropped.files.length };
+    for (const file of dropped.files) {
+      try {
+        await api.copyIn(sourceId, relPath, file);
+        copied++;
+      } catch (e) {
+        problems.push(m.main.copyFailed(file.name, String(e)));
+      }
+      copying = { done: copying.done + 1, total: dropped.files.length };
+    }
+    copying = null;
+    const inbox = appSettings?.inbox;
+    if (!copied) {
+      // Nothing to show.
+    } else if (inbox?.sourceId === sourceId && inbox.relPath === relPath) {
+      loadInboxCount();
+    } else if (!inboxOpen && folder?.sourceId === sourceId && folder.relPath === relPath) {
+      loadEntries();
+    } else {
+      selectFolder(sourceId, relPath);
+    }
+    copyProblems = problems.length ? problems.join(" ") : null;
+  }
+
+  /** Drops onto the inbox (the sidebar item, or the inbox itself). */
+  const inboxDrop = $derived(
+    appSettings?.inbox
+      ? dropTarget(appSettings.inbox.sourceId, appSettings.inbox.relPath, {
+          files: (d) => copyFiles(d, appSettings!.inbox!.sourceId, appSettings!.inbox!.relPath),
+        })
+      : {},
+  );
+  const inboxDropOver = $derived(!!appSettings?.inbox && isDropOver(appSettings.inbox.sourceId, appSettings.inbox.relPath));
+
   function dirOf(relPath: string) {
     return relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
   }
 
   function statusText(): string {
+    if (copying && copying.total > 0) return m.main.copying(copying.done, copying.total);
     if (progress?.active && progress.total > 0) {
       return m.main.indexing(progress.done, progress.total);
     }
@@ -621,13 +670,27 @@
   }
 </script>
 
+<!-- Files dropped where no folder takes them are refused, rather than
+     opened by the web view. -->
+<svelte:window
+  ondragover={(ev) => {
+    if (ev.dataTransfer?.types.includes("Files")) {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "none";
+    }
+  }}
+  ondrop={(ev) => {
+    if (ev.dataTransfer?.types.includes("Files")) ev.preventDefault();
+  }}
+/>
+
 <div class="shell" class:inbox-mode={inboxOpen}>
   <!-- MARK: Sidebar -->
   <aside class="sources">
     <header>
       <h2>{m.main.library}</h2>
     </header>
-    <button class="lib-item" class:active={inboxOpen} onclick={openInbox}>
+    <button class="lib-item" class:active={inboxOpen} class:drop={inboxDropOver} onclick={openInbox} {...inboxDrop}>
       <span class="lib-icon inbox-icon"><Icon name="inbox" size={14} /></span>
       <span class="label">{m.main.inbox}</span>
       {#if !appSettings?.inbox}<span class="count">{m.main.setUp}</span>{:else if inboxCount}<span class="count">{inboxCount}</span>{/if}
@@ -717,6 +780,7 @@
               selected={shownFolder}
               onselect={selectFolder}
               onmove={moveItem}
+              oncopy={copyFiles}
               startExpanded
             >
               {#snippet trailing()}
@@ -799,12 +863,30 @@
     </div>
   {/snippet}
 
+  {#snippet errorBanner()}
+    {#if error}
+      <div class="error" role="alert">
+        <Icon name="warning" size={14} />
+        <span>{error}</span>
+        <button class="icon-btn" onclick={() => (error = null)} aria-label={m.main.dismiss}>×</button>
+      </div>
+    {/if}
+    {#if copyProblems}
+      <div class="error" role="alert">
+        <Icon name="warning" size={14} />
+        <span>{copyProblems}</span>
+        <button class="icon-btn" onclick={() => (copyProblems = null)} aria-label={m.main.dismiss}>×</button>
+      </div>
+    {/if}
+  {/snippet}
+
   {#snippet tagChips(list: string[] | undefined)}
     {#each list ?? [] as t (t)}<span class="chip">{t}</span>{/each}
   {/snippet}
 
   {#if inboxOpen && appSettings}
-    <main class="documents inbox-pane">
+    <main class="documents inbox-pane" class:drop={inboxDropOver} {...inboxDrop}>
+      {@render errorBanner()}
       <Inbox
         {sources}
         settings={appSettings}
@@ -815,7 +897,12 @@
     </main>
   {:else}
   <!-- MARK: Documents -->
-  <main class="documents" class:gallery-mode={!searching && folder && folderMode === "gallery" && entries.length > 0}>
+  <main
+    class="documents"
+    class:gallery-mode={!searching && folder && folderMode === "gallery" && entries.length > 0}
+    class:drop={!searching && !!folder && isDropOver(folder.sourceId, folder.relPath)}
+    {...!searching && folder ? dropTarget(folder.sourceId, folder.relPath, { files: (d) => copyFiles(d, folder!.sourceId, folder!.relPath) }) : {}}
+  >
     <div class="searchbar">
       <input
         bind:this={searchInput}
@@ -844,13 +931,7 @@
       {/if}
     </div>
 
-    {#if error}
-      <div class="error" role="alert">
-        <Icon name="warning" size={14} />
-        <span>{error}</span>
-        <button class="icon-btn" onclick={() => (error = null)} aria-label={m.main.dismiss}>×</button>
-      </div>
-    {/if}
+    {@render errorBanner()}
 
     {#if searching}
       <p class="result-count muted">
@@ -931,6 +1012,7 @@
           onactivate={(e) => activate(source.id, e)}
           onmenu={(e, ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
           onmove={moveItem}
+          oncopy={copyFiles}
           onstar={(e) => starDoc(source.id, e)}
           ondownload={(e) => downloadDoc(source.id, e)}
         />
@@ -954,7 +1036,12 @@
                 ondblclick={() => activate(source.id, e)}
                 oncontextmenu={(ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
                 {...dragSource({ sourceId: source.id, entry: e })}
-                {...e.isDir ? dropTarget(source.id, e.relPath, (item) => moveItem(item, source.id, e.relPath)) : {}}
+                {...e.isDir
+                  ? dropTarget(source.id, e.relPath, {
+                      move: (item) => moveItem(item, source.id, e.relPath),
+                      files: (d) => copyFiles(d, source.id, e.relPath),
+                    })
+                  : {}}
               >
                 <td class="name">
                   <span class="file-icon" class:folder={e.isDir}>
@@ -1159,6 +1246,13 @@
     padding: 0;
     overflow: hidden;
   }
+  .inbox-pane > .error {
+    margin: 12px 16px 0;
+  }
+  /* Files from another app are being dragged over the folder or inbox. */
+  .documents.drop {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
   .footer-btn.update {
     padding: 0;
     color: var(--accent);
@@ -1255,6 +1349,11 @@
   .lib-item.active {
     background: var(--accent-soft);
     color: var(--accent-strong);
+  }
+  /* Files from another app are being dragged over it. */
+  .lib-item.drop {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
   .lib-item .label {
     flex: 1;
