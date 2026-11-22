@@ -85,8 +85,21 @@
     untrack(() => {
       saved.favorite = f;
       form.favorite = f;
+      refreshStorage();
     });
   });
+
+  // Starring can move details kept beside a PDF into it; show where they
+  // are now, leaving any unsaved edits in the form alone.
+  async function refreshStorage() {
+    const key = entry.relPath;
+    try {
+      const res = await api.readMeta(sourceId, key, false);
+      if (key === entry.relPath && res.record) record = res.record;
+    } catch {
+      // The storage line just stays as it was.
+    }
+  }
 
   let starring = $state(false);
   async function toggleStar() {
@@ -96,6 +109,7 @@
       const meta = await api.setFavorite(sourceId, entry.relPath, !form.favorite);
       saved.favorite = meta.favorite;
       form.favorite = meta.favorite;
+      refreshStorage();
     } catch (e) {
       error = String(e);
     } finally {
