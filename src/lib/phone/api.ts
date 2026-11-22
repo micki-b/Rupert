@@ -63,6 +63,14 @@ export interface DocInfo extends Hit {
 
 export type ScanMode = "color" | "gray" | "bw";
 
+/** What `sendShared` did: the names the documents got, and why others wait. */
+export interface SharedSent {
+  sent: string[];
+  problems: string[];
+  /** Files that aren't documents, removed without sending. */
+  refused: string[];
+}
+
 export interface ScanSettings {
   mode: ScanMode;
   /** Output resolution (the page's long side taken as 11 inches). */
@@ -127,6 +135,8 @@ export const phone = {
   open: (sourceId: string, relPath: string) => invoke<void>("open_document", { sourceId, relPath }),
   /** The saved file name, or null if the scan was cancelled. */
   scan: (name: string, settings: ScanSettings) => invoke<string | null>("scan", { name, settings }),
+  /** Sends documents shared from other apps that wait on the phone to the inbox. */
+  sendShared: () => invoke<SharedSent>("send_shared"),
   onedriveStatus: () => invoke<OneDriveStatus>("onedrive_status"),
   /** `false` if cancelled. */
   onedriveSignIn: () => invoke<boolean>("onedrive_sign_in"),

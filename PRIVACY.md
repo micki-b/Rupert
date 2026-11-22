@@ -74,6 +74,13 @@ and are not kept anywhere else. On Android, scanning uses Google's document scan
 the phone: it takes the pictures (or lets you pick them from your photos) and hands them to Rupert. Rupert sends
 them to no one but your inbox folder.
 
+## Sharing documents with Rupert (iPhone and Android)
+
+When you share a document with Rupert from another app, Rupert saves it to your inbox folder (in Files, OneDrive or
+Google Drive), the same way as a scan, and nowhere else. On the iPhone this happens in Rupert's share sheet, which uses
+the app's OneDrive or Google sign-in from the iPhone's Keychain; a document it can't save right away waits on the
+phone until Rupert next opens.
+
 ## Children
 
 Rupert isn't directed at children and collects no information from anyone.

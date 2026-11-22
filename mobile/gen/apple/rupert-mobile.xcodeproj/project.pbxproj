@@ -20,7 +20,35 @@
 		B175245801622EA0AE5E3C8C /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 44FADDE09A641FAA9E28831A /* libapp.a */; };
 		BF546E551B5A547FAB51D9D7 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4D7313EBE728ACEB5B243A03 /* UIKit.framework */; };
 		C2564EC3F4B00B2998314777 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8AA6D6A2AC250E97351ABDDE /* WebKit.framework */; };
+		361DB3532FC7C59C91BA9D28 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C5E662BFD0A0D69CE92B81 /* ShareViewController.swift */; };
+		D6BF84CA1158687231698E6E /* InboxSaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFC76B56AA57E144FBE5B5A /* InboxSaver.swift */; };
+		5244CB7FCC5328A5979A9D84 /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7639193B7FF6D61BA860641 /* Strings.swift */; };
+		696AE1DAA247A2258E6DADCA /* RupertShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F0EF5206E6A14156725CC3D7 /* RupertShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		03600480E873B50694B1D199 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 74EC70C8997FB38D15E51A4C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BB660DACB8965B53530D60D5;
+			remoteInfo = RupertShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1CD359D9CE4030B0ECEED78C /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				696AE1DAA247A2258E6DADCA /* RupertShare.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		06D5C7714693A24336BC77DB /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
@@ -43,6 +71,12 @@
 		D47952ED8B5767345D965FC8 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8CCE152B2A473952F7FC691C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		82934A2F48D1E53CD08BE4B1 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		06C5E662BFD0A0D69CE92B81 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		5CFC76B56AA57E144FBE5B5A /* InboxSaver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxSaver.swift; sourceTree = "<group>"; };
+		C7639193B7FF6D61BA860641 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		E027AC687E48CC5DC822A20A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AE182AA2C2C566F6B6C7B4CB /* RupertShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RupertShare.entitlements; sourceTree = "<group>"; };
+		F0EF5206E6A14156725CC3D7 /* RupertShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RupertShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +95,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C47A28B20D86190C47E2C710 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -72,6 +113,7 @@
 				EFCA62BE2AEE35EAC04909AD /* LaunchScreen.storyboard */,
 				E296689F45F6587044CC9490 /* Externals */,
 				C12C88CE3EE9758A9B389697 /* rupert-mobile_iOS */,
+				5DAF6320B2341E1A9DB50B11 /* RupertShare */,
 				30CE5CC04E8699D1DF054F0A /* Sources */,
 				DD03C2ECF6F35607E215D608 /* src */,
 				FC56392F3993FFE08DF24121 /* Frameworks */,
@@ -83,6 +125,7 @@
 			isa = PBXGroup;
 			children = (
 				6787379297E5D454F9D6430A /* rupert-mobile_iOS.app */,
+				F0EF5206E6A14156725CC3D7 /* RupertShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -153,6 +196,18 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		5DAF6320B2341E1A9DB50B11 /* RupertShare */ = {
+			isa = PBXGroup;
+			children = (
+				06C5E662BFD0A0D69CE92B81 /* ShareViewController.swift */,
+				5CFC76B56AA57E144FBE5B5A /* InboxSaver.swift */,
+				C7639193B7FF6D61BA860641 /* Strings.swift */,
+				E027AC687E48CC5DC822A20A /* Info.plist */,
+				AE182AA2C2C566F6B6C7B4CB /* RupertShare.entitlements */,
+			);
+			path = RupertShare;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -164,10 +219,12 @@
 				6894BAA56F576C236C2E4211 /* Sources */,
 				16581ACDAA01E15AE2628B39 /* Resources */,
 				354E61CB0AAB615BBA54E82B /* Frameworks */,
+				1CD359D9CE4030B0ECEED78C /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A2ADB7A685B18DC2EC60E291 /* PBXTargetDependency */,
 			);
 			name = "rupert-mobile_iOS";
 			packageProductDependencies = (
@@ -175,6 +232,24 @@
 			productName = "rupert-mobile_iOS";
 			productReference = 6787379297E5D454F9D6430A /* rupert-mobile_iOS.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BB660DACB8965B53530D60D5 /* RupertShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF8E0E42BDF9970528E38E5C /* Build configuration list for PBXNativeTarget "RupertShare" */;
+			buildPhases = (
+				6B210A8D27661E91B4514A98 /* Sources */,
+				C47A28B20D86190C47E2C710 /* Frameworks */,
+				AD578B101BB968BC8D75A370 /* Resources */,
+				9DCB1CB143C6CE30D95804C8 /* Match the App's Version */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RupertShare;
+			productName = RupertShare;
+			productReference = F0EF5206E6A14156725CC3D7 /* RupertShare.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -186,6 +261,9 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					C5D1119CE2C6DA0763B0FC1E = {
+						DevelopmentTeam = 9FP28N8GW3;
+					};
+					BB660DACB8965B53530D60D5 = {
 						DevelopmentTeam = 9FP28N8GW3;
 					};
 				};
@@ -207,6 +285,7 @@
 			projectRoot = "";
 			targets = (
 				C5D1119CE2C6DA0763B0FC1E /* rupert-mobile_iOS */,
+				BB660DACB8965B53530D60D5 /* RupertShare */,
 			);
 		};
 /* End PBXProject section */
@@ -220,6 +299,13 @@
 				2987F508C3FEFD436F937DBE /* LaunchScreen.storyboard in Resources */,
 				5C9B4BCEE919CEAF4912AD98 /* assets in Resources */,
 				9D88204159FC167E7483CADA /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AD578B101BB968BC8D75A370 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,6 +333,27 @@
 			shellPath = /bin/sh;
 			shellScript = "TAURI_APP_PATH=\"${SRCROOT}/../..\" npm run -- tauri ios xcode-script -v --platform \"${PLATFORM_DISPLAY_NAME:?}\" --sdk-root \"${SDKROOT:?}\" --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration \"${CONFIGURATION:?}\" ${FORCE_COLOR} ${ARCHS:?}\n";
 		};
+		9DCB1CB143C6CE30D95804C8 /* Match the App's Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/rupert-mobile_iOS/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Match the App's Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# The extension must carry the app's version and build number, which\n# the Tauri CLI writes into the app's Info.plist before each build.\napp=\"${SRCROOT}/rupert-mobile_iOS/Info.plist\"\nbuilt=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\nfor key in CFBundleShortVersionString CFBundleVersion; do\n  value=$(/usr/libexec/PlistBuddy -c \"Print :$key\" \"$app\")\n  /usr/libexec/PlistBuddy -c \"Set :$key $value\" \"$built\"\ndone\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -258,7 +365,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6B210A8D27661E91B4514A98 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				361DB3532FC7C59C91BA9D28 /* ShareViewController.swift in Sources */,
+				D6BF84CA1158687231698E6E /* InboxSaver.swift in Sources */,
+				5244CB7FCC5328A5979A9D84 /* Strings.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A2ADB7A685B18DC2EC60E291 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BB660DACB8965B53530D60D5 /* RupertShare */;
+			targetProxy = 03600480E873B50694B1D199 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		9F2EB2ED07C32BA2AFF2644B /* InfoPlist.strings */ = {
@@ -457,6 +582,60 @@
 			};
 			name = release;
 		};
+		4D3894CFC853A9162FB75D40 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = RupertShare/RupertShare.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "9FP28N8GW3";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				INFOPLIST_FILE = RupertShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.micki-b.rupert.share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALID_ARCHS = arm64;
+			};
+			name = debug;
+		};
+		EA7E3F749A4BFE88B7E97C40 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = RupertShare/RupertShare.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "9FP28N8GW3";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				INFOPLIST_FILE = RupertShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.micki-b.rupert.share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALID_ARCHS = arm64;
+			};
+			name = release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -474,6 +653,15 @@
 			buildConfigurations = (
 				4CE53F120A8123ECB408CC91 /* debug */,
 				EB22D14BD8338E85042B5752 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		FF8E0E42BDF9970528E38E5C /* Build configuration list for PBXNativeTarget "RupertShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D3894CFC853A9162FB75D40 /* debug */,
+				EA7E3F749A4BFE88B7E97C40 /* release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = debug;

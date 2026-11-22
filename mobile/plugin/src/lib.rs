@@ -268,6 +268,25 @@ impl<R: Runtime> Device<R> {
         self.call::<serde_json::Value>("keychainDelete", Args { key })
             .map(drop)
     }
+
+    /// Where documents shared with Rupert from other apps wait to be sent to
+    /// the inbox, one folder per document (`<id>/<file name>`), and the
+    /// folder for the settings the iPhone's share extension reads.
+    /// iOS: the app group shared with the extension; Android: the app's cache,
+    /// where shares arriving by intent are copied.
+    pub fn shared_folders(&self) -> Result<SharedFolders> {
+        self.call::<SharedFolders>("sharedFolders", ())
+    }
+}
+
+/// See [`Device::shared_folders`].
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SharedFolders {
+    /// Documents waiting to be sent.
+    pub pending: String,
+    /// The share extension's settings file goes here (iOS only).
+    pub settings: Option<String>,
 }
 
 /// Plugin errors arrive as JSON-ish text; keep just the message.

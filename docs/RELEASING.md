@@ -77,6 +77,14 @@ Notes for users moving between editions: each edition keeps its own settings, in
 
 App Store Connect record: "Rupert - The Librarian", bundle ID `io.github.micki-b.rupert`, SKU `rupert`, platforms iOS and macOS (the Mac App Store edition shares it). Listing text, privacy answers, screenshots and artwork: `docs/app-store/ios/` (iPhone) and `docs/app-store/macos/` (Mac App Store edition).
 
+The app embeds a share extension, `io.github.micki-b.rupert.share` (`mobile/gen/apple/RupertShare`), and both use the App Group `group.io.github.micki-b.rupert`. Once, before the first device build with it: open `mobile/gen/apple/rupert-mobile.xcodeproj` in Xcode, select each target (`rupert-mobile_iOS` and `RupertShare`) ▸ Signing & Capabilities, and let automatic signing register the App Group and the extension's App ID. Or, in the Apple Developer site (Certificates, Identifiers & Profiles):
+
+1. Identifiers ▸ App Groups ▸ + : `group.io.github.micki-b.rupert`.
+2. Identifiers ▸ `io.github.micki-b.rupert` ▸ App Groups ▸ Configure ▸ tick the group.
+3. Identifiers ▸ + App IDs ▸ App: `io.github.micki-b.rupert.share` ("Rupert Share"), with App Groups ticked and set to the group.
+
+Keychain sharing needs no setting: both targets list the app's own keychain group.
+
 1. Archive (each upload needs a higher build number; a UTC timestamp does that):
 
    ```sh

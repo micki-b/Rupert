@@ -35,7 +35,7 @@ fn not_set_up() -> &'static str {
     tr("Google Drive isn't set up in this build of Rupert.")
 }
 
-fn client_id() -> Option<&'static str> {
+pub(crate) fn client_id() -> Option<&'static str> {
     CLIENT_ID.map(str::trim).filter(|s| !s.is_empty())
 }
 
@@ -435,15 +435,13 @@ pub fn write_folder_info(
     }
 }
 
-/// Uploads a finished scan; the name it got (never replacing a file).
-pub fn upload_scan(
+/// Uploads a file to the inbox (never replacing one); the name it got.
+pub fn upload(
     app: &AppHandle,
     inbox: &RemoteInbox,
     name: &str,
-    pdf: &[u8],
+    bytes: &[u8],
 ) -> Result<String, String> {
     let drive = app.state::<GoogleDrive>().drive(app)?;
-    drive
-        .upload(&inbox.item_id, &format!("{name}.pdf"), pdf)
-        .map_err(err)
+    drive.upload(&inbox.item_id, name, bytes).map_err(err)
 }

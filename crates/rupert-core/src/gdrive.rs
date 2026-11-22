@@ -270,6 +270,15 @@ pub fn free_name(name: &str, taken: &HashSet<String>) -> String {
         .expect("an unused name")
 }
 
+/// The type Drive is told a new file has, from its name.
+fn mime_for(name: &str) -> &'static str {
+    let path = std::path::Path::new(name);
+    if crate::file_kind::FileKind::from_path(path) == crate::file_kind::FileKind::Pdf {
+        return "application/pdf";
+    }
+    crate::file_kind::image_mime(path).unwrap_or("application/octet-stream")
+}
+
 /// A Drive query string literal.
 fn quoted(s: &str) -> String {
     format!("'{}'", s.replace('\\', "\\\\").replace('\'', "\\'"))
@@ -567,12 +576,7 @@ impl Drive {
             .into_iter()
             .map(|i| i.name)
             .collect();
-        let item = self.create_file(
-            folder_id,
-            &free_name(name, &taken),
-            "application/pdf",
-            bytes,
-        )?;
+        let item = self.create_file(folder_id, &free_name(name, &taken), mime_for(name), bytes)?;
         Ok(item.name)
     }
 }
