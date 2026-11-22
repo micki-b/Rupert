@@ -393,6 +393,9 @@ const en = {
     start: "Start",
     trashFolderAsk: (name: string, bin: string) => `Move “${name}” and everything in it to the ${bin}?`,
     moveFailed: "The move didn't work.",
+    copying: (done: number, total: number) => `Copying ${num(done)} of ${num(total)}…`,
+    copyFailed: (name: string, reason: string) => `Couldn't copy “${name}”: ${reason}.`,
+    folderNotCopied: (name: string) => `“${name}” is a folder. Only files can be dropped here; drop the files inside it instead.`,
     indexing: (done: number, total: number) => `Indexing ${num(done)} of ${num(total)}…`,
     checkingChanges: "Checking for changes…",
     downloadingToRead: (done: number, total: number) =>

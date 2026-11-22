@@ -100,6 +100,16 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "“{0}” can't be moved into itself",
         "«{0}» no se puede mover dentro de sí misma",
     ),
+    (
+        "it's a hidden or system file",
+        "es un archivo oculto o del sistema",
+    ),
+    (
+        "it isn't a kind of document Rupert shows in this source. To add it, turn on \
+             “Show all file types” for the source first",
+        "no es un tipo de documento que Rupert muestre en esta fuente. Para agregarlo, activá \
+             primero «Mostrar todos los tipos de archivo» en la fuente",
+    ),
     ("Can't move “{0}”: {1}.", "No se puede mover «{0}»: {1}."),
     (
         "“{0}” is a folder on another disk. Folders can be moved only within the same disk; move it in the Finder or File Explorer instead",

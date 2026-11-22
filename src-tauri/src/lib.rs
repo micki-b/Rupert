@@ -387,6 +387,72 @@ async fn move_entry(
     Ok(moved.rel_path)
 }
 
+/// Where a file dropped onto the window goes (the `rupert-copy` header,
+/// JSON with non-ASCII characters escaped).
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CopyInto {
+    source_id: String,
+    dest_dir: String,
+    name: String,
+    modified_ms: Option<u64>,
+}
+
+/// Copies a file dropped from another app (its contents are the request's
+/// body) into the folder `dest_dir`, keeping its name. In the inbox, it's
+/// then processed like a new scan. Returns its path in the source.
+#[tauri::command]
+async fn copy_in(request: tauri::ipc::Request<'_>, app: AppHandle) -> CmdResult<String> {
+    let tauri::ipc::InvokeBody::Raw(contents) = request.body() else {
+        return Err("expected the file's contents".into());
+    };
+    let into: CopyInto = request
+        .headers()
+        .get("rupert-copy")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| serde_json::from_str(h).ok())
+        .ok_or("expected where to copy the file")?;
+    let state = app.state::<AppState>();
+    let source = state.source(&into.source_id)?;
+    let contents = contents.clone();
+    let (root, dir, all_types) = (
+        source.root.clone(),
+        into.dest_dir.clone(),
+        source.show_all_types,
+    );
+    let modified = into
+        .modified_ms
+        .map(|ms| std::time::UNIX_EPOCH + std::time::Duration::from_millis(ms));
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        let dest = rupert_core::resolve(&root, &dir)?;
+        rupert_core::fileops::copy_in(&dest, &into.name, &contents, modified, !all_types)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    let rel_path =
+        rupert_core::listing::relative(&source.root, &path).ok_or_else(|| err(path.display()))?;
+    let to_inbox = state
+        .settings
+        .lock()
+        .unwrap()
+        .get()
+        .inbox
+        .as_ref()
+        .is_some_and(|i| {
+            i.source_id == source.id
+                && i.rel_path.trim_matches('/') == into.dest_dir.trim_matches('/')
+        });
+    state.indexer.send(Job::File {
+        source,
+        rel_path: rel_path.clone(),
+    });
+    if to_inbox {
+        state.intake.refresh();
+    }
+    Ok(rel_path)
+}
+
 /// A Markdown document's text for the reader (or its first `limit` bytes,
 /// for a tile), or `None` for an online-only file.
 #[tauri::command]
@@ -1462,6 +1528,7 @@ pub fn run() {
             reveal_entry,
             trash_entry,
             move_entry,
+            copy_in,
             page_count,
             read_markdown,
             test_log,

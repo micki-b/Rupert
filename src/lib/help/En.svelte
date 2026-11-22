@@ -115,6 +115,17 @@
     it. Folders move only within the same disk. The folder that holds the <a href="#inbox">inbox</a> can't be moved
     until you choose another inbox in <b>Settings ▸ Inbox</b>.
   </p>
+  <h3 id="adding">Adding files</h3>
+  <p>
+    Drag files from {fileManager} or another app onto a folder in Rupert: the open folder, or a folder in the sidebar
+    or the folder view. Rupert copies them there and opens that folder; the originals stay where they were. Each copy
+    keeps its name and date, with " (2)" added if the name is taken. Drop them on <b>Inbox</b> in the sidebar instead,
+    and Rupert reads them and suggests where to file them, as with a new scan.
+  </p>
+  <p>
+    Only files can be dropped, not folders. A source shows documents only unless <b>Show all file types</b> is on, so
+    other kinds of files are turned away with a note saying why.
+  </p>
   <h3 id="deleting">Deleting</h3>
   <p>
     Right-click a document or folder and choose <b>{windows ? "Delete" : "Move to Trash"}</b>, or select it and press
@@ -237,6 +248,7 @@
   <p>
     The inbox is a folder where new scans arrive: the folder your scanner software saves to, or the one scans from
     Rupert and the iPhone go to. It has to be inside one of your sources. Choose it in <b>Settings ▸ Inbox</b>.
+    To add files from your computer, drag them onto <b>Inbox</b> in the sidebar or into the open inbox.
   </p>
   <p>For each new file, Rupert:</p>
   <ol>

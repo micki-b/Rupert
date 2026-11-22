@@ -6,7 +6,7 @@
   import { changes } from "./changes.svelte";
   import Icon from "./Icon.svelte";
   import FolderNode from "./FolderNode.svelte";
-  import { dropTarget, isDropOver, type MoveItem } from "./drag.svelte";
+  import { dropTarget, isDropOver, type Dropped, type MoveItem } from "./drag.svelte";
   import { m } from "#lib/i18n/index.ts";
 
   interface Props {
@@ -21,11 +21,18 @@
     trailing?: Snippet;
     /** Documents and folders dropped on the row move here. */
     onmove?: (item: MoveItem, sourceId: string, relPath: string) => void;
+    /** Files dropped from another app are copied here. */
+    oncopy?: (dropped: Dropped, sourceId: string, relPath: string) => void;
   }
-  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing, onmove }: Props =
+  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing, onmove, oncopy }: Props =
     $props();
 
-  const drop = $derived(onmove ? dropTarget(sourceId, relPath, (item) => onmove(item, sourceId, relPath)) : {});
+  const drop = $derived(
+    dropTarget(sourceId, relPath, {
+      move: onmove && ((item) => onmove(item, sourceId, relPath)),
+      files: oncopy && ((dropped) => oncopy(dropped, sourceId, relPath)),
+    }),
+  );
 
   let expanded = $state(false);
   let children = $state<Entry[] | null>(null);
@@ -101,6 +108,7 @@
       {selected}
       {onselect}
       {onmove}
+      {oncopy}
     />
   {/each}
 {/if}

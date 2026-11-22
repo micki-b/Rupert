@@ -11,7 +11,7 @@
   import { isMarkdown } from "#lib/markdown.ts";
   import { api, type ListedEntry } from "#lib/api.ts";
   import { formatDate } from "#lib/format.ts";
-  import { dragSource, dropTarget, isDropOver, type MoveItem } from "#lib/drag.svelte.ts";
+  import { dragSource, dropTarget, isDropOver, type Dropped, type MoveItem } from "#lib/drag.svelte.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let {
@@ -23,6 +23,7 @@
     onactivate,
     onmenu,
     onmove,
+    oncopy,
     onstar,
     ondownload,
   }: {
@@ -35,6 +36,8 @@
     onmenu: (e: ListedEntry, ev: MouseEvent) => void;
     /** Moves a dropped document or folder into a folder here. */
     onmove: (item: MoveItem, sourceId: string, relPath: string) => void;
+    /** Copies files dropped from another app into a folder here. */
+    oncopy: (dropped: Dropped, sourceId: string, relPath: string) => void;
     /** Stars or unstars a document (its star was clicked). */
     onstar: (e: ListedEntry) => void;
     /** Downloads an online-only document (its cloud was clicked). */
@@ -136,7 +139,7 @@
         ondblclick={() => onactivate(e)}
         oncontextmenu={(ev) => onmenu(e, ev)}
         {...dragSource({ sourceId, entry: e })}
-        {...e.isDir ? dropTarget(sourceId, e.relPath, (item) => onmove(item, sourceId, e.relPath)) : {}}
+        {...e.isDir ? dropTarget(sourceId, e.relPath, { move: (item) => onmove(item, sourceId, e.relPath), files: (d) => oncopy(d, sourceId, e.relPath) }) : {}}
         title={e.title ?? e.name}
       >
         <span class="pic">

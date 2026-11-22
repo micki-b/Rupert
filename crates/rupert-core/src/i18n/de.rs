@@ -105,6 +105,16 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "„{0}“ kann nicht in sich selbst bewegt werden",
     ),
     (
+        "it's a hidden or system file",
+        "es ist eine versteckte Datei oder Systemdatei",
+    ),
+    (
+        "it isn't a kind of document Rupert shows in this source. To add it, turn on \
+             “Show all file types” for the source first",
+        "es ist keine Dokumentart, die Rupert in dieser Quelle zeigt. Um sie hinzuzufügen, \
+             schalten Sie zuerst „Alle Dateitypen zeigen“ für die Quelle ein",
+    ),
+    (
         "Can't move “{0}”: {1}.",
         "„{0}“ kann nicht bewegt werden: {1}.",
     ),

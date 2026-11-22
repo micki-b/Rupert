@@ -123,6 +123,19 @@
     <a href="#inbox">bandeja de entrada</a> no se puede mover hasta que elijas otra bandeja en
     <b>Configuración ▸ Bandeja de entrada</b>.
   </p>
+  <h3 id="adding">Agregar archivos</h3>
+  <p>
+    Arrastrá archivos desde {fileManager} u otra app sobre una carpeta de Rupert: la carpeta abierta, o una carpeta de
+    la barra lateral o de la vista de la carpeta. Rupert los copia ahí y abre esa carpeta; los originales quedan donde
+    estaban. Cada copia conserva su nombre y su fecha, con " (2)" agregado si el nombre ya existe. Si en cambio los
+    soltás sobre <b>Bandeja de entrada</b> en la barra lateral, Rupert los lee y te sugiere dónde archivarlos, como con
+    un escaneo nuevo.
+  </p>
+  <p>
+    Solo se pueden soltar archivos, no carpetas. Una fuente muestra solo documentos salvo que actives
+    <b>Mostrar todos los tipos de archivo</b>, así que los demás tipos de archivo se rechazan con un aviso que explica
+    por qué.
+  </p>
   <h3 id="deleting">Borrar</h3>
   <p>
     Hacé clic derecho en un documento o una carpeta y elegí <b>{windows ? "Eliminar" : "Trasladar a la Papelera"}</b>, o
@@ -260,7 +273,8 @@
   <p>
     La bandeja de entrada es una carpeta donde llegan los escaneos nuevos: la carpeta donde guarda el programa de tu
     escáner, o la que reciben los escaneos de Rupert y del iPhone. Tiene que estar dentro de una de tus carpetas. Elegila
-    en <b>Configuración ▸ Bandeja de entrada</b>.
+    en <b>Configuración ▸ Bandeja de entrada</b>. Para agregar archivos de tu computadora, arrastralos sobre
+    <b>Bandeja de entrada</b> en la barra lateral o a la bandeja abierta.
   </p>
   <p>Con cada archivo nuevo, Rupert:</p>
   <ol>
