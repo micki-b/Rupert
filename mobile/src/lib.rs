@@ -23,6 +23,7 @@ mod assistant;
 mod cloud;
 mod gdrive;
 mod onedrive;
+mod share;
 
 use cloud::{RemoteFolder, RemoteInbox, Service};
 use gdrive::GoogleDrive;
@@ -236,13 +237,14 @@ fn language(state: State<AppState>) -> Language {
 
 /// Settings ▸ Language. `None` follows the phone.
 #[tauri::command]
-fn set_language(language: Option<String>, state: State<AppState>) -> Language {
+fn set_language(language: Option<String>, app: AppHandle, state: State<AppState>) -> Language {
     {
         let mut saved = state.saved.lock().unwrap();
         saved.saved.language = language.filter(|l| i18n::Lang::from_code(l).is_some());
         saved.save();
         i18n::set(i18n::resolve(saved.saved.language.as_deref()));
     }
+    share::publish(&app);
     self::language(state)
 }
 
@@ -484,6 +486,7 @@ fn remote_place(inbox: &RemoteInbox, folders: &[RemoteFolder]) -> Option<(String
 /// folder, and removes it when it is (or there's no inbox any more). Called
 /// whenever the inbox or the library folders change, and at launch.
 pub(crate) fn reconcile_inbox(app: &AppHandle) {
+    share::publish(app);
     let state = app.state::<AppState>();
     let (files, remote, own, remotes) = {
         let saved = state.saved.lock().unwrap();
@@ -907,7 +910,7 @@ async fn scan(
         let pdf = camera::pages_to_pdf(&jpegs).map_err(err)?;
         let tmp_dir = Path::new(first).parent().map(Path::to_path_buf);
         if let Some(remote) = remote_inbox {
-            let result = cloud::upload_scan(&handle, &remote, &name, &pdf);
+            let result = cloud::upload(&handle, &remote, &format!("{name}.pdf"), &pdf);
             if let Some(dir) = tmp_dir {
                 let _ = fs::remove_dir_all(dir);
             }
@@ -1191,6 +1194,7 @@ pub fn run() {
             document,
             open_document,
             scan,
+            share::send_shared,
             onedrive::onedrive_status,
             onedrive::onedrive_sign_in,
             onedrive::onedrive_sign_out,

@@ -746,6 +746,13 @@
       en la pestaña Biblioteca, así ves tus escaneos hasta que se archiven, aunque la carpeta de la bandeja no sea una de
       tus carpetas de la biblioteca.
     </li>
+    <li>
+      <b>Mandá documentos a la bandeja de entrada</b> desde otras apps: en Mail, Archivos, Fotos o Safari, tocá
+      Compartir y elegí <b>Rupert</b>. El documento se guarda en la bandeja de entrada en el momento, con su propio
+      nombre, sin abrir Rupert. Si en ese momento no se puede guardar (por ejemplo, sin conexión), Rupert lo envía la
+      próxima vez que abras la app. Rupert acepta solo documentos: PDF, imágenes, archivos de Office, texto y correos.
+      Si Rupert no aparece en la fila de apps, buscalo en <b>Más</b>.
+    </li>
     <li><b>Marcá carpetas con la estrella</b> para sumarlas a Favoritos en todos tus dispositivos.</li>
     <li>
       <b>Preguntale a Rupert</b> en la pestaña <b>Preguntar</b>, en un iPhone con Apple Intelligence (iOS 26 o posterior,
@@ -780,6 +787,10 @@
     <li>
       <b>Escaneá</b> con el escáner de documentos de Google: en la pestaña Escanear, elegí la carpeta de la bandeja de
       entrada en Google Drive u OneDrive. Las páginas se guardan ahí como un solo PDF.
+    </li>
+    <li>
+      <b>Mandá documentos a la bandeja de entrada</b> desde otras apps: tocá Compartir y elegí <b>Rupert</b>. Rupert se
+      abre y envía el documento a la bandeja de entrada en Google Drive o OneDrive, con su propio nombre.
     </li>
     <li><b>Marcá carpetas con la estrella</b> y elegí el <b>Idioma</b> en Configuración, como en el iPhone.</li>
     <li>

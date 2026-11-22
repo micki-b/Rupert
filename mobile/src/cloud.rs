@@ -167,16 +167,17 @@ pub fn write_folder_info(
     }
 }
 
-/// Uploads a finished scan; the name the service gave it.
-pub fn upload_scan(
+/// Uploads a file to the inbox (never replacing one); the name the service
+/// gave it.
+pub fn upload(
     app: &AppHandle,
     inbox: &RemoteInbox,
     name: &str,
-    pdf: &[u8],
+    bytes: &[u8],
 ) -> Result<String, String> {
     match inbox.service {
-        Service::OneDrive => onedrive::upload_scan(app, inbox, name, pdf),
-        Service::GoogleDrive => gdrive::upload_scan(app, inbox, name, pdf),
+        Service::OneDrive => onedrive::upload(app, inbox, name, bytes),
+        Service::GoogleDrive => gdrive::upload(app, inbox, name, bytes),
     }
 }
 

@@ -10,6 +10,8 @@
 //   inbox folder.
 // - `signIn` shows a web sign-in page (Microsoft, for OneDrive) and returns
 //   the redirect; tokens are kept with the `keychain*` commands.
+// - `sharedFolders` points at the app group shared with the share extension
+//   (RupertShare in gen/apple), which saves documents straight to the inbox.
 
 import AuthenticationServices
 import Foundation
@@ -98,6 +100,11 @@ struct KeyValueArgs: Decodable {
 
 struct KeyValue: Encodable {
   let value: String?
+}
+
+struct SharedFoldersResult: Encodable {
+  let pending: String
+  let settings: String?
 }
 
 // MARK: - Plugin
@@ -408,6 +415,29 @@ class RupertPlugin: Plugin {
     }
     try? fm.removeItem(at: source.deletingLastPathComponent())
     invoke.resolve(PlaceResult(path: target.path, name: name))
+  }
+}
+
+// MARK: - Sharing from other apps
+
+extension RupertPlugin {
+  /// The app group shared with the share extension (RupertShare). Keychain
+  /// items are shared too: both list the app's own keychain group.
+  static let appGroup = "group.io.github.micki-b.rupert"
+
+  /// Where the share extension keeps documents it couldn't save to the inbox
+  /// (`Pending/<id>/<name>`), and where its settings file goes.
+  @objc public func sharedFolders(_ invoke: Invoke) throws {
+    guard
+      let group = FileManager.default.containerURL(
+        forSecurityApplicationGroupIdentifier: Self.appGroup)
+    else {
+      invoke.reject("The app group is missing from this build.")
+      return
+    }
+    let pending = group.appendingPathComponent("Pending", isDirectory: true)
+    try FileManager.default.createDirectory(at: pending, withIntermediateDirectories: true)
+    invoke.resolve(SharedFoldersResult(pending: pending.path, settings: group.path))
   }
 }
 

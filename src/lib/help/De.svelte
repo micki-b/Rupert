@@ -764,6 +764,13 @@
       Rupert dort sie erkennen und ablegen kann. Der <b>Eingang</b> steht immer oben in der Bibliothek, damit Sie Ihre
       Scans sehen, bis sie abgelegt sind, auch wenn der Eingangsordner keiner Ihrer Bibliotheksordner ist.
     </li>
+    <li>
+      <b>Senden Sie Dokumente an den Eingang</b> aus anderen Apps: Tippen Sie in Mail, Dateien, Fotos oder Safari auf
+      Teilen und wählen Sie <b>Rupert</b>. Das Dokument wird sofort unter seinem eigenen Namen im Eingang gespeichert,
+      ohne dass Rupert sich öffnet. Klappt das gerade nicht (etwa ohne Verbindung), sendet Rupert es, sobald Sie die App
+      das nächste Mal öffnen. Rupert nimmt nur Dokumente an: PDFs, Bilder, Office-Dateien, Text und E-Mails. Steht Rupert
+      nicht in der Reihe der Apps, finden Sie es unter <b>Mehr</b>.
+    </li>
     <li><b>Markieren Sie Ordner mit dem Stern</b>, um sie auf allen Geräten zu den Favoriten hinzuzufügen.</li>
     <li>
       <b>Rupert fragen</b> im Bereich <b>Fragen</b>, auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer, mit
@@ -800,6 +807,10 @@
     <li>
       <b>Scannen</b> Sie mit dem Dokumentscanner von Google: Wählen Sie im Bereich Scannen den Eingangsordner in Google
       Drive oder OneDrive. Die Seiten werden dort als ein PDF gespeichert.
+    </li>
+    <li>
+      <b>Senden Sie Dokumente an den Eingang</b> aus anderen Apps: Tippen Sie auf Teilen und wählen Sie <b>Rupert</b>.
+      Rupert öffnet sich und sendet das Dokument unter seinem eigenen Namen an den Eingang in Google Drive oder OneDrive.
     </li>
     <li>
       <b>Markieren Sie Ordner mit dem Stern</b> und wählen Sie die <b>Sprache</b> in den Einstellungen, wie auf dem iPhone.

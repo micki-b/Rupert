@@ -1,7 +1,8 @@
 // Rupert's phone services on Android (the Rust side is mobile/plugin/src/lib.rs):
 // Google's document scanner, web sign-in in a Custom Tab, Google's own Drive
 // authorization, a Keystore-protected keychain, and opening documents in
-// another app. The Files-picker calls are iOS-only for now.
+// another app, and documents shared from other apps (kept for Rust to send
+// to the inbox). The Files-picker calls are iOS-only for now.
 
 package io.github.micki_b.rupert.phone
 
@@ -16,6 +17,8 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.security.keystore.KeyGenParameterSpec
@@ -29,6 +32,7 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.FileProvider
+import androidx.core.content.IntentCompat
 import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
@@ -47,6 +51,7 @@ import java.io.File
 import org.json.JSONObject
 import java.io.FileOutputStream
 import java.security.KeyStore
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -98,6 +103,8 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
     // it for the status bar): on layout changes, and once the page is there.
     webView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateNavInset() }
     Handler(Looper.getMainLooper()).postDelayed({ updateNavInset() }, 1500)
+    // Opened by sharing a document with Rupert.
+    takeShared(activity.intent)
   }
 
   private fun updateNavInset() {
@@ -212,6 +219,7 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
   }
 
   override fun onNewIntent(intent: Intent) {
+    takeShared(intent)
     val data = intent.data ?: return
     val pending = signIn ?: return
     if (data.scheme?.lowercase() == signInScheme) {
@@ -235,6 +243,84 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
         it.resolve(JSObject().put("url", JSONObject.NULL))
       }
     }, 800)
+  }
+
+  // MARK: - Sharing from other apps
+
+  /** Documents shared with Rupert wait here (`<id>/<name>`) until Rust sends
+   * them to the inbox (mobile/src/share.rs). */
+  private val sharedDir: File get() = File(activity.cacheDir, "shared")
+  private val sharedLock = Object()
+  /** Copies under way; `sharedFolders` waits for them. */
+  private var copying = 0
+
+  /** Keeps what a share intent brought, copying it on a background thread
+   * (the sending app's permission to read it lasts while Rupert is open). */
+  private fun takeShared(intent: Intent?) {
+    if (intent == null) return
+    val uris: List<Uri> = when (intent.action) {
+      Intent.ACTION_SEND ->
+        listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
+      Intent.ACTION_SEND_MULTIPLE ->
+        IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+          ?: emptyList()
+      else -> return
+    }
+    // Handled once, even if the activity is created again.
+    intent.action = null
+    if (uris.isEmpty()) return
+    synchronized(sharedLock) { copying++ }
+    Thread {
+      try {
+        for (uri in uris) keepShared(uri)
+      } finally {
+        synchronized(sharedLock) {
+          copying--
+          sharedLock.notifyAll()
+        }
+      }
+    }.start()
+  }
+
+  /** Copies one shared document into its own folder, keeping its name. */
+  private fun keepShared(uri: Uri) {
+    val resolver = activity.contentResolver
+    var name: String? = null
+    try {
+      resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+        if (c.moveToFirst()) name = c.getString(0)
+      }
+    } catch (e: Exception) {
+      // Some apps don't answer; the name then comes from the address.
+    }
+    var fileName = (name ?: uri.lastPathSegment ?: "Shared").substringAfterLast('/')
+    if (!fileName.contains('.')) {
+      val ext = resolver.getType(uri)?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+      if (ext != null) fileName += ".$ext"
+    }
+    val dir = File(sharedDir, UUID.randomUUID().toString())
+    try {
+      dir.mkdirs()
+      resolver.openInputStream(uri)?.use { input ->
+        FileOutputStream(File(dir, fileName)).use { input.copyTo(it) }
+      }
+    } catch (e: Exception) {
+      Log.w("Rupert", "couldn't keep a shared document: $e")
+      dir.deleteRecursively()
+    }
+  }
+
+  /** Where shared documents wait: `{pending}`, once any copy under way is done. */
+  @Command
+  fun sharedFolders(invoke: Invoke) {
+    Thread {
+      synchronized(sharedLock) {
+        val until = System.currentTimeMillis() + 120_000
+        while (copying > 0 && System.currentTimeMillis() < until) sharedLock.wait(1_000)
+      }
+      sharedDir.mkdirs()
+      invoke.resolve(JSObject().put("pending", sharedDir.path).put("settings", JSONObject.NULL))
+    }.start()
   }
 
   // MARK: - Google Drive

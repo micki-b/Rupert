@@ -692,6 +692,12 @@
       file them. The <b>Inbox</b> is always at the top of the Library tab, so you can see your scans until they are
       filed, even if the inbox folder isn't one of your library folders.
     </li>
+    <li>
+      <b>Send documents to the inbox</b> from other apps: in Mail, Files, Photos or Safari, tap Share and choose
+      <b>Rupert</b>. The document is saved to the inbox right away, under its own name, without opening Rupert. If it
+      can't be saved just then (offline, say), Rupert sends it the next time you open the app. Rupert takes documents
+      only: PDFs, pictures, Office files, text and emails. If Rupert isn't in the row of apps, look under <b>More</b>.
+    </li>
     <li><b>Star folders</b> to add them to Favorites on all your devices.</li>
     <li>
       <b>Ask Rupert</b> in the <b>Ask</b> tab, on an iPhone with Apple Intelligence (iOS 26 or later, with Apple
@@ -724,6 +730,10 @@
     <li>
       <b>Scan</b> with Google's document scanner: in the Scan tab, choose the inbox folder in Google Drive or OneDrive.
       The pages are saved there as one PDF.
+    </li>
+    <li>
+      <b>Send documents to the inbox</b> from other apps: tap Share and choose <b>Rupert</b>. Rupert opens and sends the
+      document to the inbox in Google Drive or OneDrive, under its own name.
     </li>
     <li><b>Star folders</b>, and choose the <b>Language</b> in Settings, as on the iPhone.</li>
     <li>The back gesture closes what's open, then goes up a folder. Ask Rupert isn't on Android yet.</li>

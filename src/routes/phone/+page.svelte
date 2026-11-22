@@ -32,6 +32,7 @@
     type Overview,
     type Progress,
     type ScanSettings,
+    type SharedSent,
     type TagCount,
   } from "#lib/phone/api.ts";
   import { LANGS, languageNames, loadLanguage, m, useLanguage, type Lang } from "#lib/i18n/index.ts";
@@ -217,6 +218,45 @@
 
   /** Shown in Settings ▸ About. */
   let version = $state<AppVersion | null>(null);
+
+  // MARK: Documents shared from other apps
+
+  /** What was last sent from the share sheet (or why it waits). */
+  let shared = $state<SharedSent | null>(null);
+  let sharedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Sends documents shared with Rupert that wait on the phone to the inbox:
+   * on Android all of them, on iPhone those the share sheet couldn't save. */
+  async function sendShared() {
+    const result = await phone
+      .sendShared()
+      .catch((e): SharedSent => ({ sent: [], problems: [String(e)], refused: [] }));
+    if (!result.sent.length && !result.problems.length && !result.refused.length) return;
+    shared = result;
+    clearTimeout(sharedTimer);
+    if (!result.problems.length && !result.refused.length) sharedTimer = setTimeout(() => (shared = null), 6000);
+  }
+
+  // When the inbox is chosen or changed, documents waiting for it can go.
+  let inboxSeen: string | null | undefined;
+  $effect(() => {
+    const inbox = overview ? (overview.inbox ?? null) : undefined;
+    if (inbox === undefined || inbox === inboxSeen) return;
+    const first = inboxSeen === undefined;
+    inboxSeen = inbox;
+    if (!first && inbox) sendShared();
+  });
+
+  onMount(() => {
+    // Sharing on Android opens Rupert; on iPhone, anything the share sheet
+    // couldn't save waits for the app.
+    sendShared();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") sendShared();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  });
 
   onMount(() => {
     loadOverview();
@@ -533,6 +573,20 @@
       </span>
     {/if}
   </header>
+
+  {#if shared}
+    <div class="shared" class:problem={shared.problems.length > 0 || shared.refused.length > 0} role="status">
+      <p>
+        {#if shared.sent.length === 1}{m.phone.sharedSentOne(shared.sent[0])}{:else if shared.sent.length > 1}{m.phone.sharedSentMany(shared.sent.length)}{/if}
+        {#if shared.problems.length}{m.phone.sharedWaiting(shared.problems.join(" "))}{/if}
+        {#if shared.refused.length}{m.phone.sharedRefused(shared.refused.join(", "))}{/if}
+      </p>
+      {#if shared.sent.length && overview?.inboxPlace}
+        <button class="plain" onclick={() => ((shared = null), openInbox())}>{m.phone.openInbox}</button>
+      {/if}
+      <button class="plain close" onclick={() => (shared = null)} aria-label={m.main.dismiss}>×</button>
+    </div>
+  {/if}
 
   <main hidden={tab === "ask"}>
     {#if tab === "library"}
@@ -1450,6 +1504,30 @@
   }
   .ok {
     color: var(--accent-strong);
+  }
+  /* Documents shared from other apps: sent, or waiting. */
+  .shared {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 16px 0;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-size: 14px;
+  }
+  .shared.problem {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  .shared p {
+    flex: 1;
+    margin: 0;
+  }
+  .shared .close {
+    font-size: 20px;
+    line-height: 1;
   }
   .backdrop {
     position: fixed;

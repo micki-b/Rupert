@@ -29,7 +29,7 @@ const REFRESH_KEY: &str = "onedrive.refresh-token";
 /// OneDrive indexing progress. Payload: `Progress`.
 pub const REMOTE_PROGRESS: &str = "remote-progress";
 
-fn client_id() -> Option<&'static str> {
+pub(crate) fn client_id() -> Option<&'static str> {
     CLIENT_ID.map(str::trim).filter(|s| !s.is_empty())
 }
 
@@ -333,15 +333,13 @@ pub fn write_folder_info(
     }
 }
 
-/// Uploads a finished scan; the name OneDrive gave it.
-pub fn upload_scan(
+/// Uploads a file to the inbox (never replacing one); the name it got.
+pub fn upload(
     app: &AppHandle,
     inbox: &RemoteInbox,
     name: &str,
-    pdf: &[u8],
+    bytes: &[u8],
 ) -> Result<String, String> {
     let graph = app.state::<OneDrive>().graph(app)?;
-    graph
-        .upload(&inbox.item_id, &format!("{name}.pdf"), pdf)
-        .map_err(err)
+    graph.upload(&inbox.item_id, name, bytes).map_err(err)
 }
