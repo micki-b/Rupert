@@ -314,6 +314,19 @@ pub fn download(
     graph.download(&folder.item_id, rel_path, dest).map_err(err)
 }
 
+/// OneDrive's picture of a document; see [`crate::cloud::thumbnail`].
+pub fn thumbnail(
+    app: &AppHandle,
+    folder: &RemoteFolder,
+    rel_path: &str,
+    side: u32,
+) -> Result<Option<Vec<u8>>, String> {
+    let graph = app.state::<OneDrive>().graph(app)?;
+    graph
+        .thumbnail(&folder.item_id, rel_path, side)
+        .map_err(err)
+}
+
 /// Writes (or removes) a OneDrive folder's own details file.
 pub fn write_folder_info(
     app: &AppHandle,

@@ -14,7 +14,9 @@
   // A document's picture (first page of a PDF, or the image itself) from the
   // `thumb:` URL scheme, or its kind icon when there's none: folders, other
   // kinds, online-only files (never read, since that would download them),
-  // and anything that fails to load.
+  // and anything that fails to load. With `tryAll` (the phone) every
+  // document is asked for, online-only ones too: there the server knows
+  // which have pictures (a cloud service's thumbnails download nothing).
   import Icon from "#lib/Icon.svelte";
 
   let {
@@ -24,12 +26,21 @@
     side = 320,
     iconSize = 40,
     eager = false,
-  }: { sourceId: string; entry: Entry; page?: number; side?: number; iconSize?: number; eager?: boolean } =
-    $props();
+    tryAll = false,
+  }: {
+    sourceId: string;
+    entry: Entry;
+    page?: number;
+    side?: number;
+    iconSize?: number;
+    eager?: boolean;
+    tryAll?: boolean;
+  } = $props();
 
   let failed = $state(false);
   const hasPicture = $derived(
-    !entry.isDir && entry.cloud !== "cloudOnly" && (entry.kind === "pdf" || entry.kind === "image"),
+    !entry.isDir &&
+      (tryAll || (entry.cloud !== "cloudOnly" && (entry.kind === "pdf" || entry.kind === "image"))),
   );
   const src = $derived(thumbUrl(sourceId, entry, page, side));
   $effect(() => {

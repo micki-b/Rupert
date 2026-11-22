@@ -687,6 +687,12 @@
     </li>
     <li><b>Open</b> a document to download and view it, then share or print it.</li>
     <li>
+      <b>Views</b>: at the top of a folder, switch between a list, large icons and a gallery (one document large, the
+      others in a strip below; swipe to go through them). Rupert remembers the view for each folder. Pictures come from
+      OneDrive or Google Drive, which make them without downloading the document; in folders from Files, the iPhone
+      makes them for documents that are on it. Online-only documents there show their icon.
+    </li>
+    <li>
       <b>Scan</b> with the camera. Choose color, grayscale or black &amp; white and the resolution in the Scan tab. Scans
       are saved to the inbox folder you pick, which should be the computer's inbox, so Rupert there can recognize and
       file them. The <b>Inbox</b> is always at the top of the Library tab, so you can see your scans until they are
@@ -726,6 +732,9 @@
     <li>
       <b>Search, browse and open</b> documents. Opening one downloads it and shows it in another app, such as your PDF
       viewer.
+    </li>
+    <li>
+      <b>Views</b>: a list, large icons or a gallery, as on the iPhone, with pictures from Google Drive or OneDrive.
     </li>
     <li>
       <b>Scan</b> with Google's document scanner: in the Scan tab, choose the inbox folder in Google Drive or OneDrive.

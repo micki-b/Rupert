@@ -759,6 +759,13 @@
     </li>
     <li><b>Öffnen</b> Sie ein Dokument, um es zu laden und anzusehen, und teilen oder drucken Sie es dann.</li>
     <li>
+      <b>Ansichten</b>: Oben in einem Ordner wechseln Sie zwischen Liste, großen Symbolen und Galerie (ein Dokument
+      groß, die anderen in einem Streifen darunter; wischen Sie, um sie durchzugehen). Rupert merkt sich die Ansicht für
+      jeden Ordner. Die Bilder kommen von OneDrive oder Google Drive, die sie erstellen, ohne das Dokument zu laden; in
+      Ordnern aus Dateien erstellt sie das iPhone für Dokumente, die darauf liegen. Nur online verfügbare Dokumente
+      zeigen dort ihr Symbol.
+    </li>
+    <li>
       <b>Scannen</b> Sie mit der Kamera. Farbe, Graustufen oder Schwarzweiß und die Auflösung wählen Sie im Bereich
       Scannen. Scans werden im Eingangsordner Ihrer Wahl gespeichert, der der Eingang des Computers sein sollte, damit
       Rupert dort sie erkennen und ablegen kann. Der <b>Eingang</b> steht immer oben in der Bibliothek, damit Sie Ihre
@@ -803,6 +810,9 @@
     <li>
       <b>Suchen, stöbern und öffnen</b> Sie Dokumente. Ein geöffnetes Dokument wird geladen und in einer anderen App
       angezeigt, etwa in Ihrem PDF-Betrachter.
+    </li>
+    <li>
+      <b>Ansichten</b>: Liste, große Symbole oder Galerie, wie auf dem iPhone, mit Bildern aus Google Drive oder OneDrive.
     </li>
     <li>
       <b>Scannen</b> Sie mit dem Dokumentscanner von Google: Wählen Sie im Bereich Scannen den Eingangsordner in Google

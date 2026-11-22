@@ -154,6 +154,20 @@ pub fn fetch_document(
     Ok(dest)
 }
 
+/// The service's picture of a document (fitting in `side` pixels), or
+/// `None` if it has none. Doesn't download the document.
+pub fn thumbnail(
+    app: &AppHandle,
+    folder: &RemoteFolder,
+    rel_path: &str,
+    side: u32,
+) -> Result<Option<Vec<u8>>, String> {
+    match folder.service {
+        Service::OneDrive => onedrive::thumbnail(app, folder, rel_path, side),
+        Service::GoogleDrive => gdrive::thumbnail(app, folder, rel_path, side),
+    }
+}
+
 /// Writes (or removes, if empty) a folder's own details file.
 pub fn write_folder_info(
     app: &AppHandle,
