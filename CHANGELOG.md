@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-11-21
 
 - **A star on every document** (#22): in the list, the icons, the gallery and the search results, the ☆ shows when you point at a document (favorites keep their ★), and one click stars or unstars it. The star in the details pane also saves at once now; it no longer waits for **Save**.
 - **Click the cloud to download a file** (#22): an online-only document's cloud badge downloads just that file, and Rupert reads its text.
