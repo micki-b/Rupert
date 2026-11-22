@@ -28,6 +28,8 @@ pub const SCOPES: &str = "Files.ReadWrite offline_access";
 const SIMPLE_UPLOAD_MAX: usize = 4 * 1024 * 1024;
 /// Upload session chunks must be multiples of 320 KiB.
 const UPLOAD_CHUNK: usize = 320 * 1024 * 12;
+/// Largest thumbnail accepted from the service.
+const THUMBNAIL_MAX: u64 = 8 * 1024 * 1024;
 
 fn net_err(e: impl std::fmt::Display) -> Error {
     Error::Unsupported(format!("OneDrive: {e}"))
@@ -317,6 +319,40 @@ impl Graph {
         )
     }
 
+    /// A document's picture made by OneDrive (JPEG, fitting in `side` ×
+    /// `side` pixels), or `None` if it has none. The document itself isn't
+    /// downloaded.
+    pub fn thumbnail(&self, folder_id: &str, rel_path: &str, side: u32) -> Result<Option<Vec<u8>>> {
+        let url = Self::thumbnail_url(folder_id, rel_path, side);
+        // Answered with a redirect to the picture; the token isn't passed on.
+        let resp = self
+            .http
+            .get(&url)
+            .header("Authorization", &self.auth())
+            .call()
+            .map_err(net_err)?;
+        if resp.status().as_u16() == 404 {
+            return Ok(None);
+        }
+        let bytes = check(resp)?
+            .body_mut()
+            .with_config()
+            .limit(THUMBNAIL_MAX)
+            .read_to_vec()
+            .map_err(net_err)?;
+        Ok((!bytes.is_empty()).then_some(bytes))
+    }
+
+    /// The address of a document's picture, fitting in `side` × `side`.
+    fn thumbnail_url(folder_id: &str, rel_path: &str, side: u32) -> String {
+        let path: Vec<String> = rel_path.split('/').map(encode).collect();
+        format!(
+            "{GRAPH}/me/drive/items/{}:/{}:/thumbnails/0/c{side}x{side}/content",
+            encode(folder_id),
+            path.join("/")
+        )
+    }
+
     /// A file below a folder, in memory (for Rupert's small files).
     pub fn read(&self, folder_id: &str, rel_path: &str) -> Result<Vec<u8>> {
         let resp = self
@@ -541,6 +577,14 @@ mod tests {
         );
         assert_eq!(files[1].modified_ms, Some(1_741_976_525_000));
         assert_eq!(files[1].size, 10);
+    }
+
+    #[test]
+    fn thumbnail_urls_ask_for_a_size() {
+        assert_eq!(
+            Graph::thumbnail_url("A!1", "Taxes 2025/W-2.pdf", 360),
+            "https://graph.microsoft.com/v1.0/me/drive/items/A%211:/Taxes%202025/W-2.pdf:/thumbnails/0/c360x360/content"
+        );
     }
 
     #[test]

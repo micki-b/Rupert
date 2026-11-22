@@ -441,6 +441,7 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
   @Command fun place(invoke: Invoke) = notYet(invoke)
   @Command fun writeFile(invoke: Invoke) = notYet(invoke)
   @Command fun removeFile(invoke: Invoke) = notYet(invoke)
+  @Command fun thumbnail(invoke: Invoke) = notYet(invoke)
 
   private fun notYet(invoke: Invoke) =
     invoke.reject("Folders on the phone aren't available on Android yet; use Google Drive or OneDrive.")

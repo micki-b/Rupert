@@ -24,6 +24,7 @@ mod cloud;
 mod gdrive;
 mod onedrive;
 mod share;
+mod thumbs;
 
 use cloud::{RemoteFolder, RemoteInbox, Service};
 use gdrive::GoogleDrive;
@@ -1009,6 +1010,7 @@ fn open_saved_folders(app: &AppHandle) {
     app.state::<GoogleDrive>().restore(app);
     cloud::start_all(app);
     cloud::tidy_cache(app);
+    thumbs::tidy(app);
 }
 
 /// Lets the sync service fetch one of Rupert's hidden folders (sidecars,
@@ -1175,6 +1177,10 @@ fn android_log(text: &str) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_rupert_phone::init())
+        // Pictures for the large-icon and gallery views.
+        .register_asynchronous_uri_scheme_protocol(thumbs::SCHEME, |ctx, request, responder| {
+            thumbs::serve(ctx.app_handle(), request, responder)
+        })
         .setup(setup)
         .invoke_handler(tauri::generate_handler![
             overview,

@@ -740,6 +740,12 @@
     </li>
     <li><b>Abrí</b> un documento para descargarlo y verlo, y después compartirlo o imprimirlo.</li>
     <li>
+      <b>Vistas</b>: arriba de una carpeta, cambiá entre lista, íconos grandes y galería (un documento grande y los
+      demás en una tira abajo; deslizá para recorrerlos). Rupert recuerda la vista de cada carpeta. Las imágenes vienen
+      de OneDrive o Google Drive, que las hacen sin descargar el documento; en carpetas de Archivos, el iPhone las hace
+      para los documentos que tiene guardados. Los documentos solo en línea muestran su ícono.
+    </li>
+    <li>
       <b>Escaneá</b> con la cámara. Elegí color, grises o blanco y negro, y la resolución, en la pestaña Escanear. Los
       escaneos se guardan en la carpeta de bandeja de entrada que elijas, que tendría que ser la bandeja de la
       computadora, así Rupert ahí los puede reconocer y archivar. La <b>Bandeja de entrada</b> está siempre arriba de todo
@@ -783,6 +789,9 @@
     </li>
     <li>
       <b>Buscá, recorré y abrí</b> documentos. Al abrir uno, se descarga y se muestra en otra app, como tu visor de PDF.
+    </li>
+    <li>
+      <b>Vistas</b>: lista, íconos grandes o galería, como en el iPhone, con imágenes de Google Drive o OneDrive.
     </li>
     <li>
       <b>Escaneá</b> con el escáner de documentos de Google: en la pestaña Escanear, elegí la carpeta de la bandeja de

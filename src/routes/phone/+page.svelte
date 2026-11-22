@@ -8,6 +8,7 @@
   import RupertOwl, { type OwlMood } from "#lib/RupertOwl.svelte";
   import TagFilter from "#lib/TagFilter.svelte";
   import Ask from "#lib/phone/Ask.svelte";
+  import FolderPictures from "#lib/phone/FolderPictures.svelte";
   import { snippetParts, type TagMode } from "#lib/api.ts";
   import { formatSize } from "#lib/format.ts";
   import {
@@ -218,6 +219,36 @@
 
   /** Shown in Settings ▸ About. */
   let version = $state<AppVersion | null>(null);
+
+  // MARK: Folder views
+
+  /** How each folder is shown (list, large icons or gallery), kept on this
+   * phone by "<source id>\n<folder>". Folders not set are lists. */
+  type FolderView = "list" | "icons" | "gallery";
+  const VIEWS_KEY = "rupert.phone.folderViews";
+  let folderViews = $state<Record<string, FolderView>>(loadFolderViews());
+
+  function loadFolderViews(): Record<string, FolderView> {
+    try {
+      return JSON.parse(localStorage.getItem(VIEWS_KEY) ?? "{}") ?? {};
+    } catch {
+      return {};
+    }
+  }
+
+  const hereView = $derived<FolderView>(here ? (folderViews[`${here.sourceId}\n${here.relPath}`] ?? "list") : "list");
+
+  function setView(view: FolderView) {
+    if (!here) return;
+    const key = `${here.sourceId}\n${here.relPath}`;
+    if (view === "list") delete folderViews[key];
+    else folderViews[key] = view;
+    try {
+      localStorage.setItem(VIEWS_KEY, JSON.stringify(folderViews));
+    } catch {
+      // Not essential.
+    }
+  }
 
   // MARK: Documents shared from other apps
 
@@ -679,6 +710,18 @@
         {#if !listing && entries.length === 0 && !listError}
           <p class="note">{m.phone.noDocuments}</p>
         {/if}
+        {#if entries.length > 0}
+          <div class="viewbar" role="group" aria-label={m.main.view}>
+            {#each [["list", "view-list", m.main.list], ["icons", "view-grid", m.main.largeIcons], ["gallery", "view-gallery", m.main.gallery]] as const as [view, icon, label] (view)}
+              <button class:on={hereView === view} onclick={() => setView(view)} aria-label={label} aria-pressed={hereView === view}>
+                <Icon name={icon} size={18} />
+              </button>
+            {/each}
+          </div>
+        {/if}
+        {#if hereView !== "list" && here && entries.length > 0}
+          <FolderPictures mode={hereView} sourceId={here.sourceId} {entries} onopen={openEntry} />
+        {:else}
         <ul class="list">
           {#each entries as e (e.relPath)}
             <li>
@@ -701,6 +744,7 @@
             </li>
           {/each}
         </ul>
+        {/if}
       {/if}
     {:else if tab === "search"}
       <div class="searchbar">
@@ -1503,6 +1547,25 @@
     font-size: 14px;
   }
   .ok {
+    color: var(--accent-strong);
+  }
+  /* Folder views: list, large icons, gallery. */
+  .viewbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 8px 16px 0;
+  }
+  .viewbar button {
+    display: flex;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--muted);
+  }
+  .viewbar button.on {
+    background: var(--accent-soft);
     color: var(--accent-strong);
   }
   /* Documents shared from other apps: sent, or waiting. */

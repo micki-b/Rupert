@@ -17,6 +17,7 @@ import AuthenticationServices
 import Foundation
 import Security
 import QuickLook
+import QuickLookThumbnailing
 import SwiftRs
 import Tauri
 import UIKit
@@ -100,6 +101,15 @@ struct KeyValueArgs: Decodable {
 
 struct KeyValue: Encodable {
   let value: String?
+}
+
+struct ThumbnailArgs: Decodable {
+  let path: String
+  let side: Double
+}
+
+struct ThumbnailResult: Encodable {
+  let path: String?
 }
 
 struct SharedFoldersResult: Encodable {
@@ -415,6 +425,36 @@ class RupertPlugin: Plugin {
     }
     try? fm.removeItem(at: source.deletingLastPathComponent())
     invoke.resolve(PlaceResult(path: target.path, name: name))
+  }
+}
+
+// MARK: - Thumbnails
+
+extension RupertPlugin {
+  /// The system's picture of a document on the phone, as a JPEG in a
+  /// temporary file (`{path}`), or `{path: null}`. Rust only asks about
+  /// files that are on the phone.
+  @objc public func thumbnail(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(ThumbnailArgs.self)
+    let request = QLThumbnailGenerator.Request(
+      fileAt: URL(fileURLWithPath: args.path),
+      size: CGSize(width: args.side, height: args.side),
+      scale: 1,
+      representationTypes: .thumbnail)
+    QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { thumb, _ in
+      guard let data = thumb?.uiImage.jpegData(compressionQuality: 0.8) else {
+        invoke.resolve(ThumbnailResult(path: nil))
+        return
+      }
+      let out = FileManager.default.temporaryDirectory
+        .appendingPathComponent("thumb-\(UUID().uuidString).jpg")
+      do {
+        try data.write(to: out)
+        invoke.resolve(ThumbnailResult(path: out.path))
+      } catch {
+        invoke.resolve(ThumbnailResult(path: nil))
+      }
+    }
   }
 }
 

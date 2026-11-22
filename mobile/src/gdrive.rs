@@ -407,6 +407,18 @@ pub fn download(
     drive.download(&id, dest).map_err(err)
 }
 
+/// Google Drive's picture of a document; see [`crate::cloud::thumbnail`].
+pub fn thumbnail(
+    app: &AppHandle,
+    folder: &RemoteFolder,
+    rel_path: &str,
+    side: u32,
+) -> Result<Option<Vec<u8>>, String> {
+    let drive = app.state::<GoogleDrive>().drive(app)?;
+    let id = file_id(app, &drive, folder, rel_path)?;
+    drive.thumbnail(&id, side).map_err(err)
+}
+
 /// Writes (or removes) a Google Drive folder's own details file.
 pub fn write_folder_info(
     app: &AppHandle,

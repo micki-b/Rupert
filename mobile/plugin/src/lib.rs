@@ -269,6 +269,23 @@ impl<R: Runtime> Device<R> {
             .map(drop)
     }
 
+    /// The system's picture of a document on the phone (a JPEG fitting in
+    /// `side` points, written to a temporary file whose path is returned),
+    /// or `None` if there's none. Only for files that are on the phone: the
+    /// caller checks, since asking about an online-only file could fetch it.
+    pub fn thumbnail(&self, path: &str, side: u32) -> Result<Option<String>> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            path: &'a str,
+            side: u32,
+        }
+        #[derive(Deserialize)]
+        struct Thumb {
+            path: Option<String>,
+        }
+        Ok(self.call::<Thumb>("thumbnail", Args { path, side })?.path)
+    }
+
     /// Where documents shared with Rupert from other apps wait to be sent to
     /// the inbox, one folder per document (`<id>/<file name>`), and the
     /// folder for the settings the iPhone's share extension reads.

@@ -270,6 +270,17 @@ pub fn free_name(name: &str, taken: &HashSet<String>) -> String {
         .expect("an unused name")
 }
 
+/// A thumbnail link asking for `side` pixels: Drive's links end in a size
+/// (`=s220`), which can be changed.
+fn sized_thumbnail(link: &str, side: u32) -> String {
+    match link.rsplit_once("=s") {
+        Some((base, size)) if !size.is_empty() && size.bytes().all(|b| b.is_ascii_digit()) => {
+            format!("{base}=s{side}")
+        }
+        _ => link.to_string(),
+    }
+}
+
 /// The type Drive is told a new file has, from its name.
 fn mime_for(name: &str) -> &'static str {
     let path = std::path::Path::new(name);
@@ -415,6 +426,39 @@ impl Drive {
         std::io::copy(&mut check(resp)?.body_mut().as_reader(), &mut file)?;
         std::fs::rename(&tmp, dest)?;
         Ok(())
+    }
+
+    /// A document's picture made by Google Drive (fitting in `side` pixels),
+    /// or `None` if it has none. The document itself isn't downloaded.
+    pub fn thumbnail(&self, file_id: &str, side: u32) -> Result<Option<Vec<u8>>> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Link {
+            thumbnail_link: Option<String>,
+        }
+        let link: Link = self.get_json(&format!(
+            "{API}/files/{}?fields=thumbnailLink",
+            encode(file_id)
+        ))?;
+        let Some(link) = link.thumbnail_link else {
+            return Ok(None);
+        };
+        let resp = self
+            .http
+            .get(&sized_thumbnail(&link, side))
+            .header("Authorization", &self.auth())
+            .call()
+            .map_err(net_err)?;
+        if resp.status().as_u16() == 404 {
+            return Ok(None);
+        }
+        let bytes = check(resp)?
+            .body_mut()
+            .with_config()
+            .limit(8 * 1024 * 1024)
+            .read_to_vec()
+            .map_err(net_err)?;
+        Ok((!bytes.is_empty()).then_some(bytes))
     }
 
     /// The child of a folder with this name, if any (the first, if Drive
@@ -596,6 +640,18 @@ mod tests {
             modified_time: Some("2026-01-02T03:04:05.000Z".into()),
             parents: vec![parent.into()],
         }
+    }
+
+    #[test]
+    fn thumbnail_links_get_the_asked_size() {
+        assert_eq!(
+            sized_thumbnail("https://lh3.googleusercontent.com/abc=s220", 480),
+            "https://lh3.googleusercontent.com/abc=s480"
+        );
+        assert_eq!(
+            sized_thumbnail("https://drive.google.com/thumb?id=x", 480),
+            "https://drive.google.com/thumb?id=x"
+        );
     }
 
     #[test]
