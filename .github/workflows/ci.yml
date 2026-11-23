@@ -25,13 +25,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Free disk space
         if: runner.os == 'Linux'
         # The hosted Linux runners ship toolkits Rupert doesn't use; the
         # workspace's debug builds need the room.
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -60,8 +60,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -102,13 +102,13 @@ jobs:
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Free disk space
         if: runner.os == 'Linux'
         # The hosted Linux runners ship toolkits Rupert doesn't use; the
         # workspace's debug builds need the room.
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -130,7 +130,7 @@ jobs:
         env:
           # The repo also holds the phone app (mobile/); build the desktop one.
           TAURI_APP_PATH: src-tauri
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rupert-${{ runner.os }}
           path: |
