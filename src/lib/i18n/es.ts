@@ -609,6 +609,7 @@ const es: Messages = {
     checkAgain: "Volver a revisar las carpetas",
     about: "Acerca de",
     version: "Versión",
+    privacyPolicy: "Política de privacidad (en inglés)",
     developmentBuild: "versión de desarrollo",
     aboutNote: [
       "Rupert es libre y de código abierto (MIT):",

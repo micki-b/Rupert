@@ -1,6 +1,6 @@
 # Rupert privacy policy
 
-*Last updated: November 21, 2026*
+*Last updated: November 23, 2026*
 
 Rupert is a free, open-source app for organizing your scanned documents, made by Micki Braun. It runs on your
 computer (macOS, Windows, Linux) and on your iPhone or Android phone. This policy explains what happens to your information when you
@@ -81,11 +81,27 @@ Google Drive), the same way as a scan, and nowhere else. On the iPhone this happ
 the app's OneDrive or Google sign-in from the iPhone's Keychain; a document it can't save right away waits on the
 phone until Rupert next opens.
 
+## Keeping and deleting your information
+
+We hold none of your information, so there is nothing for us to keep or delete. On your devices:
+
+- **Signing out** of OneDrive or Google Drive in Rupert's settings removes that sign-in from the device.
+- **Removing a folder** from Rupert removes it from the search index; the documents and their `.rupert` files stay
+  where they are.
+- **Uninstalling Rupert** from a phone deletes its settings, search index and page pictures. On Android it deletes
+  the sign-ins too; on the iPhone, sign out first, because the iPhone keeps an app's Keychain entries after the app
+  is deleted. On a computer, these are in Rupert's app-data folder, which you can delete.
+- Your documents, the details written into them and the `.rupert` files are yours: they stay in your folders until
+  you delete them.
+
+Rupert talks to online services only over encrypted connections (HTTPS).
+
 ## Children
 
 Rupert isn't directed at children and collects no information from anyone.
 
 ## Changes and contact
 
-If this policy changes, the new version will be published here with a new date. Questions: open an issue at
+If this policy changes, the new version will be published here with a new date. Questions about privacy: write to
+[contact@rupertlibrarian.com](mailto:contact@rupertlibrarian.com), or open an issue at
 [github.com/micki-b/Rupert](https://github.com/micki-b/Rupert/issues).

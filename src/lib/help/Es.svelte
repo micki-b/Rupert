@@ -771,7 +771,10 @@
       configuración de iOS para Rupert).
     </li>
   </ul>
-  <p>Su versión y número de compilación están al final de su <b>Configuración</b>, en <b>Acerca de</b>.</p>
+  <p>
+    Su versión y número de compilación están al final de su <b>Configuración</b>, en <b>Acerca de</b>, junto con un
+    enlace a la política de privacidad.
+  </p>
   <p>
     La app del iPhone no cambia tus documentos: solo Rupert en la computadora edita detalles y archiva escaneos.
   </p>

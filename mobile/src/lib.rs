@@ -286,6 +286,17 @@ fn bundle_build() -> Option<String> {
         .map(str::to_string)
 }
 
+/// Rupert's privacy policy on the web (Google Play wants it reachable from
+/// inside the app).
+const PRIVACY_POLICY_URL: &str = "https://rupertlibrarian.com/privacy/";
+
+/// Opens the privacy policy in the phone's browser, from Settings ▸ About.
+/// Only this one page: the web view can't ask to open other addresses.
+#[tauri::command]
+async fn open_privacy_policy(app: AppHandle) -> CmdResult<()> {
+    blocking(move || device(&app).open_url(PRIVACY_POLICY_URL).map_err(err)).await
+}
+
 // MARK: - Commands: overview
 
 #[derive(Serialize)]
@@ -1186,6 +1197,7 @@ pub fn run() {
             overview,
             refresh,
             app_version,
+            open_privacy_policy,
             language,
             set_language,
             add_folder,

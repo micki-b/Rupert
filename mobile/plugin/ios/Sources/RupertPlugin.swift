@@ -30,6 +30,10 @@ struct PathArgs: Decodable {
   let path: String
 }
 
+struct UrlArgs: Decodable {
+  let url: String
+}
+
 struct BookmarksArgs: Decodable {
   let bookmarks: [String]
 }
@@ -253,6 +257,19 @@ class RupertPlugin: Plugin {
       controller.dataSource = source
       controller.delegate = source
       self.manager.viewController?.present(controller, animated: true)
+      invoke.resolve()
+    }
+  }
+
+  /// Opens a web page (Rupert's privacy policy) in Safari.
+  @objc public func openUrl(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(UrlArgs.self)
+    guard let url = URL(string: args.url) else {
+      invoke.reject("Not a web address: \(args.url)")
+      return
+    }
+    DispatchQueue.main.async {
+      UIApplication.shared.open(url)
       invoke.resolve()
     }
   }

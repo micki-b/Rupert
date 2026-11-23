@@ -119,6 +119,7 @@ export type CloudStatus = OneDriveStatus;
 export const phone = {
   overview: () => invoke<Overview>("overview"),
   appVersion: () => invoke<AppVersion>("app_version"),
+  openPrivacyPolicy: () => invoke<void>("open_privacy_policy"),
   setLanguage: (language: string | null) => invoke<LanguageInfo>("set_language", { language }),
   refresh: () => invoke<void>("refresh"),
   addFolder: () => invoke<boolean>("add_folder"),

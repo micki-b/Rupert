@@ -149,6 +149,16 @@ impl<R: Runtime> Device<R> {
             .map(drop)
     }
 
+    /// Opens a web page in the phone's browser.
+    pub fn open_url(&self, url: &str) -> Result<()> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            url: &'a str,
+        }
+        self.call::<serde_json::Value>("openUrl", Args { url })
+            .map(drop)
+    }
+
     /// Runs Rupert's document camera. `mode` is "color", "gray" or "bw";
     /// `dpi` the output resolution. Page image files (JPEG, or PNG for
     /// black and white), empty if cancelled.

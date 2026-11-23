@@ -77,6 +77,11 @@ class TokenArgs {
 }
 
 @InvokeArg
+class UrlArgs {
+  lateinit var url: String
+}
+
+@InvokeArg
 class KeyArgs {
   lateinit var key: String
   var value: String? = null
@@ -429,6 +434,18 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
       invoke.reject("No app on this phone can open this file.")
     } catch (e: Exception) {
       invoke.reject(e.message ?: "Couldn't open the file.")
+    }
+  }
+
+  /** Opens a web page (Rupert's privacy policy) in the phone's browser. */
+  @Command
+  fun openUrl(invoke: Invoke) {
+    val args = invoke.parseArgs(UrlArgs::class.java)
+    try {
+      activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(args.url)))
+      invoke.resolve()
+    } catch (e: ActivityNotFoundException) {
+      invoke.reject("No browser on this phone can open ${args.url}.")
     }
   }
 
