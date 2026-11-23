@@ -6,7 +6,7 @@
 2. If dependencies changed: `python3 scripts/third-party-notices.py` and commit `THIRD_PARTY_NOTICES.md`.
 3. Commit, then tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
 4. The **Release** workflow (`.github/workflows/release.yml`) builds a universal macOS app (DMG), Windows installers (`-setup.exe` and MSI) and Linux packages (AppImage, deb, rpm), signs what it can, and creates a **draft** GitHub release with them, the signed update bundles and `latest.json`.
-5. Attach the Android app to the draft (it's built on the Mac, with the upload key): `scripts/build-android.sh`, then `gh release upload v1.0.0 target/android/Rupert-1.0.0-<code>.apk#Rupert_1.0.0_android.apk` (the name after `#` is what the website links). See "Android" below.
+5. Attach the Android app to the draft (it's built on the Mac, with the upload key): `scripts/build-android.sh`, copy the `.apk` to the name the website links, then upload it: `cp target/android/Rupert-1.0.0-<code>.apk /tmp/Rupert_1.0.0_android.apk && gh release upload v1.0.0 /tmp/Rupert_1.0.0_android.apk` (`gh`'s `file#name` only sets a display label, not the file name). See "Android" below.
 6. Check the draft (download and try an installer), then **Publish**. The apps' updater only sees published releases: `https://github.com/micki-b/Rupert/releases/latest/download/latest.json`.
 7. Upload the website: `npm run site -- --upload`. Its download links use the latest *published* release's version, and the build stops if a linked file (such as the Android `.apk`) isn't in that release.
 
