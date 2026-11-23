@@ -791,7 +791,10 @@
       (oder in den iOS-Einstellungen für Rupert).
     </li>
   </ul>
-  <p>Version und Build-Nummer stehen unten in ihren <b>Einstellungen</b> unter <b>Über</b>.</p>
+  <p>
+    Version und Build-Nummer stehen unten in ihren <b>Einstellungen</b> unter <b>Über</b>, zusammen mit einem Link
+    zur Datenschutzerklärung.
+  </p>
   <p>
     Die iPhone-App ändert Ihre Dokumente nicht: Nur Rupert auf dem Computer bearbeitet Angaben und legt Scans ab.
   </p>

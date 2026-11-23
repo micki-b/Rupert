@@ -598,6 +598,7 @@ const en = {
     checkAgain: "Check folders again",
     about: "About",
     version: "Version",
+    privacyPolicy: "Privacy policy",
     developmentBuild: "development build",
     aboutNote: ["Rupert is free and open source (MIT):", ". When reporting a problem, please mention the version above."],
     tags: "Tags",

@@ -220,6 +220,16 @@
   /** Shown in Settings ▸ About. */
   let version = $state<AppVersion | null>(null);
 
+  /** Settings ▸ About ▸ Privacy policy: the web page, in the phone's browser. */
+  async function openPrivacyPolicy() {
+    settingsError = null;
+    try {
+      await phone.openPrivacyPolicy();
+    } catch (e) {
+      settingsError = String(e);
+    }
+  }
+
   // MARK: Folder views
 
   /** How each folder is shown (list, large icons or gallery), kept on this
@@ -1019,6 +1029,12 @@
             <span class="value selectable">
               {#if version}{version.version}{#if version.build}&nbsp;({version.build}){/if}{#if version.development}&nbsp;· {m.phone.developmentBuild}{/if}{/if}
             </span>
+          </li>
+          <li>
+            <button class="row" onclick={openPrivacyPolicy}>
+              <span class="main"><span class="name">{m.phone.privacyPolicy}</span></span>
+              <Icon name="chevron" />
+            </button>
           </li>
         </ul>
         <p class="note small left">

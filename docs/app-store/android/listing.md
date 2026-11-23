@@ -10,7 +10,7 @@ Draft texts and Play Console answers. Character limits in brackets. Spanish and 
 - **Category:** Productivity. **Tags:** Document management, Productivity, PDF.
 - **Default language:** English (United States). Translations: Spanish (Latin America, `es-419`), Spanish (Spain, `es-ES`, the same text) and German (`de-DE`).
 - **Contact details:**
-  - **Email** (shown on Google Play, required): a public address, such as one at rupertlibrarian.com.
+  - **Email** (shown on Google Play, required): contact@rupertlibrarian.com
   - **Website:** https://rupertlibrarian.com
 - **Privacy policy URL:** https://rupertlibrarian.com/privacy/
 

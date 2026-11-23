@@ -610,6 +610,7 @@ const de: Messages = {
     checkAgain: "Ordner erneut prüfen",
     about: "Über",
     version: "Version",
+    privacyPolicy: "Datenschutzerklärung (auf Englisch)",
     developmentBuild: "Entwicklungsversion",
     aboutNote: [
       "Rupert ist frei und quelloffen (MIT):",

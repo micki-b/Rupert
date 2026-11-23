@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 — 2026-11-23
+
+- **The privacy policy, from the phone**: Settings ▸ About has a **Privacy policy** link (on iPhone and Android), as Google Play asks.
+- **The privacy policy** now gives a contact address, contact@rupertlibrarian.com, and says how to remove what Rupert keeps on a device (sign out, remove a folder, uninstall).
+
 ## 0.5.0 — 2026-11-21
 
 - **A star on every document** (#22): in the list, the icons, the gallery and the search results, the ☆ shows when you point at a document (favorites keep their ★), and one click stars or unstars it. The star in the details pane also saves at once now; it no longer waits for **Save**.
