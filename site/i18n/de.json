@@ -21,10 +21,10 @@
   "hero.download": "Kostenlos laden",
   "hero.iphone": "iPhone-App",
 
-  "android.status": "Vorschau",
-  "android.hero": "Android: Laden Sie die App hier. Google Play folgt später.",
-  "android.heading": "Rupert für Android, vorerst von dieser Website.",
-  "android.detail": "Bis Rupert bei Google Play erhältlich ist, laden Sie die Android-App hier und öffnen sie zum Installieren; Ihr Telefon bittet Sie, die Installation von Apps aus dem Browser zu erlauben. Die App liest Google Drive und OneDrive und scannt mit der Kamera. Sie aktualisiert sich noch nicht selbst: Neue Versionen finden Sie hier.",
+  "android.status": "Frühe Beta",
+  "android.hero": "Android: eine frühe Beta, von dieser Website. Google Play folgt später.",
+  "android.heading": "Rupert für Android ist eine frühe Beta.",
+  "android.detail": "Die App wird noch getestet; rechnen Sie mit Ecken und Kanten, und melden Sie bitte, was Ihnen auffällt. Sie ist noch nicht bei Google Play, daher hat Google sie nicht geprüft: Laden Sie sie hier und öffnen Sie sie zum Installieren. Ihr Telefon bittet Sie, die Installation von Apps aus dem Browser zu erlauben, und warnt eventuell vor einer App außerhalb von Google Play. Die App liest Google Drive und OneDrive und scannt mit der Kamera. Sie aktualisiert sich noch nicht selbst: Neue Versionen finden Sie hier.",
 
   "dn.label": "Rupert auf einem Mac, im hellen und im dunklen Modus",
   "dn.alt": "Rupert auf einem Mac im hellen Modus: ein Ordner mit Versicherungsdokumenten als große Symbole, mit Titel, Datum und Tags des ausgewählten Dokuments",
@@ -53,7 +53,7 @@
   "every.note.win": "Unter Windows, mit OneDrive und dem gestreamten Google Drive-Laufwerk, ohne Ihr ganzes Drive herunterzuladen.",
   "every.note.linux": "Unter Linux als AppImage, .deb oder .rpm, mit jedem Ordner, den Sie synchronisieren.",
   "every.note.phone": "Auf dem iPhone, gelesen aus iCloud Drive, OneDrive oder Google Drive. Text und Titel kommen von Ihrem Computer.",
-  "every.note.android": "Auf Android, gelesen aus Google Drive oder OneDrive, mit Scans von der Kamera. Hier zu laden; Google Play folgt später.",
+  "every.note.android": "Auf Android (frühe Beta), gelesen aus Google Drive oder OneDrive, mit Scans von der Kamera. Hier zu laden; Google Play folgt später.",
 
   "scan.eyebrow": "Scannen",
   "scan.h2a": "Mit dem Telefon scannen.",
@@ -91,7 +91,7 @@
   "dl.ios.req": "iOS 16 oder neuer · scannen, stöbern und suchen",
   "dl.ios.file": "App Store",
   "dl.android.file": ".apk",
-  "dl.android.req": "Android 7 oder neuer, mit Google-Play-Diensten",
+  "dl.android.req": "Frühe Beta · Android 7 oder neuer, mit Google-Play-Diensten",
   "dl.fine": "Alle Downloads, Prüfsummen und Versionshinweise finden Sie auf <a href=\"https://github.com/micki-b/Rupert/releases\">GitHub</a>. Optional: eine App für lokale KI wie <a href=\"https://lmstudio.ai\">LM Studio</a> oder <a href=\"https://ollama.com\">Ollama</a> für Ablagevorschläge und „Rupert fragen“; unter Windows und Linux <a href=\"https://github.com/tesseract-ocr/tesseract\">Tesseract</a> für die Texterkennung.",
 
   "support.title": "Hilfe zu Rupert",
