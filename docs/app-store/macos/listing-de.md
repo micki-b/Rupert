@@ -46,7 +46,7 @@ Rupert spricht jetzt Spanisch und Deutsch, arbeitet mit Apple Intelligence und l
 APPLE INTELLIGENCE UND LOKALE KI
 • Auf einem Mac mit Apple Intelligence (macOS 26 oder neuer) nutzen Eingangsvorschläge und „Rupert fragen“ Apples eingebautes Modell: nichts zu installieren, und nichts verlässt Ihren Mac. Auf einem solchen Mac beginnt Rupert damit.
 • Oder nutzen Sie eine App, die KI-Modelle auf Ihrem Mac ausführt, etwa LM Studio oder Ollama: Einstellungen ▸ Lokale KI hat Voreinstellungen für beide.
-• Rupert zeigt, wo die lokale KI läuft: auf diesem Mac, auf einem anderen Computer in Ihrem Netzwerk oder anderswo. Eine Adresse außerhalb Ihres Netzwerks gilt als Cloud-Dienst: „Rupert fragen“ zeigt ☁, und Eingangsvorschläge nutzen sie nicht.
+• Rupert zeigt, wo die lokale KI läuft: auf diesem Mac, auf einem anderen Computer in Ihrem Netzwerk oder anderswo. Eine Adresse außerhalb Ihres Netzwerks gilt als Cloud-Dienst: „Rupert fragen“ zeigt ein Wolkensymbol, und Eingangsvorschläge nutzen sie nicht.
 • Denkende Modelle haben mehr Raum für Eingangsvorschläge und eine klare Meldung, falls er trotzdem nicht reicht.
 
 SPANISCH UND DEUTSCH

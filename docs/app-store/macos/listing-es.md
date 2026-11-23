@@ -46,7 +46,7 @@ Rupert ahora habla español y alemán, funciona con Apple Intelligence y te deja
 APPLE INTELLIGENCE E IA LOCAL
 • En una Mac con Apple Intelligence (macOS 26 o posterior), las sugerencias de la bandeja de entrada y Preguntale a Rupert usan el modelo integrado de Apple: no hay nada que instalar y nada sale de tu Mac. En esas Mac, Rupert empieza con él.
 • O usá cualquier app que ejecute modelos de IA en tu Mac, como LM Studio u Ollama: Configuración ▸ IA local tiene ajustes listos para las dos.
-• Rupert te dice dónde corre la IA local: en esta Mac, en otra computadora de tu red o en otro lado. Una dirección fuera de tu red cuenta como servicio en la nube: Preguntale a Rupert muestra ☁ y las sugerencias de la bandeja no la usan.
+• Rupert te dice dónde corre la IA local: en esta Mac, en otra computadora de tu red o en otro lado. Una dirección fuera de tu red cuenta como servicio en la nube: Preguntale a Rupert muestra el símbolo de la nube y las sugerencias de la bandeja no la usan.
 • Los modelos que razonan tienen más lugar para las sugerencias, y un mensaje claro si igual no les alcanza.
 
 ESPAÑOL Y ALEMÁN

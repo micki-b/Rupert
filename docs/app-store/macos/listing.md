@@ -58,7 +58,7 @@ Rupert now speaks Spanish and German, runs on Apple Intelligence, and lets you m
 APPLE INTELLIGENCE AND LOCAL AI
 • On a Mac with Apple Intelligence (macOS 26 or later), inbox suggestions and Ask Rupert run on Apple's built-in model: nothing to install, and nothing leaves your Mac. Rupert starts with it on such a Mac.
 • Or use any app that runs AI models on your Mac, such as LM Studio or Ollama: Settings ▸ Local AI has presets for both.
-• Rupert says where Local AI runs: on this Mac, on another computer on your network, or elsewhere. An address outside your network counts as a cloud service: Ask Rupert shows ☁, and inbox suggestions don't use it.
+• Rupert says where Local AI runs: on this Mac, on another computer on your network, or elsewhere. An address outside your network counts as a cloud service: Ask Rupert shows a cloud symbol, and inbox suggestions don't use it.
 • Thinking models get more room for inbox suggestions, and a clear message if they still run out.
 
 SPANISH AND GERMAN
