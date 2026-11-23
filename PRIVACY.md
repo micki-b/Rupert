@@ -11,7 +11,7 @@ use it.
 - **Rupert collects nothing about you.** There are no accounts with us, no analytics, no tracking, no ads and no
   crash reports sent anywhere. We have no servers that receive your data.
 - **Your documents stay where they are**: in the folders you choose, on your device or in your own cloud storage
-  (iCloud Drive, OneDrive, Google Drive). Rupert reads and changes them there, and keeps its search index on your device.
+  (iCloud Drive, OneDrive, Google Drive). Rupert reads them there (and changes or moves them when you ask it to), and keeps its search index on your device.
 - **Some optional features talk to other services** that you choose and set up yourself. They are listed below,
   with exactly what is sent.
 

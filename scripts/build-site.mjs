@@ -17,7 +17,10 @@
 //   site always says what the repo says (English only).
 // - img/: the app icon, the owls, and each language's screenshots of the
 //   made-up sample library, light and dark.
-// - {{version}} is the app's version from package.json (download links).
+// - {{version}} is the version of the latest *published* GitHub release, not
+//   package.json's: the download links name its files, and package.json is
+//   ahead of it between a version bump and publishing the release. Set
+//   RUPERT_SITE_VERSION to build without asking GitHub.
 //
 // The build stops if a language misses a text the others have, if anything
 // is left unfilled, or if a page links to a page or image that isn't there.
@@ -44,12 +47,35 @@ const out = join(root, "target", "site");
 const zip = join(root, "target", "rupertlibrarian-site.zip");
 
 const read = (p) => readFileSync(join(site, p), "utf8");
-const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
+const { version, assets: releaseFiles } = await publishedRelease();
 const ORIGIN = "https://rupertlibrarian.com";
 const LANGS = ["en", "es", "de"];
 const base = (lang) => (lang === "en" ? "" : `/${lang}`);
 const strings = Object.fromEntries(LANGS.map((l) => [l, JSON.parse(read(`i18n/${l}.json`))]));
 const problems = [];
+
+// MARK: - Version
+
+/** The latest published release's version ("0.5.0") and file names, from
+ * GitHub. Drafts don't count, so the site never links files that can't be
+ * downloaded. `assets` is null when RUPERT_SITE_VERSION is set (no check). */
+async function publishedRelease() {
+  const set = process.env.RUPERT_SITE_VERSION;
+  if (set) return { version: set, assets: null };
+  try {
+    const res = await fetch("https://api.github.com/repos/micki-b/Rupert/releases/latest", {
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
+    const release = await res.json();
+    const tag = release.tag_name;
+    if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error(`unexpected tag ${tag}`);
+    return { version: tag.slice(1), assets: release.assets.map((a) => a.name) };
+  } catch (e) {
+    console.error(`Couldn't find the latest published release (${e.message}). Set RUPERT_SITE_VERSION=x.y.z to build anyway.`);
+    process.exit(1);
+  }
+}
 
 // MARK: - Checks: every language has every text
 
@@ -189,6 +215,11 @@ for (const file of readdirSync(out, { recursive: true }).filter((f) => f.endsWit
   for (const [, ref] of html.matchAll(/(?:href|src|srcset)="(\/[^"#?]*)/g)) {
     const path = ref.endsWith("/") ? `${ref}index.html` : ref;
     if (!existsSync(join(out, path))) problems.push(`${file}: links to ${ref}, which isn't there`);
+  }
+  // Downloads: each file must be in the published release (the Android
+  // .apk is attached by hand; docs/RELEASING.md).
+  for (const [, name] of html.matchAll(/releases\/latest\/download\/([^"#?]+)/g)) {
+    if (releaseFiles && !releaseFiles.includes(name)) problems.push(`${file}: links to ${name}, which isn't in release v${version}`);
   }
 }
 if (problems.length) {
