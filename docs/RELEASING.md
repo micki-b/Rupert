@@ -6,7 +6,9 @@
 2. If dependencies changed: `python3 scripts/third-party-notices.py` and commit `THIRD_PARTY_NOTICES.md`.
 3. Commit, then tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
 4. The **Release** workflow (`.github/workflows/release.yml`) builds a universal macOS app (DMG), Windows installers (`-setup.exe` and MSI) and Linux packages (AppImage, deb, rpm), signs what it can, and creates a **draft** GitHub release with them, the signed update bundles and `latest.json`.
-5. Check the draft (download and try an installer), then **Publish**. The apps' updater only sees published releases: `https://github.com/micki-b/Rupert/releases/latest/download/latest.json`.
+5. Attach the Android app to the draft (it's built on the Mac, with the upload key): `scripts/build-android.sh`, then `gh release upload v1.0.0 target/android/Rupert-1.0.0-<code>.apk#Rupert_1.0.0_android.apk` (the name after `#` is what the website links). See "Android" below.
+6. Check the draft (download and try an installer), then **Publish**. The apps' updater only sees published releases: `https://github.com/micki-b/Rupert/releases/latest/download/latest.json`.
+7. Upload the website: `npm run site -- --upload`. Its download links use the latest *published* release's version, and the build stops if a linked file (such as the Android `.apk`) isn't in that release.
 
 ### Secrets and variables
 
@@ -116,5 +118,6 @@ Google Play app: "Rupert", package `io.github.micki_b.rupert` (Android names can
 1. The version comes from `scripts/set-version.py` (`mobile/tauri.conf.json`), as for the other apps.
 2. Build: `scripts/build-android.sh`. It writes `target/android/Rupert-<version>-<code>.aab` (for Google Play) and `.apk` (to install directly: `adb install -r …`), for ARM phones and x86_64. The version code is the build's UTC time, so each build is higher than the last.
 3. Upload the `.aab`: Play Console ▸ Test and release ▸ Testing ▸ Closed testing (or Production) ▸ Create new release, with release notes in English, Spanish and German.
+4. The `.apk` goes on the GitHub release too, as `Rupert_<version>_android.apk` (step 5 under "Desktop"); rupertlibrarian.com's Android download links to it. It's signed with the upload key, so Google Drive sign-in in it needs the upload key's Android OAuth client (above).
 
 New personal developer accounts must run a **closed test with at least 12 testers for 14 days in a row** before they can apply for production.
