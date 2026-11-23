@@ -21,10 +21,10 @@
   "hero.download": "Download, free",
   "hero.iphone": "iPhone app",
 
-  "android.status": "Preview",
-  "android.hero": "Android: download the app here. Google Play comes later.",
-  "android.heading": "Rupert for Android, from this site for now.",
-  "android.detail": "Until Rupert is on Google Play, download the Android app here and open it to install; your phone asks you to allow installing apps from your browser. It reads Google Drive and OneDrive and scans with the camera. It doesn't update itself yet: come back here for new versions.",
+  "android.status": "Early beta",
+  "android.hero": "Android: an early beta, from this site. Google Play comes later.",
+  "android.heading": "Rupert for Android is an early beta.",
+  "android.detail": "It's still being tested, so expect rough edges, and please report what you find. It isn't on Google Play yet, so Google hasn't reviewed it: download it here and open it to install. Your phone asks you to allow installing apps from your browser and may warn about an app from outside Google Play. It reads Google Drive and OneDrive and scans with the camera. It doesn't update itself yet: come back here for new versions.",
 
   "dn.label": "Rupert on a Mac, in light and dark mode",
   "dn.alt": "Rupert on a Mac in light mode: a folder of insurance documents as large icons, with the selected document's title, date and tags",
@@ -53,7 +53,7 @@
   "every.note.win": "On Windows, with OneDrive and Google Drive's streaming drive, without downloading your whole Drive.",
   "every.note.linux": "On Linux as an AppImage, .deb or .rpm, with any folder you sync.",
   "every.note.phone": "On iPhone, read from iCloud Drive, OneDrive or Google Drive. Text and titles come from your computer.",
-  "every.note.android": "On Android, read from Google Drive or OneDrive, with scans from the camera. Download it here; Google Play comes later.",
+  "every.note.android": "On Android (early beta), read from Google Drive or OneDrive, with scans from the camera. Download it here; Google Play comes later.",
 
   "scan.eyebrow": "Scanning",
   "scan.h2a": "Scan on your phone.",
@@ -91,7 +91,7 @@
   "dl.ios.req": "iOS 16 or later · scan, browse and search",
   "dl.ios.file": "App Store",
   "dl.android.file": ".apk",
-  "dl.android.req": "Android 7 or later, with Google Play services",
+  "dl.android.req": "Early beta · Android 7 or later, with Google Play services",
   "dl.fine": "All downloads, checksums and release notes are on <a href=\"https://github.com/micki-b/Rupert/releases\">GitHub</a>. Optional: a Local AI app such as <a href=\"https://lmstudio.ai\">LM Studio</a> or <a href=\"https://ollama.com\">Ollama</a> for filing suggestions and Ask Rupert; on Windows and Linux, <a href=\"https://github.com/tesseract-ocr/tesseract\">Tesseract</a> for text recognition.",
 
   "support.title": "Rupert support",

@@ -210,21 +210,21 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
       win: ["Download for Windows", "For Windows 10 and 11. A signed installer."],
       linux: ["Download for Linux", "AppImage, .deb and .rpm on the releases page."],
       ios: ["Get it on the App Store", "The computer version reads, files and searches; the iPhone scans and browses."],
-      android: ["Download for Android", "Open the file to install it. The computer version reads, files and searches; the phone scans and browses."],
+      android: ["Download for Android", "An early beta, not on Google Play yet. Open the file to install it. The computer version reads, files and searches; the phone scans and browses."],
     },
     es: {
       mac: ["Descargar para Mac", "Universal: Apple silicon e Intel. macOS 13 o posterior."],
       win: ["Descargar para Windows", "Para Windows 10 y 11. Un instalador firmado."],
       linux: ["Descargar para Linux", "AppImage, .deb y .rpm en la página de versiones."],
       ios: ["Bajala del App Store", "La versión de computadora lee, archiva y busca; el iPhone escanea y recorre."],
-      android: ["Descargar para Android", "Abrí el archivo para instalarla. La versión de computadora lee, archiva y busca; el teléfono escanea y recorre."],
+      android: ["Descargar para Android", "Una beta temprana, todavía no está en Google Play. Abrí el archivo para instalarla. La versión de computadora lee, archiva y busca; el teléfono escanea y recorre."],
     },
     de: {
       mac: ["Für Mac laden", "Universal: Apple-Chip und Intel. macOS 13 oder neuer."],
       win: ["Für Windows laden", "Für Windows 10 und 11. Ein signiertes Installationsprogramm."],
       linux: ["Für Linux laden", "AppImage, .deb und .rpm auf der Release-Seite."],
       ios: ["Im App Store laden", "Die Computer-Version liest, ordnet und sucht; das iPhone scannt und stöbert."],
-      android: ["Für Android laden", "Öffnen Sie die Datei, um die App zu installieren. Die Computer-Version liest, ordnet und sucht; das Telefon scannt und stöbert."],
+      android: ["Für Android laden", "Eine frühe Beta, noch nicht bei Google Play. Öffnen Sie die Datei, um die App zu installieren. Die Computer-Version liest, ordnet und sucht; das Telefon scannt und stöbert."],
     },
   };
   const [label, note] = words[pageLang][os];
