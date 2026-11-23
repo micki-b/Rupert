@@ -49,6 +49,36 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.5.1 [4000]
+
+Everything since the first Mac App Store version (0.1.0); Spanish and German in `listing-es.md` and `listing-de.md`.
+
+Rupert now speaks Spanish and German, runs on Apple Intelligence, and lets you move documents and drag new ones in.
+
+APPLE INTELLIGENCE AND LOCAL AI
+• On a Mac with Apple Intelligence (macOS 26 or later), inbox suggestions and Ask Rupert run on Apple's built-in model: nothing to install, and nothing leaves your Mac. Rupert starts with it on such a Mac.
+• Or use any app that runs AI models on your Mac, such as LM Studio or Ollama: Settings ▸ Local AI has presets for both.
+• Rupert says where Local AI runs: on this Mac, on another computer on your network, or elsewhere. An address outside your network counts as a cloud service: Ask Rupert shows ☁, and inbox suggestions don't use it.
+• Thinking models get more room for inbox suggestions, and a clear message if they still run out.
+
+SPANISH AND GERMAN
+• Screens, menus, messages and help in Spanish (as spoken in Argentina) and German. Rupert follows your Mac's language; Settings ▸ Language can choose another. Ask Rupert answers in the language you write in.
+• In Spanish the owl wears the albiceleste; in German, lederhosen.
+
+MOVE AND DRAG IN
+• Move documents and folders by dragging them onto a folder, or right-click ▸ Move to…. Their details go with them, and nothing is ever replaced.
+• Drop files from the Finder or another app onto a folder to copy them there, names and dates kept. Drop them on Inbox, and Rupert reads them and suggests where to file them, like a new scan.
+
+ALSO NEW
+• Google Drive folders (Google Drive for desktop) work like iCloud Drive and OneDrive: online-only files are shown without downloading them.
+• A star on every document: in the list, the icons, the gallery and search results, one click makes it a favorite.
+• Click an online-only document's cloud badge to download just that file; Rupert then reads its text.
+
+FIXED
+• Open, Show in Finder and Show in Rupert in the right-click menu work again.
+• A folder's … menu no longer runs off the window when its path is long.
+• Ask Rupert shows a model chosen in Settings ▸ Assistant right away.
+
 ## Keywords [100]
 
 `scanner,documents,pdf,search,ocr,receipts,paperless,files,inbox,filing,archive,tags,lm studio,ollama`
