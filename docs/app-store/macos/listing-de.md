@@ -39,6 +39,13 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## URLs
+
+- Support URL: `https://rupertlibrarian.com/de/support/`
+- Marketing URL: `https://rupertlibrarian.com/de/`
+
+Copyright, the privacy policy URL and the Notes for App Review are shared by every language (in `listing.md`).
+
 ## What's new in 0.5.1 [4000]
 
 Rupert spricht jetzt Spanisch und Deutsch, arbeitet mit Apple Intelligence und lässt Sie Dokumente verschieben und neue hineinziehen.

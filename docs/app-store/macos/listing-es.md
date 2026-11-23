@@ -39,6 +39,13 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## URLs
+
+- Support URL: `https://rupertlibrarian.com/es/support/`
+- Marketing URL: `https://rupertlibrarian.com/es/`
+
+Copyright, the privacy policy URL and the Notes for App Review are shared by every language (in `listing.md`).
+
 ## What's new in 0.5.1 [4000]
 
 Rupert ahora habla español y alemán, funciona con Apple Intelligence y te deja mover documentos y arrastrar otros nuevos.

@@ -85,9 +85,12 @@ FIXED
 
 ## URLs and copyright
 
-- Support URL: `https://github.com/micki-b/Rupert/issues`
-- Marketing URL: `https://github.com/micki-b/Rupert`
+- Support URL: `https://rupertlibrarian.com/support/`
+- Marketing URL: `https://rupertlibrarian.com/`
+- Privacy policy URL (App Information, shared with the iPhone): `https://rupertlibrarian.com/privacy/`
 - Copyright: `2026 Micki Braun`
+
+The Spanish and German pages have their own Support and Marketing URLs (`listing-es.md`, `listing-de.md`). The Notes for App Review below are one field for all languages, so they stay in English.
 
 ## Notes for App Review
 
