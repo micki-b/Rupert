@@ -194,13 +194,36 @@
             <div class="get-main">
               <h2>{{t.dl.h2}}</h2>
               <p class="get-sub">{{t.dl.sub}}</p>
-              <a class="button primary big" data-download-primary href="https://github.com/micki-b/Rupert/releases/latest"
-                ><span data-download-label>{{t.dl.button}}</span></a
-              >
+              <div class="get-buttons">
+                <a class="button primary big" data-download-primary href="https://github.com/micki-b/Rupert/releases/latest"
+                  ><span data-download-label>{{t.dl.button}}</span></a
+                >
+                <!-- Macs also get the Mac App Store edition (home.js shows it). -->
+                <span class="get-or" data-mac-store hidden>{{t.dl.or}}</span>
+                <a
+                  class="button big store-button"
+                  data-mac-store
+                  hidden
+                  href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac"
+                  ><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect width="24" height="24" rx="5.5" fill="url(#store-blue)" />
+                    <defs>
+                      <linearGradient id="store-blue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#1ec0fd" />
+                        <stop offset="1" stop-color="#1773ef" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M13.4 5.6 8 15M10.6 5.6 16.4 15.6M6.2 13.2h11.6M7.2 16.6l-.6 1"
+                      stroke="#fff"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      fill="none"
+                    /></svg
+                  >{{t.dl.mac.store}}</a
+                >
+              </div>
               <p class="get-note" data-download-note>{{t.dl.note}}</p>
-              <p class="get-note get-alt" data-mac-store hidden>
-                <a href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac">{{t.dl.mac.storeLink}}</a>
-              </p>
             </div>
           </div>
 
