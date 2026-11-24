@@ -1,6 +1,6 @@
 # App Store listing (Mac), German
 
-The macOS version's texts for the **German** localization that the iPhone app already has. Name and subtitle are shared with the iPhone (`../ios/listing-de.md`); media fall back to the English ones. Formal "Sie", with ß, like the app. Character limits in brackets.
+The macOS version's texts for the **German** localization that the iPhone app already has. Name and subtitle are shared with the iPhone (`../ios/listing-de.md`); previews and screenshots are in `previews/de/` and `screenshots/de/` (see `listing.md`). Formal "Sie", with ß, like the app. Character limits in brackets.
 
 ## Promotional text [170]
 

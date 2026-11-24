@@ -68,7 +68,9 @@ The website's Android screens (`site/img/<lang>/android-folder-{light,dark}.png`
 
 ## Mac (`../macos/`)
 
-Needs: Google Chrome (renders images), ffmpeg, Local AI running with a model (LM Studio at its default address; inbox suggestions and Ask Rupert), and Screen Recording permission for the terminal (System Settings ▸ Privacy & Security). The recorder captures only Rupert's window, even under other windows.
+Needs: Google Chrome (renders images), ffmpeg, Apple Intelligence (macOS 26 or later, turned on; inbox suggestions and Ask Rupert use it, as a new install does), and Screen Recording permission for the terminal (System Settings ▸ Privacy & Security). The recorder captures only Rupert's window, even under other windows, but the screen must stay unlocked.
+
+Each language is one pass through steps 2–5 with `RUPERT_MEDIA_LANG` set (`en`, `es`, `de`): setup sets Rupert's language, and the scenes have their captions and Ask question in each. The sample library stays in English, as on the website and the iPhone. Spanish and German ask Rupert by the plumber's company name, and their Ask take (`s-ask.js`, and setup before it) runs with `RUPERT_MEDIA_ENGINE=lmstudio` (LM Studio at its default address with qwen/qwen3.6-35b-a3b): in tests Apple Intelligence missed the English invoice from a Spanish question and answered the German one in English. A take must stay under 30 s; if the model thinks too long, record it again.
 
 1. **Capture copy** of Rupert: the App Store feature set, the test identifier (its own data, separate from your Rupert), titled "Rupert", light mode, with the debug test hooks:
 
@@ -80,22 +82,23 @@ Needs: Google Chrome (renders images), ffmpeg, Local AI running with a model (LM
 
    It lands in `target/debug/bundle/macos/Rupert.app`.
 
-2. **A fresh library copy** (filing moves the scans, so repeat this before each inbox take):
+2. **A fresh library copy** (filing moves the scans, so repeat this and step 3 before each inbox take):
 
    ```sh
-   export RUPERT_MEDIA_LIB="$(mktemp -d)"
+   export RUPERT_MEDIA_LANG=es RUPERT_MEDIA_LIB="$(mktemp -d)"
    cp -Rp docs/app-store/tools/sample-library/. "$RUPERT_MEDIA_LIB/"
+   mkdir -p "$RUPERT_MEDIA_LIB/Home Documents/Inbox"
    cp -p docs/app-store/tools/inbox-scans/*.pdf "$RUPERT_MEDIA_LIB/Home Documents/Inbox/"
    ```
 
-3. **Set up once** (adds the library, sets the inbox and Local AI, waits for the suggestions):
+3. **Set up** (replaces an earlier run's library with this one, sets the inbox, the language and Apple Intelligence, waits for the suggestions):
 
    ```sh
    T=docs/app-store/tools/mac
    $T/launch.sh 1440x900 $T/setup.js /tmp/setup.log; until grep -q 'rupert-test: ready' /tmp/setup.log; do sleep 1; done
    ```
 
-4. **Screenshots** (1440 × 900; the display here is 1×, so window points are pixels): `$T/shots.sh docs/app-store/macos/screenshots`
+4. **Screenshots**, from a 1440 × 900 window: 2880 × 1800 on a Retina screen (1440 × 900 on a 1× one; both are sizes Apple takes): `$T/shots.sh docs/app-store/macos/screenshots/$RUPERT_MEDIA_LANG`
 
 5. **Previews**, one take per scene (`s-find.js`, `s-inbox.js`, `s-ask.js`). The window is 1664 × 936 and goes on a 1920 × 1080 background with captions. The scene scripts wait about 7 s before acting, so start the recorder right away:
 
@@ -103,11 +106,11 @@ Needs: Google Chrome (renders images), ffmpeg, Local AI running with a model (LM
    swiftc -O $T/recorder.swift -o /tmp/recorder
    read P W < <($T/launch.sh 1664x936 $T/s-find.js /tmp/find.log)
    /tmp/recorder $W 45 /tmp/take-find.mov > /tmp/rec-find.txt
-   python3 $T/compose.py /tmp/take-find.mov /tmp/rec-find.txt /tmp/find.log docs/app-store/macos/previews/1-find.mp4
+   python3 $T/compose.py /tmp/take-find.mov /tmp/rec-find.txt /tmp/find.log docs/app-store/macos/previews/$RUPERT_MEDIA_LANG/1-find.mp4
    ```
 
    Scenes mark their start, end and captions in the log (`mark cap:<text>`); `compose.py` cuts the take to the scene, rounds the window's corners, adds the captions and encodes a preview Apple accepts (1920 × 1080, 30 fps, H.264 High 4.0, stereo AAC, 15–30 s).
 
-6. **Clean up**: quit the capture copy, then delete its data: `~/Library/Application Support/io.github.micki-b.rupert-test`, `~/Library/Caches/io.github.micki-b.rupert-test`, `~/Library/WebKit/io.github.micki-b.rupert-test`.
+6. **Clean up**: quit the capture copy, then (if you like; the next setup replaces the library anyway) delete its data: `~/Library/Application Support/io.github.micki-b.rupert-test`, `~/Library/Caches/io.github.micki-b.rupert-test`, `~/Library/WebKit/io.github.micki-b.rupert-test`.
 
-A screen at 2× (Retina) would capture at double size; then use a 1440 × 900 window for 2880 × 1800 screenshots, and scale previews down to 1920 × 1080 in `compose.py`.
+On a Retina screen the recorder captures the window at twice its size; `compose.py` scales it to the 1664 × 936 frame, which makes the preview sharper. The recorder may report "Cannot append media data after ending session" when it stops: a late frame, harmless.

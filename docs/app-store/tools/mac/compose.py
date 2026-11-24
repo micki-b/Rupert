@@ -51,7 +51,8 @@ for i, (text, _, _) in enumerate(spans):
     inputs += ["-loop", "1", "-t", f"{dur}", "-i", str(png)]
 inputs += ["-f", "lavfi", "-t", f"{dur}", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]
 
-f = ["[1:v]fps=30,format=rgba[w]", "[2:v]format=gray[m]", "[w][m]alphamerge[wa]",
+# The window is 1664 × 936 points: a Retina screen records it at twice that.
+f = ["[1:v]fps=30,scale=1664:936:flags=lanczos,format=rgba[w]", "[2:v]format=gray[m]", "[w][m]alphamerge[wa]",
      "[0:v][wa]overlay=128:120:shortest=1[v0]"]
 last = "v0"
 for i, (text, a, b) in enumerate(spans):
