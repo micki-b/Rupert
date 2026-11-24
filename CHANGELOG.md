@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Inbox suggestions speak Rupert's language** (#58): the short reason under the suggested folder is now in the language Rupert shows (Spanish or German too), not always English. The suggested title stays in the document's own language, since it becomes the file name.
+
 ## 0.5.1 — 2026-11-23
 
 - **The privacy policy, from the phone**: Settings ▸ About has a **Privacy policy** link (on iPhone and Android), as Google Play asks.
