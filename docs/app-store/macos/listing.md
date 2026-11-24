@@ -4,15 +4,17 @@ The Mac App Store edition shares the iPhone app's record ("Rupert - The Libraria
 
 ## App Previews and Screenshots (Mac)
 
-**App previews** (`previews/`, 1920 × 1080, 30 fps, H.264, stereo AAC; up to 3, shown before the screenshots), in this order:
+**App previews**, one set per language in `previews/<lang>/` (`en`, `es`, `de`; 1920 × 1080, 30 fps, H.264, stereo AAC; up to 3, shown before the screenshots), in this order:
 
 1. `1-find.mp4` (23 s): folders in the gallery, large icons, search inside documents.
 2. `2-inbox.mp4` (20 s): new scans in the inbox get suggestions and are filed with a click.
-3. `3-ask.mp4` (18 s): Ask Rupert answers from a receipt, with the local model (LM Studio).
+3. `3-ask.mp4` (18–24 s): Ask Rupert answers from the plumber's invoice. English runs on Apple Intelligence; Spanish and German on a Local AI app (LM Studio), because the sample documents are in English and Apple's model didn't find them from a Spanish or German question.
 
 App Store Connect picks a poster frame at 5 s; change it per preview (Edit Poster Frame) if another moment looks better.
 
-**Screenshots** (`screenshots/`, 1440 × 900, PNG without alpha), in this order: `1-inbox.png`, `2-search.png`, `3-gallery.png`, `4-ask.png`.
+**Screenshots**, per language in `screenshots/<lang>/` (2880 × 1800, PNG without alpha), in this order: `1-inbox.png`, `2-search.png`, `3-gallery.png`, `4-ask.png`.
+
+In App Store Connect, upload each language's set on its own localization of the macOS version (English (U.S.), Spanish (Mexico), German).
 
 All of it shows a made-up library (`../tools/sample-library/`) in a copy of the App Store edition; `../tools/README.md` explains how to make them again.
 

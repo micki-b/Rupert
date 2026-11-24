@@ -1,5 +1,6 @@
 #!/bin/bash
-# shots.sh <out dir>: the Mac App Store screenshots (1440 × 900, no alpha).
+# shots.sh <out dir>: the Mac App Store screenshots (1440 × 900, no alpha), in the
+# language set by RUPERT_MEDIA_LANG (en, es, de), after setup.js for that language.
 # Needs a fresh library copy with the three inbox scans (see ../README.md).
 M="$(cd "$(dirname "$0")" && pwd)"
 OUT="$1"
@@ -15,16 +16,16 @@ shot() { # name, scene js
 }
 shot 1-inbox 'await sleep(1000);
 for (let i = 0; i < 60 && (await T.invoke("inbox_items")).some((x) => x.stage !== "ready"); i++) await sleep(1000);
-byText(".lib-item", "Inbox")?.click(); await sleep(3500);'
+inboxItem()?.click(); await sleep(3500);'
 shot 2-search 'await sleep(1000);
-const s = document.querySelector("input[placeholder=\"Search all documents\"]");
+const s = searchBox();
 await type(s, "warranty", 10); await sleep(1800);
 (byText("button.result", "Laptop") ?? $$("button.result")[0])?.click(); await sleep(1500);'
 shot 3-gallery 'await sleep(1000); folder("Receipts"); await sleep(1200); view("Gallery"); await sleep(1500);
 $$(".strip .frame")[3]?.click(); await sleep(2500);'
 shot 4-ask 'await sleep(1000); folder("Receipts"); await sleep(800); view("List"); await sleep(800);
 document.querySelector("button.fab")?.click(); await sleep(1200);
-await type(document.querySelector(".panel textarea"), "How much did the plumber charge in April, and what for?", 5);
+await type(document.querySelector(".panel textarea"), QUESTION, 5);
 document.querySelector(".panel button.send")?.click();
 for (let i = 0; i < 30 && !document.querySelector(".panel button.send.stop"); i++) await sleep(100);
 for (let i = 0; i < 240 && document.querySelector(".panel button.send.stop"); i++) await sleep(250);

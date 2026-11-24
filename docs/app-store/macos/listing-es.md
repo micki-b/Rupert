@@ -1,6 +1,6 @@
 # App Store listing (Mac), Spanish
 
-The macOS version's texts for the **Spanish (Mexico)** localization that the iPhone app already has (the same text can go under Spanish (Spain) too). Name and subtitle are shared with the iPhone (`../ios/listing-es.md`); media fall back to the English ones. Rioplatense ("vos"), like the app. Character limits in brackets.
+The macOS version's texts for the **Spanish (Mexico)** localization that the iPhone app already has (the same text can go under Spanish (Spain) too). Name and subtitle are shared with the iPhone (`../ios/listing-es.md`); previews and screenshots are in `previews/es/` and `screenshots/es/` (see `listing.md`). Rioplatense ("vos"), like the app. Character limits in brackets.
 
 ## Promotional text [170]
 
