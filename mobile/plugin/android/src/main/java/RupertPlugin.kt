@@ -43,6 +43,8 @@ import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
@@ -331,7 +333,9 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
   // MARK: - Google Drive
 
   /** An access token for `scope` from Google Play services: `{accessToken}`,
-   * null if the person declined. Asks only the first time. */
+   * null if the person declined, or `{refused: {code, status}}` when Google
+   * refused (an unregistered signing key, no network…), for Rupert to
+   * explain (#53). Asks only the first time. */
   @Command
   fun googleToken(invoke: Invoke) {
     val args = invoke.parseArgs(TokenArgs::class.java)
@@ -345,21 +349,42 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
           invoke.resolve(JSObject().put("accessToken", result.accessToken))
         }
       }
-      .addOnFailureListener { invoke.reject(it.message ?: "Google sign-in failed.") }
+      .addOnFailureListener { invoke.resolve(refused(it)) }
   }
 
+  /** Google's sheet closed. Not RESULT_OK means declined, or refused by
+   * Google: the result's data says which. */
   @ActivityCallback
   fun tokenDone(invoke: Invoke, result: ActivityResult) {
-    if (result.resultCode != Activity.RESULT_OK) {
+    val data = result.data
+    if (result.resultCode != Activity.RESULT_OK && data == null) {
       invoke.resolve(JSObject().put("accessToken", JSONObject.NULL))
       return
     }
     try {
-      val auth = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(result.data)
-      invoke.resolve(JSObject().put("accessToken", auth.accessToken))
+      val auth = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(data)
+      invoke.resolve(JSObject().put("accessToken", auth.accessToken ?: JSONObject.NULL))
+    } catch (e: ApiException) {
+      // 12501: Google Sign-In's own "cancelled".
+      if (e.statusCode == CommonStatusCodes.CANCELED || e.statusCode == 12501) {
+        invoke.resolve(JSObject().put("accessToken", JSONObject.NULL))
+      } else {
+        invoke.resolve(refused(e))
+      }
     } catch (e: Exception) {
-      invoke.reject(e.message ?: "Google sign-in failed.")
+      invoke.resolve(refused(e))
     }
+  }
+
+  private fun refused(e: Exception): JSObject {
+    Log.w("Rupert", "Google sign-in refused", e)
+    val code = (e as? ApiException)?.statusCode ?: CommonStatusCodes.INTERNAL_ERROR
+    val status = (e as? ApiException)?.status?.statusMessage
+      ?: e.message
+      ?: CommonStatusCodes.getStatusCodeString(code)
+    return JSObject()
+      .put("accessToken", JSONObject.NULL)
+      .put("refused", JSObject().put("code", code).put("status", status))
   }
 
   // MARK: - Keychain

@@ -535,6 +535,18 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Google no permitió mantener la sesión iniciada.",
     ),
     (
+        "Google doesn't recognize this copy of Rupert, so it can't sign in. Please tell us at contact@rupertlibrarian.com.",
+        "Google no reconoce esta copia de Rupert, así que no puede iniciar sesión. Avisanos a contact@rupertlibrarian.com.",
+    ),
+    (
+        "Couldn't reach Google. Check the internet connection and try again.",
+        "No se pudo conectar con Google. Revisá la conexión a internet y probá de nuevo.",
+    ),
+    (
+        "Google didn't let Rupert sign in: {0} (code {1}).",
+        "Google no dejó que Rupert inicie sesión: {0} (código {1}).",
+    ),
+    (
         "“{0}” is already in the library.",
         "«{0}» ya está en la biblioteca.",
     ),

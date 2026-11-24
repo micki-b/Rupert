@@ -52,15 +52,38 @@ fn configured() -> bool {
 const SIGNED_IN_KEY: &str = "gdrive-signed-in";
 
 /// Android: an access token from Google Play services, kept for 50 minutes
-/// (Google's last about an hour). `None` if the person declined.
+/// (Google's last about an hour). `None` if the person declined; an error
+/// saying why when Google refused (#53).
 #[cfg(target_os = "android")]
 fn android_tokens(app: &AppHandle) -> Result<Option<Tokens>, String> {
-    let token = device(app).google_token(gdrive::SCOPES).map_err(err)?;
-    Ok(token.map(|access_token| Tokens {
-        access_token,
-        refresh_token: None,
-        expires_at: std::time::Instant::now() + std::time::Duration::from_secs(50 * 60),
-    }))
+    use tauri_plugin_rupert_phone::GoogleToken;
+    match device(app).google_token(gdrive::SCOPES).map_err(err)? {
+        GoogleToken::Token(access_token) => Ok(Some(Tokens {
+            access_token,
+            refresh_token: None,
+            expires_at: std::time::Instant::now() + std::time::Duration::from_secs(50 * 60),
+        })),
+        GoogleToken::Declined => Ok(None),
+        GoogleToken::Refused { code, status } => Err(refused(code, &status)),
+    }
+}
+
+/// Why Google refused a sign-in on Android, from its status code
+/// (`CommonStatusCodes`) and text.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+fn refused(code: i32, status: &str) -> String {
+    const NETWORK_ERROR: i32 = 7;
+    const DEVELOPER_ERROR: i32 = 10;
+    if code == DEVELOPER_ERROR || status.contains("UNREGISTERED_ON_API_CONSOLE") {
+        tr("Google doesn't recognize this copy of Rupert, so it can't sign in. Please tell us at contact@rupertlibrarian.com.").into()
+    } else if code == NETWORK_ERROR {
+        tr("Couldn't reach Google. Check the internet connection and try again.").into()
+    } else {
+        trf(
+            "Google didn't let Rupert sign in: {0} (code {1}).",
+            &[&status.trim(), &code],
+        )
+    }
 }
 
 // MARK: - State
@@ -456,4 +479,24 @@ pub fn upload(
 ) -> Result<String, String> {
     let drive = app.state::<GoogleDrive>().drive(app)?;
     drive.upload(&inbox.item_id, name, bytes).map_err(err)
+}
+
+// MARK: - Tests
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Google's refusals say why instead of looking like a cancel (#53).
+    #[test]
+    fn explains_why_google_refused() {
+        rupert_core::i18n::set(rupert_core::i18n::Lang::En);
+        assert!(refused(8, "UNREGISTERED_ON_API_CONSOLE").contains("doesn't recognize"));
+        assert!(refused(10, "").contains("doesn't recognize"));
+        assert!(refused(7, "NETWORK_ERROR").contains("Couldn't reach Google"));
+        assert_eq!(
+            refused(13, "ERROR "),
+            "Google didn't let Rupert sign in: ERROR (code 13)."
+        );
+    }
 }
