@@ -198,16 +198,23 @@
                 ><span data-download-label>{{t.dl.button}}</span></a
               >
               <p class="get-note" data-download-note>{{t.dl.note}}</p>
+              <p class="get-note get-alt" data-mac-store hidden>
+                <a href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac">{{t.dl.mac.storeLink}}</a>
+              </p>
             </div>
           </div>
 
           <div class="platform-grid">
-            <a class="pf" data-os="mac" href="https://github.com/micki-b/Rupert/releases/latest/download/Rupert_{{version}}_universal.dmg">
+            <!-- Two editions: the .dmg from GitHub (updates itself) and the Mac App Store's. -->
+            <div class="pf pf-two" data-os="mac">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-4ZM14 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4Z" /></svg>
               <span class="pf-name">Mac</span>
               <span class="pf-req">{{t.dl.mac.req}}</span>
-              <span class="pf-file">.dmg</span>
-            </a>
+              <span class="pf-links">
+                <a class="pf-file" data-mac-dmg href="https://github.com/micki-b/Rupert/releases/latest/download/Rupert_{{version}}_universal.dmg">.dmg</a>
+                <a class="pf-file" href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac">{{t.dl.mac.store}}</a>
+              </span>
+            </div>
             <a class="pf" data-os="win" href="https://github.com/micki-b/Rupert/releases/latest/download/Rupert_{{version}}_x64-setup.exe">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13 7.5 1.1v-7H3v5.9Zm8.4 1.2L21 21v-8.4h-9.6v7.1Zm0-15.4v7.2H21V3l-9.6 1.3Z" /></svg>
               <span class="pf-name">Windows</span>
@@ -240,7 +247,7 @@
               <p>{{t.android.detail}}</p>
             </div>
           </aside>
-          <p class="fineprint">{{t.dl.fine}}</p>
+          <p class="fineprint">{{t.dl.mac.choice}} {{t.dl.fine}}</p>
         </div>
       </section>
     </main>
