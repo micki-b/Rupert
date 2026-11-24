@@ -4,6 +4,7 @@
 
 - **A roomier inbox** (#59): the waiting scans fill the middle of the window, with a search field (name, suggested title, tags, folder and the scanned text) and the same **List**, **Large icons** and **Gallery** views as folders, remembered for the inbox. The selected scan's page moves to the top of the right column, above **File it**, and its pages can be flipped through there. In the gallery the page is large in the middle and the right column has only the form.
 - **Long folder paths stay readable when filing** (#63, in part): the Folder field, the suggested folders and the inbox list show the source and the last two folders ("Boating/…/Sol y Mar/Purchase"); point at one to see the whole path. File it's other fields show their full text on hover too.
+- **Resizable columns** (#61): drag the edge between the sidebar, the middle and Details (or the inbox's preview and File it) to make a column wider or narrower, double-click it for the usual width, or move it with the arrow keys. Each width is remembered; the middle always keeps room.
 
 ## 0.5.2 — 2026-11-24
 

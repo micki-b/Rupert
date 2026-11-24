@@ -86,6 +86,12 @@
   </p>
   <p>Los dos botones arriba de las carpetas cambian la barra lateral entre tus <b>carpetas</b> y tus <b>etiquetas</b>.</p>
   <p>
+    Para darle más o menos lugar a la barra lateral, a los <b>Detalles</b> o a la vista previa y <b>Archivarlo</b> de la
+    bandeja de entrada, arrastrá el borde entre las columnas. Doble clic en el borde para volver al ancho de siempre.
+    Rupert recuerda cada ancho, y el centro siempre conserva algo de lugar. Con el teclado, apretá {mac ? "Opción-Tab" : "Tab"} hasta que el borde
+    quede seleccionado y usá las flechas (con Mayúsculas, pasos más grandes).
+  </p>
+  <p>
     Los <b>archivos Markdown</b> (<code>.md</code>) se abren en el lector propio de Rupert, con títulos, listas, tablas e
     imágenes. Los enlaces a otros archivos Markdown también se abren ahí (<b>Atrás</b> vuelve), los enlaces web se abren
     en tu navegador y <b>Abrir con la app predeterminada</b> le pasa el archivo a tu editor de siempre. Los archivos
