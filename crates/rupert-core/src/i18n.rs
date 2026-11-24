@@ -65,6 +65,131 @@ impl Lang {
         }
     }
 
+    /// Which of Rupert's languages a short text (a question, an answer) is
+    /// in, by its common words and letters; `None` when it isn't clear.
+    pub fn guess(text: &str) -> Option<Lang> {
+        const WORDS: [(Lang, &[&str]); 3] = [
+            (
+                Lang::En,
+                &[
+                    "the",
+                    "and",
+                    "what",
+                    "how",
+                    "much",
+                    "did",
+                    "does",
+                    "is",
+                    "are",
+                    "my",
+                    "for",
+                    "from",
+                    "with",
+                    "of",
+                    "to",
+                    "when",
+                    "where",
+                    "which",
+                    "this",
+                    "that",
+                    "it",
+                    "you",
+                    "your",
+                    "cost",
+                    "charge",
+                    "charged",
+                    "find",
+                    "show",
+                    "document",
+                    "documents",
+                    "found",
+                    "please",
+                    "contains",
+                    "there",
+                    "any",
+                    "an",
+                    "be",
+                    "have",
+                    "has",
+                ],
+            ),
+            (
+                Lang::Es,
+                &[
+                    "el", "la", "los", "las", "del", "de", "que", "qué", "cuánto", "cuánta",
+                    "cuándo", "dónde", "cómo", "por", "para", "con", "una", "un", "es", "mi", "me",
+                    "se", "lo", "tiene", "costó", "cobró", "buscá", "mostrame", "y", "en", "su",
+                    "fue",
+                ],
+            ),
+            (
+                Lang::De,
+                &[
+                    "der",
+                    "die",
+                    "das",
+                    "den",
+                    "dem",
+                    "des",
+                    "und",
+                    "ist",
+                    "hat",
+                    "wie",
+                    "wo",
+                    "wann",
+                    "ich",
+                    "mein",
+                    "meine",
+                    "ein",
+                    "eine",
+                    "im",
+                    "für",
+                    "mit",
+                    "von",
+                    "zu",
+                    "nicht",
+                    "sie",
+                    "haben",
+                    "gekostet",
+                    "berechnet",
+                    "wofür",
+                    "welche",
+                    "wurde",
+                    "am",
+                    "zeigen",
+                    "suchen",
+                    "auf",
+                ],
+            ),
+        ];
+        let mut score = [0usize; 3];
+        for word in text
+            .split(|c: char| !c.is_alphabetic())
+            .filter(|w| !w.is_empty())
+        {
+            let word = word.to_lowercase();
+            for (i, (_, words)) in WORDS.iter().enumerate() {
+                score[i] += usize::from(words.contains(&word.as_str()));
+            }
+        }
+        for c in text.chars() {
+            match c {
+                'ñ' | '¿' | '¡' | 'á' | 'í' | 'ó' | 'ú' => score[1] += 2,
+                'ä' | 'ö' | 'ü' | 'ß' | 'Ä' | 'Ö' | 'Ü' => score[2] += 2,
+                _ => {}
+            }
+        }
+        let (best, &top) = score.iter().enumerate().max_by_key(|(_, s)| **s)?;
+        let second = score
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != best)
+            .map(|(_, s)| *s)
+            .max()
+            .unwrap_or(0);
+        (top >= 2 && top >= 2 * second).then(|| WORDS[best].0)
+    }
+
     fn table(self) -> Option<&'static HashMap<&'static str, &'static str>> {
         static ES: OnceLock<HashMap<&str, &str>> = OnceLock::new();
         static DE: OnceLock<HashMap<&str, &str>> = OnceLock::new();
@@ -159,6 +284,34 @@ fn fill(text: &str, args: &[&dyn Display]) -> String {
 mod tests {
     use super::*;
     use std::path::{Path, PathBuf};
+
+    /// Ask Rupert's questions and answers (#57).
+    #[test]
+    fn guesses_the_language_of_a_question() {
+        let guess = Lang::guess;
+        assert_eq!(guess("¿Cuánto cobró el plomero en abril?"), Some(Lang::Es));
+        assert_eq!(guess("Buscá la laptop"), Some(Lang::Es));
+        assert_eq!(guess("Was hat der Laptop gekostet?"), Some(Lang::De));
+        assert_eq!(
+            guess("Wie hoch war die Stromrechnung im April?"),
+            Some(Lang::De)
+        );
+        assert_eq!(
+            guess("How much did the plumber charge in April, and what for?"),
+            Some(Lang::En)
+        );
+        assert_eq!(
+            guess("No document contains the full phrase \"Stromrechnung April.\""),
+            Some(Lang::En)
+        );
+        // An English title in a Spanish answer is still Spanish.
+        assert_eq!(
+            guess("Está en «Plumber invoice», en la carpeta Receipts."),
+            Some(Lang::Es)
+        );
+        assert_eq!(guess("$318.00"), None);
+        assert_eq!(guess("Laptop"), None);
+    }
 
     #[test]
     fn codes() {

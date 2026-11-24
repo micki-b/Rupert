@@ -3,6 +3,10 @@
 //! only (indexes into a throwaway database).
 //! Usage: cargo run --release -p rupert-core --example assistant_check -- \
 //!     <pdfium-dir> <library-folder> <db> <question>...
+//! `RUPERT_LANG=es` (or de) sets Rupert's language; `RUPERT_REPEAT=3` asks
+//! each question that many times, each in a new conversation;
+//! `RUPERT_MODEL=qwen/qwen3.6-35b-a3b` uses that model in LM Studio
+//! (localhost:1234) instead of Apple Intelligence.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -66,13 +70,39 @@ fn main() {
     }
     let index = Index::open(&db).unwrap();
     let sources = [source];
+    if let Some(lang) = std::env::var("RUPERT_LANG")
+        .ok()
+        .and_then(|c| rupert_core::i18n::Lang::from_code(&c))
+    {
+        rupert_core::i18n::set(lang);
+    }
+    let repeat: usize = std::env::var("RUPERT_REPEAT")
+        .ok()
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0);
+    let questions: Vec<String> = if repeat > 0 {
+        args.flat_map(|q| std::iter::repeat_n(q, repeat)).collect()
+    } else {
+        args.collect()
+    };
+    let backend = match std::env::var("RUPERT_MODEL") {
+        Ok(model) => Backend::OpenAiCompatible {
+            base_url: "http://localhost:1234/v1".into(),
+            model,
+            api_key: None,
+        },
+        Err(_) => Backend::Apple,
+    };
     let mut chat = Chat::new(assistant::system_prompt("2026-11-20"));
-    for question in args {
+    for question in questions {
+        if repeat > 0 {
+            chat = Chat::new(assistant::system_prompt("2026-11-20"));
+        }
         let tools = LibraryTools::new(&index, &sources);
         let t = Instant::now();
         println!("\n> {question}");
         let reply = chat.send(
-            &Backend::Apple,
+            &backend,
             &Logged(&tools),
             &question,
             &Cancel::new(),
