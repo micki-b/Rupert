@@ -436,6 +436,42 @@ impl Index {
         rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
+    /// The documents directly in `dir` of a source that match `text` (every
+    /// word, the last as a prefix, in the name, title, tags, notes or text),
+    /// as relative paths. For the inbox's search field (#59).
+    pub fn matching_in_folder(
+        &self,
+        source_id: &str,
+        dir: &str,
+        text: &str,
+    ) -> Result<Vec<String>> {
+        let Some(q) = fts_query(text) else {
+            return Ok(Vec::new());
+        };
+        let dir = dir.trim_matches('/');
+        let prefix = if dir.is_empty() {
+            String::new()
+        } else {
+            format!("{dir}/")
+        };
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT d.rel_path FROM fts JOIN docs d ON d.id = fts.rowid
+                 WHERE fts MATCH :q AND d.source_id = :source
+                   AND substr(d.rel_path, 1, length(:prefix)) = :prefix
+                   AND instr(substr(d.rel_path, length(:prefix) + 1), '/') = 0",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(
+                rusqlite::named_params! {":q": q, ":source": source_id, ":prefix": prefix},
+                |r| r.get(0),
+            )
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
     /// A folder as the index knows it: its subfolder names (only those
     /// holding documents) and the documents directly in it. For sources
     /// the phone reads through a web API, where nothing is on disk.
@@ -1539,6 +1575,34 @@ mod tests {
         under.sort();
         assert_eq!(under, ["Tax/2025/b.pdf", "Tax/a.pdf"]);
         assert_eq!(idx.stamps_under("s", "").unwrap().len(), 4);
+    }
+
+    /// The inbox's search: documents directly in one folder, by their text.
+    #[test]
+    fn matches_documents_in_one_folder() {
+        let idx = Index::open_in_memory().unwrap();
+        for (path, text) in [
+            (
+                "Inbox/scan 1.pdf",
+                "Pipeline Plumbing invoice, water heater valve",
+            ),
+            ("Inbox/scan 2.pdf", "Electric bill for March"),
+            ("Inbox/Old/scan 3.pdf", "Pipeline Plumbing again"),
+            ("Receipts/plumber.pdf", "Pipeline Plumbing invoice"),
+        ] {
+            idx.upsert(&row(path, None, &[], false), Some(text))
+                .unwrap();
+        }
+        let found = |dir: &str, q: &str| idx.matching_in_folder("s", dir, q).unwrap();
+        assert_eq!(found("Inbox", "pipeline plu"), ["Inbox/scan 1.pdf"]);
+        assert_eq!(found("/Inbox/", "march"), ["Inbox/scan 2.pdf"]);
+        assert_eq!(found("Inbox", "scan 2"), ["Inbox/scan 2.pdf"]);
+        assert!(found("Inbox", "  ").is_empty());
+        assert!(
+            idx.matching_in_folder("other", "Inbox", "pipeline")
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

@@ -454,6 +454,8 @@ export const api = {
   localAiPlace: (url: string) => invoke<LocalAiPlace>("local_ai_place", { url }),
   appleAiStatus: () => invoke<AppleAiStatus>("apple_ai_status"),
   inboxItems: () => invoke<IntakeItem[]>("inbox_items"),
+  /** Inbox items whose name or recognized text match `text` (relative paths). */
+  inboxSearch: (text: string) => invoke<string[]>("inbox_search", { text }),
   inboxRedo: (relPath: string) => invoke<void>("inbox_redo", { relPath }),
   allFolders: () => invoke<FolderChoice[]>("all_folders"),
   fileDocument: (sourceId: string, relPath: string, filing: Filing) =>

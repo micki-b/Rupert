@@ -269,6 +269,17 @@
     <b>Suggest again</b> asks Local AI for a new suggestion.
   </p>
   <p>
+    The waiting scans fill the middle of the window, with the titles Rupert suggests. Search them (by name, suggested
+    title, tags, folder or their text), and switch between <b>List</b>, <b>Large icons</b> and <b>Gallery</b> as in a
+    folder; Rupert remembers the view for the inbox. The selected scan's page is at the top of the right column, above
+    the form: flip through its pages with the arrows on the page or <kbd>Page Up</kbd> and <kbd>Page Down</kbd>. In the
+    gallery the page is large in the middle instead, and the right column has only the form.
+  </p>
+  <p>
+    Long folder paths show the source and the last two folders, like “Boating/…/Sol y Mar/Purchase”. Point at a folder,
+    or at any field that doesn't show all its text, to see all of it.
+  </p>
+  <p>
     To get rid of a scan instead, click <b>{windows ? "Delete…" : "Move to Trash…"}</b> under the form, right-click
     it in the list, or press <kbd>{mac ? "⌘⌫" : "Delete"}</kbd>. Rupert asks first, since a new scan may not be saved
     anywhere else yet; it goes to the {windows ? "Recycle Bin" : "Trash"}, where you can get it back.

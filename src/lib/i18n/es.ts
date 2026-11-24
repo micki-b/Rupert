@@ -371,6 +371,9 @@ const es: Messages = {
     open: "Abrir",
     suggestAgain: "Sugerir de nuevo",
     whatFilingDoes: "Escribe los detalles en el archivo, le cambia el nombre y lo mueve a la carpeta.",
+    searchPlaceholder: "Buscar en la bandeja de entrada",
+    noMatches: (q: string) => `Nada en la bandeja de entrada coincide con «${q}».`,
+    suggestion: "Sugerencia",
   },
   owl: {
     idle: "Rupert",

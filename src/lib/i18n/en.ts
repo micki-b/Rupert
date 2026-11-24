@@ -362,6 +362,9 @@ const en = {
     open: "Open",
     suggestAgain: "Suggest again",
     whatFilingDoes: "Writes the details into the file, renames it and moves it to the folder.",
+    searchPlaceholder: "Search the inbox",
+    noMatches: (q: string) => `Nothing in the inbox matches “${q}”.`,
+    suggestion: "Suggestion",
   },
   owl: {
     idle: "Rupert",

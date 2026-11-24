@@ -296,6 +296,17 @@
     nombre y lo mueve a la carpeta. <b>Sugerir de nuevo</b> le pide a la IA local una sugerencia nueva.
   </p>
   <p>
+    Los escaneos que esperan ocupan el centro de la ventana, con los títulos que sugiere Rupert. Buscalos (por nombre,
+    título sugerido, etiquetas, carpeta o su texto) y cambiá entre <b>Lista</b>, <b>Íconos grandes</b> y <b>Galería</b>
+    como en una carpeta; Rupert recuerda la vista de la bandeja de entrada. La página del escaneo elegido está arriba de
+    la columna derecha, sobre el formulario: pasá sus páginas con las flechas sobre la página o con <kbd>Re Pág</kbd> y
+    <kbd>Av Pág</kbd>. En la galería, la página se ve grande en el centro y la columna derecha tiene solo el formulario.
+  </p>
+  <p>
+    Las rutas de carpeta largas muestran el origen y las dos últimas carpetas, como “Boating/…/Sol y Mar/Purchase”.
+    Apoyá el puntero sobre una carpeta, o sobre cualquier campo que no muestre todo su texto, para verlo completo.
+  </p>
+  <p>
     Para deshacerte de un escaneo, hacé clic en <b>{windows ? "Eliminar…" : "Trasladar a la Papelera…"}</b> debajo del
     formulario, hacé clic derecho sobre él en la lista, o apretá <kbd>{mac ? "⌘⌫" : "Supr"}</kbd>. Rupert pregunta
     primero, porque puede que un escaneo nuevo todavía no esté guardado en ningún otro lado; va a la {trash}, de donde lo
