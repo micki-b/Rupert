@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Inbox suggestions speak Rupert's language** (#58): the short reason under the suggested folder is now in the language Rupert shows (Spanish or German too), not always English. The suggested title stays in the document's own language, since it becomes the file name.
+- **Ask Rupert finds more, and makes up less** (#57): when a search finds nothing, Rupert searches again with fewer words (without the month, say) and, for a question in Spanish or German, with the words in English, since documents are often in another language than the question. With Apple Intelligence, an answer that gives amounts Rupert never read, or comes back in another language than the question, is asked again; it now reads the document before saying what it costs, and searches instead of asking which document you mean.
 
 ## 0.5.1 — 2026-11-23
 

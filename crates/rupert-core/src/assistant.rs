@@ -25,7 +25,7 @@ use serde_json::{Value, json};
 
 use crate::apple_ai;
 use crate::error::{Error, Result};
-use crate::i18n::{tr, trf};
+use crate::i18n::{Lang, tr, trf};
 use crate::index::{Index, SearchQuery, TagMode};
 use crate::listing::list_dir;
 use crate::source::Source;
@@ -370,35 +370,106 @@ impl Chat {
             instructions.push_str("\n\nThe conversation so far:\n");
             instructions.push_str(&earlier);
         }
+        // The small model answers in the documents' language rather than the
+        // question's, and gives amounts it never read (#57): say which
+        // language, and check the answer.
+        let asked_in = Lang::guess(text);
+        if let Some(lang) = asked_in {
+            let name = lang.english_name();
+            instructions.push_str(&format!("\n\nThe user writes in {name}: answer in {name}."));
+        }
         let mut steps = Vec::new();
-        let answer = apple_ai::chat(
-            &apple_ai::Turn {
-                instructions: &instructions,
-                prompt: text,
-                tools: &specs,
-                temperature: 0.2,
-                max_tokens: 1000,
-            },
-            &mut |name, input| {
-                if cancel.is_cancelled() {
-                    return "The person stopped this. Don't call more tools.".into();
-                }
-                let step = Step {
-                    tool: name.to_string(),
-                    summary: describe_call(name, input),
-                };
-                on_step(&step);
-                steps.push(step);
-                let out = tools.call(name, input);
-                if out.chars().count() > max_result {
-                    out.chars().take(max_result).collect::<String>() + " …(cut short)"
-                } else {
+        let mut seen = format!("{instructions}\n{text}");
+        let mut retry_note = String::new();
+        let mut answer = String::new();
+        for attempt in 0..2 {
+            let (mut searched, mut found) = (Vec::new(), false);
+            let turn_instructions = format!("{instructions}{retry_note}");
+            answer = apple_ai::chat(
+                &apple_ai::Turn {
+                    instructions: &turn_instructions,
+                    prompt: text,
+                    tools: &specs,
+                    temperature: 0.2,
+                    max_tokens: 1000,
+                },
+                &mut |name, input| {
+                    if cancel.is_cancelled() {
+                        return "The person stopped this. Don't call more tools.".into();
+                    }
+                    let step = Step {
+                        tool: name.to_string(),
+                        summary: describe_call(name, input),
+                    };
+                    on_step(&step);
+                    steps.push(step);
+                    let out = tools.call(name, input);
+                    let out = if out.chars().count() > max_result {
+                        out.chars().take(max_result).collect::<String>() + " …(cut short)"
+                    } else {
+                        out
+                    };
+                    // Found: a document read, or one with all the words
+                    // (not just "April" of "Stromrechnung April").
+                    match name {
+                        "search_documents" => {
+                            searched.push(format!(
+                                "«{}»",
+                                input
+                                    .get("query")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or_default()
+                            ));
+                            found |= !out.contains("\"results\":[]")
+                                && !out.contains("the closest to «");
+                        }
+                        "read_document" => found |= !out.starts_with("Error"),
+                        _ => {}
+                    }
+                    seen.push('\n');
+                    seen.push_str(&out);
                     out
-                }
-            },
-        )?;
-        cancel.check()?;
-        let answer = answer.trim().to_string();
+                },
+            )?
+            .trim()
+            .to_string();
+            cancel.check()?;
+            let mut wrong = Vec::new();
+            let unseen = unseen_numbers(&answer, &seen);
+            if !unseen.is_empty() {
+                wrong.push(format!(
+                    "it gives numbers ({}) that no tool result showed. Read the document with \
+                     read_document and give only what it says, or say you didn't find it",
+                    unseen.join(", ")
+                ));
+            }
+            if let (Some(asked), Some(answered)) = (asked_in, Lang::guess(&answer))
+                && asked != answered
+            {
+                wrong.push(format!(
+                    "it is in {}, but the user wrote in {}. Answer in {}",
+                    answered.english_name(),
+                    asked.english_name(),
+                    asked.english_name()
+                ));
+            }
+            if !searched.is_empty() && !found && asked_in != Some(Lang::En) {
+                searched.dedup();
+                wrong.push(format!(
+                    "its searches ({}) found nothing, and the documents may be in English. Call \
+                     search_documents with those words translated into English, then answer",
+                    searched.join(", ")
+                ));
+            }
+            if wrong.is_empty() || attempt == 1 {
+                break;
+            }
+            retry_note = format!(
+                "\n\nA first answer to this question was: «{answer}». It can't be given: {}. \
+                 Answer again.",
+                wrong.join("; ")
+            );
+        }
         self.history.push(json!({"role": "user", "content": text}));
         self.history
             .push(json!({"role": "assistant", "content": answer}));
@@ -954,7 +1025,56 @@ fn strip_think(s: &str) -> String {
     out.trim().to_string()
 }
 
-/// "Searching for “impeller”", for the chat's progress lines.
+/// Numbers in an answer that aren't in what the model saw (its
+/// instructions, the question and the tool results): amounts it made up.
+/// Numbers are compared by their digits, so "$1,429.00", "1.429,00" and
+/// "1429" are the same; whole cents ("…00") don't count. Short numbers (a
+/// day, "2 hours") aren't checked unless they follow a currency sign.
+fn unseen_numbers(answer: &str, seen: &str) -> Vec<String> {
+    fn numbers(text: &str) -> Vec<(String, String, bool)> {
+        let chars: Vec<char> = text.chars().collect();
+        let mut out = Vec::new();
+        let mut i = 0;
+        while i < chars.len() {
+            if !chars[i].is_ascii_digit() {
+                i += 1;
+                continue;
+            }
+            let start = i;
+            while i < chars.len()
+                && (chars[i].is_ascii_digit()
+                    || (matches!(chars[i], '.' | ',')
+                        && chars.get(i + 1).is_some_and(char::is_ascii_digit)))
+            {
+                i += 1;
+            }
+            let raw: String = chars[start..i].iter().collect();
+            let mut digits: String = raw.chars().filter(char::is_ascii_digit).collect();
+            let cents = raw.len() > 3 && matches!(raw.as_bytes()[raw.len() - 3], b'.' | b',');
+            if cents && digits.ends_with("00") {
+                digits.truncate(digits.len() - 2);
+            }
+            let money = start > 0
+                && chars[..start]
+                    .iter()
+                    .rev()
+                    .take(2)
+                    .any(|c| matches!(c, '$' | '€' | '£'));
+            out.push((raw, digits, money));
+        }
+        out
+    }
+    let known: std::collections::HashSet<String> =
+        numbers(seen).into_iter().map(|(_, d, _)| d).collect();
+    let mut unseen: Vec<String> = numbers(answer)
+        .into_iter()
+        .filter(|(_, d, money)| (d.len() >= 3 || *money) && !known.contains(d))
+        .map(|(raw, _, _)| raw)
+        .collect();
+    unseen.dedup();
+    unseen
+}
+
 /// The latest text turns, oldest first, within `budget` characters, as
 /// "Person: …" / "Rupert: …" lines.
 fn recent_turns(history: &[Value], budget: usize) -> String {
@@ -977,6 +1097,7 @@ fn recent_turns(history: &[Value], budget: usize) -> String {
     lines.join("\n")
 }
 
+/// "Searching for “impeller”", for the chat's progress lines.
 fn describe_call(name: &str, input: &Value) -> String {
     let s = |k: &str| input.get(k).and_then(Value::as_str).unwrap_or_default();
     let tags = input
@@ -1244,6 +1365,44 @@ impl<'a> LibraryTools<'a> {
         }
     }
 
+    /// Searches; when nothing has every word, searches again leaving words
+    /// out (the last ones first, as in "Pipeline Plumbing April"), and
+    /// returns the query that found something.
+    fn search_with_fewer_words(
+        &self,
+        q: SearchQuery,
+    ) -> std::result::Result<(SearchQuery, Vec<crate::index::Hit>), String> {
+        let hits = self.index.search(&q).map_err(|e| e.to_string())?;
+        let words: Vec<&str> = q
+            .text
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .take(6)
+            .collect();
+        if !hits.is_empty() || words.len() < 2 {
+            return Ok((q, hits));
+        }
+        let n = words.len();
+        for keep in (1..n).rev() {
+            for leave_out in fewer(n, keep) {
+                let kept: Vec<&str> = (0..n)
+                    .filter(|i| !leave_out.contains(i))
+                    .map(|i| words[i])
+                    .collect();
+                if kept.iter().all(|w| filler(w)) {
+                    continue;
+                }
+                let text = kept.join(" ");
+                let fewer_q = SearchQuery { text, ..q.clone() };
+                let hits = self.index.search(&fewer_q).map_err(|e| e.to_string())?;
+                if !hits.is_empty() {
+                    return Ok((fewer_q, hits));
+                }
+            }
+        }
+        Ok((q, hits))
+    }
+
     fn rel(input: &Value) -> String {
         input
             .get("path")
@@ -1256,8 +1415,8 @@ impl<'a> LibraryTools<'a> {
     fn run(&self, name: &str, input: &Value) -> std::result::Result<Value, String> {
         match name {
             "search_documents" => {
-                let q = Self::query(input);
-                let hits = self.index.search(&q).map_err(|e| e.to_string())?;
+                let asked = Self::query(input);
+                let (q, hits) = self.search_with_fewer_words(asked.clone())?;
                 if !hits.is_empty() {
                     *self.searched.borrow_mut() = Some(UiAction::Search {
                         text: q.text.clone(),
@@ -1266,7 +1425,7 @@ impl<'a> LibraryTools<'a> {
                         favorites_only: q.favorites_only,
                     });
                 }
-                Ok(json!(hits.iter().map(|h| json!({
+                let results = json!(hits.iter().map(|h| json!({
                     "source": self.source_name(&h.source_id),
                     "path": h.rel_path,
                     "title": h.title,
@@ -1274,7 +1433,34 @@ impl<'a> LibraryTools<'a> {
                     "tags": h.tags,
                     "favorite": h.favorite,
                     "snippet": h.snippet.as_deref().map(|s| s.replace(['\u{E000}', '\u{E001}'], "")),
-                })).collect::<Vec<_>>()))
+                })).collect::<Vec<_>>());
+                // Small models search once with every word of the question
+                // (a month, words in another language) and give up, or
+                // answer from the snippets (#57): the result says what
+                // matched, and what to do next.
+                let next = if hits.is_empty() {
+                    if asked.text.trim().is_empty() {
+                        return Ok(results);
+                    }
+                    format!(
+                        "Nothing has the words «{}». Documents are often in another language \
+                         than the question: call search_documents again with these words in \
+                         English (or the documents' language), or with fewer words.",
+                        asked.text.trim()
+                    )
+                } else if q.text != asked.text {
+                    format!(
+                        "These are the documents with the words «{}», the closest to «{}». \
+                         Read the one that fits with read_document, then answer from it.",
+                        q.text,
+                        asked.text.trim()
+                    )
+                } else {
+                    "To say what a document says (an amount, a date, what it's for), read it \
+                     with read_document first."
+                        .into()
+                };
+                Ok(json!({"results": results, "note": next}))
             }
             "list_tags" => {
                 let filter = input
@@ -1397,6 +1583,89 @@ fn strip_source(name: &str, rel: &str) -> String {
     }
 }
 
+/// A month or a small word ("de", "im", "the"): a search for only such
+/// words finds documents at random.
+fn filler(word: &str) -> bool {
+    const FILLER: &[&str] = &[
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "setiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+        "januar",
+        "februar",
+        "märz",
+        "juni",
+        "juli",
+        "oktober",
+        "dezember",
+        "the",
+        "of",
+        "a",
+        "an",
+        "in",
+        "on",
+        "for",
+        "my",
+        "and",
+        "de",
+        "del",
+        "la",
+        "el",
+        "los",
+        "las",
+        "en",
+        "y",
+        "mi",
+        "por",
+        "para",
+        "der",
+        "die",
+        "das",
+        "im",
+        "am",
+        "von",
+        "für",
+        "und",
+        "mein",
+        "meine",
+    ];
+    word.chars().count() < 3 || FILLER.contains(&word.to_lowercase().as_str())
+}
+
+/// Which of `n` words to leave out to keep `keep` of them: each set of
+/// indexes, those leaving out the last words first.
+fn fewer(n: usize, keep: usize) -> Vec<Vec<usize>> {
+    let mut masks: Vec<u32> = (0..1u32 << n)
+        .filter(|m| m.count_ones() as usize == n - keep)
+        .collect();
+    masks.sort_unstable_by(|a, b| b.cmp(a));
+    masks
+        .into_iter()
+        .map(|m| (0..n).filter(|i| m & (1 << i) != 0).collect())
+        .collect()
+}
+
 fn rupert_dir_exists(root: &std::path::Path, rel: &str) -> bool {
     crate::listing::resolve(root, rel).is_ok_and(|p| p.is_dir())
 }
@@ -1501,15 +1770,20 @@ pub fn system_prompt(today: &str) -> String {
         "You are Rupert, the librarian in a document manager for the user's scanned paperwork \
          (PDFs and other documents in folders on their computer, synced with iCloud Drive or OneDrive). \
          Today is {today}.\n\n\
-         Use the tools to find documents and answer questions about them; never guess at documents, \
-         dates or amounts you haven't seen in a tool result. Search with a few distinctive words \
-         first, then refine with tags or other words. Read a document's text before answering a \
-         question about its contents.\n\n\
+         Use the tools to find documents and answer questions about them. Search before answering \
+         or asking the user anything; don't ask them which document they mean. Never give \
+         documents, dates or amounts you haven't seen in a tool result: to answer about what a \
+         document says (an amount, a warranty, what it was for), read its text with read_document \
+         first. Search with a few distinctive words (a name rather than a month), then refine with \
+         tags or other words. If nothing is found, search again with fewer words, or with the key \
+         words in English or the documents' language: documents are often in another language \
+         than the question.\n\n\
          When the user asks to open, show or go to something, do it with open_folder, show_document \
          or show_results, and only say something is shown or open after the tool answered \
          \"Shown.\". You can't change, move, rename, tag or delete files; say so if asked.\n\n\
          Answer briefly in plain text. Name documents by title (or file name) and folder.\n\n\
-         Answer in the language the user writes in; if that's unclear, in {language}.",
+         Answer in the language the user writes in, even when the documents are in another; if \
+         that's unclear, in {language}.",
         language = crate::i18n::current().english_name()
     )
 }
@@ -1640,8 +1914,8 @@ mod tests {
         let found: Value =
             serde_json::from_str(&tools.call("search_documents", &json!({"query": "impeller"})))
                 .unwrap();
-        assert_eq!(found[0]["title"], "Impeller invoice");
-        assert_eq!(found[0]["source"], "Documents");
+        assert_eq!(found["results"][0]["title"], "Impeller invoice");
+        assert_eq!(found["results"][0]["source"], "Documents");
 
         let doc: Value = serde_json::from_str(&tools.call(
             "read_document",
@@ -1693,6 +1967,57 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(listed["folders"][0], "Engine");
+    }
+
+    /// A search with every word of the question (a month, another
+    /// language) finds what has fewer of them, or says what to try (#57).
+    #[test]
+    fn searches_again_with_fewer_words() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        let search = |q: &str| -> Value {
+            serde_json::from_str(&tools.call("search_documents", &json!({"query": q}))).unwrap()
+        };
+        let found = search("Harbor impeller abril");
+        assert_eq!(found["results"][0]["title"], "Impeller invoice");
+        assert!(
+            found["note"]
+                .as_str()
+                .unwrap()
+                .contains("«Harbor impeller»")
+        );
+        assert!(matches!(
+            &tools.take_suggestions()[..],
+            [UiAction::Search { text, .. }] if text == "Harbor impeller"
+        ));
+        // Not down to a month or a small word alone.
+        for q in ["bomba abril", "bomba de agua"] {
+            let none = search(q);
+            assert_eq!(none["results"], json!([]));
+            assert!(none["note"].as_str().unwrap().contains("in English"));
+        }
+        let all = search("impeller");
+        assert_eq!(all["results"][0]["title"], "Impeller invoice");
+        assert!(all["note"].as_str().unwrap().contains("read_document"));
+
+        assert_eq!(fewer(3, 2), [vec![2], vec![1], vec![0]]);
+        assert_eq!(fewer(3, 1), [vec![1, 2], vec![0, 2], vec![0, 1]]);
+    }
+
+    /// Amounts the model gave without reading them (#57).
+    #[test]
+    fn finds_numbers_the_model_never_saw() {
+        let seen = "{\"text\":\"Laptop. Reference 324682. Date 2026-03-19. Total $1,429.00\"}";
+        assert_eq!(unseen_numbers("La laptop costó $1,200.", seen), ["1,200"]);
+        assert_eq!(unseen_numbers("It was $800, or $5.", seen), ["800", "5"]);
+        for fine in [
+            "La laptop costó 1,429.00 USD.",
+            "Der Laptop kostete 1.429,00 USD.",
+            "It cost $1,429, bought on 19/03/2026 (3 years of warranty).",
+            "Comprada el 19 de marzo de 2026.",
+        ] {
+            assert!(unseen_numbers(fine, seen).is_empty(), "{fine}");
+        }
     }
 
     #[test]
