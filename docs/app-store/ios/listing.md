@@ -61,6 +61,14 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.5.2 [4000]
+
+Ask Rupert finds more and makes up less.
+
+• Ask (on iPhones with Apple Intelligence): when a search finds nothing, Rupert tries again with fewer words and, for a question in Spanish or German, with the words in English, since documents are often in another language than the question.
+• Rupert reads a document before saying what something cost, answers in the language of your question, and searches instead of asking which document you mean.
+• Settings ▸ About has a link to the privacy policy.
+
 ## What's new in 0.5.0 [4000]
 
 See your documents, and send new ones to Rupert from any app.

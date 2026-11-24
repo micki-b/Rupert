@@ -38,6 +38,10 @@ IHRE DOKUMENTE BLEIBEN IHRE
 
 Rupert ist kostenlos und quelloffen.
 
+## Release notes, 0.5.2 [500]
+
+Schlägt die Anmeldung bei Google Drive fehl, sagt Rupert jetzt, warum (etwa wenn Google nicht erreichbar ist), statt still zu „Nicht angemeldet“ zurückzukehren.
+
 ## Release notes, first closed test [500]
 
 Erste Testversion von Rupert für Android: Durchsuchen Sie Ihre Ordner in Google Drive und OneDrive, öffnen Sie Dokumente, markieren Sie Ordner mit einem Stern und scannen Sie in Ihren Eingang. Auf Deutsch, Englisch und Spanisch.
