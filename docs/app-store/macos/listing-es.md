@@ -39,6 +39,14 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.5.2 [4000]
+
+Preguntale a Rupert encuentra más e inventa menos, y las sugerencias de la bandeja de entrada se explican en tu idioma.
+
+• Preguntale a Rupert: si una búsqueda no encuentra nada, Rupert prueba de nuevo con menos palabras y, si preguntás en español o alemán, con las palabras en inglés, porque los documentos muchas veces están en otro idioma que la pregunta.
+• Con Apple Intelligence, Rupert lee el documento antes de decir cuánto costó algo, contesta en el idioma de tu pregunta y busca en vez de preguntarte a qué documento te referís.
+• Sugerencias de la bandeja de entrada: el motivo breve debajo de la carpeta sugerida ahora está en el idioma de Rupert. El título sugerido queda en el idioma del documento, porque se convierte en el nombre del archivo.
+
 ## What's new in 0.5.1 [4000]
 
 Rupert ahora habla español y alemán, funciona con Apple Intelligence y te deja mover documentos y arrastrar otros nuevos.

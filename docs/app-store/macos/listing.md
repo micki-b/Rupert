@@ -51,6 +51,14 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.5.2 [4000]
+
+Ask Rupert finds more and makes up less, and inbox suggestions explain themselves in your language.
+
+• Ask Rupert: when a search finds nothing, Rupert tries again with fewer words and, for a question in Spanish or German, with the words in English, since documents are often in another language than the question.
+• With Apple Intelligence, Rupert reads a document before saying what something cost, answers in the language of your question, and searches instead of asking which document you mean.
+• Inbox suggestions: the short reason under the suggested folder is now in Rupert's language. The suggested title stays in the document's own language, since it becomes the file name.
+
 ## What's new in 0.5.1 [4000]
 
 Everything since the first Mac App Store version (0.1.0); Spanish and German in `listing-es.md` and `listing-de.md`.

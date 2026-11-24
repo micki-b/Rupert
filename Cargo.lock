@@ -3660,7 +3660,7 @@ dependencies = [
 
 [[package]]
 name = "rupert"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "keyring",
  "rupert-core",
@@ -3676,7 +3676,7 @@ dependencies = [
 
 [[package]]
 name = "rupert-core"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "flate2",
  "libc",
@@ -3705,7 +3705,7 @@ dependencies = [
 
 [[package]]
 name = "rupert-mobile"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "plist",
  "rupert-core",
@@ -4796,7 +4796,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-rupert-phone"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "serde",
  "serde_json",

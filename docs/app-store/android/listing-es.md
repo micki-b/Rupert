@@ -38,6 +38,10 @@ TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 
 Rupert es libre, gratis y de código abierto.
 
+## Release notes, 0.5.2 [500]
+
+Si no se puede iniciar sesión en Google Drive, Rupert ahora dice por qué (por ejemplo, si no se puede conectar con Google) en vez de volver sin aviso a «No iniciaste sesión».
+
 ## Release notes, first closed test [500]
 
 Primera versión de prueba de Rupert para Android: recorré y buscá en tus carpetas de Google Drive y OneDrive, abrí documentos, marcá carpetas con estrella y escaneá a tu bandeja de entrada. En español, inglés y alemán.

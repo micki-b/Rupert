@@ -74,6 +74,10 @@ Rupert is free and open source.
 
   (Google Play counts sending data off the device as "collection" even when it goes to the user's own storage and never to the developer.)
 
+## Release notes, 0.5.2 [500]
+
+Google Drive sign-in now says why it failed (for example, when Google can't be reached) instead of quietly going back to "Not signed in".
+
 ## Release notes, first closed test [500]
 
 First test version of Rupert for Android: browse and search your Google Drive and OneDrive folders, open documents, star folders, and scan into your inbox. In English, Spanish and German.

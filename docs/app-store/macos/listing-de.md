@@ -39,6 +39,14 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.5.2 [4000]
+
+„Rupert fragen“ findet mehr und erfindet weniger, und Eingangsvorschläge begründen sich in Ihrer Sprache.
+
+• „Rupert fragen“: Findet eine Suche nichts, versucht Rupert es mit weniger Wörtern erneut und bei einer Frage auf Spanisch oder Deutsch mit den Wörtern auf Englisch, denn Dokumente sind oft in einer anderen Sprache als die Frage.
+• Mit Apple Intelligence liest Rupert ein Dokument, bevor er sagt, was etwas gekostet hat, antwortet in der Sprache Ihrer Frage und sucht, statt zu fragen, welches Dokument Sie meinen.
+• Eingangsvorschläge: Die kurze Begründung unter dem vorgeschlagenen Ordner steht jetzt in Ruperts Sprache. Der vorgeschlagene Titel bleibt in der Sprache des Dokuments, da er zum Dateinamen wird.
+
 ## What's new in 0.5.1 [4000]
 
 Rupert spricht jetzt Spanisch und Deutsch, arbeitet mit Apple Intelligence und lässt Sie Dokumente verschieben und neue hineinziehen.

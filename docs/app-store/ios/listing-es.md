@@ -51,6 +51,14 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.5.2 [4000]
+
+Preguntale a Rupert encuentra más e inventa menos.
+
+• Preguntar (en iPhones con Apple Intelligence): si una búsqueda no encuentra nada, Rupert prueba de nuevo con menos palabras y, si preguntás en español o alemán, con las palabras en inglés, porque los documentos muchas veces están en otro idioma que la pregunta.
+• Rupert lee el documento antes de decir cuánto costó algo, contesta en el idioma de tu pregunta y busca en vez de preguntarte a qué documento te referís.
+• Configuración ▸ Acerca de tiene un enlace a la política de privacidad.
+
 ## What's new in 0.5.0 [4000]
 
 Mirá tus documentos, y mandale documentos nuevos a Rupert desde cualquier app.

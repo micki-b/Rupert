@@ -51,6 +51,14 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.5.2 [4000]
+
+„Rupert fragen“ findet mehr und erfindet weniger.
+
+• Fragen (auf iPhones mit Apple Intelligence): Findet eine Suche nichts, versucht Rupert es mit weniger Wörtern erneut und bei einer Frage auf Spanisch oder Deutsch mit den Wörtern auf Englisch, denn Dokumente sind oft in einer anderen Sprache als die Frage.
+• Rupert liest ein Dokument, bevor er sagt, was etwas gekostet hat, antwortet in der Sprache Ihrer Frage und sucht, statt zu fragen, welches Dokument Sie meinen.
+• Einstellungen ▸ Über hat einen Link zur Datenschutzerklärung.
+
 ## What's new in 0.5.0 [4000]
 
 Sehen Sie Ihre Dokumente, und senden Sie Rupert neue aus jeder App.
