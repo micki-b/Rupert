@@ -233,10 +233,12 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
       a.textContent = label;
       a.href = "#download";
     } else {
-      a.href = tile.href;
+      a.href = tile.href ?? tile.querySelector("[data-mac-dmg]").href;
       a.querySelector("[data-download-label]").textContent = label;
     }
   }
   const n = document.querySelector("[data-download-note]");
   if (n) n.textContent = note;
+  // Macs also get the Mac App Store edition.
+  if (os === "mac") document.querySelector("[data-mac-store]")?.removeAttribute("hidden");
 })();

@@ -1244,6 +1244,33 @@ h2,
   content: " →";
 }
 
+/* The Mac tile holds two links (.dmg and Mac App Store) instead of being one. */
+.pf-two:hover {
+  transform: none;
+  border-color: var(--border);
+  box-shadow: none;
+}
+.pf-two.yours:hover {
+  border-color: var(--accent);
+}
+.pf-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+}
+.pf-links .pf-file {
+  margin-top: 0;
+  text-decoration: none;
+}
+.pf-links .pf-file:hover {
+  text-decoration: underline;
+}
+.get-alt a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .pf.yours {
   border-color: var(--accent);
   background: linear-gradient(160deg, var(--accent-soft), transparent 60%), var(--card);
