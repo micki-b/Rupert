@@ -105,8 +105,11 @@
     </li>
   </ul>
   <p>
-    Online-only files show a cloud instead of a picture, since showing their pages would download them. Pictures are
-    kept in a cache on this computer and made again whenever a document changes.
+    Pictures are kept in a cache on this computer and made again whenever a document changes. Rupert never reads an
+    online-only file to show it, since that would download it. Instead, while a PDF in an iCloud Drive, OneDrive or
+    Google Drive folder is on this computer, Rupert keeps a small picture of its first page, so it still shows one after
+    the file goes online-only. Online-only documents without one show their icon. Either way the cloud stays on them,
+    and opening one downloads it.
   </p>
   <h3 id="moving">Moving</h3>
   <p>

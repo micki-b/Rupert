@@ -108,9 +108,12 @@
     </li>
   </ul>
   <p>
-    Dateien, die nur online verfügbar sind, zeigen eine Wolke statt eines Bildes, denn das Anzeigen ihrer Seiten würde
-    sie herunterladen. Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald
-    sich ein Dokument ändert.
+    Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald sich ein Dokument
+    ändert. Rupert liest eine Datei, die nur online verfügbar ist, nie, um sie anzuzeigen, denn das würde sie
+    herunterladen. Solange ein PDF aus einem Ordner in iCloud Drive, OneDrive oder Google Drive auf diesem Computer liegt,
+    behält Rupert stattdessen ein kleines Bild seiner ersten Seite, damit es auch danach noch eines zeigt. Dokumente, die
+    nur online verfügbar sind und kein solches Bild haben, zeigen ihr Symbol. In beiden Fällen bleibt die Wolke, und
+    beim Öffnen wird das Dokument heruntergeladen.
   </p>
   <h3 id="moving">Bewegen</h3>
   <p>

@@ -935,6 +935,23 @@ impl Index {
         rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
+    /// The PDFs of a source that are on this computer (not online-only),
+    /// for making their kept pictures.
+    pub fn local_pdfs(&self, source_id: &str) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT rel_path FROM docs
+                 WHERE source_id = ?1 AND cloud = 0 AND kind = 'pdf'
+                 ORDER BY rel_path",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(params![source_id], |r| r.get(0))
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
     /// Where a document's indexed text came from, if it is indexed.
     pub fn text_state(&self, source_id: &str, rel_path: &str) -> Result<Option<TextState>> {
         self.conn

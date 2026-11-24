@@ -20,7 +20,8 @@ use it.
 - **Titles, tags, dates, notes and favorites** are written into your documents (inside PDFs) or into small hidden
   files next to them (a `.rupert` folder in the same folder). They sync with your files through your own cloud
   storage, like any other file.
-- **A search index and a cache of page pictures** are kept in the app's own folder on each device. They can be
+- **A search index and a cache of page pictures** (including a small picture of the first page of PDFs in cloud
+  folders, so they show one when they're online-only) are kept in the app's own folder on each device. They can be
   deleted at any time; Rupert rebuilds them from your files.
 - **A shared catalog** (the hidden `.rupert/catalog` folder in iCloud Drive, OneDrive and Google Drive folders) holds the text
   Rupert has read from your documents, so your other devices can search documents that are stored only online.

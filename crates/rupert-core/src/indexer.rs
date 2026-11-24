@@ -37,12 +37,16 @@ use crate::meta::{self, DocMeta, PartialMeta, Storage};
 use crate::sidecar::{self, Sidecar};
 use crate::source::Source;
 use crate::text::TextExtractor;
+use crate::thumbs::Thumbnails;
 
 /// Online-only files fetched at once (downloads are slow but not
 /// bandwidth-bound, so a few in parallel help a lot).
 const DOWNLOAD_BATCH: usize = 6;
 /// Larger files aren't downloaded just to read their text.
 const MAX_DOWNLOAD_BYTES: u64 = 100 * 1024 * 1024;
+/// Kept pictures made per turn of the idle loop, so a new job waits at
+/// most a few renders.
+const PICTURE_BATCH: usize = 4;
 
 // MARK: - Options
 
@@ -68,6 +72,9 @@ pub type PrepareHidden = Box<dyn Fn(&Path) + Send>;
 pub struct Options {
     pub mode: Mode,
     pub prepare_hidden: Option<PrepareHidden>,
+    /// Where to keep a picture of each PDF in a cloud folder while it's on
+    /// this computer (#62), so it still has one once it's online-only.
+    pub pictures: Option<Thumbnails>,
 }
 
 // MARK: - Jobs and progress
@@ -158,6 +165,10 @@ pub fn spawn_with(
                 downloads: Downloads::default(),
                 mode: options.mode,
                 prepare_hidden: options.prepare_hidden,
+                pictures: Pictures {
+                    thumbs: options.pictures,
+                    ..Pictures::default()
+                },
             };
             worker.run(rx);
         })?;
@@ -177,6 +188,16 @@ struct Worker {
     downloads: Downloads,
     mode: Mode,
     prepare_hidden: Option<PrepareHidden>,
+    pictures: Pictures,
+}
+
+/// Kept pictures still to make for documents already indexed, in idle time.
+#[derive(Default)]
+struct Pictures {
+    thumbs: Option<Thumbnails>,
+    queue: VecDeque<PathBuf>,
+    /// Queued or tried this session, so nothing is rendered twice.
+    seen: HashSet<PathBuf>,
 }
 
 /// The queue of online-only documents to download and index.
@@ -214,8 +235,9 @@ impl Worker {
         self.progress.pdf_text = self.extractor.pdf_supported();
         self.report(true);
         loop {
-            // Jobs come first; downloads fill the idle time between them.
-            let first = if self.downloads.queue.is_empty() {
+            // Jobs come first; downloads and then pictures fill the idle
+            // time between them.
+            let first = if self.downloads.queue.is_empty() && self.pictures.queue.is_empty() {
                 match rx.recv() {
                     Ok(job) => job,
                     Err(_) => return,
@@ -224,7 +246,11 @@ impl Worker {
                 match rx.try_recv() {
                     Ok(job) => job,
                     Err(TryRecvError::Empty) => {
-                        self.download_batch();
+                        if self.downloads.queue.is_empty() {
+                            self.picture_batch();
+                        } else {
+                            self.download_batch();
+                        }
                         continue;
                     }
                     Err(TryRecvError::Disconnected) => return,
@@ -265,11 +291,13 @@ impl Worker {
                 for source in &sources {
                     self.sync(source, "", true)?;
                     self.queue_downloads(source)?;
+                    self.queue_pictures(source)?;
                 }
             }
             Job::SyncSource(source) => {
                 self.sync(&source, "", true)?;
                 self.queue_downloads(&source)?;
+                self.queue_pictures(&source)?;
             }
             Job::SyncDir { source, rel_dir } => {
                 self.sync(&source, &rel_dir, false)?;
@@ -476,6 +504,13 @@ impl Worker {
                     let _ = catalog::remove(&source.root, &f.rel_path);
                 }
             }
+            if kind == FileKind::Pdf
+                && shares_catalog(source)
+                && let Some(thumbs) = &self.pictures.thumbs
+                && let Err(err) = thumbs.keep(&self.extractor, &path)
+            {
+                eprintln!("rupert: no kept picture of {}: {err}", f.rel_path);
+            }
             (record.meta, record.storage, state, body)
         };
 
@@ -626,6 +661,46 @@ impl Worker {
             self.index_file(source, &evicted)?;
         }
         Ok(())
+    }
+
+    // MARK: Kept pictures
+
+    /// Queues the source's PDFs that are on this computer, so the ones
+    /// without a kept picture get one in idle time. Cloud sources only:
+    /// elsewhere a file never becomes online-only.
+    fn queue_pictures(&mut self, source: &Source) -> Result<()> {
+        if self.mode == Mode::Viewer || self.pictures.thumbs.is_none() || !shares_catalog(source) {
+            return Ok(());
+        }
+        for rel in self.index.local_pdfs(&source.id)? {
+            let path = source.root.join(rel);
+            if self.pictures.seen.insert(path.clone()) {
+                self.pictures.queue.push_back(path);
+            }
+        }
+        Ok(())
+    }
+
+    /// Makes a few queued kept pictures (skipping those that exist).
+    fn picture_batch(&mut self) {
+        let Some(thumbs) = self.pictures.thumbs.clone() else {
+            self.pictures.queue.clear();
+            return;
+        };
+        let mut made = 0;
+        while made < PICTURE_BATCH
+            && let Some(path) = self.pictures.queue.pop_front()
+        {
+            match catch_unwind(AssertUnwindSafe(|| thumbs.keep(&self.extractor, &path))) {
+                Ok(Ok(true)) => made += 1,
+                Ok(Ok(false)) => {}
+                Ok(Err(e)) => eprintln!("rupert: no kept picture of {}: {e}", path.display()),
+                Err(_) => eprintln!(
+                    "rupert: kept picture of {} crashed; skipped",
+                    path.display()
+                ),
+            }
+        }
     }
 
     fn remove_file(&mut self, source: &Source, rel_path: &str) -> Result<()> {
@@ -838,6 +913,7 @@ pub(crate) mod tests {
             downloads: Downloads::default(),
             mode: Mode::Library,
             prepare_hidden: None,
+            pictures: Pictures::default(),
         }
     }
 

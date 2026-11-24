@@ -1450,9 +1450,24 @@ pub fn run() {
             let changed_handle = app.handle().clone();
             // PDFium lives on one service thread; everyone shares this handle.
             let extractor = TextExtractor::new(pdfium_dir(app).as_deref());
-            let indexer = rupert_core::indexer::spawn(
+
+            // Thumbnails: a disposable cache, trimmed now and then. Kept
+            // pictures of cloud documents (#62) get a larger budget of their
+            // own: they can't be made again without a download.
+            let thumbs = Arc::new(Thumbnails::new(app.path().app_cache_dir()?.join("thumbs")));
+            let pruning = thumbs.clone();
+            std::thread::spawn(move || {
+                pruning.prune(200 << 20, 150 << 20);
+                pruning.prune_kept(1 << 30, 800 << 20);
+            });
+
+            let indexer = rupert_core::indexer::spawn_with(
                 index_path.clone(),
                 extractor.clone(),
+                rupert_core::indexer::Options {
+                    pictures: Some((*thumbs).clone()),
+                    ..Default::default()
+                },
                 move |p: Progress| {
                     if let Some(state) = progress_handle.try_state::<AppState>() {
                         *state.progress.lock().unwrap() = p.clone();
@@ -1464,11 +1479,6 @@ pub fn run() {
                 },
             )?;
             let index = Index::open(&index_path)?;
-
-            // Thumbnails: a disposable cache, trimmed now and then.
-            let thumbs = Arc::new(Thumbnails::new(app.path().app_cache_dir()?.join("thumbs")));
-            let pruning = thumbs.clone();
-            std::thread::spawn(move || pruning.prune(200 << 20, 150 << 20));
 
             let intake_handle = app.handle().clone();
             let intake = intake::spawn(

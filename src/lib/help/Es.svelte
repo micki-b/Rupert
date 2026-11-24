@@ -112,8 +112,11 @@
     </li>
   </ul>
   <p>
-    Los archivos que están solo en línea muestran una nube en vez de una imagen, porque mostrar sus páginas los
-    descargaría. Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento.
+    Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento. Rupert
+    nunca lee un archivo que está solo en línea para mostrarlo, porque eso lo descargaría. En cambio, mientras un PDF de
+    una carpeta de iCloud Drive, OneDrive o Google Drive está en esta computadora, Rupert guarda una imagen chica de su
+    primera página, así sigue mostrando una cuando el archivo pasa a estar solo en línea. Los documentos solo en línea sin
+    imagen muestran su ícono. En los dos casos conservan la nube, y abrir uno lo descarga.
   </p>
   <h3 id="moving">Mover</h3>
   <p>
