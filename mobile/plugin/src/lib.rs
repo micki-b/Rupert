@@ -38,6 +38,22 @@ impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Google Play services' answer when asked for a Google Drive token
+/// (Android).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GoogleToken {
+    Token(String),
+    /// The person closed Google's sheet.
+    Declined,
+    /// Google refused: `code` is a `CommonStatusCodes` value (7 network,
+    /// 10 developer error…), `status` its text, such as
+    /// "UNREGISTERED_ON_API_CONSOLE" for a signing key Google doesn't know.
+    Refused {
+        code: i32,
+        status: String,
+    },
+}
+
 /// A folder the user picked, with a bookmark to reopen it after a relaunch.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -232,19 +248,31 @@ impl<R: Runtime> Device<R> {
     /// Play services (asks the person the first time; afterwards answers
     /// silently). `None` if they declined. Google allows the web sign-in
     /// used on iOS only for iOS apps.
-    pub fn google_token(&self, scope: &str) -> Result<Option<String>> {
+    pub fn google_token(&self, scope: &str) -> Result<GoogleToken> {
         #[derive(Serialize)]
         struct Args<'a> {
             scope: &'a str,
         }
         #[derive(Deserialize)]
+        struct Refused {
+            code: i32,
+            status: Option<String>,
+        }
+        #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Token {
             access_token: Option<String>,
+            refused: Option<Refused>,
         }
-        Ok(self
-            .call::<Token>("googleToken", Args { scope })?
-            .access_token)
+        let token = self.call::<Token>("googleToken", Args { scope })?;
+        Ok(match (token.access_token, token.refused) {
+            (Some(t), _) => GoogleToken::Token(t),
+            (None, Some(r)) => GoogleToken::Refused {
+                code: r.code,
+                status: r.status.unwrap_or_default(),
+            },
+            (None, None) => GoogleToken::Declined,
+        })
     }
 
     pub fn keychain_get(&self, key: &str) -> Result<Option<String>> {

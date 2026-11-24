@@ -545,6 +545,18 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Google hat das Angemeldetbleiben nicht erlaubt.",
     ),
     (
+        "Google doesn't recognize this copy of Rupert, so it can't sign in. Please tell us at contact@rupertlibrarian.com.",
+        "Google erkennt diese Kopie von Rupert nicht, daher ist keine Anmeldung möglich. Bitte melden Sie es an contact@rupertlibrarian.com.",
+    ),
+    (
+        "Couldn't reach Google. Check the internet connection and try again.",
+        "Google ist nicht erreichbar. Prüfen Sie die Internetverbindung und versuchen Sie es erneut.",
+    ),
+    (
+        "Google didn't let Rupert sign in: {0} (code {1}).",
+        "Google hat die Anmeldung von Rupert abgelehnt: {0} (Code {1}).",
+    ),
+    (
         "“{0}” is already in the library.",
         "„{0}“ ist bereits in der Bibliothek.",
     ),
