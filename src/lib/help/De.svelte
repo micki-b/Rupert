@@ -298,6 +298,18 @@
     Datei, benennt sie um und bewegt sie in den Ordner. <b>Neu vorschlagen</b> bittet die lokale KI um einen neuen Vorschlag.
   </p>
   <p>
+    Die wartenden Scans füllen die Mitte des Fensters, mit den Titeln, die Rupert vorschlägt. Durchsuchen Sie sie (nach
+    Name, vorgeschlagenem Titel, Tags, Ordner oder ihrem Text), und wechseln Sie wie in einem Ordner zwischen
+    <b>Liste</b>, <b>Große Symbole</b> und <b>Galerie</b>; Rupert merkt sich die Ansicht für den Eingang. Die Seite des
+    gewählten Scans steht oben in der rechten Spalte, über dem Formular: Blättern Sie mit den Pfeilen auf der Seite oder
+    mit <kbd>Bild ↑</kbd> und <kbd>Bild ↓</kbd>. In der Galerie ist die Seite stattdessen groß in der Mitte, und die
+    rechte Spalte enthält nur das Formular.
+  </p>
+  <p>
+    Lange Ordnerpfade zeigen die Quelle und die letzten zwei Ordner, etwa „Boating/…/Sol y Mar/Purchase“. Zeigen Sie auf
+    einen Ordner oder auf ein Feld, das nicht seinen ganzen Text zeigt, um alles zu sehen.
+  </p>
+  <p>
     Um einen Scan stattdessen loszuwerden, klicken Sie unter dem Formular auf
     <b>{windows ? "Löschen …" : "In den Papierkorb legen …"}</b>, klicken Sie in der Liste mit der rechten Maustaste
     darauf oder drücken Sie <kbd>{deleteKey}</kbd>. Rupert fragt zuerst, weil ein neuer Scan vielleicht noch nirgends sonst

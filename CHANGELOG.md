@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **A roomier inbox** (#59): the waiting scans fill the middle of the window, with a search field (name, suggested title, tags, folder and the scanned text) and the same **List**, **Large icons** and **Gallery** views as folders, remembered for the inbox. The selected scan's page moves to the top of the right column, above **File it**, and its pages can be flipped through there. In the gallery the page is large in the middle and the right column has only the form.
+- **Long folder paths stay readable when filing** (#63, in part): the Folder field, the suggested folders and the inbox list show the source and the last two folders ("Boating/…/Sol y Mar/Purchase"); point at one to see the whole path. File it's other fields show their full text on hover too.
+
 ## 0.5.2 — 2026-11-24
 
 - **Inbox suggestions speak Rupert's language** (#58): the short reason under the suggested folder is now in the language Rupert shows (Spanish or German too), not always English. The suggested title stays in the document's own language, since it becomes the file name.

@@ -18,6 +18,11 @@ export function formatDate(ms: number | null): string {
   return ms == null ? "" : new Date(ms).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
+/** The day only ("Nov 24, 2026"), for narrow columns. */
+export function formatDay(ms: number | null): string {
+  return ms == null ? "" : new Date(ms).toLocaleDateString(locale(), { dateStyle: "medium" });
+}
+
 /** "PDF", "Image", … for a file kind (or "Folder"). */
 export function kindLabel(kind: FileKind | "folder" | null): string {
   return m.kinds[kind ?? "other"];

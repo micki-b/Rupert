@@ -993,6 +993,21 @@ fn inbox_items(state: State<AppState>) -> Vec<IntakeItem> {
     state.intake.items()
 }
 
+/// The inbox items whose name or text match what was typed in the inbox's
+/// search field (#59), as relative paths.
+#[tauri::command]
+fn inbox_search(text: String, state: State<AppState>) -> CmdResult<Vec<String>> {
+    let Some(inbox) = state.settings.lock().unwrap().get().inbox.clone() else {
+        return Ok(Vec::new());
+    };
+    state
+        .index
+        .lock()
+        .unwrap()
+        .matching_in_folder(&inbox.source_id, &inbox.rel_path, &text)
+        .map_err(err)
+}
+
 #[tauri::command]
 fn inbox_redo(rel_path: String, state: State<AppState>) {
     state.intake.redo(rel_path);
@@ -1567,6 +1582,7 @@ pub fn run() {
             local_ai_place,
             apple_ai_status,
             inbox_items,
+            inbox_search,
             inbox_redo,
             all_folders,
             file_document,

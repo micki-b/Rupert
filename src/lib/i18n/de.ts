@@ -375,6 +375,9 @@ const de: Messages = {
     open: "Öffnen",
     suggestAgain: "Neu vorschlagen",
     whatFilingDoes: "Schreibt die Angaben in die Datei, benennt sie um und bewegt sie in den Ordner.",
+    searchPlaceholder: "Eingang durchsuchen",
+    noMatches: (q: string) => `Nichts im Eingang passt zu „${q}“.`,
+    suggestion: "Vorschlag",
   },
   owl: {
     idle: "Rupert",
