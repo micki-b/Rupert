@@ -194,13 +194,21 @@
             <div class="get-main">
               <h2>{{t.dl.h2}}</h2>
               <p class="get-sub">{{t.dl.sub}}</p>
-              <a class="button primary big" data-download-primary href="https://github.com/micki-b/Rupert/releases/latest"
-                ><span data-download-label>{{t.dl.button}}</span></a
-              >
+              <div class="get-buttons">
+                <a class="button primary big" data-download-primary href="https://github.com/micki-b/Rupert/releases/latest"
+                  ><span data-download-label>{{t.dl.button}}</span></a
+                >
+                <!-- Macs also get the Mac App Store edition (home.js shows it). -->
+                <span class="get-or" data-mac-store hidden>{{t.dl.or}}</span>
+                <a
+                  class="store-badge"
+                  data-mac-store
+                  hidden
+                  href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac"
+                  ><img src="{{img}}/mac-app-store.svg" alt="{{t.dl.mac.badge}}" width="211" height="54"
+                /></a>
+              </div>
               <p class="get-note" data-download-note>{{t.dl.note}}</p>
-              <p class="get-note get-alt" data-mac-store hidden>
-                <a href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac">{{t.dl.mac.storeLink}}</a>
-              </p>
             </div>
           </div>
 

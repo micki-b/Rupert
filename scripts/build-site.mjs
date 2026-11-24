@@ -15,7 +15,8 @@
 //   its language once (a choice made in the switch wins).
 // - privacy/: PRIVACY.md rendered into site/privacy.template.html, so the
 //   site always says what the repo says (English only).
-// - img/: the app icon, the owls, and each language's screenshots of the
+// - img/: the app icon, the owls, Apple's Mac App Store badge per language,
+//   and each language's screenshots of the
 //   made-up sample library, light and dark.
 // - {{version}} is the version of the latest *published* GitHub release, not
 //   package.json's: the download links name its files, and package.json is
@@ -206,6 +207,11 @@ image("src-tauri/icons/icon.png", "apple-touch-icon.png", 180);
 image("src-tauri/icons/32x32.png", "favicon.png", 0);
 for (const entry of readdirSync(join(site, "img"), { recursive: true })) {
   if (entry.endsWith(".png")) image(join("site", "img", entry), join("img", entry), 0);
+  // Apple's App Store badges, used as they come (Apple's marketing rules).
+  else if (entry.endsWith(".svg")) {
+    mkdirSync(dirname(join(out, "img", entry)), { recursive: true });
+    copyFileSync(join(site, "img", entry), join(out, "img", entry));
+  }
 }
 
 // MARK: - Checks: every link and picture on the site exists

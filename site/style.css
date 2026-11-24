@@ -1266,9 +1266,29 @@ h2,
 .pf-links .pf-file:hover {
   text-decoration: underline;
 }
-.get-alt a {
-  color: var(--accent);
-  font-weight: 600;
+.get-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.get-or {
+  color: var(--muted);
+  font-size: 15px;
+}
+.get-or[hidden],
+.store-badge[hidden] {
+  display: none;
+}
+/* Apple's badge, unchanged and at least 40 px high, with clear space around it. */
+.store-badge {
+  display: inline-block;
+  line-height: 0;
+  margin-left: 4px;
+}
+.store-badge img {
+  height: 54px;
+  width: auto;
 }
 
 .pf.yours {
@@ -1359,6 +1379,9 @@ article.text code {
     grid-template-columns: minmax(0, 1fr);
     text-align: center;
     justify-items: center;
+  }
+  .get-buttons {
+    justify-content: center;
   }
   .steps-row,
   .platform-grid {

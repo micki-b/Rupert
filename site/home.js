@@ -240,5 +240,5 @@ const pageLang = ["es", "de"].includes(document.documentElement.lang) ? document
   const n = document.querySelector("[data-download-note]");
   if (n) n.textContent = note;
   // Macs also get the Mac App Store edition.
-  if (os === "mac") document.querySelector("[data-mac-store]")?.removeAttribute("hidden");
+  if (os === "mac") for (const e of document.querySelectorAll("[data-mac-store]")) e.removeAttribute("hidden");
 })();
