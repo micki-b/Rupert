@@ -1277,18 +1277,18 @@ h2,
   font-size: 15px;
 }
 .get-or[hidden],
-.store-button[hidden] {
+.store-badge[hidden] {
   display: none;
 }
-.store-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+/* Apple's badge, unchanged and at least 40 px high, with clear space around it. */
+.store-badge {
+  display: inline-block;
+  line-height: 0;
+  margin-left: 4px;
 }
-.store-button svg {
-  width: 26px;
-  height: 26px;
-  flex: none;
+.store-badge img {
+  height: 54px;
+  width: auto;
 }
 
 .pf.yours {

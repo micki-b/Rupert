@@ -88,6 +88,7 @@
   "dl.mac.req": "macOS 13 or later · Apple silicon and Intel",
   "dl.mac.store": "Mac App Store",
   "dl.or": "or",
+  "dl.mac.badge": "Download on the Mac App Store",
   "dl.mac.choice": "On a Mac, pick one: the .dmg from GitHub updates itself; the Mac App Store edition is updated by the App Store.",
   "dl.win.req": "Windows 10 or 11 · signed installer",
   "dl.linux.req": "x86-64 · AppImage, Debian/Ubuntu, Fedora",

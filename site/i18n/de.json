@@ -88,6 +88,7 @@
   "dl.mac.req": "macOS 13 oder neuer · Apple-Chip und Intel",
   "dl.mac.store": "Mac App Store",
   "dl.or": "oder",
+  "dl.mac.badge": "Laden im Mac App Store",
   "dl.mac.choice": "Auf einem Mac wählen Sie eine Ausgabe: Die .dmg von GitHub aktualisiert sich selbst, die Ausgabe aus dem Mac App Store aktualisiert der App Store.",
   "dl.win.req": "Windows 10 oder 11 · signiertes Installationsprogramm",
   "dl.linux.req": "x86-64 · AppImage, Debian/Ubuntu, Fedora",

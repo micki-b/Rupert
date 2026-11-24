@@ -201,27 +201,12 @@
                 <!-- Macs also get the Mac App Store edition (home.js shows it). -->
                 <span class="get-or" data-mac-store hidden>{{t.dl.or}}</span>
                 <a
-                  class="button big store-button"
+                  class="store-badge"
                   data-mac-store
                   hidden
                   href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217?platform=mac"
-                  ><svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect width="24" height="24" rx="5.5" fill="url(#store-blue)" />
-                    <defs>
-                      <linearGradient id="store-blue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stop-color="#1ec0fd" />
-                        <stop offset="1" stop-color="#1773ef" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M13.4 5.6 8 15M10.6 5.6 16.4 15.6M6.2 13.2h11.6M7.2 16.6l-.6 1"
-                      stroke="#fff"
-                      stroke-width="1.7"
-                      stroke-linecap="round"
-                      fill="none"
-                    /></svg
-                  >{{t.dl.mac.store}}</a
-                >
+                  ><img src="{{img}}/mac-app-store.svg" alt="{{t.dl.mac.badge}}" width="211" height="54"
+                /></a>
               </div>
               <p class="get-note" data-download-note>{{t.dl.note}}</p>
             </div>
