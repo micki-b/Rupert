@@ -16,7 +16,7 @@ use serde_json::json;
 
 use crate::apple_ai;
 use crate::error::{Error, Result};
-use crate::i18n::{tr, trf};
+use crate::i18n::{Lang, tr, trf};
 use crate::meta::is_iso_date;
 
 /// LM Studio's server, the default.
@@ -193,7 +193,7 @@ impl LocalAi {
             "max_tokens": 8000,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt(req, MAX_TEXT)},
+                {"role": "user", "content": user_prompt(req, MAX_TEXT, crate::i18n::current())},
             ],
             "response_format": {
                 "type": "json_schema",
@@ -283,7 +283,7 @@ impl AppleAi {
         );
         let content = apple_ai::generate(&apple_ai::Ask {
             instructions: SYSTEM_PROMPT,
-            prompt: &user_prompt(req, max_text),
+            prompt: &user_prompt(req, max_text, crate::i18n::current()),
             schema: Some(&schema),
             temperature: 0.1,
             max_tokens: 600,
@@ -302,7 +302,10 @@ const SYSTEM_PROMPT: &str = "You are a careful archivist filing scanned personal
 (bills, statements, letters, receipts, forms, manuals). You get a document's text, which may \
 contain OCR errors, and answer only with JSON.";
 
-fn user_prompt(req: &Request, max_text: usize) -> String {
+/// The request for one document. The reason is shown to the user, so it's
+/// asked for in `lang`, Rupert's language; the title stays in the document's
+/// language, since it becomes the file name.
+fn user_prompt(req: &Request, max_text: usize, lang: Lang) -> String {
     let text: String = req.text.chars().take(max_text).collect();
     let folders = if req.folders.is_empty() {
         "(none known)".to_string()
@@ -321,9 +324,11 @@ fn user_prompt(req: &Request, max_text: usize) -> String {
     format!(
         "The current year is {year}. File name: {name}\n\n\
          Suggest how to file this document:\n\
+         - document_language: the language the document text is written in, e.g. \"English\".\n\
          - title: short and specific, like a person would name the file: who it's from and what \
            it is, e.g. \"City Electric bill\" or \"Acme auto policy cancellation\". At most 60 \
-           characters. No date in the title. Same language as the document.\n\
+           characters. No date in the title. The whole title in document_language: never \
+           translated, never mixing languages.\n\
          - document_date: the date the document was issued (statement, invoice, letter or \
            receipt date) as YYYY-MM-DD, or \"\" if the document shows none. Only use a date \
            printed on the document. Not a due date or a date of birth.\n\
@@ -331,26 +336,32 @@ fn user_prompt(req: &Request, max_text: usize) -> String {
            \"Tax\", \"Medical\"). Reuse a tag in use only if it clearly fits; never add one just \
            because it exists.\n\
          - folder: the folder it belongs in, copied exactly from the list, or \"\" if none fits.\n\
-         - reason: one short sentence on why that folder.\n\n\
+         - reason: one short sentence on why that folder, written in {language}. Only the \
+           reason is in {language}.\n\n\
          Folders where similar documents are filed:\n{folders}\n\n\
          Tags in use: {tags}\n\n\
          Document text:\n\"\"\"\n{text}\n\"\"\"",
         year = req.year,
         name = req.file_name,
+        language = lang.english_name(),
     )
 }
 
 fn schema() -> serde_json::Value {
     json!({
         "type": "object",
+        // document_language comes first: a model that has named the
+        // document's language keeps the title in it (#58), even when the
+        // reason is asked for in another one. It isn't used otherwise.
         "properties": {
+            "document_language": {"type": "string"},
             "title": {"type": "string"},
             "document_date": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}},
             "folder": {"type": "string"},
             "reason": {"type": "string"},
         },
-        "required": ["title", "document_date", "tags", "folder", "reason"],
+        "required": ["document_language", "title", "document_date", "tags", "folder", "reason"],
         "additionalProperties": false,
     })
 }
@@ -445,6 +456,40 @@ mod tests {
         let s = parse(odd, &req, "m".into()).unwrap();
         assert_eq!((s.title, s.document_date, s.folder), (None, None, None));
         assert!(parse("no idea", &req, "m".into()).is_err());
+    }
+
+    #[test]
+    fn asks_for_the_reason_in_ruperts_language() {
+        let req = Request::default();
+        for (lang, want) in [
+            (Lang::En, "written in English"),
+            (Lang::Es, "written in Spanish (Rioplatense"),
+            (Lang::De, "written in German (formal"),
+        ] {
+            let prompt = user_prompt(&req, 100, lang);
+            assert!(
+                prompt.contains(&format!("why that folder, {want}")),
+                "{lang:?}: {prompt}"
+            );
+            // The title follows the document, not the screen.
+            assert!(prompt.contains("The whole title in document_language"));
+            assert!(prompt.contains(&format!("Only the reason is in {}.", lang.english_name())));
+        }
+        // The model fills the fields in this order: the document's language
+        // before the title, the reason last.
+        let schema = schema();
+        let keys: Vec<&String> = schema["properties"].as_object().unwrap().keys().collect();
+        assert_eq!(
+            keys,
+            [
+                "document_language",
+                "title",
+                "document_date",
+                "tags",
+                "folder",
+                "reason"
+            ]
+        );
     }
 
     #[test]
