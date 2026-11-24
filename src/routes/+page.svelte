@@ -52,6 +52,8 @@
   import { isMarkdown } from "#lib/markdown.ts";
   import { checkNowAndThen, updates } from "#lib/updates.svelte.ts";
   import RupertOwl from "#lib/RupertOwl.svelte";
+  import Splitter from "#lib/Splitter.svelte";
+  import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { m } from "#lib/i18n/index.ts";
 
   type Folder = { sourceId: string; relPath: string };
@@ -75,6 +77,22 @@
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
   let inboxCount = $state(0);
+
+  // MARK: - Column widths (#61)
+  // The sidebar and the right column (Details, or the inbox's preview and
+  // File it) as shown: what was dragged, but never so wide that the middle
+  // loses its room.
+  let windowWidth = $state(1200);
+  /** The inbox pane's padding (`.documents`), outside its right column. */
+  const INBOX_PADDING = 16;
+  const rightColumn = $derived(inboxOpen && appSettings ? "inbox" : "details");
+  const sideWidth = $derived(
+    clamp(columns.side, LIMITS.side.min, windowWidth - columns[rightColumn] - MIDDLE),
+  );
+  const rightWidth = $derived(
+    clamp(columns[rightColumn], LIMITS[rightColumn].min, windowWidth - sideWidth - MIDDLE),
+  );
+
   /** The chat panel, to open it from the welcome screen. */
   let assistant: { show: () => Promise<void>; refreshInfo: () => Promise<void> } | undefined = $state();
 
@@ -673,6 +691,7 @@
 <!-- Files dropped where no folder takes them are refused, rather than
      opened by the web view. -->
 <svelte:window
+  bind:innerWidth={windowWidth}
   ondragover={(ev) => {
     if (ev.dataTransfer?.types.includes("Files")) {
       ev.preventDefault();
@@ -684,7 +703,22 @@
   }}
 />
 
-<div class="shell" class:inbox-mode={inboxOpen}>
+<div
+  class="shell"
+  class:inbox-mode={inboxOpen}
+  style:--side-width="{sideWidth}px"
+  style:--details-width="{rightWidth}px"
+  style:--inbox-side="{rightWidth}px"
+>
+  <Splitter column="side" width={sideWidth} max={windowWidth - rightWidth - MIDDLE} at="left" label={m.main.resizeLibrary} />
+  <Splitter
+    column={rightColumn}
+    width={rightWidth}
+    max={windowWidth - sideWidth - MIDDLE}
+    at="right"
+    inset={rightColumn === "inbox" ? INBOX_PADDING : 0}
+    label={rightColumn === "inbox" ? m.main.resizeFileIt : m.main.resizeDetails}
+  />
   <!-- MARK: Sidebar -->
   <aside class="sources">
     <header>
@@ -1240,7 +1274,7 @@
 
 <style>
   .shell.inbox-mode {
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: var(--side-width) minmax(0, 1fr);
   }
   .inbox-pane {
     padding: 0;
@@ -1269,7 +1303,8 @@
   .shell {
     height: calc(100vh - 22px);
     display: grid;
-    grid-template-columns: 260px 1fr 280px;
+    grid-template-columns: var(--side-width) minmax(0, 1fr) var(--details-width);
+    position: relative;
   }
 
   h2 {

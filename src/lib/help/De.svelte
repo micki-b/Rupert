@@ -82,6 +82,12 @@
   </p>
   <p>Die beiden Tasten über den Ordnern schalten die Seitenleiste zwischen Ihren <b>Ordnern</b> und Ihren <b>Tags</b> um.</p>
   <p>
+    Um der Seitenleiste, den <b>Angaben</b> oder der Vorschau mit <b>Ablegen</b> im Eingang mehr oder weniger Platz zu
+    geben, ziehen Sie den Rand zwischen den Spalten. Ein Doppelklick auf den Rand stellt die übliche Breite wieder her.
+    Rupert merkt sich jede Breite, und die Mitte behält immer etwas Platz. Mit der Tastatur drücken Sie {mac ? "Wahl-Tab" : "die Tabulatortaste"},
+    bis der Rand ausgewählt ist, und verwenden die Pfeiltasten (mit Umschalt in größeren Schritten).
+  </p>
+  <p>
     <b>Markdown-Dateien</b> (<code>.md</code>) öffnen sich in Ruperts eigenem Leser, formatiert mit Überschriften,
     Listen, Tabellen und Bildern. Links zu anderen Markdown-Dateien öffnen sich ebenfalls dort (<b>Zurück</b> kehrt
     zurück), Weblinks öffnen sich in Ihrem Browser, und <b>Mit Standard-App öffnen</b> übergibt die Datei Ihrem gewohnten

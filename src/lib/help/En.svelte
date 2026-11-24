@@ -79,6 +79,12 @@
   </p>
   <p>The two buttons above the sources switch the sidebar between your <b>folders</b> and your <b>tags</b>.</p>
   <p>
+    To give the sidebar, <b>Details</b> or the inbox's preview and <b>File it</b> more or less room, drag the edge
+    between the columns. Double-click the edge for the usual width. Rupert remembers each width, and the middle always
+    keeps some room. With the keyboard, press {mac ? "Option-Tab" : "Tab"} until the edge is selected and use the arrow keys (Shift for bigger
+    steps).
+  </p>
+  <p>
     <b>Markdown files</b> (<code>.md</code>) open in Rupert's own reader, formatted with headings, lists, tables and
     pictures. Links to other Markdown files open there too (<b>Back</b> returns), web links open in your browser, and
     <b>Open in default app</b> hands the file to your usual editor. Online-only Markdown files open in your usual app,
