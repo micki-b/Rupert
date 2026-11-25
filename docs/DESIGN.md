@@ -46,7 +46,7 @@ Layers 1 and 2 are the truth. Layers 4 and 5 can be deleted at any time and will
 
 ### Finder tags (macOS only)
 
-- **Status: not built yet.** Planned after milestone 3: a correct two-way sync has to tell whether the Finder side or the file changed last, which needs the index.
+- **Status: not built yet** (#117). Planned after milestone 3: a correct two-way sync has to tell whether the Finder side or the file changed last, which needs the index.
 - When Rupert writes tags, it also writes Finder tags. When a Finder tag changes (FSEvents reports xattr changes), Rupert copies the change into the file's metadata, so Windows and Linux see it too.
 - Finder tag colors are kept in the Finder only. Rupert tags have no color.
 - **To verify:** that setting xattrs on online-only (dataless) files doesn't trigger a download, and whether OneDrive preserves Finder tags. (iCloud Drive syncs them between Macs.) If the sync can't be made reliable, Rupert leaves Finder tags alone; consistent metadata across platforms comes first.
@@ -266,6 +266,23 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
 6. Direct scanning: eSCL/AirScan was built, then removed in 0.8.0 (#123) in favor of scanning with the phone. ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
 7. ✅ iPhone app: browse and search the same folders (read-only; OneDrive through Microsoft Graph), open documents in Quick Look, scan with the camera into the inbox. Tested on an iPhone with a real library, including camera scans.
+
+## Roadmap (planned 2026-11-25)
+
+Since milestone 7, work is planned as releases; each is a GitHub milestone, and the issues hold the details and open questions. The order within a release isn't fixed.
+
+| Release | Theme | Issues |
+|---|---|---|
+| 0.7.0 ✅ | Renaming and sending | Released 2026-11-25: Rename documents… (#64); Share… and Email… (#69) |
+| 0.8.0 | Getting documents in | Built, not released yet: Print to Rupert (#101); and #60 in three parts: Import into Inbox… (#122), network scanning removed (#123), Scan with your phone through Continuity Camera and a QR link (#124) |
+| 0.9.0 | Working with many documents | Multi-select and bulk actions (#102); sorting and search filters (#103); Undo for moves, filing and tags (#104); quick open and spacebar preview (#105); highlighted hits and page citations (#106); export a bundle (#107); a page preview in Details while browsing, and an inbox preview that resizes and makes way for File it (#127) |
+| 0.10.0 | A smarter library | Sender, amount and due date (#108); reminders (#109); saved searches (#110); duplicate finder (#111); filing that learns, File all (#112); library health panel (#113) |
+| Android 0.1 | First Android release | The app (#24); release signing, Play bundle and CI (#39); Ask Rupert with Gemini Nano (#38); Google OAuth verification for Drive (#66) |
+| Later | Not scheduled | Search by meaning with local embeddings (#114); importers for Paperless-ngx, DEVONthink, Evernote (#115); first-run tour with a sample library (#116); Finder tags (#117) |
+
+- **Dependencies:** #102 comes first in 0.9.0 (#104, #107 and bulk tagging build on it); #103 before #110; #108 before #109, and it gives #115 a place for correspondents.
+- **New details fields** (#108: from, amount, due date; #109: done) follow the metadata rules above: `rupert:*` in XMP or the sidecar, cached in the catalog and index. Saved searches (#110) go in a source's `.rupert/` folder, not only in the database.
+- **Would reopen a decision, so not planned until decided:** splitting a stack of scans and saving a page's rotation (#118; page editing is out of scope) and filing from the phone (#119; the phone is read-only).
 
 ## Dependencies (licenses)
 
