@@ -244,6 +244,7 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Der erkannte Text konnte nicht gespeichert werden: {0}",
     ),
     ("Text recognized ({0})", "Text erkannt ({0})"),
+    ("Import into Inbox…", "In den Eingang importieren …"),
     // MARK: - Print to Rupert (print_entry.rs)
     ("Save to Rupert", "In Rupert sichern"),
     ("Rupert inbox", "Rupert-Eingang"),
