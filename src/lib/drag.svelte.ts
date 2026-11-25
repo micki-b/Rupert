@@ -4,7 +4,9 @@
 //   copied there, keeping their names.
 // Dragging out (#84): a drag of Rupert's documents is the system's own,
 // carrying the files as a copy, so Mail, Messages, a browser or the Finder
-// get them; dropped back on Rupert's folders it still moves them.
+// get them. The web view doesn't hand such a drag back to the page, so the
+// app reports where the pointer is (`drag-out-pointer`) and where it was let
+// go (`drag-out-ended`): over one of Rupert's folders, the document moves.
 import { listen } from "@tauri-apps/api/event";
 import { api, type Entry } from "./api";
 
@@ -31,15 +33,42 @@ function endDrag() {
   drag.outOnly = false;
 }
 
+/** The folders that take drops, by key: found under the pointer by their
+ * `data-drop-key` while the system's drag is on. */
+const targets = new Map<string, { sourceId: string; relPath: string; move?: (item: MoveItem) => void }>();
+
+type Pointer = { x: number; y: number; inside: boolean; dropped: boolean };
+
+/** The folder under the pointer that would take the dragged item, if any. */
+function targetAt(p: Pointer) {
+  if (!drag.item || !p.inside) return null;
+  const el = document.elementFromPoint(p.x, p.y)?.closest("[data-drop-key]");
+  const key = el?.getAttribute("data-drop-key");
+  const t = key ? targets.get(key) : undefined;
+  return key && t?.move && canMoveInto(drag.item, t.sourceId, t.relPath) ? { key, t } : null;
+}
+
 let listening = false;
 /** Hands a drag to the system with the files at `relPaths` of a source. */
-function startDragOut(sourceId: string, relPaths: string[]) {
+function startDragOut(sourceId: string, relPaths: string[], ev: DragEvent) {
   if (!listening) {
     listening = true;
-    listen("drag-out-ended", () => endDrag());
+    listen<Pointer>("drag-out-pointer", (e) => {
+      if (drag.native) drag.over = targetAt(e.payload)?.key ?? null;
+    });
+    listen<Pointer>("drag-out-ended", (e) => {
+      // Taken by another app (e.g. a window over Rupert's): not moved here.
+      const hit = e.payload.dropped ? null : targetAt(e.payload);
+      const item = drag.item;
+      endDrag();
+      if (hit && item) hit.t.move?.(item);
+    });
   }
   drag.native = true;
-  api.dragOut(sourceId, relPaths).catch(() => endDrag());
+  // Where the page and the screen see the pointer, so the app can tell
+  // where on the page it is later.
+  const start = { clientX: ev.clientX, clientY: ev.clientY, screenX: ev.screenX, screenY: ev.screenY };
+  api.dragOut(sourceId, relPaths, start).catch(() => endDrag());
 }
 
 /** Handlers for something that can be dragged out of Rupert only (an inbox
@@ -50,7 +79,7 @@ export function dragOutSource(sourceId: string, relPath: string) {
     ondragstart: (ev: DragEvent) => {
       ev.preventDefault(); // the system's drag instead
       drag.outOnly = true;
-      startDragOut(sourceId, [relPath]);
+      startDragOut(sourceId, [relPath], ev);
     },
   };
 }
@@ -100,7 +129,7 @@ export function dragSource(item: MoveItem) {
     ondragstart: (ev: DragEvent) => {
       ev.preventDefault(); // the system's drag instead, so other apps get the file
       drag.item = item;
-      startDragOut(item.sourceId, [item.entry.relPath]);
+      startDragOut(item.sourceId, [item.entry.relPath], ev);
     },
   };
 }
@@ -114,9 +143,11 @@ export function dropTarget(
   on: { move?: (item: MoveItem) => void; files?: (dropped: Dropped) => void },
 ) {
   const key = `${sourceId}\n${relPath}`;
+  targets.set(key, { sourceId, relPath, move: on.move });
   const takes = (ev: DragEvent) =>
     on.files && bringsFiles(ev) ? "copy" : on.move && canMoveInto(drag.item, sourceId, relPath) ? "move" : null;
   return {
+    "data-drop-key": key,
     ondragover: (ev: DragEvent) => {
       const effect = takes(ev);
       if (!effect) return;

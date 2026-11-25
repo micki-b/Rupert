@@ -42,3 +42,11 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "linux-
 tauri-plugin-updater = "=2.14.1"
 tauri-plugin-process = "=2.4.0"
 drag = "2.1.1"
+
+# Dragging out (#84): which window is under the pointer when a drag ends.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSEvent", "NSWindow", "NSResponder"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
