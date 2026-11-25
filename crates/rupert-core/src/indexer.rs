@@ -123,6 +123,10 @@ pub struct Progress {
     /// Stopped by the user (#78): nothing is indexed, downloaded or drawn
     /// until [`IndexerHandle::resume`].
     pub stopped: bool,
+    /// Kept pictures being made in idle time for documents already
+    /// indexed (#62).
+    pub picture_done: usize,
+    pub picture_total: usize,
 }
 
 #[derive(Clone)]
@@ -323,6 +327,8 @@ impl Worker {
                 pdf_text: self.extractor.pdf_supported(),
                 download_done: self.progress.download_done,
                 download_total: self.progress.download_total,
+                picture_done: self.progress.picture_done,
+                picture_total: self.progress.picture_total,
                 ..Default::default()
             };
             self.flush_changed();
@@ -793,10 +799,16 @@ impl Worker {
         if self.mode == Mode::Viewer || self.pictures.thumbs.is_none() || !shares_catalog(source) {
             return Ok(());
         }
+        let Some(thumbs) = self.pictures.thumbs.clone() else {
+            return Ok(());
+        };
         for rel in self.index.local_pdfs(&source.id)? {
             let path = source.root.join(rel);
-            if self.pictures.seen.insert(path.clone()) {
+            // Only those still without one, so the count in the status line
+            // is the work left.
+            if self.pictures.seen.insert(path.clone()) && !thumbs.has_kept(&path) {
                 self.pictures.queue.push_back(path);
+                self.progress.picture_total += 1;
             }
         }
         Ok(())
@@ -821,7 +833,13 @@ impl Worker {
                     path.display()
                 ),
             }
+            self.progress.picture_done += 1;
         }
+        if self.pictures.queue.is_empty() {
+            self.progress.picture_done = 0;
+            self.progress.picture_total = 0;
+        }
+        self.report(self.pictures.queue.is_empty());
     }
 
     fn remove_file(&mut self, source: &Source, rel_path: &str) -> Result<()> {
@@ -909,6 +927,8 @@ impl Worker {
         self.progress.current = None;
         self.pictures.queue.clear();
         self.pictures.seen.clear();
+        self.progress.picture_done = 0;
+        self.progress.picture_total = 0;
         if had_work {
             self.flush_changed();
             self.report(true);
@@ -1190,6 +1210,31 @@ pub(crate) mod tests {
         assert_eq!((w.progress.total, w.progress.done), (2, 2));
         assert_eq!(search(&w, "diesel"), ["Boat/fuel.txt"]);
         assert!(w.downloads.queue.is_empty(), "nothing online-only here");
+    }
+
+    #[test]
+    fn idle_pictures_are_counted() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("lib");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("bill.pdf"), b"%PDF-1.7 not really").unwrap();
+        let src = source(&root, Provider::OneDrive);
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.pictures.thumbs = Some(Thumbnails::new(dir.path().join("cache")));
+        w.sync(&src, "", true).unwrap();
+
+        w.queue_pictures(&src).unwrap();
+        assert_eq!((w.progress.picture_done, w.progress.picture_total), (0, 1));
+        w.picture_batch();
+        assert_eq!(
+            (w.progress.picture_done, w.progress.picture_total),
+            (0, 0),
+            "done: reset"
+        );
+        assert!(w.pictures.queue.is_empty());
+        // Not queued twice in a session.
+        w.queue_pictures(&src).unwrap();
+        assert_eq!(w.progress.picture_total, 0);
     }
 
     #[test]

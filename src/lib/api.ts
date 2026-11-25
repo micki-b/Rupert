@@ -62,6 +62,9 @@ export interface Progress {
   downloadTotal: number;
   /** Stopped with Stop in the status line (#78), until Resume or the next launch. */
   stopped: boolean;
+  /** Pictures of online-only-to-be documents made in idle time (#62). */
+  pictureDone: number;
+  pictureTotal: number;
 }
 
 export interface IndexStats {

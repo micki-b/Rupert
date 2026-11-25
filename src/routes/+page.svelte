@@ -694,7 +694,9 @@
 
   /** Indexing or downloading that Stop can halt (#78). */
   const stoppable = $derived(
-    !!progress && !progress.stopped && ((progress.active && progress.total > 0) || progress.downloadTotal > 0),
+    !!progress &&
+      !progress.stopped &&
+      ((progress.active && progress.total > 0) || progress.downloadTotal > 0 || progress.pictureTotal > 0),
   );
 
   function statusText(): string {
@@ -706,6 +708,9 @@
     if (progress?.active) return m.main.checkingChanges;
     if (progress && progress.downloadTotal > 0) {
       return m.main.downloadingToRead(progress.downloadDone, progress.downloadTotal);
+    }
+    if (progress && progress.pictureTotal > 0) {
+      return m.main.keepingPictures(progress.pictureDone, progress.pictureTotal);
     }
     if (!stats || stats.documents === 0) return "";
     const parts = [m.main.documents(stats.documents)];

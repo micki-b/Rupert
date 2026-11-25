@@ -423,7 +423,9 @@ const de: Messages = {
     indexFolder: "Diesen Ordner indexieren",
     indexFolderTip: "Alle Dokumente in diesem Ordner und seinen Unterordnern erneut lesen und die nur online verfügbaren dafür herunterladen (danach wird der Platz wieder freigegeben)",
     downloadingToRead: (done: number, total: number) =>
-      `Dokumente, die nur online verfügbar sind, werden zum Lesen geladen: ${num(done)} von ${num(total)} …`,
+      `Dokumente, die nur online verfügbar sind, werden für Text und Bild geladen: ${num(done)} von ${num(total)} …`,
+    keepingPictures: (done: number, total: number) =>
+      `Bilder von Dokumenten in Cloud-Ordnern werden behalten: ${num(done)} von ${num(total)} …`,
     documents: (n: number) => docs(n),
     searchable: (n: number) => `${num(n)} im Inhalt durchsuchbar`,
     onlineOnlyCount: (n: number) => `${num(n)} nur online (nur Name und Angaben)`,

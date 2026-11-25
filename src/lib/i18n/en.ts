@@ -409,7 +409,9 @@ const en = {
     indexFolder: "Index this folder",
     indexFolderTip: "Read every document in this folder and its subfolders again, and download the online-only ones to read them (then free the space again)",
     downloadingToRead: (done: number, total: number) =>
-      `Downloading online-only documents to read them: ${num(done)} of ${num(total)}…`,
+      `Downloading online-only documents for their text and pictures: ${num(done)} of ${num(total)}…`,
+    keepingPictures: (done: number, total: number) =>
+      `Keeping pictures of documents in cloud folders: ${num(done)} of ${num(total)}…`,
     documents: (n: number) => `${num(n)} ${plural(n, "document", "documents")}`,
     searchable: (n: number) => `${num(n)} searchable by content`,
     onlineOnlyCount: (n: number) => `${num(n)} online-only (name and details only)`,
