@@ -1,17 +1,20 @@
 <script lang="ts">
   // Settings ▸ Library: the sources (the folders Rupert shows), with the
-  // same options as their ⋯ menus in the main window's sidebar.
+  // same options as their ⋯ menus in the main window's sidebar; and what
+  // goes along when a document is sent (#69).
   import { ask, open as openDialog } from "@tauri-apps/plugin-dialog";
   import Icon from "#lib/Icon.svelte";
-  import { api, providerLabel, revealLabel, type Source } from "#lib/api.ts";
+  import { api, providerLabel, revealLabel, type Settings, type Source } from "#lib/api.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let {
+    settings = $bindable(),
     sources,
     os,
     onchanged,
     onerror,
   }: {
+    settings: Settings;
     sources: Source[];
     os: string | undefined;
     /** Reload the sources after a change. */
@@ -170,7 +173,28 @@
   </div>
 {/if}
 
+
+<!-- MARK: Sending documents -->
+<div class="sending">
+  <span class="lab">{m.settings.sending}</span>
+  <label class="check">
+    <input type="checkbox" bind:checked={settings.sendNotes} />
+    {m.settings.sendNotes}
+  </label>
+  <p class="note">{m.settings.sendNotesNote}</p>
+</div>
+
 <style>
+  .sending .lab {
+    font-weight: 600;
+  }
+  .sending {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 6px;
+  }
   .sources {
     border: 1px solid var(--border);
     border-radius: 8px;

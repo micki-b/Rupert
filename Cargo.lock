@@ -3727,6 +3727,7 @@ dependencies = [
  "keyring",
  "objc2",
  "objc2-app-kit",
+ "objc2-foundation",
  "rupert-core",
  "serde",
  "serde_json",
@@ -3736,6 +3737,8 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "windows 0.62.2",
+ "windows-collections",
  "windows-sys 0.61.2",
 ]
 

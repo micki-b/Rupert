@@ -250,6 +250,10 @@ const es: Messages = {
     general: "General",
     search: "Buscar",
     noMatch: (q: string) => `Ningún ajuste coincide con «${q}».`,
+    sending: "Enviar documentos",
+    sendNotes: "Incluir mis notas al enviar un PDF",
+    sendNotesNote:
+      "Rupert guarda tus notas dentro del PDF. Si esto no está activado, se dejan afuera de la copia que se envía; el título, la fecha y las etiquetas sí van.",
     libraryNote: "Las carpetas que muestra Rupert, tal como están en el disco. Quitar una de Rupert deja la carpeta y sus archivos donde están.",
     inboxFolder: "Carpeta",
     notAvailable: "No disponible por ahora: volvé a elegirla en la barra lateral.",
@@ -421,6 +425,14 @@ const es: Messages = {
     email: "Correo",
     other: "Archivo",
     folder: "Carpeta",
+  },
+  share: {
+    share: "Compartir…",
+    email: "Enviar por correo…",
+    shareTip: "Enviarlo con Mail, Mensajes, AirDrop u otra app",
+    shareTipWindows: "Enviarlo con la ventana Compartir de Windows",
+    emailTip: "Un correo nuevo con el documento adjunto",
+    downloading: (name: string) => `Descargando «${name}» para enviarlo…`,
   },
   renameDocs: {
     menu: "Cambiar el nombre de documentos…",

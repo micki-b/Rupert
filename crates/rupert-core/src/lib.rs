@@ -34,6 +34,7 @@ pub mod remote;
 pub mod rename;
 pub mod scansnap;
 pub mod settings;
+pub mod share;
 pub mod sidecar;
 pub mod source;
 pub mod tag_edit;
