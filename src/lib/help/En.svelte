@@ -150,6 +150,29 @@
     you rename the inbox folder (or a folder holding it), Rupert's inbox setting follows it. Search results can't be
     renamed: open the folder first.
   </p>
+  <h3 id="renaming-documents">Renaming many documents</h3>
+  <p>
+    Right-click a folder and choose <b>Rename documents…</b> to give its documents new names together; from a document,
+    the same command lists its folder with only that document ticked. A table shows each current name and its new name,
+    with what changes highlighted, and next to it the selected document's first page, title, date and tags. Untick the
+    ones to leave alone. Nothing changes until you click <b>Rename</b>.
+  </p>
+  <p>
+    The new names start from each document's date and title, by your name pattern (Settings ▸ Inbox). Click a new name to
+    change it, and Rupert names the others <b>the same way</b>: right away when the rule is in the date and title (date
+    last, another date format, a word in front), otherwise with Local AI, which follows your example. Names you typed are
+    marked <b>Yours</b> and stay as they are. With Local AI you can also describe the names ("insurer - policy - year")
+    and click <b>Propose with AI</b>; proposals arrive one by one, and <b>Stop</b> keeps those so far. Local AI only
+    reads what Rupert has already indexed, so online-only files aren't downloaded, and their text never goes to a cloud
+    service. <b>Undo</b> in the hint goes back to the previous proposals.
+  </p>
+  <p>
+    Rupert flags problems before renaming: a name that's taken gets " (2)" added, and names that aren't allowed or don't
+    change are left out. The extension and each document's details stay with it; tick <b>Also set each document's title
+    from its new name</b> to change the titles too. Afterwards, <b>Undo</b> at the bottom of the window ({mac
+      ? "or Edit ▸ Undo, ⌘Z"
+      : "or Ctrl+Z"}) gives all of them their old names (and titles) back, until you do something else.
+  </p>
   <h3 id="moving">Moving</h3>
   <p>
     Drag a document or folder onto a folder, in the sidebar or in the folder view, or right-click it and choose

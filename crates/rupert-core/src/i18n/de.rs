@@ -244,6 +244,23 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Der erkannte Text konnte nicht gespeichert werden: {0}",
     ),
     ("Text recognized ({0})", "Text erkannt ({0})"),
+    // MARK: - Renaming documents (rename.rs)
+    (
+        "Local AI isn't set up: choose it in Settings ▸ Local AI.",
+        "Lokale KI ist nicht eingerichtet: Wählen Sie sie unter Einstellungen ▸ Lokale KI.",
+    ),
+    (
+        "No text to name it from.",
+        "Kein Text, aus dem sich ein Name ableiten lässt.",
+    ),
+    (
+        "The model didn't propose a name.",
+        "Das Modell hat keinen Namen vorgeschlagen.",
+    ),
+    (
+        "Couldn't rename “{0}”.",
+        "„{0}“ konnte nicht umbenannt werden.",
+    ),
     (
         "No text to suggest from.",
         "Kein Text für Vorschläge vorhanden.",

@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 mod assistant;
 mod drag_out;
 mod help;
+mod rename;
 mod settings_window;
 mod thumbs;
 
@@ -66,6 +67,10 @@ const MENU_HELP: &str = "menu-help";
 /// Rupert ▸ Check for Updates… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_UPDATES: &str = "menu-check-updates";
+/// Edit ▸ Undo (macOS menu): the focused window undoes typing in a text
+/// field, or else the last renaming of documents (#64). No payload.
+#[cfg(target_os = "macos")]
+const MENU_UNDO: &str = "menu-undo";
 
 // MARK: - State
 
@@ -1528,7 +1533,9 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
         tr("Edit"),
         true,
         &[
-            &PredefinedMenuItem::undo(app, Some(tr("Undo")))?,
+            // Rupert's own, so it can also undo renaming documents; the
+            // page undoes typing itself.
+            &item(MENU_UNDO, tr("Undo"), Some("CmdOrCtrl+Z"))?,
             &PredefinedMenuItem::redo(app, Some(tr("Redo")))?,
             &sep()?,
             &PredefinedMenuItem::cut(app, Some(tr("Cut")))?,
@@ -1580,7 +1587,13 @@ fn on_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
     if event.id() == MENU_HELP {
         let _ = help::show(app, None);
     }
-    for id in [MENU_IMPORT, MENU_SETTINGS, MENU_SCAN, MENU_UPDATES] {
+    for id in [
+        MENU_IMPORT,
+        MENU_SETTINGS,
+        MENU_SCAN,
+        MENU_UPDATES,
+        MENU_UNDO,
+    ] {
         if event.id() == id {
             let _ = app.emit(id, ());
         }
@@ -1789,6 +1802,13 @@ pub fn run() {
             create_folder,
             page_image,
             drag_out::drag_out,
+            rename::rename_rows,
+            rename::rename_check,
+            rename::rename_same_way,
+            rename::rename_propose,
+            rename::rename_stop,
+            rename::rename_apply,
+            rename::rename_undo,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

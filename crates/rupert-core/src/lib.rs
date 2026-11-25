@@ -31,6 +31,7 @@ pub mod ocr;
 pub mod onedrive;
 pub mod pdf_meta;
 pub mod remote;
+pub mod rename;
 pub mod scansnap;
 pub mod settings;
 pub mod sidecar;

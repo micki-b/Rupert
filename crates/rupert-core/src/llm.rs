@@ -179,6 +179,21 @@ impl LocalAi {
 
     /// Asks the model for a title, date, tags and folder.
     pub fn suggest(&self, req: &Request) -> Result<Suggestion> {
+        let user = user_prompt(req, MAX_TEXT, crate::i18n::current());
+        let (content, model) = self.chat_json(SYSTEM_PROMPT, &user, "filing", &schema(), 8000)?;
+        parse(&content, req, model)
+    }
+
+    /// Sends one request and returns the answer's JSON text (as the model
+    /// wrote it) and the model's name. The server enforces `schema`.
+    pub fn chat_json(
+        &self,
+        system: &str,
+        user: &str,
+        name: &str,
+        schema: &serde_json::Value,
+        max_tokens: u32,
+    ) -> Result<(String, String)> {
         let model = match &self.model {
             Some(m) => m.clone(),
             None => self.models()?.into_iter().next().ok_or_else(|| {
@@ -190,14 +205,14 @@ impl LocalAi {
             "temperature": 0.1,
             // Room for thinking models, which can spend thousands of
             // tokens before the answer.
-            "max_tokens": 8000,
+            "max_tokens": max_tokens,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt(req, MAX_TEXT, crate::i18n::current())},
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
             ],
             "response_format": {
                 "type": "json_schema",
-                "json_schema": {"name": "filing", "strict": true, "schema": schema()},
+                "json_schema": {"name": name, "strict": true, "schema": schema},
             },
         });
         #[derive(Deserialize)]
@@ -245,7 +260,69 @@ impl LocalAi {
                 tr("The model ran out of room before answering (thinking models can). Choose a model that doesn't think, or thinks less.").into(),
             ));
         }
-        parse(&content, req, model)
+        Ok((content, model))
+    }
+}
+
+// MARK: - Which Local AI
+
+/// The Local AI the settings choose: Apple Intelligence or a server.
+#[derive(Debug, Clone)]
+pub enum Engine {
+    Apple,
+    Server(LocalAi),
+}
+
+impl Engine {
+    /// The Local AI chosen in Settings, if it can be used: Apple
+    /// Intelligence on a Mac that runs it, or a server on this computer or
+    /// the local network (never one elsewhere). Whether the server is
+    /// running isn't checked here.
+    pub fn from_settings(settings: &crate::settings::Settings) -> Option<Self> {
+        match settings.local_engine {
+            crate::settings::LocalEngine::Apple => {
+                apple_ai::status().capable().then_some(Self::Apple)
+            }
+            crate::settings::LocalEngine::Server => {
+                (reach(&settings.local_url) != Reach::Elsewhere).then(|| {
+                    Self::Server(LocalAi {
+                        url: settings.local_url.clone(),
+                        model: settings.local_model.clone(),
+                    })
+                })
+            }
+        }
+    }
+
+    /// Characters of document text that fit in a request.
+    pub fn max_text(&self, server: usize) -> usize {
+        match self {
+            Self::Apple if apple_ai::status().context_size < 8192 => server.min(2000),
+            _ => server,
+        }
+    }
+
+    /// One request answered with JSON matching `schema`: the answer's text.
+    pub fn json(
+        &self,
+        system: &str,
+        user: &str,
+        name: &str,
+        schema: &serde_json::Value,
+        max_tokens: u32,
+    ) -> Result<String> {
+        match self {
+            Self::Apple => apple_ai::generate(&apple_ai::Ask {
+                instructions: system,
+                prompt: user,
+                schema: Some(schema),
+                temperature: 0.1,
+                max_tokens,
+            }),
+            Self::Server(ai) => ai
+                .chat_json(system, user, name, schema, max_tokens.max(8000))
+                .map(|(content, _)| content),
+        }
     }
 }
 

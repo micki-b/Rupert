@@ -158,6 +158,31 @@
     que Windows se reserva, como CON o NUL. Si renombrás la carpeta de la bandeja de entrada (o una que la contiene), la
     configuración de la bandeja la sigue. Los resultados de búsqueda no se pueden renombrar: abrí primero la carpeta.
   </p>
+  <h3 id="renaming-documents">Cambiar el nombre de muchos documentos</h3>
+  <p>
+    Hacé clic derecho en una carpeta y elegí <b>Cambiar el nombre de documentos…</b> para darles nombres nuevos a sus
+    documentos de una vez; desde un documento, el mismo comando muestra su carpeta con solo ese documento marcado. Una
+    tabla muestra cada nombre actual y su nombre nuevo, con lo que cambia resaltado, y al lado la primera página, el
+    título, la fecha y las etiquetas del documento seleccionado. Desmarcá los que no quieras cambiar. No cambia nada hasta
+    que hagas clic en <b>Cambiar</b>.
+  </p>
+  <p>
+    Los nombres nuevos salen de la fecha y el título de cada documento, según tu formato de nombre (Configuración ▸
+    Bandeja de entrada). Hacé clic en un nombre nuevo para cambiarlo y Rupert nombra los demás <b>de la misma manera</b>:
+    enseguida si la regla está en la fecha y el título (la fecha al final, otro formato de fecha, una palabra adelante);
+    si no, con la IA local, que sigue tu ejemplo. Los nombres que escribiste quedan marcados como <b>Tuyo</b> y no
+    cambian. Con IA local también podés describir los nombres («aseguradora - póliza - año») y hacer clic en <b>Proponer
+    con IA</b>; las propuestas llegan de a una y <b>Detener</b> conserva las que ya llegaron. La IA local solo lee lo que
+    Rupert ya indexó, así que los archivos solo en línea no se descargan y su texto nunca va a un servicio en la nube.
+    <b>Deshacer</b> en el texto de ayuda vuelve a las propuestas anteriores.
+  </p>
+  <p>
+    Rupert avisa de los problemas antes de cambiar nada: a un nombre ocupado se le agrega " (2)", y los nombres no
+    permitidos o sin cambios quedan afuera. La extensión y los datos de cada documento se mantienen; marcá <b>Usar también
+    el nombre nuevo como título de cada documento</b> para cambiar también los títulos. Después, <b>Deshacer</b> abajo en
+    la ventana ({mac ? "o Edición ▸ Deshacer, ⌘Z" : "o Ctrl+Z"}) les devuelve a todos sus nombres (y títulos) anteriores,
+    hasta que hagas otra cosa.
+  </p>
   <h3 id="moving">Mover</h3>
   <p>
     Arrastrá un documento o una carpeta sobre una carpeta, en la barra lateral o en la vista de la carpeta, o hacé clic
