@@ -115,9 +115,19 @@
     <li>
       <b>Galería</b>: el documento elegido en grande, con una tira de todos los documentos abajo. <kbd>←</kbd> y
       <kbd>→</kbd> pasan al documento anterior o siguiente; <kbd>↑</kbd> y <kbd>↓</kbd> (o los botones de flecha sobre
-      la página) pasan sus páginas.
+      la página) pasan sus páginas. Hacé clic en la página para abrirla en el <a href="#viewer">visor de páginas</a>.
     </li>
   </ul>
+  <h3 id="viewer">El visor de páginas</h3>
+  <p>
+    Hacé clic en una página (en la galería, o en la vista previa de la bandeja de entrada) para verla en grande. Acercá y
+    alejá con <b>+</b> y <b>−</b>, {mac ? "⌘+ y ⌘−" : "Ctrl++ y Ctrl+−"}, pellizcando en el trackpad o con {mac ? "⌘" : "Ctrl"}
+    y la rueda; con doble clic acercás a un punto y con otro ves la página entera. <b>Página entera</b>
+    ({mac ? "⌘0" : "Ctrl+0"}) y <b>Ancho de página</b> la ajustan a la ventana. Arrastrá la página, o desplazate, para
+    moverte por ella. Pasá páginas con las flechas, <kbd>←</kbd> <kbd>→</kbd>, Re Pág y Av Pág, o escribí un número de
+    página. <b>Rotar</b> gira un escaneo de costado solo para verlo; el archivo no cambia. <b>Abrir con la app
+    predeterminada</b> lo abre en tu app de siempre. Escape, o un clic afuera, cierra el visor.
+  </p>
   <p>
     Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento. Rupert
     nunca lee un archivo que está solo en línea para mostrarlo, porque eso lo descargaría. En cambio, mientras un PDF de
@@ -338,21 +348,31 @@
   <p>
     Hacé clic en <b>Bandeja de entrada</b> en la barra lateral para revisar. Mirá la sugerencia, cambiá lo que quieras y
     hacé clic en <b>Archivar</b> ({cmd}{mac ? "↩" : "Enter"}). Rupert escribe los detalles en el archivo, le cambia el
-    nombre y lo mueve a la carpeta. <b>Sugerir de nuevo</b> le pide a la IA local una sugerencia nueva.
+    nombre y lo mueve a la carpeta. Las dos flechas en círculo junto al tacho rojo (<b>Sugerir de nuevo</b>) le piden a la IA local una sugerencia
+    nueva; giran mientras trabaja.
   </p>
   <p>
     Los escaneos que esperan ocupan el centro de la ventana, con los títulos que sugiere Rupert. Buscalos (por nombre,
     título sugerido, etiquetas, carpeta o su texto) y cambiá entre <b>Lista</b>, <b>Íconos grandes</b> y <b>Galería</b>
     como en una carpeta; Rupert recuerda la vista de la bandeja de entrada. La página del escaneo elegido está arriba de
-    la columna derecha, sobre el formulario: pasá sus páginas con las flechas sobre la página o con <kbd>Re Pág</kbd> y
-    <kbd>Av Pág</kbd>. En la galería, la página se ve grande en el centro y la columna derecha tiene solo el formulario.
+    la columna derecha, sobre el formulario, en todas las vistas: pasá sus páginas con las flechas sobre la página o con
+    <kbd>Re Pág</kbd> y <kbd>Av Pág</kbd>, y hacé clic en ella para abrir el <a href="#viewer">visor de páginas</a>. En la
+    galería, la página también se ve grande en el centro.
   </p>
   <p>
-    Las rutas de carpeta largas muestran el origen y las dos últimas carpetas, como “Boating/…/Sol y Mar/Purchase”.
-    Apoyá el puntero sobre una carpeta, o sobre cualquier campo que no muestre todo su texto, para verlo completo.
+    <b>Carpeta</b> muestra la ruta completa adonde va el documento, con la carpeta misma en negrita (el nombre de la fuente
+    no aparece si tenés una sola). Para elegir otra, hacé clic y escribí cualquier parte del nombre de una carpeta: primero
+    aparecen las sugeridas y después todas las que coinciden, cada una con dónde está. Usá las flechas y
+    {mac ? "Return" : "Enter"}, o hacé clic en una. El botón de carpeta al lado del campo, o <b>Ver todas las carpetas…</b>
+    al final de la lista, abre todas tus carpetas como un árbol; ahí, <b>Carpeta nueva…</b> crea una carpeta dentro de la
+    seleccionada y la elige. Las sugerencias debajo del campo muestran lo justo de cada ruta para distinguirlas.
   </p>
   <p>
-    Para deshacerte de un escaneo, hacé clic en <b>{windows ? "Eliminar…" : "Trasladar a la Papelera…"}</b> debajo del
+    En la lista de la bandeja, las rutas largas muestran las dos últimas carpetas, como “…/Sol y Mar/Purchase”. Apoyá el
+    puntero sobre una carpeta, o sobre cualquier campo que no muestre todo su texto, para verlo completo.
+  </p>
+  <p>
+    Para deshacerte de un escaneo, hacé clic en el tacho rojo (<b>{windows ? "Eliminar…" : "Trasladar a la Papelera…"}</b>) debajo del
     formulario, hacé clic derecho sobre él en la lista, o apretá <kbd>{mac ? "⌘⌫" : "Supr"}</kbd>. Rupert pregunta
     primero, porque puede que un escaneo nuevo todavía no esté guardado en ningún otro lado; va a la {trash}, de donde lo
     podés recuperar.

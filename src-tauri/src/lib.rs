@@ -402,6 +402,31 @@ async fn move_entry(
     Ok(moved.rel_path)
 }
 
+/// Makes a folder (File it's New folder…, #63); the index picks it up.
+/// Returns its path.
+#[tauri::command]
+async fn create_folder(
+    source_id: String,
+    parent: String,
+    name: String,
+    app: AppHandle,
+) -> CmdResult<String> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let (s, p) = (source.clone(), parent.clone());
+    let rel = tauri::async_runtime::spawn_blocking(move || {
+        rupert_core::fileops::create_folder(&s, &p, &name)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    state.indexer.send(Job::SyncDir {
+        source,
+        rel_dir: parent,
+    });
+    Ok(rel)
+}
+
 /// Renames a document or folder in place (#65). The index catches up, and
 /// if the inbox is in a renamed folder, the setting follows it. Returns the
 /// new path.
@@ -739,11 +764,19 @@ fn run_test_script(app: &AppHandle) {
     let Ok(js) = std::env::var("RUPERT_TEST_JS") else {
         return;
     };
+    // Once the page has loaded and shows the window's layout (a large
+    // library can take a while), and only once: asked every second.
+    let guarded = format!(
+        "if (!window.__rupertTest && document.readyState === 'complete' && \
+         document.querySelector('.shell')) {{ window.__rupertTest = true; {js} }}"
+    );
     let app = app.clone();
     std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(5));
-        if let Some(w) = app.get_webview_window("main") {
-            let _ = w.eval(&js);
+        for _ in 0..30 {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.eval(&guarded);
+            }
         }
     });
 }
@@ -1144,18 +1177,30 @@ fn inbox_redo(rel_path: String, state: State<AppState>) {
     state.intake.redo(rel_path);
 }
 
-/// Every folder in the sources that holds documents, for the folder picker.
+/// Every folder in the sources, empty ones too, for the folder picker.
 #[tauri::command]
-fn all_folders(state: State<AppState>) -> CmdResult<Vec<FolderChoice>> {
+async fn all_folders(app: AppHandle) -> CmdResult<Vec<FolderChoice>> {
+    let state = app.state::<AppState>();
     let sources = state.sources();
-    let folders = state.index.lock().unwrap().folders().map_err(err)?;
-    Ok(folders
-        .into_iter()
-        .filter_map(|(id, dir)| {
-            let source = sources.iter().find(|s| s.id == id)?;
-            Some(intake::folder_choice(source, &dir))
-        })
-        .collect())
+    let indexed = state.index.lock().unwrap().folders().map_err(err)?;
+    // Empty folders too (e.g. one just made for filing): from the disk.
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut all: std::collections::BTreeSet<(String, String)> = indexed.into_iter().collect();
+        for s in sources.iter().filter(|s| s.is_available()) {
+            all.insert((s.id.clone(), String::new()));
+            for dir in rupert_core::all_dirs(&s.root) {
+                all.insert((s.id.clone(), dir));
+            }
+        }
+        all.into_iter()
+            .filter_map(|(id, dir)| {
+                let source = sources.iter().find(|s| s.id == id)?;
+                Some(intake::folder_choice(source, &dir))
+            })
+            .collect()
+    })
+    .await
+    .map_err(err)
 }
 
 /// Writes the reviewed details, then renames and moves the document.
@@ -1211,6 +1256,28 @@ async fn preview(
     tauri::async_runtime::spawn_blocking(move || {
         let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
         let image = intake::preview(&extractor, &path, page.unwrap_or(0)).map_err(err)?;
+        Ok(image.map(|(bytes, mime)| format!("data:{mime};base64,{}", base64(&bytes))))
+    })
+    .await
+    .map_err(err)?
+}
+
+/// A sharp page for the page viewer's zoom (#83): a `data:` URL, or `None`
+/// if there's nothing to show without downloading the file.
+#[tauri::command]
+async fn page_image(
+    source_id: String,
+    rel_path: String,
+    page: usize,
+    side: u32,
+    app: AppHandle,
+) -> CmdResult<Option<String>> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let extractor = state.extractor.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        let image = rupert_core::thumbs::large_page(&extractor, &path, page, side).map_err(err)?;
         Ok(image.map(|(bytes, mime)| format!("data:{mime};base64,{}", base64(&bytes))))
     })
     .await
@@ -1718,6 +1785,8 @@ pub fn run() {
             resume_indexing,
             index_folder,
             rename_entry,
+            create_folder,
+            page_image,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

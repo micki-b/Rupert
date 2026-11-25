@@ -111,9 +111,21 @@
     <li>
       <b>Galerie</b>: das ausgewählte Dokument groß, darunter ein Streifen mit allen Dokumenten. <kbd>←</kbd> und
       <kbd>→</kbd> wechseln zum vorherigen oder nächsten Dokument; <kbd>↑</kbd> und <kbd>↓</kbd> (oder die Pfeiltasten
-      auf der Seite) blättern durch seine Seiten.
+      auf der Seite) blättern durch seine Seiten. Ein Klick auf die Seite öffnet sie in der
+      <a href="#viewer">Seitenansicht</a>.
     </li>
   </ul>
+  <h3 id="viewer">Die Seitenansicht</h3>
+  <p>
+    Klicken Sie auf eine Seite (in der Galerie oder in der Vorschau des Eingangs), um sie groß zu sehen. Zoomen Sie mit
+    <b>+</b> und <b>−</b>, {mac ? "⌘+ und ⌘−" : "Strg++ und Strg+−"}, mit zwei Fingern auf dem Trackpad oder mit
+    {mac ? "⌘" : "Strg"} und dem Mausrad; ein Doppelklick vergrößert eine Stelle, ein weiterer zeigt die ganze Seite.
+    <b>Ganze Seite</b> ({mac ? "⌘0" : "Strg+0"}) und <b>Seitenbreite</b> passen sie ins Fenster ein. Ziehen Sie die Seite
+    oder scrollen Sie, um sich darin zu bewegen. Blättern Sie mit den Pfeilen, <kbd>←</kbd> <kbd>→</kbd>, Bild ↑ und
+    Bild ↓, oder tippen Sie eine Seitenzahl. <b>Drehen</b> dreht einen seitlichen Scan nur zum Ansehen; die Datei bleibt
+    unverändert. <b>Mit Standard-App öffnen</b> öffnet ihn in Ihrer gewohnten App. Escape oder ein Klick daneben
+    schließt die Ansicht.
+  </p>
   <p>
     Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald sich ein Dokument
     ändert. Rupert liest eine Datei, die nur online verfügbar ist, nie, um sie anzuzeigen, denn das würde sie
@@ -341,23 +353,32 @@
   <p>
     Klicken Sie in der Seitenleiste auf <b>Eingang</b>, um zu prüfen. Sehen Sie sich den Vorschlag an, ändern Sie, was
     Sie möchten, und klicken Sie auf <b>Ablegen</b> ({cmd}{mac ? "↩" : "Enter"}). Rupert schreibt die Angaben in die
-    Datei, benennt sie um und bewegt sie in den Ordner. <b>Neu vorschlagen</b> bittet die lokale KI um einen neuen Vorschlag.
+    Datei, benennt sie um und bewegt sie in den Ordner. Die zwei kreisenden Pfeile neben dem roten Papierkorb (<b>Neu vorschlagen</b>) bitten die lokale KI um einen
+    neuen Vorschlag; sie drehen sich, solange sie arbeitet.
   </p>
   <p>
     Die wartenden Scans füllen die Mitte des Fensters, mit den Titeln, die Rupert vorschlägt. Durchsuchen Sie sie (nach
     Name, vorgeschlagenem Titel, Tags, Ordner oder ihrem Text), und wechseln Sie wie in einem Ordner zwischen
     <b>Liste</b>, <b>Große Symbole</b> und <b>Galerie</b>; Rupert merkt sich die Ansicht für den Eingang. Die Seite des
-    gewählten Scans steht oben in der rechten Spalte, über dem Formular: Blättern Sie mit den Pfeilen auf der Seite oder
-    mit <kbd>Bild ↑</kbd> und <kbd>Bild ↓</kbd>. In der Galerie ist die Seite stattdessen groß in der Mitte, und die
-    rechte Spalte enthält nur das Formular.
+    gewählten Scans steht oben in der rechten Spalte, über dem Formular, in jeder Ansicht: Blättern Sie mit den Pfeilen
+    auf der Seite oder mit <kbd>Bild ↑</kbd> und <kbd>Bild ↓</kbd>, und klicken Sie darauf, um die
+    <a href="#viewer">Seitenansicht</a> zu öffnen. In der Galerie ist die Seite außerdem groß in der Mitte.
   </p>
   <p>
-    Lange Ordnerpfade zeigen die Quelle und die letzten zwei Ordner, etwa „Boating/…/Sol y Mar/Purchase“. Zeigen Sie auf
-    einen Ordner oder auf ein Feld, das nicht seinen ganzen Text zeigt, um alles zu sehen.
+    <b>Ordner</b> zeigt den ganzen Pfad dorthin, wo das Dokument abgelegt wird, den Ordner selbst fett (der Name der Quelle
+    entfällt, wenn Sie nur eine haben). Um einen anderen zu wählen, klicken Sie darauf und tippen einen Teil eines
+    Ordnernamens: Zuerst kommen die vorgeschlagenen Ordner, dann alle passenden, jeweils mit ihrem Ort. Wählen Sie mit den
+    Pfeiltasten und der Eingabetaste oder per Klick. Die Ordnertaste neben dem Feld oder <b>Alle Ordner durchsuchen …</b>
+    am Ende der Liste öffnet alle Ordner als Baum; dort erstellt <b>Neuer Ordner …</b> einen Ordner im ausgewählten und
+    wählt ihn. Die Vorschläge unter dem Feld zeigen gerade so viel vom Pfad, dass man sie unterscheiden kann.
   </p>
   <p>
-    Um einen Scan stattdessen loszuwerden, klicken Sie unter dem Formular auf
-    <b>{windows ? "Löschen …" : "In den Papierkorb legen …"}</b>, klicken Sie in der Liste mit der rechten Maustaste
+    In der Liste des Eingangs zeigen lange Ordnerpfade die letzten zwei Ordner, etwa „…/Sol y Mar/Purchase“. Zeigen Sie
+    auf einen Ordner oder auf ein Feld, das nicht seinen ganzen Text zeigt, um alles zu sehen.
+  </p>
+  <p>
+    Um einen Scan stattdessen loszuwerden, klicken Sie unter dem Formular auf den roten Papierkorb
+    (<b>{windows ? "Löschen …" : "In den Papierkorb legen …"}</b>), klicken Sie in der Liste mit der rechten Maustaste
     darauf oder drücken Sie <kbd>{deleteKey}</kbd>. Rupert fragt zuerst, weil ein neuer Scan vielleicht noch nirgends sonst
     gespeichert ist; er landet im Papierkorb, aus dem Sie ihn zurückholen können.
   </p>

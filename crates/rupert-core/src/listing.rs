@@ -81,6 +81,24 @@ fn join_rel(parent: &str, name: &str) -> String {
 
 // MARK: - Listing
 
+/// Every folder under `root` (its own hidden `.rupert` folders aside), as
+/// paths relative to it, from directory listings only: nothing is opened,
+/// so online-only files stay where they are. Unreadable folders are skipped.
+pub fn all_dirs(root: &Path) -> Vec<String> {
+    fn walk(root: &Path, rel: &str, out: &mut Vec<String>) {
+        let Ok(entries) = list_dir(root, rel, false) else {
+            return;
+        };
+        for e in entries.into_iter().filter(|e| e.is_dir) {
+            out.push(e.rel_path.clone());
+            walk(root, &e.rel_path, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(root, "", &mut out);
+    out
+}
+
 /// Lists the folders and files directly inside `rel` (not recursive).
 /// Folders come first, then files, each sorted case-insensitively. Unless
 /// `show_all_types` is set, only document files are included.

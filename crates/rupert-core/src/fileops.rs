@@ -471,6 +471,33 @@ pub fn rename_entry(source: &Source, rel_path: &str, new_name: &str) -> Result<M
     })
 }
 
+/// Makes the folder `name` inside `parent_rel` of `source` (#63's New
+/// folder…), with the same name rules as renaming. Returns its path.
+pub fn create_folder(source: &Source, parent_rel: &str, name: &str) -> Result<String> {
+    check_name(name)?;
+    let parent_rel = parent_rel.trim_matches('/');
+    if parent_rel.split('/').any(|p| p == sidecar::DIR_NAME) {
+        return Err(Error::InvalidPath(parent_rel.into()));
+    }
+    let parent = crate::listing::resolve(&source.root, parent_rel)?;
+    if !parent.is_dir() {
+        return Err(Error::NotADirectory(parent));
+    }
+    let target = parent.join(name);
+    match fs::create_dir(&target) {
+        Ok(()) => {}
+        Err(e) if e.kind() == ErrorKind::AlreadyExists => {
+            return Err(Error::InvalidValue(trf(
+                "“{0}” is already taken in this folder. Choose another name.",
+                &[&name],
+            )));
+        }
+        Err(e) => return Err(e.into()),
+    }
+    crate::listing::relative(&source.root, &target)
+        .ok_or_else(|| Error::InvalidPath(target.display().to_string()))
+}
+
 /// Whether `rel_path` is the folder `dir` or inside it.
 pub fn is_within(rel_path: &str, dir: &str) -> bool {
     let (rel_path, dir) = (rel_path.trim_matches('/'), dir.trim_matches('/'));
@@ -612,6 +639,32 @@ fn trash_with(root: &Path, rel_path: &str, delete: &dyn Fn(&Path) -> Result<()>)
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn creates_folders_but_never_twice() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = Source {
+            id: "s".into(),
+            name: "S".into(),
+            root: dir.path().to_path_buf(),
+            provider: Provider::Local,
+            show_all_types: false,
+            download_online_only: false,
+            bookmark: None,
+        };
+        assert_eq!(create_folder(&src, "", "Boats").unwrap(), "Boats");
+        assert_eq!(
+            create_folder(&src, "Boats", "Sol y Mar").unwrap(),
+            "Boats/Sol y Mar"
+        );
+        assert!(dir.path().join("Boats/Sol y Mar").is_dir());
+        assert!(create_folder(&src, "Boats", "Sol y Mar").is_err(), "taken");
+        assert!(create_folder(&src, "Boats", "a/b").is_err(), "bad name");
+        assert!(
+            create_folder(&src, "Nowhere", "x").is_err(),
+            "no such parent"
+        );
+    }
 
     #[test]
     fn names_are_checked_before_renaming() {

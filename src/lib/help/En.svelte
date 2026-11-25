@@ -108,9 +108,19 @@
     <li>
       <b>Gallery</b>: the selected document large, with a strip of all documents below. <kbd>←</kbd> and
       <kbd>→</kbd> move to the previous or next document; <kbd>↑</kbd> and <kbd>↓</kbd> (or the arrow buttons on the
-      page) flip through its pages.
+      page) flip through its pages. Click the page to open it in the <a href="#viewer">page viewer</a>.
     </li>
   </ul>
+  <h3 id="viewer">The page viewer</h3>
+  <p>
+    Click a page (in the gallery, or the inbox's preview) to see it large. Zoom with <b>+</b> and <b>−</b>,
+    {mac ? "⌘+ and ⌘−" : "Ctrl++ and Ctrl+−"}, pinching on a trackpad or {mac ? "⌘" : "Ctrl"} and the scroll wheel;
+    double-click to zoom into a spot and again to see the whole page. <b>Fit page</b> ({mac ? "⌘0" : "Ctrl+0"}) and
+    <b>Fit width</b> size it to the window. Drag the page, or scroll, to move around it. Flip pages with the arrows,
+    <kbd>←</kbd> <kbd>→</kbd>, Page Up and Page Down, or type a page number. <b>Rotate</b> turns a sideways scan for
+    viewing only; the file isn't changed. <b>Open in default app</b> opens it in your usual app. Escape, or a click
+    outside, closes the viewer.
+  </p>
   <p>
     Pictures are kept in a cache on this computer and made again whenever a document changes. Rupert never reads an
     online-only file to show it, since that would download it. Instead, while a PDF in an iCloud Drive, OneDrive or
@@ -308,21 +318,31 @@
   <p>
     Click <b>Inbox</b> in the sidebar to review. Check the suggestion, change anything, and click <b>File</b>
     ({cmd}{mac ? "↩" : "Enter"}). Rupert writes the details into the file, renames it and moves it to the folder.
-    <b>Suggest again</b> asks Local AI for a new suggestion.
+    The two circling arrows next to the red trash can (<b>Suggest again</b>) ask Local AI for a new suggestion; they
+    turn while it's working.
   </p>
   <p>
     The waiting scans fill the middle of the window, with the titles Rupert suggests. Search them (by name, suggested
     title, tags, folder or their text), and switch between <b>List</b>, <b>Large icons</b> and <b>Gallery</b> as in a
     folder; Rupert remembers the view for the inbox. The selected scan's page is at the top of the right column, above
-    the form: flip through its pages with the arrows on the page or <kbd>Page Up</kbd> and <kbd>Page Down</kbd>. In the
-    gallery the page is large in the middle instead, and the right column has only the form.
+    the form, in every view: flip through its pages with the arrows on the page or <kbd>Page Up</kbd> and
+    <kbd>Page Down</kbd>, and click it to open the <a href="#viewer">page viewer</a>. In the gallery the page is also
+    large in the middle.
   </p>
   <p>
-    Long folder paths show the source and the last two folders, like “Boating/…/Sol y Mar/Purchase”. Point at a folder,
-    or at any field that doesn't show all its text, to see all of it.
+    <b>Folder</b> shows the whole path to where the document goes, with the folder itself in bold (the source's name is
+    left out when you have only one). To choose another, click it and type any part of a folder's name: the suggested
+    folders come first, then every folder that matches, each with where it is. Use the arrow keys and
+    {mac ? "Return" : "Enter"}, or click one. The folder button next to the field, or <b>Browse all folders…</b> at the
+    end of the list, opens all your folders as a tree; there, <b>New folder…</b> makes a folder inside the selected one
+    and chooses it. The suggestions under the field show just enough of each path to tell them apart.
   </p>
   <p>
-    To get rid of a scan instead, click <b>{windows ? "Delete…" : "Move to Trash…"}</b> under the form, right-click
+    In the inbox list, long folder paths show the last two folders, like “…/Sol y Mar/Purchase”. Point at a folder, or
+    at any field that doesn't show all its text, to see all of it.
+  </p>
+  <p>
+    To get rid of a scan instead, click the red trash can under the form (<b>{windows ? "Delete…" : "Move to Trash…"}</b>), right-click
     it in the list, or press <kbd>{mac ? "⌘⌫" : "Delete"}</kbd>. Rupert asks first, since a new scan may not be saved
     anywhere else yet; it goes to the {windows ? "Recycle Bin" : "Trash"}, where you can get it back.
   </p>

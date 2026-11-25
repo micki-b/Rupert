@@ -55,6 +55,7 @@
   import RupertOwl from "#lib/RupertOwl.svelte";
   import Splitter from "#lib/Splitter.svelte";
   import RenameField from "#lib/RenameField.svelte";
+  import PageViewer from "#lib/PageViewer.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { loadLanguage, m } from "#lib/i18n/index.ts";
 
@@ -296,6 +297,7 @@
       itemMenu = null;
     };
     const shortcuts = (e: KeyboardEvent) => {
+      if (viewer) return; // the page viewer has the keyboard
       const typing =
         e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
       if (e.key === "Escape" && itemMenu) {
@@ -642,6 +644,11 @@
       selected = next ? { sourceId: sel.sourceId, entry: next } : null;
     }
   }
+
+  // MARK: - Page viewer (#83)
+
+  /** The document shown large in the page viewer, from the gallery. */
+  let viewer = $state<{ sourceId: string; entry: ListedEntry; page: number } | null>(null);
 
   // MARK: - Renaming (#65)
 
@@ -1148,6 +1155,8 @@
           onrename={(e, name) => finishRenaming(source.id, e.relPath, name)}
           onrenamecancel={() => (renamingAt = null)}
           enterOpens={info?.os !== "macos"}
+          onview={(e, page) => (viewer = { sourceId: source.id, entry: e, page })}
+          paused={!!viewer}
         />
       {:else}
         <table>
@@ -1261,6 +1270,16 @@
   </section>
   {/if}
 </div>
+
+{#if viewer}
+  <PageViewer
+    sourceId={viewer.sourceId}
+    entry={viewer.entry}
+    title={viewer.entry.title ?? null}
+    startPage={viewer.page}
+    onclose={() => (viewer = null)}
+  />
+{/if}
 
 {#if reader}
   <MarkdownReader sourceId={reader.sourceId} relPath={reader.relPath} onclose={() => (reader = null)} />

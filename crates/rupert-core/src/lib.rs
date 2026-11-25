@@ -48,7 +48,7 @@ pub use index::{
     DocInfo, FolderMeta, Hit, Index, IndexStats, SearchQuery, TagCount, TagList, TagMode,
 };
 pub use indexer::{IndexerHandle, Job, Mode, Options, Progress};
-pub use listing::{CloudState, Entry, cloud_state, list_dir, resolve};
+pub use listing::{CloudState, Entry, all_dirs, cloud_state, list_dir, resolve};
 pub use meta::{DocMeta, MetaRecord, Storage, read_meta, write_meta};
 pub use source::{Provider, Source, SourceStore};
 pub use watch::{DirChange, LibraryWatcher};
