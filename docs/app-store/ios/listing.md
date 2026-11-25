@@ -63,9 +63,15 @@ First release.
 
 ## What's new in 0.6.0 [4000]
 
-Keeps the iPhone app in step with Rupert 0.6.0 on your computer, which brings a roomier inbox, a page viewer and renaming. Nothing changes in how the iPhone app works.
+Ask Rupert finds more and makes up less.
+
+• Ask (on iPhones with Apple Intelligence): when a search finds nothing, Rupert tries again with fewer words and, for a question in Spanish or German, with the words in English, since documents are often in another language than the question.
+• Rupert reads a document before saying what something cost, answers in the language of your question, and searches instead of asking which document you mean.
+• Settings ▸ About has a link to the privacy policy.
 
 ## What's new in 0.5.2 [4000]
+
+<!-- 0.5.2 was withdrawn from review (2026-11-25); its notes are 0.6.0's. -->
 
 Ask Rupert finds more and makes up less.
 

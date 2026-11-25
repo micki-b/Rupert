@@ -53,9 +53,15 @@ Rupert ist kostenlos und quelloffen.
 
 ## What's new in 0.6.0 [4000]
 
-Hält die iPhone-App mit Rupert 0.6.0 auf Ihrem Computer gleich, der einen geräumigeren Eingang, eine Seitenansicht und Umbenennen bringt. An der iPhone-App selbst ändert sich nichts.
+„Rupert fragen“ findet mehr und erfindet weniger.
+
+• Fragen (auf iPhones mit Apple Intelligence): Findet eine Suche nichts, versucht Rupert es mit weniger Wörtern erneut und bei einer Frage auf Spanisch oder Deutsch mit den Wörtern auf Englisch, denn Dokumente sind oft in einer anderen Sprache als die Frage.
+• Rupert liest ein Dokument, bevor er sagt, was etwas gekostet hat, antwortet in der Sprache Ihrer Frage und sucht, statt zu fragen, welches Dokument Sie meinen.
+• Einstellungen ▸ Über hat einen Link zur Datenschutzerklärung.
 
 ## What's new in 0.5.2 [4000]
+
+<!-- 0.5.2 was withdrawn from review (2026-11-25); its notes are 0.6.0's. -->
 
 „Rupert fragen“ findet mehr und erfindet weniger.
 
