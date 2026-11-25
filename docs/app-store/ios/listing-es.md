@@ -53,9 +53,15 @@ Rupert es libre, gratis y de código abierto.
 
 ## What's new in 0.6.0 [4000]
 
-Mantiene la app del iPhone al día con Rupert 0.6.0 en tu computadora, que trae una bandeja de entrada más amplia, un visor de páginas y la posibilidad de renombrar. Nada cambia en cómo funciona la app del iPhone.
+Preguntale a Rupert encuentra más e inventa menos.
+
+• Preguntar (en iPhones con Apple Intelligence): si una búsqueda no encuentra nada, Rupert prueba de nuevo con menos palabras y, si preguntás en español o alemán, con las palabras en inglés, porque los documentos muchas veces están en otro idioma que la pregunta.
+• Rupert lee el documento antes de decir cuánto costó algo, contesta en el idioma de tu pregunta y busca en vez de preguntarte a qué documento te referís.
+• Configuración ▸ Acerca de tiene un enlace a la política de privacidad.
 
 ## What's new in 0.5.2 [4000]
+
+<!-- 0.5.2 was withdrawn from review (2026-11-25); its notes are 0.6.0's. -->
 
 Preguntale a Rupert encuentra más e inventa menos.
 
