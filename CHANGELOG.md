@@ -2,8 +2,6 @@
 
 ## 0.6.1 — 2026-11-25
 
-0.6.0 wasn't published: 0.6.1 brings everything listed under 0.6.0, plus:
-
 - **Page viewer zoom steps:** **+** and **−** zoom by a quarter again (×1.25), rounded to two digits: 100, 130, 160, 200, 250 % up and 80, 64, 51 % down. Fit width rounds down the same way (230 %).
 
 ## 0.6.0 — 2026-11-25

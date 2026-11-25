@@ -41,7 +41,7 @@ Rupert es libre y gratis.
 
 ## What's new in 0.6.1 [4000]
 
-<!-- 0.6.0 wasn't published; this is its text. -->
+<!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
 
 Una bandeja de entrada más amplia, la configuración en su propia ventana, y renombrar, arrastrar hacia afuera y un visor de páginas.
 

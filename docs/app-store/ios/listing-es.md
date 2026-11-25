@@ -53,7 +53,7 @@ Rupert es libre, gratis y de código abierto.
 
 ## What's new in 0.6.1 [4000]
 
-<!-- 0.6.0 wasn't published; this is its text. -->
+<!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
 
 Preguntale a Rupert encuentra más e inventa menos.
 
