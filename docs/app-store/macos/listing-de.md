@@ -39,6 +39,15 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.7.0 [4000]
+
+Viele Dokumente auf einmal umbenennen und Dokumente per Mail, Nachrichten oder AirDrop senden.
+
+• Dokumente umbenennen: Rechtsklick auf einen Ordner ▸ Dokumente umbenennen … Die neuen Namen ergeben sich aus Datum und Titel jedes Dokuments. Ändern Sie einen, und Rupert benennt die anderen auf dieselbe Weise, bei Bedarf mit lokaler KI. Prüfen Sie die Liste vorher und nachher, dann umbenennen; „Widerrufen“ stellt die alten Namen wieder her.
+• Teilen … und Per E-Mail senden …: Rechtsklick auf ein Dokument oder die Tasten in den Details und im Eingang. Ein PDF geht ohne Ihre Notizen, außer Sie schließen sie unter Einstellungen ▸ Bibliothek ein.
+• Die Taste „Rupert fragen“ verdeckt in einem kleinen Fenster nicht mehr die Tasten des Eingangs.
+• Ein Dokument hinaus- und zurückzuziehen hinterlässt keine Kopie mehr.
+
 ## What's new in 0.6.1 [4000]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

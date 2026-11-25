@@ -38,6 +38,10 @@ IHRE DOKUMENTE BLEIBEN IHRE
 
 Rupert ist kostenlos und quelloffen.
 
+## Release notes, 0.7.0 [500]
+
+Dokumente teilen: Tippen Sie in den Details eines Dokuments auf „Teilen“, um es mit Gmail, Nachrichten oder einer anderen App zu senden. Ein PDF geht ohne Ihre Notizen, außer Einstellungen ▸ Teilen schließt sie ein.
+
 ## Release notes, 0.6.1 [500]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

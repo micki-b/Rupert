@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 — 2026-11-25
+
+- **Rename documents…** (#64): right-click a folder (or a document, or a source's ⋯ menu) ▸ **Rename documents…** gives a folder's documents new names together, in a before/after table with what changes highlighted and the selected document's first page and details beside it. New names start from each document's date and title (the name pattern). Change one, and Rupert names the others the same way: right away when the rule is in the date and title (another date format, the date last, a word in front), otherwise with Local AI following your example. With Local AI you can also describe the names ("insurer - policy - year") and **Propose with AI**, one document at a time with progress and Stop. Taken names get " (2)", names that aren't allowed or don't change are left out, nothing is ever replaced, and optionally the titles follow the new names. Afterwards **Undo** (the bar at the bottom of the window, Edit ▸ Undo / ⌘Z, Ctrl+Z) gives them their old names back.
+- **Share… and Email…** (#69): right-click a document ▸ **Share…** (the Mac's share menu: Mail, Messages, AirDrop, Notes…; the Windows Share window) or **Email…** (a new message with the document attached and its title as the subject; on Linux through `xdg-email`), also as buttons beside Show in Finder in the details and beside Open in the inbox. A PDF goes as a copy **without your notes** unless Settings ▸ Library ▸ **Include my notes when sending a PDF** is on; the copy is rewritten whole, so no earlier revision keeps them. An inbox scan goes under the name it would be filed under. Online-only documents are downloaded first, with Cancel.
+- **Share on the phone** (#69): a **Share** button beside Open in a document's details opens the iPhone's share sheet or Android's share chooser; notes are left out the same way (Settings ▸ Sharing).
+- **Fixed:** in a small window, the Ask Rupert button no longer covers Suggest again and Move to Trash: the inbox's note shares its row (#92). Dragging a document over another folder and back no longer leaves a copy behind (#96).
+
 ## 0.6.1 — 2026-11-25
 
 - **Page viewer zoom steps:** **+** and **−** zoom by a quarter again (×1.25), rounded to two digits: 100, 130, 160, 200, 250 % up and 80, 64, 51 % down. Fit width rounds down the same way (230 %).

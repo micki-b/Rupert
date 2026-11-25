@@ -39,6 +39,15 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.7.0 [4000]
+
+Cambiá el nombre de muchos documentos de una vez y enviá documentos por Mail, Mensajes o AirDrop.
+
+• Cambiar el nombre de documentos: clic derecho en una carpeta ▸ Cambiar el nombre de documentos… Los nombres nuevos salen de la fecha y el título de cada documento. Cambiá uno y Rupert nombra los demás de la misma manera, con IA local si hace falta. Revisá la lista de antes y después y cambiá los nombres; Deshacer los devuelve.
+• Compartir… y Enviar por correo…: clic derecho en un documento, o los botones en los detalles y en la bandeja de entrada. Un PDF va sin tus notas, salvo que las incluyas en Configuración ▸ Biblioteca.
+• El botón de Preguntale a Rupert ya no tapa los botones de la bandeja de entrada en una ventana chica.
+• Arrastrar un documento afuera y volver ya no deja una copia.
+
 ## What's new in 0.6.1 [4000]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

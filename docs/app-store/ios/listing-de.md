@@ -51,6 +51,12 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.7.0 [4000]
+
+Dokumente aus Rupert teilen.
+
+• Teilen: Öffnen Sie die Details eines Dokuments und tippen Sie auf „Teilen“, um es mit Mail, Nachrichten, AirDrop oder einer anderen App zu senden. Ein PDF geht ohne Ihre Notizen, außer Einstellungen ▸ Teilen schließt sie ein.
+
 ## What's new in 0.6.1 [4000]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

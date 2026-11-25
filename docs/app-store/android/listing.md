@@ -74,6 +74,10 @@ Rupert is free and open source.
 
   (Google Play counts sending data off the device as "collection" even when it goes to the user's own storage and never to the developer.)
 
+## Release notes, 0.7.0 [500]
+
+Share documents: in a document's details, tap Share to send it with Gmail, Messages or another app. A PDF goes without your notes unless Settings ▸ Sharing includes them.
+
 ## Release notes, 0.6.1 [500]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

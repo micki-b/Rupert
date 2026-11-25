@@ -51,6 +51,12 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.7.0 [4000]
+
+Compartí documentos desde Rupert.
+
+• Compartir: abrí los detalles de un documento y tocá Compartir para enviarlo con Mail, Mensajes, AirDrop u otra app. Un PDF va sin tus notas, salvo que Configuración ▸ Compartir las incluya.
+
 ## What's new in 0.6.1 [4000]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
