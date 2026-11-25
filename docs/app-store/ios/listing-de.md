@@ -53,7 +53,7 @@ Rupert ist kostenlos und quelloffen.
 
 ## What's new in 0.6.1 [4000]
 
-<!-- 0.6.0 wasn't published; this is its text. -->
+<!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
 
 „Rupert fragen“ findet mehr und erfindet weniger.
 

@@ -40,7 +40,7 @@ Rupert ist kostenlos und quelloffen.
 
 ## Release notes, 0.6.1 [500]
 
-<!-- 0.6.0 wasn't published; this is its text. -->
+<!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
 
 Hält die Android-App mit Rupert 0.6.1 auf Ihrem Computer gleich. An der App selbst ändert sich nichts.
 

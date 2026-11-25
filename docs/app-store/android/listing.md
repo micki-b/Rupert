@@ -76,7 +76,7 @@ Rupert is free and open source.
 
 ## Release notes, 0.6.1 [500]
 
-<!-- 0.6.0 wasn't published; this is its text. -->
+<!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
 
 Keeps the Android app in step with Rupert 0.6.1 on your computer. Nothing changes in how the app works.
 
