@@ -139,8 +139,8 @@
     Ziehen Sie ein Dokument (oder einen Ordner oder einen Scan im Eingang) aus Ruperts Fenster auf Mail, Nachrichten, den
     Upload-Bereich einer Website, {fileManager} oder den Schreibtisch, und diese App erhält eine <em>Kopie</em> der Datei
     unter ihrem Namen. Ihre Bibliothek behält die Datei. Dateien, die nur online verfügbar sind, lädt die App, auf die Sie
-    sie ziehen. Beim Ziehen zeigt der Zeiger das Kopierzeichen ⊕, auch über Ruperts eigenen Ordnern; dort abgelegt, wird
-    ein Dokument wie bisher dorthin bewegt.
+    sie ziehen. Auf einem von Ruperts eigenen Ordnern abgelegt (er wird hervorgehoben, solange
+    Sie darüber sind), wird ein Dokument wie bisher dorthin bewegt.
   </p>
   <h3 id="renaming">Umbenennen</h3>
   <p>

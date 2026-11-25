@@ -140,8 +140,8 @@
     Arrastrá un documento (o una carpeta, o un escaneo de la bandeja de entrada) fuera de la ventana de Rupert hasta
     Mail, Mensajes, la zona para subir archivos de un sitio web, {fileManager} o el escritorio, y esa app recibe una
     <em>copia</em> del archivo, con su nombre. Tu biblioteca conserva el archivo. Los archivos que están solo en línea los
-    descarga la app donde los soltás. Mientras arrastrás, el puntero muestra el signo de copiar ⊕, también sobre las
-    carpetas de Rupert; si soltás un documento en una de ellas, se mueve ahí, como siempre.
+    descarga la app donde los soltás. Si soltás un documento en una de las
+    carpetas de Rupert (se resalta mientras estás encima), se mueve ahí, como siempre.
   </p>
   <h3 id="renaming">Renombrar</h3>
   <p>
