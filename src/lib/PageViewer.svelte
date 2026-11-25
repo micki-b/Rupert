@@ -44,8 +44,16 @@
   const PAD = 24;
   const MIN_ZOOM = 0.2;
   const MAX_ZOOM = 8;
-  /** The buttons and keys zoom in 10 % steps. */
-  const STEP = 0.1;
+  /** The buttons and keys zoom by this factor, then round (see `tidy`). */
+  const STEP = 1.25;
+
+  /** A zoom with its percentage rounded to two significant digits (233 % →
+   * 230 %, 61 % → 61 %), up, down or to the nearest. */
+  function tidy(z: number, how: "round" | "floor" | "ceil" = "round"): number {
+    const pct = z * 100;
+    const unit = 10 ** Math.max(0, Math.floor(Math.log10(pct)) - 1);
+    return (Math[how](pct / unit + (how === "floor" ? 1e-9 : how === "ceil" ? -1e-9 : 0)) * unit) / 100;
+  }
   /** The system's scroll bar thickness (0 where they float over content). */
   let scrollbar = $state(0);
   const turned = $derived(rotation % 180 !== 0);
@@ -73,10 +81,8 @@
     return (mine.find((x) => x.side >= need) ?? mine.at(-1))?.url ?? quick;
   });
   /** Fit width leaves room for the vertical scroll bar it brings, and
-   * snaps down to a 10 % step. */
-  const fitWidthZoom = $derived(
-    Math.max(MIN_ZOOM, Math.floor((stageW - scrollbar - 2 * PAD) / fit.w / STEP + 0.001) * STEP),
-  );
+   * rounds down to two digits (233 % → 230 %). */
+  const fitWidthZoom = $derived(Math.max(MIN_ZOOM, tidy((stageW - scrollbar - 2 * PAD) / fit.w, "floor")));
 
   onMount(() => {
     if (entry.kind === "pdf") {
@@ -137,9 +143,10 @@
     stage.scrollLeft = cx * ratio - x;
     stage.scrollTop = cy * ratio - y;
   }
-  // The next 10 % step up or down (from 105 %: 110 % and 100 %).
-  const zoomIn = () => zoomTo((Math.floor(zoom / STEP + 0.001) + 1) * STEP);
-  const zoomOut = () => zoomTo((Math.ceil(zoom / STEP - 0.001) - 1) * STEP);
+  // ×1.25 or ÷1.25, rounded to two digits: 100 → 130 → 160 → 200 → 250 % and
+  // 100 → 80 → 64 → 51 %. Always at least one step on.
+  const zoomIn = () => zoomTo(Math.max(tidy(zoom * STEP), tidy(zoom, "floor") + 0.01));
+  const zoomOut = () => zoomTo(Math.min(tidy(zoom / STEP), tidy(zoom, "ceil") - 0.01));
   const fitPage = () => (zoom = 1);
   const fitWidth = () => zoomTo(fitWidthZoom, stageW / 2, 0);
   const rotate = () => (rotation = (rotation + 90) % 360);

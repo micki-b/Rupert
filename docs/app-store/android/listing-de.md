@@ -38,9 +38,11 @@ IHRE DOKUMENTE BLEIBEN IHRE
 
 Rupert ist kostenlos und quelloffen.
 
-## Release notes, 0.6.0 [500]
+## Release notes, 0.6.1 [500]
 
-Hält die Android-App mit Rupert 0.6.0 auf Ihrem Computer gleich. An der App selbst ändert sich nichts.
+<!-- 0.6.0 wasn't published; this is its text. -->
+
+Hält die Android-App mit Rupert 0.6.1 auf Ihrem Computer gleich. An der App selbst ändert sich nichts.
 
 ## Release notes, 0.5.2 [500]
 

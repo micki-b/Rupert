@@ -39,7 +39,9 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
-## What's new in 0.6.0 [4000]
+## What's new in 0.6.1 [4000]
+
+<!-- 0.6.0 wasn't published; this is its text. -->
 
 Ein geräumigerer Eingang, Einstellungen im eigenen Fenster sowie Umbenennen, Hinausziehen und eine Seitenansicht.
 
