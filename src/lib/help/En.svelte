@@ -128,6 +128,13 @@
     the file goes online-only. Online-only documents without one show their icon. Either way the cloud stays on them,
     and opening one downloads it.
   </p>
+  <h3 id="dragging-out">Dragging documents out</h3>
+  <p>
+    Drag a document (or a folder, or a scan in the inbox) out of Rupert's window onto Mail, Messages, a website's upload
+    area, {fileManager} or the desktop, and that app gets a <em>copy</em> of the file, under its own name. Your library
+    keeps the file. Online-only files are fetched by the app you drop them on. While you drag, the pointer shows the
+    copy sign ⊕, also over Rupert's own folders; dropped on one of them, a document is still moved there, as before.
+  </p>
   <h3 id="renaming">Renaming</h3>
   <p>
     Right-click a document or folder and choose <b>Rename…</b>, or select it and press

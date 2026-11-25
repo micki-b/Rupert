@@ -24,6 +24,7 @@
   import FolderPickerDialog from "#lib/FolderPickerDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import { crumbs, shortestEndings } from "#lib/folders.ts";
+  import { dragOutSource } from "#lib/drag.svelte.ts";
   import { formatDate, formatDay } from "#lib/format.ts";
   import { m } from "#lib/i18n/index.ts";
 
@@ -509,6 +510,7 @@
                   onclick={() => (selectedRel = i.relPath)}
                   ondblclick={() => api.openEntry(i.sourceId, i.relPath)}
                   oncontextmenu={(e) => openMenu(i, e)}
+              {...dragOutSource(i.sourceId, i.relPath)}
                 >
                   <td class="name">
                     <Icon name={entryOf(i).kind === "pdf" ? "pdf" : "file"} size={15} />
@@ -531,6 +533,7 @@
               onclick={() => (selectedRel = i.relPath)}
               ondblclick={() => api.openEntry(i.sourceId, i.relPath)}
               oncontextmenu={(e) => openMenu(i, e)}
+              {...dragOutSource(i.sourceId, i.relPath)}
               title={i.suggestion?.title ? `${i.suggestion.title}\n${i.name}` : i.name}
             >
               <span class="pic"><Thumb sourceId={i.sourceId} entry={entryOf(i)} side={320} iconSize={48} /></span>
@@ -551,6 +554,7 @@
               onclick={() => (selectedRel = i.relPath)}
               ondblclick={() => api.openEntry(i.sourceId, i.relPath)}
               oncontextmenu={(e) => openMenu(i, e)}
+              {...dragOutSource(i.sourceId, i.relPath)}
               title={i.suggestion?.title ?? i.name}
             >
               <Thumb sourceId={i.sourceId} entry={entryOf(i)} side={200} iconSize={26} />

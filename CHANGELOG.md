@@ -12,6 +12,7 @@
 - **Choosing the folder when filing** (#63): File it's **Folder** shows the whole path, wrapping, with the folder itself in bold. Click it and type to search every folder (empty ones too): the folder's name in bold with where it is below, suggested folders first, the same on Mac, Windows and Linux. A folder button (or **Browse all folders…**) opens the folder tree at the current choice, with **New folder…**. Suggestion chips show the shortest ending that tells them apart, and the source's name is left out when there's only one source.
 - **A page viewer** (#83): click the page in the inbox's preview or a folder's gallery to see it large: zoom (buttons, ⌘+ ⌘− ⌘0, pinch or ⌘-scroll, double-click), pan by dragging or scrolling, flip pages (arrows, ← →, Page Up/Down, or type a number), rotate a sideways scan for viewing, or open it in its usual app. Zoom moves in 10 % steps; zoomed in, a sharper picture is drawn. The inbox keeps its page preview above File it in every view, the gallery too.
 - **File it's buttons**: Suggest again is now two circling arrows (they turn while Local AI works) and Move to Trash a red trash can, so File, Open and both icons fit on one line.
+- **Drag documents out** (#84): drag a document, folder or inbox scan out of Rupert into Mail, Messages, a browser's upload area, the Finder, File Explorer or the desktop; that app gets a copy, and the library keeps the file. Dropped on Rupert's own folders, it still moves.
 
 ## 0.5.2 — 2026-11-24
 

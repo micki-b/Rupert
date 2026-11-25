@@ -135,6 +135,14 @@
     primera página, así sigue mostrando una cuando el archivo pasa a estar solo en línea. Los documentos solo en línea sin
     imagen muestran su ícono. En los dos casos conservan la nube, y abrir uno lo descarga.
   </p>
+  <h3 id="dragging-out">Arrastrar documentos hacia afuera</h3>
+  <p>
+    Arrastrá un documento (o una carpeta, o un escaneo de la bandeja de entrada) fuera de la ventana de Rupert hasta
+    Mail, Mensajes, la zona para subir archivos de un sitio web, {fileManager} o el escritorio, y esa app recibe una
+    <em>copia</em> del archivo, con su nombre. Tu biblioteca conserva el archivo. Los archivos que están solo en línea los
+    descarga la app donde los soltás. Mientras arrastrás, el puntero muestra el signo de copiar ⊕, también sobre las
+    carpetas de Rupert; si soltás un documento en una de ellas, se mueve ahí, como siempre.
+  </p>
   <h3 id="renaming">Renombrar</h3>
   <p>
     Hacé clic derecho en un documento o una carpeta y elegí <b>Renombrar…</b>, o seleccionalo y apretá
