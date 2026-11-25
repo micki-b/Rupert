@@ -419,6 +419,23 @@
     Any scanner app that saves to a folder works with Rupert. For a ScanSnap, create a ScanSnap Home profile that saves
     PDFs to Rupert's inbox folder. Rupert picks up each new scan from there.
   </p>
+  <h3 id="print-to-rupert">Printing to Rupert</h3>
+  <p>
+    Many documents never pass a scanner: an invoice in a browser, a statement page, a booking confirmation.
+    {#if mac}
+      Turn on <b>Add “Save to Rupert” to the Print dialog's PDF menu</b> in <b>Settings ▸ Inbox</b>. Then, in any app,
+      choose <b>File ▸ Print</b>, open the <b>PDF</b> menu at the bottom and choose <b>Save to Rupert</b>: the PDF goes to
+      the inbox, where Rupert reads it and suggests where to file it, like a scan. (In the Mac App Store edition, turning
+      it on asks where to save the entry: keep the <b>PDF Services</b> folder in your Library folder, making it if it isn't
+      there.)
+    {:else if windows}
+      Turn on <b>Add “Rupert inbox” to File Explorer's Send to menu</b> in <b>Settings ▸ Inbox</b>. Then right-click files
+      in File Explorer and choose <b>Send to ▸ Rupert inbox</b> to put them in the inbox. To bring in what you print, choose
+      the <b>Microsoft Print to PDF</b> printer and save into the inbox folder.
+    {:else}
+      Print to a PDF file and save it in the inbox folder: Rupert reads it and suggests where to file it, like a scan.
+    {/if}
+  </p>
   <h3>With the iPhone</h3>
   <p>The iPhone app scans with the camera into the same inbox. See <a href="#iphone">The iPhone app</a>.</p>
 </section>

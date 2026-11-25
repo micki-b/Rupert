@@ -35,7 +35,7 @@
     const all: { id: TabId; label: string; icon: IconName; words: string[] }[] = [
       { id: "general", label: s.general, icon: "gear", words: [s.language, s.languageNote, ...(appStore ? [] : [s.updates, s.checkAutomatically, s.checkNow])] },
       { id: "library", label: m.main.library, icon: "library", words: [s.libraryNote, s.sending, s.sendNotes, s.sendNotesNote, m.main.showAllTypes, m.main.downloadToIndex, m.main.indexFolder, m.main.rename, m.main.removeFromRupert, ...sources.map((x) => x.name)] },
-      { id: "inbox", label: s.inbox, icon: "inbox", words: [s.inboxIntro, s.inboxFolder, s.suggestions, s.suggest, s.fileNames, s.pattern] },
+      { id: "inbox", label: s.inbox, icon: "inbox", words: [s.inboxIntro, s.inboxFolder, s.suggestions, s.suggest, s.fileNames, s.pattern, s.printEntry, s.printEntryMac, s.printEntryWindows, "PDF"] },
       { id: "text", label: s.textRecognition, icon: "text-scan", words: [s.recognize, s.ocrNote, "OCR", "Tesseract"] },
       { id: "local-ai", label: s.localAi, icon: "chip", words: [s.server, s.address, s.model, "Apple Intelligence", "LM Studio", "Ollama"] },
       { id: "assistant", label: s.assistant, icon: "chat", words: [s.model, s.providerAnthropic, s.providerOpenai, s.providerChatgpt, s.apiKey, "Claude", "ChatGPT", m.main.askRupert] },
@@ -228,7 +228,7 @@
       {:else if tab === "library"}
         <Library bind:settings {sources} {os} onchanged={loadSources} {onerror} />
       {:else if tab === "inbox"}
-        <Inbox bind:settings {sources} {onerror} />
+        <Inbox bind:settings {sources} {os} {appStore} {onerror} />
       {:else if tab === "text"}
         <TextRecognition bind:settings />
       {:else if tab === "local-ai"}

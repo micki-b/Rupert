@@ -463,6 +463,26 @@
     Jede Scanner-App, die in einen Ordner speichert, funktioniert mit Rupert. Legen Sie für einen ScanSnap ein ScanSnap
     Home-Profil an, das PDFs in Ruperts Eingangsordner speichert. Rupert holt jeden neuen Scan von dort ab.
   </p>
+  <h3 id="print-to-rupert">In Rupert drucken</h3>
+  <p>
+    Viele Dokumente kommen nie an einem Scanner vorbei: eine Rechnung im Browser, eine Kontoauszugsseite, eine
+    Buchungsbestätigung.
+    {#if mac}
+      Schalten Sie unter <b>Einstellungen ▸ Eingang</b> <b>„In Rupert sichern“ zum PDF-Menü des Druckdialogs
+      hinzufügen</b> ein. Wählen Sie dann in einer beliebigen App <b>Ablage ▸ Drucken</b>, öffnen Sie unten das Menü
+      <b>PDF</b> und wählen Sie <b>In Rupert sichern</b>: Das PDF kommt in den Eingang, wo Rupert es liest und wie bei einem
+      Scan einen Ablageort vorschlägt. (In der Mac App Store-Ausgabe fragt Rupert beim Einschalten, wo der Eintrag
+      gesichert wird: im Ordner <b>PDF Services</b> in Ihrem Ordner „Library“; legen Sie ihn an, falls er fehlt.)
+    {:else if windows}
+      Schalten Sie unter <b>Einstellungen ▸ Eingang</b> <b>„Rupert-Eingang“ zum Menü „Senden an“ des Explorers
+      hinzufügen</b> ein. Klicken Sie dann im Explorer mit der rechten Maustaste auf Dateien und wählen Sie <b>Senden an ▸
+      Rupert-Eingang</b>, um sie in den Eingang zu legen. Um Gedrucktes zu übernehmen, wählen Sie den Drucker
+      <b>Microsoft Print to PDF</b> und sichern Sie in den Eingangsordner.
+    {:else}
+      Drucken Sie in eine PDF-Datei und sichern Sie sie im Eingangsordner: Rupert liest sie und schlägt wie bei einem Scan
+      einen Ablageort vor.
+    {/if}
+  </p>
   <h3>Mit dem iPhone</h3>
   <p>Die iPhone-App scannt mit der Kamera in denselben Eingang. Siehe <a href="#iphone">Die iPhone-App</a>.</p>
 </section>

@@ -231,6 +231,29 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "No se pudo guardar el texto reconocido: {0}",
     ),
     ("Text recognized ({0})", "Texto reconocido ({0})"),
+    // MARK: - Print to Rupert (print_entry.rs)
+    ("Save to Rupert", "Guardar en Rupert"),
+    ("Rupert inbox", "Bandeja de entrada de Rupert"),
+    (
+        "Something with the entry's name is already there; rename or remove it first.",
+        "Ya hay algo con el nombre de la entrada; cambiale el nombre o quitalo primero.",
+    ),
+    (
+        "couldn't make the Print dialog's entry",
+        "no se pudo crear la entrada del cuadro Imprimir",
+    ),
+    (
+        "couldn't make the Send to entry",
+        "no se pudo crear la entrada de Enviar a",
+    ),
+    (
+        "there's no such entry on Linux",
+        "en Linux no existe esa entrada",
+    ),
+    (
+        "Save the entry in the PDF Services folder (in your Library folder; make it if it isn't there). The Print dialog's PDF menu then offers it.",
+        "Guardá la entrada en la carpeta PDF Services (en tu carpeta Biblioteca; creala si no está). El menú PDF del cuadro Imprimir la ofrece después.",
+    ),
     // MARK: - Sending documents (share.rs)
     (
         "Rupert can't take the notes out of this PDF. To send it anyway, include notes in Settings ▸ Library.",

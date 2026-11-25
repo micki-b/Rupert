@@ -206,6 +206,9 @@ export interface Settings {
   /** `{date}` and `{title}` are replaced. */
   /** Sending a PDF: include the notes kept inside it (off: a copy without them). */
   sendNotes: boolean;
+  /** Print to Rupert (#101): the entry in the Print dialog's PDF menu / Send to. */
+  printEntry: boolean;
+  printEntryBookmark: string | null;
   namePattern: string;
   assistant: AssistantSettings;
   /** Desktop: look for a new version on GitHub now and then. */
@@ -472,6 +475,8 @@ export const api = {
   /** Renames a document or folder in place; resolves to its new path (#65). */
   renameEntry: (sourceId: string, relPath: string, newName: string) =>
     invoke<string>("rename_entry", { sourceId, relPath, newName }),
+  /** Turns Print to Rupert on or off; resolves to the settings as saved. */
+  setPrintEntry: (on: boolean) => invoke<Settings>("set_print_entry", { on }),
   // Share… and Email… (#69)
   /** The system's share menu for a document, at `at` on the page (the
    * pointer, or a button). `name`: send it under this name (an inbox scan). */

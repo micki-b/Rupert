@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 mod assistant;
 mod drag_out;
 mod help;
+mod print_entry;
 mod rename;
 mod settings_window;
 mod share;
@@ -1074,6 +1075,7 @@ fn get_settings(state: State<AppState>) -> Settings {
 
 #[tauri::command]
 fn set_settings(app: AppHandle, settings: Settings, state: State<AppState>) -> CmdResult<Settings> {
+    let before = state.settings.lock().unwrap().get().clone();
     state
         .settings
         .lock()
@@ -1082,11 +1084,16 @@ fn set_settings(app: AppHandle, settings: Settings, state: State<AppState>) -> C
         .map_err(err)?;
     state.reconfigure_intake();
     let lang = i18n::resolve(settings.language.as_deref());
-    if lang != i18n::current() {
+    let new_language = lang != i18n::current();
+    if new_language {
         i18n::set(lang);
         #[cfg(target_os = "macos")]
         install_menu(&app).map_err(err)?;
         settings_window::retitle(&app);
+    }
+    // Print to Rupert follows the inbox, and is named in Rupert's language.
+    if before.inbox != settings.inbox || new_language {
+        print_entry::refresh(&state, &settings);
     }
     let _ = app.emit(SETTINGS_CHANGED, &settings);
     Ok(settings)
@@ -1813,6 +1820,7 @@ pub fn run() {
             share::share_document,
             share::email_document,
             share::share_cancel,
+            print_entry::set_print_entry,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,
