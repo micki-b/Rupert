@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 mod assistant;
+mod drag_out;
 mod help;
 mod settings_window;
 mod thumbs;
@@ -1787,6 +1788,7 @@ pub fn run() {
             rename_entry,
             create_folder,
             page_image,
+            drag_out::drag_out,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

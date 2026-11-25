@@ -2,8 +2,11 @@
 // - documents and folders of Rupert's are moved there;
 // - files dropped from another app (the Finder, File Explorer, …) are
 //   copied there, keeping their names.
-// Nothing is dragged out to other apps.
-import type { Entry } from "./api";
+// Dragging out (#84): a drag of Rupert's documents is the system's own,
+// carrying the files as a copy, so Mail, Messages, a browser or the Finder
+// get them; dropped back on Rupert's folders it still moves them.
+import { listen } from "@tauri-apps/api/event";
+import { api, type Entry } from "./api";
 
 /** A document or folder of a source. */
 export type MoveItem = { sourceId: string; entry: Entry };
@@ -12,7 +15,45 @@ export type MoveItem = { sourceId: string; entry: Entry };
  * folders (which aren't copied). */
 export type Dropped = { files: File[]; folders: string[] };
 
-export const drag = $state<{ item: MoveItem | null; over: string | null }>({ item: null, over: null });
+export const drag = $state<{
+  item: MoveItem | null;
+  over: string | null;
+  /** The system's drag (a copy), not the page's own. */
+  native: boolean;
+  /** Only to other apps: an inbox scan is filed with File it, not dropped. */
+  outOnly: boolean;
+}>({ item: null, over: null, native: false, outOnly: false });
+
+function endDrag() {
+  drag.item = null;
+  drag.over = null;
+  drag.native = false;
+  drag.outOnly = false;
+}
+
+let listening = false;
+/** Hands a drag to the system with the files at `relPaths` of a source. */
+function startDragOut(sourceId: string, relPaths: string[]) {
+  if (!listening) {
+    listening = true;
+    listen("drag-out-ended", () => endDrag());
+  }
+  drag.native = true;
+  api.dragOut(sourceId, relPaths).catch(() => endDrag());
+}
+
+/** Handlers for something that can be dragged out of Rupert only (an inbox
+ * scan). */
+export function dragOutSource(sourceId: string, relPath: string) {
+  return {
+    draggable: true,
+    ondragstart: (ev: DragEvent) => {
+      ev.preventDefault(); // the system's drag instead
+      drag.outOnly = true;
+      startDragOut(sourceId, [relPath]);
+    },
+  };
+}
 
 function dirOf(relPath: string) {
   return relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
@@ -28,9 +69,10 @@ export function canMoveInto(item: MoveItem | null, sourceId: string, relPath: st
   return !(item.entry.isDir && (relPath === self || relPath.startsWith(self + "/")));
 }
 
-/** Whether files from another app are being dragged. */
+/** Whether files from another app are being dragged (not Rupert's own,
+ * which arrive as files too). */
 function bringsFiles(ev: DragEvent): boolean {
-  return !drag.item && !!ev.dataTransfer?.types.includes("Files");
+  return !drag.item && !drag.native && !!ev.dataTransfer?.types.includes("Files");
 }
 
 /** The files and folders of a drop from another app. */
@@ -56,15 +98,9 @@ export function dragSource(item: MoveItem) {
   return {
     draggable: true,
     ondragstart: (ev: DragEvent) => {
+      ev.preventDefault(); // the system's drag instead, so other apps get the file
       drag.item = item;
-      if (ev.dataTransfer) {
-        ev.dataTransfer.effectAllowed = "move";
-        ev.dataTransfer.setData("text/plain", item.entry.name);
-      }
-    },
-    ondragend: () => {
-      drag.item = null;
-      drag.over = null;
+      startDragOut(item.sourceId, [item.entry.relPath]);
     },
   };
 }
@@ -86,7 +122,8 @@ export function dropTarget(
       if (!effect) return;
       ev.preventDefault(); // allows the drop
       ev.stopPropagation();
-      if (ev.dataTransfer) ev.dataTransfer.dropEffect = effect;
+      // The system's drag only offers a copy (for other apps); here it moves.
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = drag.native ? "copy" : effect;
       drag.over = key;
     },
     ondragleave: (ev: DragEvent) => {

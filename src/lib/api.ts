@@ -455,6 +455,8 @@ export const api = {
   stopIndexing: () => invoke<void>("stop_indexing"),
   resumeIndexing: () => invoke<void>("resume_indexing"),
   indexFolder: (sourceId: string, relPath: string) => invoke<void>("index_folder", { sourceId, relPath }),
+  /** Starts the system's drag of documents out of the window (#84). */
+  dragOut: (sourceId: string, relPaths: string[]) => invoke<void>("drag_out", { sourceId, relPaths }),
   /** A sharp picture of a page for the page viewer: a data: URL, or null. */
   pageImage: (sourceId: string, relPath: string, page: number, side: number) =>
     invoke<string | null>("page_image", { sourceId, relPath, page, side }),
