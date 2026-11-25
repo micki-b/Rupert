@@ -48,6 +48,20 @@ function targetAt(p: Pointer) {
   return key && t?.move && canMoveInto(drag.item, t.sourceId, t.relPath) ? { key, t } : null;
 }
 
+/** The names of the files last dragged out, and until when a drop of them
+ * on the window is that same drag coming back (#96): the web view can hand
+ * the page its drop after the app has said the drag ended, and it would
+ * look like files from another app, to be copied. */
+let ours = { names: new Set<string>(), until: 0 };
+
+/** Whether a drop brings back the files Rupert is dragging out (or just did). */
+function isOurs(ev: DragEvent): boolean {
+  if (drag.native) return true;
+  if (Date.now() > ours.until) return false;
+  const files = [...(ev.dataTransfer?.files ?? [])];
+  return files.length > 0 && files.every((f) => ours.names.has(f.name));
+}
+
 let listening = false;
 /** Hands a drag to the system with the files at `relPaths` of a source. */
 function startDragOut(sourceId: string, relPaths: string[], ev: DragEvent) {
@@ -57,6 +71,7 @@ function startDragOut(sourceId: string, relPaths: string[], ev: DragEvent) {
       if (drag.native) drag.over = targetAt(e.payload)?.key ?? null;
     });
     listen<Pointer>("drag-out-ended", (e) => {
+      ours.until = Date.now() + 3000;
       // Taken by another app (e.g. a window over Rupert's): not moved here.
       const hit = e.payload.dropped ? null : targetAt(e.payload);
       const item = drag.item;
@@ -65,6 +80,7 @@ function startDragOut(sourceId: string, relPaths: string[], ev: DragEvent) {
     });
   }
   drag.native = true;
+  ours = { names: new Set(relPaths.map((p) => p.slice(p.lastIndexOf("/") + 1))), until: Number.MAX_SAFE_INTEGER };
   // Where the page and the screen see the pointer, so the app can tell
   // where on the page it is later.
   const start = { clientX: ev.clientX, clientY: ev.clientY, screenX: ev.screenX, screenY: ev.screenY };
@@ -101,7 +117,7 @@ export function canMoveInto(item: MoveItem | null, sourceId: string, relPath: st
 /** Whether files from another app are being dragged (not Rupert's own,
  * which arrive as files too). */
 function bringsFiles(ev: DragEvent): boolean {
-  return !drag.item && !drag.native && !!ev.dataTransfer?.types.includes("Files");
+  return !drag.item && !isOurs(ev) && !!ev.dataTransfer?.types.includes("Files");
 }
 
 /** The files and folders of a drop from another app. */
@@ -163,6 +179,13 @@ export function dropTarget(
       if (drag.over === key) drag.over = null;
     },
     ondrop: (ev: DragEvent) => {
+      if (drag.native || isOurs(ev)) {
+        // Rupert's own drag: where it ended decides (`drag-out-ended`).
+        ev.preventDefault();
+        ev.stopPropagation();
+        drag.over = null;
+        return;
+      }
       const effect = takes(ev);
       if (!effect) return;
       ev.preventDefault();
