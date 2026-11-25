@@ -159,6 +159,31 @@
     ihn enthält) umbenennen, folgt ihm die Einstellung für den Eingang. Suchergebnisse lassen sich nicht umbenennen:
     Öffnen Sie zuerst den Ordner.
   </p>
+  <h3 id="renaming-documents">Viele Dokumente umbenennen</h3>
+  <p>
+    Klicken Sie mit der rechten Maustaste auf einen Ordner und wählen Sie <b>Dokumente umbenennen …</b>, um seinen
+    Dokumenten gemeinsam neue Namen zu geben; von einem Dokument aus zeigt derselbe Befehl seinen Ordner, nur mit diesem
+    Dokument markiert. Eine Tabelle zeigt jeden aktuellen Namen und den neuen Namen, Änderungen hervorgehoben, daneben
+    die erste Seite, Titel, Datum und Tags des ausgewählten Dokuments. Entfernen Sie die Markierung bei Dokumenten, die
+    bleiben sollen, wie sie sind. Nichts ändert sich, bevor Sie auf <b>Umbenennen</b> klicken.
+  </p>
+  <p>
+    Die neuen Namen ergeben sich aus Datum und Titel jedes Dokuments, nach Ihrem Namensmuster (Einstellungen ▸ Eingang).
+    Klicken Sie auf einen neuen Namen, um ihn zu ändern, und Rupert benennt die anderen <b>auf dieselbe Weise</b>: sofort,
+    wenn sich die Regel aus Datum und Titel ergibt (Datum am Ende, ein anderes Datumsformat, ein Wort davor), sonst mit
+    der lokalen KI, die Ihrem Beispiel folgt. Von Ihnen eingegebene Namen sind mit <b>Ihrer</b> markiert und bleiben, wie
+    sie sind. Mit lokaler KI können Sie die Namen auch beschreiben („Versicherer - Police - Jahr“) und auf <b>Mit KI
+    vorschlagen</b> klicken; die Vorschläge kommen nacheinander, und <b>Stoppen</b> behält die bisherigen. Die lokale KI
+    liest nur, was Rupert schon indexiert hat, daher werden reine Online-Dateien nicht geladen, und ihr Text geht nie an
+    einen Cloud-Dienst. <b>Widerrufen</b> im Hinweis kehrt zu den vorherigen Vorschlägen zurück.
+  </p>
+  <p>
+    Rupert zeigt Probleme vor dem Umbenennen: Ein vergebener Name erhält „ (2)“, nicht erlaubte oder unveränderte Namen
+    werden ausgelassen. Die Dateiendung und die Angaben jedes Dokuments bleiben erhalten; markieren Sie <b>Auch den Titel
+    jedes Dokuments auf den neuen Namen setzen</b>, um auch die Titel zu ändern. Danach gibt <b>Widerrufen</b> unten im
+    Fenster ({mac ? "oder Bearbeiten ▸ Widerrufen, ⌘Z" : "oder Strg+Z"}) allen Dokumenten ihre alten Namen (und Titel)
+    zurück, bis Sie etwas anderes tun.
+  </p>
   <h3 id="moving">Bewegen</h3>
   <p>
     Ziehen Sie ein Dokument oder einen Ordner auf einen Ordner, in der Seitenleiste oder in der Ordneransicht, oder

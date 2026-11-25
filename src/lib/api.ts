@@ -470,6 +470,29 @@ export const api = {
   /** Renames a document or folder in place; resolves to its new path (#65). */
   renameEntry: (sourceId: string, relPath: string, newName: string) =>
     invoke<string>("rename_entry", { sourceId, relPath, newName }),
+  // Rename documents… (#64)
+  /** A folder's documents, with names from the name pattern; `ai`: whether
+   * Local AI can propose names. */
+  renameRows: (sourceId: string, relDir: string) =>
+    invoke<{ rows: RenameRow[]; ai: boolean }>("rename_rows", { sourceId, relDir }),
+  /** The names documents would really get (taken → " (2)", not allowed, unchanged). */
+  renameCheck: (sourceId: string, relDir: string, planned: { relPath: string; stem: string }[]) =>
+    invoke<RenameChecked[]>("rename_check", { sourceId, relDir, planned }),
+  /** Names "the same way" as the typed ones, if they're a pattern of
+   * details; null when they aren't. */
+  renameSameWay: (typed: { details: RenameDetails; name: string }[], targets: RenameDetails[]) =>
+    invoke<(string | null)[] | null>("rename_same_way", { typed, targets }),
+  /** Starts Local AI's proposals; they arrive with `onRenameProposal`. Resolves to the job's number. */
+  renamePropose: (
+    sourceId: string,
+    instruction: string,
+    examples: { details: RenameDetails; name: string }[],
+    relPaths: string[],
+  ) => invoke<number>("rename_propose", { sourceId, instruction, examples, relPaths }),
+  renameStop: () => invoke<void>("rename_stop"),
+  renameApply: (sourceId: string, steps: { relPath: string; name: string }[], setTitle: boolean) =>
+    invoke<RenameOutcome>("rename_apply", { sourceId, steps, setTitle }),
+  renameUndo: (sourceId: string, renamed: Renamed[]) => invoke<RenameOutcome>("rename_undo", { sourceId, renamed }),
   scansnapLibrary: () => invoke<string | null>("scansnap_library"),
   scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),
   scansnapApply: () => invoke<void>("scansnap_apply"),
@@ -505,6 +528,71 @@ export function onScanProgress(handler: (pages: number) => void): Promise<Unlist
 
 export function onScanDone(handler: (done: ScanDone) => void): Promise<UnlistenFn> {
   return listen<ScanDone>("scan-done", (e) => handler(e.payload));
+}
+
+export interface RenameRow {
+  relPath: string;
+  name: string;
+  stem: string;
+  /** With its dot (".pdf"), or "". */
+  ext: string;
+  title: string | null;
+  documentDate: string | null;
+  tags: string[];
+  cloud: CloudState;
+  kind: FileKind | null;
+  size: number;
+  modifiedMs: number | null;
+  hasText: boolean;
+  patternName: string | null;
+}
+
+export interface RenameDetails {
+  stem: string;
+  title: string | null;
+  documentDate: string | null;
+  tags: string[];
+}
+
+export type RenameProblem = { kind: "unchanged" } | { kind: "taken" } | { kind: "invalid"; message: string };
+
+export interface RenameChecked {
+  relPath: string;
+  /** The full new name, with extension (and " (2)" if needed). */
+  name: string;
+  problem: RenameProblem | null;
+}
+
+export interface Renamed {
+  from: string;
+  to: string;
+  titleChanged: boolean;
+  oldTitle: string | null;
+}
+
+export interface RenameOutcome {
+  renamed: Renamed[];
+  failed: { relPath: string; message: string }[];
+}
+
+export interface RenameProposal {
+  job: number;
+  relPath: string;
+  name: string | null;
+  error: string | null;
+}
+
+export function onRenameProposal(handler: (p: RenameProposal) => void): Promise<UnlistenFn> {
+  return listen<RenameProposal>("rename-proposal", (e) => handler(e.payload));
+}
+
+export function onRenameProposalsDone(handler: (d: { job: number; stopped: boolean }) => void): Promise<UnlistenFn> {
+  return listen<{ job: number; stopped: boolean }>("rename-proposals-done", (e) => handler(e.payload));
+}
+
+/** Edit ▸ Undo (macOS menu). */
+export function onMenuUndo(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-undo", () => handler());
 }
 
 export function onMenuScan(handler: () => void): Promise<UnlistenFn> {

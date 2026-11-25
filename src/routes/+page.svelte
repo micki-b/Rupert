@@ -31,6 +31,8 @@
     type TagMode,
     type FavoriteFolder,
     type AssistantAction,
+    type RenameOutcome,
+    type Renamed,
   } from "#lib/api.ts";
   import { changes } from "#lib/changes.svelte.ts";
   import { formatDate, formatSize, kindLabel } from "#lib/format.ts";
@@ -55,6 +57,7 @@
   import RupertOwl from "#lib/RupertOwl.svelte";
   import Splitter from "#lib/Splitter.svelte";
   import RenameField from "#lib/RenameField.svelte";
+  import RenameDialog from "#lib/RenameDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { loadLanguage, m } from "#lib/i18n/index.ts";
@@ -237,6 +240,7 @@
   }
 
   function selectFolder(sourceId: string, relPath: string) {
+    lastRename = null;
     inboxOpen = false;
     copyProblems = null;
     query = "";
@@ -331,6 +335,10 @@
         // ⌘O or ⌘↓ opens, as in the Finder.
         e.preventDefault();
         activate(selected.sourceId, selected.entry);
+      } else if (!typing && info?.os !== "macos" && e.ctrlKey && !e.shiftKey && e.key === "z" && lastRename) {
+        // Ctrl+Z undoes renaming documents (the Mac has Edit ▸ Undo).
+        e.preventDefault();
+        undoRename();
       } else if (info?.os !== "macos" && e.ctrlKey && e.key === ",") {
         // Ctrl+, opens Settings (the menu's ⌘, on the Mac).
         e.preventDefault();
@@ -342,6 +350,9 @@
         searchInput?.select();
       }
     };
+    // Edit ▸ Undo, or ⌘Z outside a text field (see +layout.svelte).
+    const undo = () => undoRename();
+    window.addEventListener("rupert-undo", undo);
     window.addEventListener("click", closeMenu);
     window.addEventListener("scroll", closeMenu, true);
     window.addEventListener("keydown", shortcuts);
@@ -350,6 +361,7 @@
       window.removeEventListener("click", closeMenu);
       window.removeEventListener("scroll", closeMenu, true);
       window.removeEventListener("keydown", shortcuts);
+      window.removeEventListener("rupert-undo", undo);
       clearInterval(updateTimer);
     };
   });
@@ -451,6 +463,7 @@
   }
 
   function openInbox() {
+    lastRename = null;
     inboxOpen = true;
     selected = null;
   }
@@ -613,6 +626,7 @@
    * Files go right away, as in the Finder; folders ask first. */
   async function trashEntry(sel: Selected) {
     itemMenu = null;
+    lastRename = null;
     const e = sel.entry;
     if (e.isDir) {
       const ok = await ask(m.main.trashFolderAsk(e.name, binName), {
@@ -660,6 +674,7 @@
   /** Starts editing a name: in a folder's listing or the sidebar. */
   function startRenaming(sel: Selected) {
     itemMenu = null;
+    lastRename = null;
     renamingAt = { sourceId: sel.sourceId, relPath: sel.entry.relPath };
   }
 
@@ -678,6 +693,62 @@
     if (folder?.sourceId === sourceId) loadEntries();
   }
 
+
+  // MARK: - Rename documents (#64)
+
+  /** The folder whose documents are being renamed together. */
+  let renameDocs = $state<{ sourceId: string; relDir: string; only: string | null } | null>(null);
+  /** The last batch renamed, offered for Undo until something else is done. */
+  let lastRename = $state<{ sourceId: string; relDir: string; renamed: Renamed[]; text: string } | null>(null);
+  /** A short note after Undo. */
+  let renameNote = $state<string | null>(null);
+
+  const parentDir = (relPath: string) => (relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "");
+
+  /** From a folder: all its documents; from a document: its folder's, only it ticked. */
+  function openRenameDocs(sel: Selected) {
+    itemMenu = null;
+    menuFor = null;
+    lastRename = null;
+    const e = sel.entry;
+    renameDocs = e.isDir
+      ? { sourceId: sel.sourceId, relDir: e.relPath, only: null }
+      : { sourceId: sel.sourceId, relDir: parentDir(e.relPath), only: e.relPath };
+  }
+
+  function whereLabel(sourceId: string, relDir: string): string {
+    return [sourceName(sourceId), ...(relDir ? relDir.split("/") : [])].join(" › ");
+  }
+
+  function renamedDocs(sourceId: string, relDir: string, outcome: RenameOutcome) {
+    const folderName = relDir ? relDir.slice(relDir.lastIndexOf("/") + 1) : sourceName(sourceId);
+    let text = m.renameDocs.done(outcome.renamed.length, folderName);
+    if (outcome.failed.length) text += ` · ${m.renameDocs.failed(outcome.failed.length)}: ${outcome.failed[0].message}`;
+    lastRename = outcome.renamed.length ? { sourceId, relDir, renamed: outcome.renamed, text } : null;
+    if (!outcome.renamed.length && outcome.failed.length) error = text;
+    followRenamed(sourceId, outcome.renamed.map((r) => [r.from, r.to]));
+  }
+
+  /** Keeps the selection on a renamed document and shows the new names. */
+  function followRenamed(sourceId: string, moves: string[][]) {
+    if (selected?.sourceId === sourceId) {
+      const moved = moves.find(([from]) => from === selected!.entry.relPath);
+      if (moved) pendingSelect = moved[1];
+    }
+    if (folder?.sourceId === sourceId) loadEntries();
+  }
+
+  async function undoRename() {
+    const last = lastRename;
+    if (!last) return;
+    lastRename = null;
+    const outcome = await run(() => api.renameUndo(last.sourceId, last.renamed));
+    if (!outcome) return;
+    renameNote = m.renameDocs.undone(outcome.renamed.length);
+    if (outcome.failed.length) error = `${m.renameDocs.failed(outcome.failed.length)}: ${outcome.failed[0].message}`;
+    followRenamed(last.sourceId, outcome.renamed.map((r) => [r.from, r.to]));
+    setTimeout(() => (renameNote = null), 5000);
+  }
   // MARK: - Moving
 
   /** The document or folder "Move to…" is choosing a place for. */
@@ -993,6 +1064,16 @@
       <button role="menuitem" onclick={() => startRename(s)}>
         <span class="check"></span>{m.main.rename}
       </button>
+      <button
+        role="menuitem"
+        onclick={() =>
+          openRenameDocs({
+            sourceId: s.id,
+            entry: { name: s.name, relPath: "", isDir: true, kind: null, size: 0, modifiedMs: null, cloud: "local" },
+          })}
+      >
+        <span class="check"></span>{m.renameDocs.menu}
+      </button>
       <button role="menuitem" class="danger" onclick={() => removeSource(s)}>
         <span class="check"></span>{m.main.removeFromRupert}
       </button>
@@ -1303,6 +1384,7 @@
     {/if}
     {#if !mn.inSearch}
       <button role="menuitem" onclick={() => fromMenu(startRenaming)}>{m.main.rename}</button>
+      <button role="menuitem" onclick={() => fromMenu(openRenameDocs)}>{m.renameDocs.menu}</button>
     {/if}
     <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>{m.main.moveTo}</button>
     {#if mn.sel.entry.isDir}
@@ -1363,6 +1445,33 @@
 
 {#if importing}
   <ImportDialog {sources} onclose={() => (importing = false)} onsourceadded={() => loadSources()} />
+{/if}
+
+{#if renameDocs}
+  {@const r = renameDocs}
+  <RenameDialog
+    sourceId={r.sourceId}
+    relDir={r.relDir}
+    only={r.only}
+    where={whereLabel(r.sourceId, r.relDir)}
+    pattern={appSettings?.namePattern ?? "{date} {title}"}
+    ondone={(outcome) => renamedDocs(r.sourceId, r.relDir, outcome)}
+    onclose={() => (renameDocs = null)}
+  />
+{/if}
+
+{#if lastRename || renameNote}
+  <div class="undo-bar" role="status">
+    <span>{lastRename?.text ?? renameNote}</span>
+    {#if lastRename}
+      <button class="undo-link" onclick={undoRename} title={info?.os === "macos" ? "⌘Z" : "Ctrl+Z"}>{m.renameDocs.undo}</button>
+    {/if}
+    <button
+      class="undo-close"
+      onclick={() => ((lastRename = null), (renameNote = null))}
+      aria-label={m.renameDocs.dismiss}>×</button
+    >
+  </div>
 {/if}
 
 <footer>
@@ -2047,6 +2156,45 @@
     flex-wrap: wrap;
   }
 
+  .undo-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 36px;
+    transform: translateX(-50%);
+    z-index: 25; /* above the chat button, below dialogs */
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: calc(100vw - 160px);
+    padding: 8px 10px 8px 14px;
+    border-radius: 10px;
+    background: #2b2723;
+    color: #fff;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  }
+  .undo-bar span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .undo-link,
+  .undo-close {
+    border: 0;
+    background: none;
+    color: #f0c896;
+    font: inherit;
+    padding: 0 2px;
+  }
+  .undo-link {
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  .undo-close {
+    color: #cfc6bb;
+    font-size: 16px;
+    line-height: 1;
+  }
   footer {
     height: 22px;
     padding: 3px 12px;
