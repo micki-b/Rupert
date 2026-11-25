@@ -22,9 +22,12 @@
   "hero.iphone": "iPhone-App",
 
   "android.status": "Frühe Beta",
-  "android.hero": "Android: eine frühe Beta, von dieser Website. Google Play folgt später.",
+  "android.hero": "Android: eine frühe Beta, von dieser Website oder als Test über Google Play.",
   "android.heading": "Rupert für Android ist eine frühe Beta.",
-  "android.detail": "Die App wird noch getestet; rechnen Sie mit Ecken und Kanten, und melden Sie bitte, was Ihnen auffällt. Sie ist noch nicht bei Google Play, daher hat Google sie nicht geprüft: Laden Sie sie hier und öffnen Sie sie zum Installieren. Ihr Telefon bittet Sie, die Installation von Apps aus dem Browser zu erlauben, und warnt eventuell vor einer App außerhalb von Google Play. Die App liest Google Drive und OneDrive und scannt mit der Kamera. Sie aktualisiert sich noch nicht selbst: Neue Versionen finden Sie hier.",
+  "android.detail": "Die App wird noch getestet; rechnen Sie mit Ecken und Kanten, und melden Sie bitte, was Ihnen auffällt. Laden Sie sie hier und öffnen Sie sie zum Installieren: Ihr Telefon bittet Sie, die Installation von Apps aus dem Browser zu erlauben, und warnt eventuell vor einer App außerhalb von Google Play. Die App liest Google Drive und OneDrive und scannt mit der Kamera. Von hier geladen, aktualisiert sie sich nicht selbst: Neue Versionen finden Sie hier.",
+  "android.playTest": "Oder machen Sie beim Test über Google Play mit: Rupert wird dann aus dem Play Store installiert und aktualisiert sich selbst. Treten Sie zuerst mit Ihrem Google-Konto der Testergruppe bei, dann dem Test.",
+  "android.joinGroup": "1. Der Testergruppe beitreten",
+  "android.becomeTester": "2. Am Play-Store-Test teilnehmen",
 
   "dn.label": "Rupert auf einem Mac, im hellen und im dunklen Modus",
   "dn.alt": "Rupert auf einem Mac im hellen Modus: ein Ordner mit Versicherungsdokumenten als große Symbole, mit Titel, Datum und Tags des ausgewählten Dokuments",

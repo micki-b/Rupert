@@ -22,9 +22,12 @@
   "hero.iphone": "iPhone app",
 
   "android.status": "Early beta",
-  "android.hero": "Android: an early beta, from this site. Google Play comes later.",
+  "android.hero": "Android: an early beta, from this site or as a Google Play test.",
   "android.heading": "Rupert for Android is an early beta.",
-  "android.detail": "It's still being tested, so expect rough edges, and please report what you find. It isn't on Google Play yet, so Google hasn't reviewed it: download it here and open it to install. Your phone asks you to allow installing apps from your browser and may warn about an app from outside Google Play. It reads Google Drive and OneDrive and scans with the camera. It doesn't update itself yet: come back here for new versions.",
+  "android.detail": "It's still being tested, so expect rough edges, and please report what you find. Download it here and open it to install: your phone asks you to allow installing apps from your browser and may warn about an app from outside Google Play. It reads Google Drive and OneDrive and scans with the camera. Downloaded from here, it doesn't update itself: come back for new versions.",
+  "android.playTest": "Or join the test on Google Play, which installs Rupert from the Play Store and keeps it up to date. First join the testers group with your Google account, then join the test.",
+  "android.joinGroup": "1. Join the testers group",
+  "android.becomeTester": "2. Join the Play Store test",
 
   "dn.label": "Rupert on a Mac, in light and dark mode",
   "dn.alt": "Rupert on a Mac in light mode: a folder of insurance documents as large icons, with the selected document's title, date and tags",

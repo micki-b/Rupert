@@ -310,6 +310,16 @@ h2,
   flex: 1 1 240px;
 }
 
+.play-test {
+  margin-top: 12px;
+}
+.play-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .android-announcement h3 {
   margin: 0 0 6px;
   font-size: 1.125rem;
