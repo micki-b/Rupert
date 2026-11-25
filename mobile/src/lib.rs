@@ -293,6 +293,10 @@ fn bundle_build() -> Option<String> {
 // MARK: - The scan link
 
 /// Sent when the scan link opened Rupert while it was running (iPhone).
+#[cfg_attr(
+    not(any(target_os = "macos", target_os = "ios", target_os = "android")),
+    allow(dead_code)
+)]
 const SCAN_LINK: &str = "scan-link";
 
 /// The scan link (#124) opened Rupert and the page hasn't shown the Scan tab
@@ -302,6 +306,10 @@ static SCAN_LINK_OPENED: AtomicBool = AtomicBool::new(false);
 /// Whether `url` is the scan link: the desktop app's Scan QR code
 /// (https://rupertlibrarian.com/scan/, a universal link / App Link), or
 /// rupert://scan from that page when the link opened in the browser.
+#[cfg_attr(
+    not(any(target_os = "macos", target_os = "ios", target_os = "android")),
+    allow(dead_code)
+)]
 fn is_scan_link(url: &tauri::Url) -> bool {
     match url.scheme() {
         "https" => {
@@ -1375,12 +1383,16 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while running Rupert")
-        .run(|app, event| {
-            if let tauri::RunEvent::Opened { urls } = event
+        .run(|_app, _event| {
+            // Tauri has `Opened` on the phones and macOS only (not on the
+            // Linux runner that checks this crate). Android's plugin also
+            // reads the link from the activity's intent.
+            #[cfg(any(target_os = "macos", target_os = "ios", target_os = "android"))]
+            if let tauri::RunEvent::Opened { urls } = _event
                 && urls.iter().any(is_scan_link)
             {
                 SCAN_LINK_OPENED.store(true, Ordering::SeqCst);
-                let _ = app.emit(SCAN_LINK, ());
+                let _ = _app.emit(SCAN_LINK, ());
             }
         });
 }
