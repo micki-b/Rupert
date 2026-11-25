@@ -51,6 +51,20 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.6.0 [4000]
+
+A roomier inbox, Settings in their own window, and renaming, dragging out and a page viewer.
+
+• Inbox: your waiting scans fill the middle of the window, with a search field and the List, Large icons and Gallery views. The selected scan's page stays above File it.
+• Choosing the folder: File it shows the whole path. Type to search all your folders, or browse them as a tree and make a new folder there.
+• Page viewer: click a page to see it large. Zoom, move around it and flip pages.
+• Rename documents and folders in Rupert: right-click ▸ Rename…, or select one and press Return.
+• Drag documents out of Rupert into Mail, Messages or the Finder; they get a copy.
+• Settings open in their own window, with the parts in a sidebar and a search field.
+• Drag the edge between columns to make the sidebar, Details or the inbox's form wider or narrower.
+• Online-only documents in iCloud Drive, OneDrive and Google Drive show a picture of their first page.
+• Stop and resume indexing from the status line, and right-click a folder ▸ Index this folder.
+
 ## What's new in 0.5.2 [4000]
 
 Ask Rupert finds more and makes up less, and inbox suggestions explain themselves in your language.

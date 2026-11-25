@@ -39,6 +39,20 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.6.0 [4000]
+
+Una bandeja de entrada más amplia, la configuración en su propia ventana, y renombrar, arrastrar hacia afuera y un visor de páginas.
+
+• Bandeja de entrada: los escaneos que esperan ocupan el centro de la ventana, con un campo de búsqueda y las vistas Lista, Íconos grandes y Galería. La página del escaneo elegido queda arriba de Archivarlo.
+• Elegir la carpeta: Archivarlo muestra la ruta completa. Escribí para buscar entre todas tus carpetas, o recorrelas como un árbol y creá ahí una carpeta nueva.
+• Visor de páginas: hacé clic en una página para verla en grande. Acercá, movete por ella y pasá las páginas.
+• Renombrá documentos y carpetas en Rupert: clic derecho ▸ Renombrar…, o seleccioná uno y apretá Return.
+• Arrastrá documentos fuera de Rupert hasta Mail, Mensajes o el Finder; reciben una copia.
+• La configuración se abre en su propia ventana, con sus partes en una barra lateral y un campo de búsqueda.
+• Arrastrá el borde entre columnas para ensanchar o angostar la barra lateral, los Detalles o el formulario de la bandeja.
+• Los documentos que están solo en línea en iCloud Drive, OneDrive y Google Drive muestran una imagen de su primera página.
+• Detené y reanudá la indexación desde la barra de estado, y hacé clic derecho en una carpeta ▸ Indexar esta carpeta.
+
 ## What's new in 0.5.2 [4000]
 
 Preguntale a Rupert encuentra más e inventa menos, y las sugerencias de la bandeja de entrada se explican en tu idioma.

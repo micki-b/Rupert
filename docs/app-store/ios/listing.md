@@ -61,6 +61,10 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.6.0 [4000]
+
+Keeps the iPhone app in step with Rupert 0.6.0 on your computer, which brings a roomier inbox, a page viewer and renaming. Nothing changes in how the iPhone app works.
+
 ## What's new in 0.5.2 [4000]
 
 Ask Rupert finds more and makes up less.

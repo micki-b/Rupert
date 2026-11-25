@@ -38,6 +38,10 @@ IHRE DOKUMENTE BLEIBEN IHRE
 
 Rupert ist kostenlos und quelloffen.
 
+## Release notes, 0.6.0 [500]
+
+Hält die Android-App mit Rupert 0.6.0 auf Ihrem Computer gleich. An der App selbst ändert sich nichts.
+
 ## Release notes, 0.5.2 [500]
 
 Schlägt die Anmeldung bei Google Drive fehl, sagt Rupert jetzt, warum (etwa wenn Google nicht erreichbar ist), statt still zu „Nicht angemeldet“ zurückzukehren.

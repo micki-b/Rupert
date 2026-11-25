@@ -51,6 +51,10 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.6.0 [4000]
+
+Hält die iPhone-App mit Rupert 0.6.0 auf Ihrem Computer gleich, der einen geräumigeren Eingang, eine Seitenansicht und Umbenennen bringt. An der iPhone-App selbst ändert sich nichts.
+
 ## What's new in 0.5.2 [4000]
 
 „Rupert fragen“ findet mehr und erfindet weniger.

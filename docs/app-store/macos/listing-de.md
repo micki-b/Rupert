@@ -39,6 +39,20 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.6.0 [4000]
+
+Ein geräumigerer Eingang, Einstellungen im eigenen Fenster sowie Umbenennen, Hinausziehen und eine Seitenansicht.
+
+• Eingang: Die wartenden Scans füllen die Mitte des Fensters, mit einem Suchfeld und den Ansichten Liste, Große Symbole und Galerie. Die Seite des gewählten Scans bleibt über „Ablegen“.
+• Ordner wählen: „Ablegen“ zeigt den ganzen Pfad. Tippen Sie, um alle Ordner zu durchsuchen, oder blättern Sie sie als Baum durch und legen Sie dort einen neuen Ordner an.
+• Seitenansicht: Klicken Sie auf eine Seite, um sie groß zu sehen. Zoomen, darin bewegen und blättern.
+• Dokumente und Ordner in Rupert umbenennen: Rechtsklick ▸ Umbenennen …, oder auswählen und die Eingabetaste drücken.
+• Ziehen Sie Dokumente aus Rupert in Mail, Nachrichten oder den Finder; dort kommt eine Kopie an.
+• Die Einstellungen öffnen sich in einem eigenen Fenster, mit den Bereichen in einer Seitenleiste und einem Suchfeld.
+• Ziehen Sie den Rand zwischen den Spalten, um Seitenleiste, Angaben oder das Formular des Eingangs breiter oder schmaler zu machen.
+• Dokumente, die in iCloud Drive, OneDrive und Google Drive nur online liegen, zeigen ein Bild ihrer ersten Seite.
+• Indexieren in der Statusleiste anhalten und fortsetzen, und Rechtsklick auf einen Ordner ▸ Diesen Ordner indexieren.
+
 ## What's new in 0.5.2 [4000]
 
 „Rupert fragen“ findet mehr und erfindet weniger, und Eingangsvorschläge begründen sich in Ihrer Sprache.
