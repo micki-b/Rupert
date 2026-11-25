@@ -10,6 +10,7 @@
     onIntakeChanged,
     onMenuImport,
     onMenuImportInbox,
+    onContinuityScan,
     onMenuSettings,
     onMenuCheckUpdates,
     onSettingsChanged,
@@ -291,6 +292,16 @@
         assistant?.refreshInfo();
       }),
       onSourcesChanged(() => loadSources()),
+      // A Continuity Camera scan (#124) arrived: show it in the inbox.
+      onContinuityScan((r) => {
+        if (r.error) {
+          error = r.error;
+          return;
+        }
+        scanOpen = false;
+        openInbox();
+        loadInboxCount();
+      }),
       onMenuImportInbox(() => {
         if (appSettings?.inbox) {
           openInbox();

@@ -1,8 +1,9 @@
 <script lang="ts">
-  // Scan with your phone (#123): what the inbox's Scan… button opens. Rupert
-  // doesn't drive scanners itself any more; the phone app scans with the
-  // camera into the same inbox. QR codes lead to the app, and a note says
-  // when the inbox is somewhere the phone can't reach.
+  // Scan with your phone (#123, #124): what the inbox's Scan… button opens.
+  // On a Mac, Continuity Camera first: a nearby iPhone or iPad scans
+  // straight into the inbox, no app needed. Then the Rupert phone app: one
+  // QR code that opens its Scan tab (or shows where to get it), the inbox
+  // folder to choose there, and a note when the phone can't reach the inbox.
   import { onMount } from "svelte";
   import { api, providerLabel, type InboxLocation, type Source } from "#lib/api.ts";
   import { m } from "#lib/i18n/index.ts";
@@ -19,11 +20,12 @@
     onsettings: () => void;
   } = $props();
 
-  const APP_STORE = "https://apps.apple.com/us/app/rupert-the-librarian/id6836673217";
-  // The Play listing isn't public yet: the website's download section.
-  const ANDROID = "https://rupertlibrarian.com/#download";
+  /** A universal link (iPhone) and App Link (Android) into the phone app's
+   * Scan tab; in a browser, the page sends people to the app's store. */
+  const SCAN_LINK = "https://rupertlibrarian.com/scan/";
 
-  let codes = $state<{ iphone: string | null; android: string | null }>({ iphone: null, android: null });
+  let code = $state<string | null>(null);
+  let mac = $state(false);
 
   const source = $derived(inbox ? (sources.find((s) => s.id === inbox.sourceId) ?? null) : null);
   const folder = $derived.by(() => {
@@ -32,10 +34,15 @@
     return `${path} (${providerLabel(source.provider)})`;
   });
 
-  onMount(async () => {
-    const [iphone, android] = await Promise.all([api.qrSvg(APP_STORE), api.qrSvg(ANDROID)]).catch(() => [null, null]);
-    codes = { iphone, android };
+  onMount(() => {
+    api.qrSvg(SCAN_LINK).then((svg) => (code = svg), () => {});
+    api.appInfo().then((i) => (mac = i.os === "macos"), () => {});
   });
+
+  function continuity(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    api.continuityMenu(r.left, r.bottom + 4).catch(() => {});
+  }
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && onclose()} />
@@ -50,35 +57,37 @@
         <p>{m.scanPhone.noInbox}</p>
         <button onclick={onsettings}>{m.scanPhone.inboxSettings}</button>
       </div>
-    {:else if source.provider === "local"}
-      <div class="note">
-        <p>{m.scanPhone.localInbox}</p>
-        <button onclick={onsettings}>{m.scanPhone.inboxSettings}</button>
-      </div>
-    {/if}
-
-    <ol>
-      <li>
-        {m.scanPhone.getApp}
-        <div class="codes">
-          {#each [{ label: m.scanPhone.iphone, svg: codes.iphone, url: APP_STORE }, { label: m.scanPhone.android, svg: codes.android, url: ANDROID }] as c (c.url)}
-            <figure>
-              <div class="code" title={c.url}>
-                <!-- Made by rupert_core::qr from a fixed link. -->
-                {#if c.svg}{@html c.svg}{/if}
-              </div>
-              <figcaption>{c.label}</figcaption>
-            </figure>
-          {/each}
-        </div>
-      </li>
-      {#if inbox && source && source.provider !== "local"}
-        <li>
-          {m.scanPhone.chooseInbox(folder)}
-          {#if source.provider === "icloud"}<p class="muted small">{m.scanPhone.icloudInbox}</p>{/if}
-        </li>
+    {:else}
+      {#if mac}
+        <section>
+          <h2>{m.scanPhone.continuityTitle}</h2>
+          <p class="muted small">{m.scanPhone.continuityNote}</p>
+          <button class="primary" onclick={continuity}>{m.scanPhone.continuityButton}</button>
+        </section>
       {/if}
-    </ol>
+
+      <section>
+        {#if mac}<h2>{m.scanPhone.appTitle}</h2>{/if}
+        {#if source.provider === "local"}
+          <div class="note">
+            <p>{m.scanPhone.localInbox}</p>
+            <button onclick={onsettings}>{m.scanPhone.inboxSettings}</button>
+          </div>
+        {:else}
+          <div class="app">
+            <div class="code" title={SCAN_LINK}>
+              <!-- Made by rupert_core::qr from a fixed link. -->
+              {#if code}{@html code}{/if}
+            </div>
+            <div class="steps">
+              <p>{m.scanPhone.pointCamera}</p>
+              <p>{m.scanPhone.chooseInbox(folder)}</p>
+              {#if source.provider === "icloud"}<p class="muted small">{m.scanPhone.icloudInbox}</p>{/if}
+            </div>
+          </div>
+        {/if}
+      </section>
+    {/if}
 
     <p class="muted small scanners">{m.scanPhone.scannerApps}</p>
 
@@ -100,7 +109,7 @@
     z-index: 40; /* above the chat panel (20) and menus (30) */
   }
   .dialog {
-    width: min(500px, calc(100vw - 32px));
+    width: min(520px, calc(100vw - 32px));
     max-height: calc(100vh - 64px);
     overflow: auto;
     background: var(--bg);
@@ -114,6 +123,10 @@
     margin: 0 0 6px;
     font-size: 15px;
   }
+  h2 {
+    margin: 0 0 4px;
+    font-size: 13px;
+  }
   p {
     margin: 0;
   }
@@ -122,6 +135,15 @@
   }
   .small {
     font-size: 12px;
+  }
+  section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
   .note {
     margin-top: 12px;
@@ -134,28 +156,30 @@
     align-items: flex-start;
     gap: 8px;
   }
-  ol {
-    margin: 14px 0 0;
-    padding-left: 20px;
+  section .note {
+    margin-top: 0;
+  }
+  /* The code centered in the window, alone, so the phone's camera finds
+     it easily; the steps below. */
+  section:has(.app) {
+    align-items: stretch;
+  }
+  .app {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 12px;
   }
-  li p {
-    margin-top: 4px;
-  }
-  .codes {
+  .steps {
+    align-self: stretch;
     display: flex;
-    gap: 24px;
-    margin-top: 10px;
-  }
-  figure {
-    margin: 0;
-    text-align: center;
+    flex-direction: column;
+    gap: 8px;
   }
   .code {
-    width: 132px;
-    height: 132px;
+    flex: none;
+    width: 152px;
+    height: 152px;
     border-radius: 6px;
     overflow: hidden;
     background: #fff;
@@ -165,11 +189,6 @@
     display: block;
     width: 100%;
     height: 100%;
-  }
-  figcaption {
-    margin-top: 4px;
-    font-size: 12px;
-    font-weight: 600;
   }
   .scanners {
     margin-top: 14px;

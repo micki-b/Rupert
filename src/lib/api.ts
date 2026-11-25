@@ -505,6 +505,9 @@ export const api = {
     invoke<Filed>("file_document", { sourceId, relPath, filing }),
   /** A QR code as SVG; null if the text is too long for one. */
   qrSvg: (text: string) => invoke<string | null>("qr_svg", { text }),
+  /** macOS: the Continuity Camera menu (nearby iPhones' Scan Documents)
+   * at a point of the page (a button's bottom left). */
+  continuityMenu: (x: number, y: number) => invoke<void>("continuity_menu", { x, y }),
   preview: (sourceId: string, relPath: string, page = 0) =>
     invoke<string | null>("preview", { sourceId, relPath, page }),
 };
@@ -608,6 +611,12 @@ export function onRenameProposal(handler: (p: RenameProposal) => void): Promise<
 
 export function onRenameProposalsDone(handler: (d: { job: number; stopped: boolean }) => void): Promise<UnlistenFn> {
   return listen<{ job: number; stopped: boolean }>("rename-proposals-done", (e) => handler(e.payload));
+}
+
+/** A Continuity Camera scan arrived in the inbox (`name`), or couldn't be
+ * saved (`error`). macOS. */
+export function onContinuityScan(handler: (r: { name: string | null; error: string | null }) => void): Promise<UnlistenFn> {
+  return listen<{ name: string | null; error: string | null }>("continuity-scan", (e) => handler(e.payload));
 }
 
 /** Edit ▸ Undo (macOS menu). */

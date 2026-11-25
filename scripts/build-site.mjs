@@ -15,6 +15,9 @@
 //   its language once (a choice made in the switch wins).
 // - privacy/: PRIVACY.md rendered into site/privacy.template.html, so the
 //   site always says what the repo says (English only).
+// - scan/: where the QR code in the desktop app's Scan panel leads when the
+//   phone app doesn't open it (#124). .well-known/ holds the files that let
+//   the iPhone and Android apps open that link (site/well-known/).
 // - img/: the app icon, the owls, Apple's Mac App Store badge per language,
 //   and each language's screenshots of the
 //   made-up sample library, light and dark.
@@ -187,6 +190,10 @@ for (const lang of LANGS) {
   write(join(b, "support", "index.html"), render(read("support.html"), {
     lang, path: "/support/", current: "support", title: t["support.title"], description: t["support.description"],
   }));
+  // Where the desktop app's Scan QR code leads, when the phone app doesn't open it (#124).
+  write(join(b, "scan", "index.html"), render(read("scan.html"), {
+    lang, path: "/scan/", current: "none", title: t["scan.title"], description: t["scan.description"],
+  }));
 }
 const policy = marked.parse(readFileSync(join(root, "PRIVACY.md"), "utf8"));
 write("privacy/index.html", render(read("privacy.template.html").replace("{{privacy}}", policy), {
@@ -199,6 +206,10 @@ write("404.html", render(read("404.html"), {
 write("style.css", read("style.css"));
 write("home.js", read("home.js"));
 write(".htaccess", read(".htaccess"));
+// The scan link opens the phone apps (#124): Apple's and Google's files
+// saying which apps may handle links to this site.
+write(".well-known/apple-app-site-association", read("well-known/apple-app-site-association"));
+write(".well-known/assetlinks.json", read("well-known/assetlinks.json"));
 
 // MARK: - Images
 

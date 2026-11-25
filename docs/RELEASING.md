@@ -112,6 +112,7 @@ Google Play app: "Rupert", package `io.github.micki_b.rupert` (Android names can
   - the upload key (APKs installed directly): `keytool -list -v -keystore ~/.android/rupert-upload.jks -alias upload`;
   - Google's app signing key (copies from Google Play): Play Console ▸ Test and release ▸ App integrity ▸ App signing.
   Without the right one, Google Drive sign-in fails in that build. OneDrive's sign-in doesn't depend on the key.
+- **The scan link** (#124) opens the app only when `site/well-known/assetlinks.json` lists the SHA-256 of the key that signed it. It has the upload key's (APKs installed directly); add Google's app signing key's (Play Console ▸ Test and release ▸ App integrity ▸ App signing, "SHA-256 certificate fingerprint") and upload the website. Without it, copies from Google Play open the link's web page, whose **Open Rupert** still opens the app.
 
 ### Building and uploading
 

@@ -102,16 +102,19 @@ const de: Messages = {
   },
   scanPhone: {
     title: "Mit dem Telefon scannen",
-    intro:
-      "Rupert auf Ihrem Telefon scannt Papier mit der Kamera und speichert es im Eingang. Rupert auf diesem Computer liest dann jeden Scan und schlägt vor, wo er abgelegt wird.",
-    getApp: "Holen Sie sich Rupert auf Ihr Telefon: Richten Sie dessen Kamera auf einen Code.",
-    iphone: "iPhone",
-    android: "Android",
-    chooseInbox: (folder: string) => `Wählen Sie in der App im Tab Scannen den Eingangsordner: ${folder}.`,
+    intro: "Scans kommen in den Eingang, wo Rupert jeden liest und vorschlägt, wo er abgelegt wird.",
+    continuityTitle: "Mit einem iPhone oder iPad in der Nähe",
+    continuityNote:
+      "Keine App nötig: Wählen Sie „Dokumente scannen“, und die Kamera des iPhone scannt die Seiten direkt in den Eingang. Es muss mit demselben Apple Account angemeldet sein, mit WLAN und Bluetooth eingeschaltet.",
+    continuityButton: "Mit dem iPhone scannen …",
+    appTitle: "Mit der Rupert-App",
+    pointCamera:
+      "Richten Sie die Kamera des Telefons auf den Code. Er öffnet den Tab Scannen von Rupert oder zeigt, wo Sie Rupert bekommen, falls es noch nicht auf dem Telefon ist.",
+    chooseInbox: (folder: string) => `Wählen Sie im Tab Scannen den Eingangsordner: ${folder}.`,
     noInbox:
       "Scans werden im Eingang gespeichert. Richten Sie ihn daher zuerst ein, in einem Ordner in iCloud Drive, OneDrive oder Google Drive: Diese erreicht auch Ihr Telefon.",
     localInbox:
-      "Der Eingang ist ein Ordner auf diesem Computer, den Telefone nicht erreichen. Um mit dem Telefon zu scannen, wählen Sie einen Eingang in iCloud Drive, OneDrive oder Google Drive.",
+      "Der Eingang ist ein Ordner auf diesem Computer, den die Telefon-App nicht erreicht. Um mit ihr zu scannen, wählen Sie einen Eingang in iCloud Drive, OneDrive oder Google Drive.",
     icloudInbox:
       "Android-Telefone erreichen iCloud Drive nicht: Wählen Sie für eines einen Eingang in Google Drive oder OneDrive.",
     inboxSettings: "Eingangseinstellungen …",

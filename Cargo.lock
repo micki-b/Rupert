@@ -3698,6 +3698,7 @@ version = "0.7.0"
 dependencies = [
  "drag",
  "keyring",
+ "libc",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",

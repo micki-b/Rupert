@@ -6,6 +6,16 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 mod assistant;
+#[cfg(target_os = "macos")]
+mod continuity;
+#[cfg(not(target_os = "macos"))]
+mod continuity {
+    //! Continuity Camera is macOS only.
+    #[tauri::command]
+    pub fn continuity_menu(_x: f64, _y: f64) -> crate::CmdResult<()> {
+        Ok(())
+    }
+}
 mod drag_out;
 mod help;
 mod inbox_import;
@@ -1392,8 +1402,8 @@ fn scansnap_apply(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
 
 // MARK: - Setup
 
-/// macOS: the standard menu bar plus File ▸ Scan… and Import from ScanSnap
-/// Home…, Rupert ▸ Settings… and Help ▸ Rupert Help, in Rupert's language
+/// macOS: the standard menu bar plus File ▸ Import into Inbox…, Import from
+/// iPhone or iPad (Continuity Camera) and Import from ScanSnap Home…, Rupert ▸ Settings… and Help ▸ Rupert Help, in Rupert's language
 /// (Tauri's default menu is English only). Built again when the language
 /// changes. (Windows and Linux keep their window chrome menu-free; the
 /// window has the same actions, and F1 opens the help.)
@@ -1508,6 +1518,9 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     )?;
     let menu = Menu::with_items(app, &[&app_menu, &file, &edit, &view, &window, &help])?;
     app.set_menu(menu)?;
+    // File ▸ Import from iPhone or iPad (Continuity Camera), after Import
+    // into Inbox….
+    continuity::add_to_file_menu(app);
     Ok(())
 }
 
@@ -1677,6 +1690,8 @@ pub fn run() {
             state.indexer.send(Job::SyncAll(state.sources()));
             app.manage(state);
             app.manage(assistant::AssistantState::new());
+            #[cfg(target_os = "macos")]
+            continuity::install(app.handle());
             #[cfg(debug_assertions)]
             run_test_script(app.handle());
             Ok(())
@@ -1684,6 +1699,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_info,
             qr_svg,
+            continuity::continuity_menu,
             language,
             list_sources,
             add_source,

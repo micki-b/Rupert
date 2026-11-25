@@ -290,6 +290,45 @@ fn bundle_build() -> Option<String> {
         .map(str::to_string)
 }
 
+// MARK: - The scan link
+
+/// Sent when the scan link opened Rupert while it was running (iPhone).
+const SCAN_LINK: &str = "scan-link";
+
+/// The scan link (#124) opened Rupert and the page hasn't shown the Scan tab
+/// yet (iPhone: `RunEvent::Opened`; Android keeps its own, in the plugin).
+static SCAN_LINK_OPENED: AtomicBool = AtomicBool::new(false);
+
+/// Whether `url` is the scan link: the desktop app's Scan QR code
+/// (https://rupertlibrarian.com/scan/, a universal link / App Link), or
+/// rupert://scan from that page when the link opened in the browser.
+fn is_scan_link(url: &tauri::Url) -> bool {
+    match url.scheme() {
+        "https" => {
+            url.host_str()
+                .is_some_and(|h| h.eq_ignore_ascii_case("rupertlibrarian.com"))
+                && url.path().trim_end_matches('/') == "/scan"
+        }
+        "rupert" => url.host_str().is_some_and(|h| h.eq_ignore_ascii_case("scan")),
+        _ => false,
+    }
+}
+
+/// Whether the scan link opened Rupert since the page last asked; the page
+/// then shows the Scan tab. Asked at start, when the app comes back, and on
+/// `scan-link`.
+#[tauri::command]
+async fn take_scan_link(app: AppHandle) -> bool {
+    let opened = SCAN_LINK_OPENED.swap(false, Ordering::SeqCst);
+    if cfg!(target_os = "android") {
+        let android = blocking(move || Ok(device(&app).take_scan_link().unwrap_or(false)))
+            .await
+            .unwrap_or(false);
+        return opened || android;
+    }
+    opened
+}
+
 /// Rupert's privacy policy on the web (Google Play wants it reachable from
 /// inside the app).
 const PRIVACY_POLICY_URL: &str = "https://rupertlibrarian.com/privacy/";
@@ -1295,6 +1334,7 @@ pub fn run() {
             refresh,
             app_version,
             open_privacy_policy,
+            take_scan_link,
             language,
             set_language,
             share_document,
@@ -1331,11 +1371,46 @@ pub fn run() {
             assistant::assistant_reset,
             test_log,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Rupert");
+        .build(tauri::generate_context!())
+        .expect("error while running Rupert")
+        .run(|app, event| {
+            if let tauri::RunEvent::Opened { urls } = event
+                && urls.iter().any(is_scan_link)
+            {
+                SCAN_LINK_OPENED.store(true, Ordering::SeqCst);
+                let _ = app.emit(SCAN_LINK, ());
+            }
+        });
 }
 
 // MARK: - Tests
+
+#[cfg(test)]
+mod scan_link_tests {
+    use super::is_scan_link;
+
+    #[test]
+    fn knows_the_scan_link() {
+        let yes = [
+            "https://rupertlibrarian.com/scan/",
+            "https://rupertlibrarian.com/scan",
+            "https://RupertLibrarian.com/scan/?from=qr",
+            "rupert://scan",
+        ];
+        let no = [
+            "https://rupertlibrarian.com/",
+            "https://rupertlibrarian.com/scanner/",
+            "https://example.com/scan/",
+            "msauth.io.github.micki-b.rupert://auth",
+        ];
+        for u in yes {
+            assert!(is_scan_link(&u.parse().unwrap()), "{u}");
+        }
+        for u in no {
+            assert!(!is_scan_link(&u.parse().unwrap()), "{u}");
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
