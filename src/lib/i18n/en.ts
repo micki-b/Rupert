@@ -722,6 +722,12 @@ const en = {
     downloading: "Downloading…",
     opening: "Opening…",
     open: "Open",
+    share: "Share",
+    preparing: "Preparing…",
+    sharing: "Sharing",
+    sendNotes: "Include my notes when sharing a PDF",
+    sendNotesNote:
+      "Rupert keeps your notes inside the PDF. Unless this is on, a copy without them is shared; the title, date and tags go along.",
   },
   help: {
     title: "Rupert Help",

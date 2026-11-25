@@ -30,6 +30,15 @@ struct PathArgs: Decodable {
   let path: String
 }
 
+struct ShareArgs: Decodable {
+  let path: String
+  /// The Share button on the page, which the sheet opens from.
+  let x: Double
+  let y: Double
+  let width: Double
+  let height: Double
+}
+
 struct UrlArgs: Decodable {
   let url: String
 }
@@ -257,6 +266,30 @@ class RupertPlugin: Plugin {
       controller.dataSource = source
       controller.delegate = source
       self.manager.viewController?.present(controller, animated: true)
+      invoke.resolve()
+    }
+  }
+
+  /// The share sheet for a (downloaded) document (#69): Mail, Messages,
+  /// AirDrop and the apps that take files. Where it opens as a popover
+  /// (an iPad, and iOS 26 on the iPhone) it points at the Share button.
+  @objc public func share(_ invoke: Invoke) throws {
+    let args = try invoke.parseArgs(ShareArgs.self)
+    DispatchQueue.main.async {
+      guard let presenter = self.manager.viewController else {
+        invoke.reject("Rupert's window isn't ready.")
+        return
+      }
+      let sheet = UIActivityViewController(
+        activityItems: [URL(fileURLWithPath: args.path)], applicationActivities: nil)
+      if let popover = sheet.popoverPresentationController {
+        // The page fills the view, so its coordinates are the view's.
+        popover.sourceView = presenter.view
+        popover.sourceRect = CGRect(
+          x: args.x, y: args.y, width: max(args.width, 1), height: max(args.height, 1))
+        popover.permittedArrowDirections = .any
+      }
+      presenter.present(sheet, animated: true)
       invoke.resolve()
     }
   }

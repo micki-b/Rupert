@@ -737,6 +737,12 @@ const es: Messages = {
     downloading: "Descargando…",
     opening: "Abriendo…",
     open: "Abrir",
+    share: "Compartir",
+    preparing: "Preparando…",
+    sharing: "Compartir",
+    sendNotes: "Incluir mis notas al compartir un PDF",
+    sendNotesNote:
+      "Rupert guarda tus notas dentro del PDF. Si esto no está activado, se comparte una copia sin ellas; el título, la fecha y las etiquetas sí van.",
   },
   help: {
     title: "Ayuda de Rupert",

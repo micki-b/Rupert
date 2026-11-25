@@ -8,6 +8,7 @@ package io.github.micki_b.rupert.phone
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -60,6 +61,12 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import kotlin.math.max
 import kotlin.math.roundToInt
+
+@InvokeArg
+class ShareArgs {
+  lateinit var path: String
+  var subject: String = ""
+}
 
 @InvokeArg
 class ScanArgs {
@@ -459,6 +466,31 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
       invoke.reject("No app on this phone can open this file.")
     } catch (e: Exception) {
       invoke.reject(e.message ?: "Couldn't open the file.")
+    }
+  }
+
+  /** The share chooser for a (downloaded) document, in the app's cache (#69). */
+  @Command
+  fun share(invoke: Invoke) {
+    val args = invoke.parseArgs(ShareArgs::class.java)
+    val file = File(args.path)
+    try {
+      val uri = FileProvider.getUriForFile(activity, activity.packageName + ".fileprovider", file)
+      val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase())
+        ?: "application/octet-stream"
+      val send = Intent(Intent.ACTION_SEND)
+        .setType(mime)
+        .putExtra(Intent.EXTRA_STREAM, uri)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      if (args.subject.isNotEmpty()) send.putExtra(Intent.EXTRA_SUBJECT, args.subject)
+      // The grant reaches the app chosen in the chooser through the clip.
+      send.clipData = ClipData.newRawUri(file.name, uri)
+      activity.startActivity(Intent.createChooser(send, null))
+      invoke.resolve()
+    } catch (e: ActivityNotFoundException) {
+      invoke.reject("No app on this phone can take this file.")
+    } catch (e: Exception) {
+      invoke.reject(e.message ?: "Couldn't share the file.")
     }
   }
 

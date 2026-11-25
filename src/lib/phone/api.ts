@@ -134,6 +134,11 @@ export const phone = {
     invoke<void>("set_folder_favorite", { sourceId, relPath, favorite }),
   document: (sourceId: string, relPath: string) => invoke<DocInfo | null>("document", { sourceId, relPath }),
   open: (sourceId: string, relPath: string) => invoke<void>("open_document", { sourceId, relPath }),
+  /** The phone's share sheet for a document (#69); a PDF goes without its notes unless they're included. */
+  share: (sourceId: string, relPath: string, at: [number, number, number, number]) =>
+    invoke<void>("share_document", { sourceId, relPath, at }),
+  sendNotes: () => invoke<boolean>("send_notes"),
+  setSendNotes: (on: boolean) => invoke<void>("set_send_notes", { on }),
   /** The saved file name, or null if the scan was cancelled. */
   scan: (name: string, settings: ScanSettings) => invoke<string | null>("scan", { name, settings }),
   /** Sends documents shared from other apps that wait on the phone to the inbox. */

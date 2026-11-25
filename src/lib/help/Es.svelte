@@ -866,6 +866,10 @@
     </li>
     <li><b>Abrí</b> un documento para descargarlo y verlo, y después compartirlo o imprimirlo.</li>
     <li>
+      <b>Compartí</b> un documento (junto a Abrir) para enviarlo con Mail, Mensajes, AirDrop u otra app. Como en la
+      computadora, un PDF va como una copia sin tus notas, salvo que Configuración ▸ Compartir las incluya.
+    </li>
+    <li>
       <b>Vistas</b>: arriba de una carpeta, cambiá entre lista, íconos grandes y galería (un documento grande y los
       demás en una tira abajo; deslizá para recorrerlos). Rupert recuerda la vista de cada carpeta. Las imágenes vienen
       de OneDrive o Google Drive, que las hacen sin descargar el documento; en carpetas de Archivos, el iPhone las hace
@@ -921,6 +925,10 @@
     </li>
     <li>
       <b>Vistas</b>: lista, íconos grandes o galería, como en el iPhone, con imágenes de Google Drive o OneDrive.
+    </li>
+    <li>
+      <b>Compartí</b> un documento (junto a Abrir) para enviarlo con Gmail, Mensajes u otra app; un PDF va sin tus notas,
+      salvo que Configuración ▸ Compartir las incluya.
     </li>
     <li>
       <b>Escaneá</b> con el escáner de documentos de Google: en la pestaña Escanear, elegí la carpeta de la bandeja de
