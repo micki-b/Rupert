@@ -9,7 +9,6 @@
     onIndexProgress,
     onIntakeChanged,
     onMenuImport,
-    onMenuScan,
     onMenuImportInbox,
     onMenuSettings,
     onMenuCheckUpdates,
@@ -49,7 +48,7 @@
   import TagFilter from "#lib/TagFilter.svelte";
   import TagManager from "#lib/TagManager.svelte";
   import Assistant from "#lib/Assistant.svelte";
-  import ScanDialog from "#lib/ScanDialog.svelte";
+  import ScanPhonePanel from "#lib/ScanPhonePanel.svelte";
   import MetaEditor from "#lib/MetaEditor.svelte";
   import PictureView from "#lib/PictureView.svelte";
   import DocStar from "#lib/DocStar.svelte";
@@ -292,7 +291,6 @@
         assistant?.refreshInfo();
       }),
       onSourcesChanged(() => loadSources()),
-      onMenuScan(() => (scanOpen = true)),
       onMenuImportInbox(() => {
         if (appSettings?.inbox) {
           openInbox();
@@ -1487,13 +1485,10 @@
 {/if}
 
 {#if scanOpen}
-  <ScanDialog
-    hasInbox={!!appSettings?.inbox}
+  <ScanPhonePanel
+    inbox={appSettings?.inbox ?? null}
+    {sources}
     onclose={() => (scanOpen = false)}
-    onscanned={() => {
-      openInbox();
-      loadInboxCount();
-    }}
     onsettings={() => {
       scanOpen = false;
       api.openSettings("inbox");

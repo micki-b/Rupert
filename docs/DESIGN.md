@@ -136,7 +136,7 @@ Rupert writes **XMP** (the standard metadata format that Acrobat, Preview, exift
 - **Sandbox:** access only to folders the user picked. Each source keeps a **security-scoped bookmark** (`bookmark.rs`, `Source::bookmark`, base64 in `sources.json`): made right after the pick, opened at every launch before watching and indexing (`SourceStore::open_bookmarks`, which also follows moved folders and quietly adds bookmarks to older sources, in both editions). A source that can't be opened shows **Allow access…** (macOS) / **Locate…** (elsewhere), a folder picker at its old place (`relocate_source`). The inbox lives inside a source; the ScanSnap import asks for ScanSnap Home's "Managed" folder (its automatic lookup points into the container); "Add as source" from the import goes through the folder picker.
 - **Gated off in that edition:** the self-updater (the App Store updates it) and the `ant` command sign-in (a sandboxed app can't run other programs); Claude with an API key works. `app_info` reports the edition; the window hides what's absent.
 - **macOS packaging (both editions):** PDFium ships in `Contents/Frameworks` (`tauri.macos.conf.json`), where it's signed with the app; in Resources it wasn't, and notarization refused it.
-- **To verify in the sandbox:** freeing iCloud/OneDrive space after indexing, Move to Trash, file watching, Local AI (Apple Intelligence too), network scanners, the ChatGPT sign-in's local listener.
+- **To verify in the sandbox:** freeing iCloud/OneDrive space after indexing, Move to Trash, file watching, Local AI (Apple Intelligence too), the ChatGPT sign-in's local listener.
 
 ## Favorite folders
 
@@ -175,14 +175,9 @@ Inbox folder → OCR if the PDF has no text layer → Local AI suggests title, d
 ### Scanners
 
 - **Phase 1: watched inbox.** Any scanner or app that saves to a folder works, e.g. a ScanSnap Home "save to folder" profile or HP Smart.
-- **Phase 2: direct scanning.**
-  - **eSCL / AirScan (built, `escl.rs`):** File ▸ Scan… or **Scan…** in the inbox.
-    - Scanners are found over Bonjour (`_uscan._tcp`, via the `mdns-sd` crate) or added by address.
-    - Capabilities are read (flatbed/feeder, duplex, color modes, resolutions, maximum size). Pages are fetched as JPEG and embedded unchanged (no re-encoding) in a PDF that lands in the inbox. It's written under a hidden name and then renamed, so the intake never sees half a file; OCR and suggestions follow as for any new scan.
-    - Plain HTTP + XML, so it works the same on all three OSes.
-    - Tested against a simulated scanner (`escl::mock`, also `examples/escl_mock.rs`, bound to 127.0.0.1 and not announced on the network): feeder with duplex, flatbed, and the "nearest offered resolution" choice. The scanned PDF opens in PDFKit and OCRs normally.
-    - **Not yet tested with real hardware** (no eSCL scanner was available on 2026-11-18).
-  - **USB scanners:** macOS exposes them through ImageCaptureCore, Windows through WIA, Linux through SANE (none built). Many multifunction printers also offer eSCL over Wi-Fi.
+- **Phase 2: the phone and scanner software (#123, 0.8.0).** The inbox's **Scan…** opens "Scan with your phone" (`ScanPhonePanel.svelte`): QR codes for the App Store and for Android (the website's download section until the Play listing is public; drawn by `rupert_core::qr`), the inbox folder to choose in the phone's Scan tab, and a note when the inbox is a folder on this computer (phones can't reach it) or in iCloud Drive (Android can't). Scanner software that saves to a folder covers the rest, including Image Capture and Windows Scan for network scanners without software of their own.
+  - **eSCL / AirScan was built (0.5–0.7) and removed in 0.8.0 (#123).** It was never tested with a real scanner, the phone's camera covers most home scanning, and it brought Bonjour discovery (`mdns-sd`, UDP 5353) and a scan dialog of its own to maintain. The JPEG-to-PDF writer it used stays for camera scans (`camera.rs`).
+  - **USB scanners:** macOS exposes them through ImageCaptureCore, Windows through WIA, Linux through SANE (none built; their own software saving to the inbox folder does the job).
   - **ScanSnap** (e.g. iX1600 over USB): ScanSnap models don't support TWAIN or ISIS.
     - Phase 1: a ScanSnap Home profile saves to Rupert's inbox folder, or uses ScanSnap Home's "send to application" option to hand the file to Rupert. ScanSnap Home stays installed only as the scanner driver.
     - Phase 2: the ScanSnap SDK (Windows/macOS, needs ScanSnap Home 3.3+, iX1600 listed as supported), through a small native macOS bridge. **Blocked:** the SDK is a licensed download from PFU (registration, terms on redistribution), so it can't be fetched or bundled here. Until then, phase 1 is the way: a ScanSnap Home profile that saves PDFs to Rupert's inbox folder.
@@ -255,7 +250,6 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 
 - iCloud Drive and OneDrive sync `.rupert/` dot-folders on all platforms.
 - Finder-tag writes on online-only files don't trigger downloads; whether OneDrive keeps Finder tags.
-- A real eSCL/AirScan scanner.
 - OneDrive via Graph: token refresh after the first hour (not yet observed), and folders bigger than about 1,000 documents.
 - On an iPhone: listing big iCloud Drive folders through the picked bookmarks, fetching `.rupert/` folders, and that no document is downloaded until it is opened.
 - ScanSnap Home can save to a folder (or send to an app) without also cataloging the file.
@@ -268,9 +262,9 @@ A Tauri iOS app in `mobile/` (thin commands in `mobile/src/lib.rs`, Swift in `mo
 3. ✅ Search: text extraction (PDFium), FTS5 index, shared catalog, search bar, Favorites and Tags in the sidebar. A 19,000-document OneDrive walked in 32 s; searches take 4–30 ms.
 4. ✅ Intake: inbox, OCR (Apple Vision / Tesseract) with an invisible text layer, LM Studio suggestions, review screen, renaming and moving.
 5. ✅ ScanSnap Home import (done before 4): document dates, favorites, receipts and OCR text, with a review screen; sidecars can hold pending details and imported text.
-6. Direct scanning: ✅ eSCL/AirScan (network scanners, all OSes). ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
+6. Direct scanning: eSCL/AirScan was built, then removed in 0.8.0 (#123) in favor of scanning with the phone. ScanSnap through the SDK is pending the SDK itself; ScanSnap works through a profile that saves to the inbox. USB scanners via ImageCaptureCore/WIA/SANE not built.
 7. ✅ iPhone app: browse and search the same folders (read-only; OneDrive through Microsoft Graph), open documents in Quick Look, scan with the camera into the inbox. Tested on an iPhone with a real library, including camera scans.
 
 ## Dependencies (licenses)
 
-All permissive; the full list with license texts is `THIRD_PARTY_NOTICES.md`, generated by `scripts/third-party-notices.py` (Rust crates of the desktop and iPhone apps, the window's JavaScript, PDFium) and bundled with both apps. Main ones: Tauri (MIT/Apache), `notify` (CC0/Artistic), `rusqlite` + SQLite FTS5 (MIT/public domain), `lopdf` (MIT), `pdfium-render` + PDFium (MIT/Apache, BSD), `ureq` + rustls (MIT/Apache/ISC), `mdns-sd` (MIT/Apache), `png` (MIT/Apache), `objc2-*` (MIT), `keyring` (MIT/Apache), `trash` (MIT), `sys-locale` (MIT/Apache), `marked` (MIT), DOMPurify (MPL-2.0 or Apache-2.0), Tesseract (Apache-2.0, optional, not bundled). Avoid MuPDF and Ghostscript (AGPL). Rupert itself: MIT (`LICENSE`); privacy policy: `PRIVACY.md`.
+All permissive; the full list with license texts is `THIRD_PARTY_NOTICES.md`, generated by `scripts/third-party-notices.py` (Rust crates of the desktop and iPhone apps, the window's JavaScript, PDFium) and bundled with both apps. Main ones: Tauri (MIT/Apache), `notify` (CC0/Artistic), `rusqlite` + SQLite FTS5 (MIT/public domain), `lopdf` (MIT), `pdfium-render` + PDFium (MIT/Apache, BSD), `ureq` + rustls (MIT/Apache/ISC), `qrcodegen` (MIT), `png` (MIT/Apache), `objc2-*` (MIT), `keyring` (MIT/Apache), `trash` (MIT), `sys-locale` (MIT/Apache), `marked` (MIT), DOMPurify (MPL-2.0 or Apache-2.0), Tesseract (Apache-2.0, optional, not bundled). Avoid MuPDF and Ghostscript (AGPL). Rupert itself: MIT (`LICENSE`); privacy policy: `PRIVACY.md`.

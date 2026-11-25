@@ -408,16 +408,19 @@
 <!-- MARK: Scanning -->
 <section id="scanning">
   <h2>Scanning</h2>
-  <h3>Network scanners</h3>
+  <h3 id="scan-with-phone">With your phone</h3>
   <p>
-    Rupert scans directly from scanners that support AirScan (also called eSCL), which most current network scanners
-    and multifunction printers do. Choose {#if mac}<b>File ▸ Scan…</b>, or {/if}<b>Scan…</b> in the inbox. Rupert finds scanners on your network, or you can add one by its address. Pick the source (document feeder or
-    glass), sides, color, resolution and page size, and click <b>Scan</b>. The PDF goes straight into the inbox.
+    Rupert on the iPhone and on Android scans paper with the camera into the same inbox. Click <b>Scan…</b> in the inbox:
+    it shows codes to point your phone's camera at, to get the app, and the inbox folder to choose in the app's Scan tab.
+    The phone can only reach an inbox in iCloud Drive (iPhone), OneDrive or Google Drive, not one in a folder on this
+    computer. See <a href="#iphone">The iPhone app</a> and <a href="#android">The Android app</a>.
   </p>
   <h3>ScanSnap and other scanner software</h3>
   <p>
     Any scanner app that saves to a folder works with Rupert. For a ScanSnap, create a ScanSnap Home profile that saves
-    PDFs to Rupert's inbox folder. Rupert picks up each new scan from there.
+    PDFs to Rupert's inbox folder. Rupert picks up each new scan from there. A network scanner without software of its own
+    works the same way: {#if mac}in <b>Image Capture</b>, choose the inbox folder under <b>Scan To</b>{:else if windows}in the
+      <b>Windows Scan</b> app, choose the inbox folder as where scans are saved{/if}.
   </p>
   <h3 id="import-into-inbox">Importing many files</h3>
   <p>
@@ -447,8 +450,6 @@
       Print to a PDF file and save it in the inbox folder: Rupert reads it and suggests where to file it, like a scan.
     {/if}
   </p>
-  <h3>With the iPhone</h3>
-  <p>The iPhone app scans with the camera into the same inbox. See <a href="#iphone">The iPhone app</a>.</p>
 </section>
 
 <!-- MARK: ScanSnap Home -->

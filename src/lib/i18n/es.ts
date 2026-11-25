@@ -97,37 +97,24 @@ const es: Messages = {
     unchanged: "ya estaban al día",
     failed: (n: number) => `${docs(n)} no se ${plural(n, "pudo", "pudieron")} actualizar`,
   },
-  scan: {
-    title: "Escanear",
-    needsInbox:
-      "Los escaneos se guardan en la bandeja de entrada, donde Rupert los lee y sugiere cómo archivarlos. Configurala primero.",
-    setUpInbox: "Configurar la bandeja de entrada…",
-    scanner: "Escáner",
-    looking: "Buscando escáneres en la red…",
-    noneFound:
-      "No se encontró ningún escáner en la red. Fijate que el escáner esté prendido y en la misma red, o agregalo por su dirección.",
-    addressPlaceholder: "Agregar por dirección, p. ej. 192.168.1.20",
-    add: "Agregar",
-    settings: "Ajustes",
-    source: "Origen",
-    feeder: "Alimentador de documentos",
-    glass: "Vidrio",
-    sides: "Caras",
-    bothSides: "Las dos caras",
-    color: "Color",
-    grayscale: "Escala de grises",
-    inColor: "Color",
-    resolution: "Resolución",
-    dpi: (r: number) => `${r} ppp`,
-    pageSize: "Tamaño de página",
-    letter: "Carta",
-    legal: "Oficio",
-    a4: "A4",
-    max: "Lo más grande posible",
-    hint: "300 ppp en escala de grises sirve para casi todos los papeles y da el mejor reconocimiento de texto.",
-    scanning: "Escaneando…",
-    pages: (n: number) => `${num(n)} ${plural(n, "página", "páginas")}`,
-    scan: "Escanear",
+  scanPhone: {
+    title: "Escanear con el teléfono",
+    intro:
+      "Rupert en tu teléfono escanea papeles con la cámara y los guarda en la bandeja de entrada. Después Rupert en esta computadora lee cada escaneo y sugiere dónde archivarlo.",
+    getApp: "Instalá Rupert en tu teléfono: apuntá la cámara a un código.",
+    iphone: "iPhone",
+    android: "Android",
+    chooseInbox: (folder: string) =>
+      `En la pestaña Escanear de la app, elegí la carpeta de la bandeja de entrada: ${folder}.`,
+    noInbox:
+      "Los escaneos se guardan en la bandeja de entrada, así que configurala primero, en una carpeta de iCloud Drive, OneDrive o Google Drive: tu teléfono también llega a esas.",
+    localInbox:
+      "La bandeja de entrada es una carpeta de esta computadora, a la que los teléfonos no llegan. Para escanear con el teléfono, elegí una bandeja de entrada en iCloud Drive, OneDrive o Google Drive.",
+    icloudInbox:
+      "Los teléfonos Android no llegan a iCloud Drive: con uno, elegí una bandeja de entrada en Google Drive o OneDrive.",
+    inboxSettings: "Ajustes de la bandeja de entrada…",
+    scannerApps:
+      "¿Tenés un escáner? Configurá su software (por ejemplo ScanSnap Home) para que guarde los PDF en la carpeta de la bandeja de entrada. Rupert toma cada escaneo nuevo de ahí.",
   },
   details: {
     inPdf: "Guardado dentro del PDF",

@@ -444,19 +444,21 @@
 <!-- MARK: Escanear -->
 <section id="scanning">
   <h2>Escanear</h2>
-  <h3>Escáneres de red</h3>
+  <h3 id="scan-with-phone">Con el teléfono</h3>
   <p>
-    Rupert escanea directamente desde los escáneres compatibles con AirScan (también llamado eSCL), como la mayoría de los
-    escáneres de red y las impresoras multifunción actuales. Elegí {#if mac}<b>Archivo ▸ Escanear…</b>, o {/if}<b
-      >Escanear…</b
-    > en la bandeja de entrada. Rupert busca escáneres en tu red, o podés agregar uno por su dirección. Elegí el origen
-    (alimentador de documentos o vidrio), las caras, el color, la resolución y el tamaño de página, y hacé clic en
-    <b>Escanear</b>. El PDF va directo a la bandeja de entrada.
+    Rupert en el iPhone y en Android escanea papeles con la cámara a la misma bandeja de entrada. Hacé clic en
+    <b>Escanear…</b> en la bandeja de entrada: muestra códigos para apuntar la cámara del teléfono y conseguir la app, y la
+    carpeta de la bandeja de entrada que tenés que elegir en la pestaña Escanear de la app. El teléfono solo llega a una
+    bandeja de entrada en iCloud Drive (iPhone), OneDrive o Google Drive, no a una carpeta de esta computadora. Mirá
+    <a href="#iphone">La app del iPhone</a> y <a href="#android">La app de Android</a>.
   </p>
   <h3>ScanSnap y otros programas de escáner</h3>
   <p>
     Cualquier app de escáner que guarde en una carpeta funciona con Rupert. Para un ScanSnap, creá un perfil de ScanSnap
-    Home que guarde los PDF en la carpeta de la bandeja de entrada de Rupert. Rupert levanta cada escaneo nuevo de ahí.
+    Home que guarde los PDF en la carpeta de la bandeja de entrada de Rupert. Rupert levanta cada escaneo nuevo de ahí. Un
+    escáner de red sin programa propio funciona igual: {#if mac}en <b>Captura de Imagen</b>, elegí la carpeta de la bandeja
+      de entrada en <b>Escanear a</b>{:else if windows}en la app <b>Escáner de Windows</b>, elegí la carpeta de la bandeja de entrada
+      como destino de los escaneos{/if}.
   </p>
   <h3 id="import-into-inbox">Importar muchos archivos</h3>
   <p>
@@ -490,8 +492,6 @@
       como un escaneo.
     {/if}
   </p>
-  <h3>Con el iPhone</h3>
-  <p>La app del iPhone escanea con la cámara a la misma bandeja de entrada. Mirá <a href="#iphone">La app del iPhone</a>.</p>
 </section>
 
 <!-- MARK: ScanSnap Home -->

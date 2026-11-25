@@ -15,7 +15,6 @@ mod settings_window;
 mod share;
 mod thumbs;
 
-use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
 use rupert_core::folder_info::{self, FolderInfo};
 use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, IntakeItem};
 use rupert_core::llm::{self, LocalAi, Reach};
@@ -43,15 +42,8 @@ const INDEX_CHANGED: &str = "index-changed";
 const IMPORT_PROGRESS: &str = "import-progress";
 /// ScanSnap Home import finished. Payload: `ImportReport`.
 const IMPORT_DONE: &str = "import-done";
-/// A page arrived from the scanner. Payload: number of pages so far.
-const SCAN_PROGRESS: &str = "scan-progress";
-/// A scan finished. Payload: `ScanDone`.
-const SCAN_DONE: &str = "scan-done";
 /// The tag manager changed a document. Payload: `TagEditProgress`.
 const TAG_EDIT_PROGRESS: &str = "tag-edit-progress";
-/// File ▸ Scan… was chosen (macOS menu). No payload.
-#[cfg(target_os = "macos")]
-const MENU_SCAN: &str = "menu-scan";
 /// The inbox list or an item in it changed. No payload.
 const INTAKE_CHANGED: &str = "intake-changed";
 /// Settings were saved (any window). Payload: the settings.
@@ -166,6 +158,12 @@ fn app_info() -> AppInfo {
         arch: std::env::consts::ARCH,
         edition: EDITION,
     }
+}
+
+/// A QR code as SVG (#123: where to get Rupert on the phone).
+#[tauri::command]
+fn qr_svg(text: String) -> Option<String> {
+    rupert_core::qr::svg(&text)
 }
 
 // MARK: - Commands: sources
@@ -1323,90 +1321,6 @@ fn base64(bytes: &[u8]) -> String {
     out
 }
 
-// MARK: - Commands: scanning
-
-/// eSCL scanners on the network (takes a few seconds).
-#[tauri::command]
-async fn scanners_discover() -> CmdResult<Vec<Scanner>> {
-    tauri::async_runtime::spawn_blocking(|| escl::discover(std::time::Duration::from_secs(3)))
-        .await
-        .map_err(err)?
-        .map_err(err)
-}
-
-/// A scanner by address, checked by reading its capabilities.
-#[tauri::command]
-async fn scanner_capabilities(scanner: Scanner) -> CmdResult<Capabilities> {
-    tauri::async_runtime::spawn_blocking(move || escl::capabilities(&scanner))
-        .await
-        .map_err(err)?
-        .map_err(err)
-}
-
-#[tauri::command]
-fn scanner_at(address: String) -> Scanner {
-    escl::scanner_at(&address)
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ScanDone {
-    /// Where the PDF was saved (in the inbox's source), if it worked.
-    source_id: Option<String>,
-    rel_path: Option<String>,
-    error: Option<String>,
-}
-
-/// Scans into the inbox in the background; progress and the result arrive
-/// as events. `name` is the file name without extension.
-#[tauri::command]
-fn scan_start(
-    scanner: Scanner,
-    request: ScanRequest,
-    name: String,
-    app: AppHandle,
-    state: State<AppState>,
-) -> CmdResult<()> {
-    let inbox = state
-        .settings
-        .lock()
-        .unwrap()
-        .get()
-        .inbox
-        .clone()
-        .ok_or(tr("set up the inbox first: scans are saved there"))?;
-    let source = state.source(&inbox.source_id)?;
-    let dest = rupert_core::resolve(&source.root, &inbox.rel_path).map_err(err)?;
-    let stem = rupert_core::fileops::clean_name(&name, "pdf");
-    std::thread::Builder::new()
-        .name("rupert-scan".into())
-        .spawn(move || {
-            let result = escl::capabilities(&scanner).and_then(|caps| {
-                escl::scan(&scanner, &caps, &request, &dest, &stem, |pages| {
-                    let _ = app.emit(SCAN_PROGRESS, pages);
-                })
-            });
-            let done = match result {
-                Ok(path) => ScanDone {
-                    source_id: Some(source.id.clone()),
-                    rel_path: rupert_core::listing::relative(&source.root, &path),
-                    error: None,
-                },
-                Err(e) => ScanDone {
-                    source_id: None,
-                    rel_path: None,
-                    error: Some(e.to_string()),
-                },
-            };
-            if let Some(state) = app.try_state::<AppState>() {
-                state.intake.refresh();
-            }
-            let _ = app.emit(SCAN_DONE, done);
-        })
-        .map_err(err)?;
-    Ok(())
-}
-
 // MARK: - Commands: ScanSnap Home import
 
 /// ScanSnap Home's library folder, if it's in the usual place.
@@ -1534,7 +1448,6 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
         tr("File"),
         true,
         &[
-            &item(MENU_SCAN, tr("Scan…"), None)?,
             &item(
                 MENU_IMPORT_INBOX,
                 tr("Import into Inbox…"),
@@ -1607,7 +1520,6 @@ fn on_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
     for id in [
         MENU_IMPORT,
         MENU_SETTINGS,
-        MENU_SCAN,
         MENU_UPDATES,
         MENU_UNDO,
         MENU_IMPORT_INBOX,
@@ -1771,6 +1683,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info,
+            qr_svg,
             language,
             list_sources,
             add_source,
@@ -1849,10 +1762,6 @@ pub fn run() {
             all_folders,
             file_document,
             preview,
-            scanners_discover,
-            scanner_capabilities,
-            scanner_at,
-            scan_start,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Rupert");

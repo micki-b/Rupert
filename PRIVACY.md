@@ -1,6 +1,6 @@
 # Rupert privacy policy
 
-*Last updated: November 23, 2026*
+*Last updated: November 25, 2026*
 
 Rupert is a free, open-source app for organizing your scanned documents, made by Micki Braun. It runs on your
 computer (macOS, Windows, Linux) and on your iPhone or Android phone. This policy explains what happens to your information when you
@@ -61,8 +61,6 @@ None of these is on unless you turn it on.
   including the Limited Use requirements: it is used only to show, search and open your documents and to save your
   scans, on your phone, and is never sold, shared or used for advertising.
   [Google's privacy policy](https://policies.google.com/privacy).
-- **Network scanners**: Rupert looks for scanners on your local network (Bonjour) and talks to the one you choose
-  directly. Nothing leaves your network.
 - **Markdown documents** that link to pictures on the web load those pictures from the web when shown, as a browser
   would.
 - **Updates** (desktop): Rupert checks GitHub for a newer version and downloads it from there. GitHub sees the
