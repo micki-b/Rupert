@@ -99,17 +99,19 @@ const es: Messages = {
   },
   scanPhone: {
     title: "Escanear con el teléfono",
-    intro:
-      "Rupert en tu teléfono escanea papeles con la cámara y los guarda en la bandeja de entrada. Después Rupert en esta computadora lee cada escaneo y sugiere dónde archivarlo.",
-    getApp: "Instalá Rupert en tu teléfono: apuntá la cámara a un código.",
-    iphone: "iPhone",
-    android: "Android",
-    chooseInbox: (folder: string) =>
-      `En la pestaña Escanear de la app, elegí la carpeta de la bandeja de entrada: ${folder}.`,
+    intro: "Los escaneos van a la bandeja de entrada, donde Rupert lee cada uno y sugiere dónde archivarlo.",
+    continuityTitle: "Con un iPhone o iPad cerca",
+    continuityNote:
+      "No hace falta ninguna app: elegí Escanear documentos y la cámara del iPhone escanea las páginas directo a la bandeja de entrada. Tiene que tener la misma cuenta de Apple, con Wi-Fi y Bluetooth activados.",
+    continuityButton: "Escanear con el iPhone…",
+    appTitle: "Con la app de Rupert",
+    pointCamera:
+      "Apuntá la cámara del teléfono al código. Abre la pestaña Escanear de Rupert, o te muestra dónde conseguir Rupert si todavía no está en el teléfono.",
+    chooseInbox: (folder: string) => `En la pestaña Escanear, elegí la carpeta de la bandeja de entrada: ${folder}.`,
     noInbox:
       "Los escaneos se guardan en la bandeja de entrada, así que configurala primero, en una carpeta de iCloud Drive, OneDrive o Google Drive: tu teléfono también llega a esas.",
     localInbox:
-      "La bandeja de entrada es una carpeta de esta computadora, a la que los teléfonos no llegan. Para escanear con el teléfono, elegí una bandeja de entrada en iCloud Drive, OneDrive o Google Drive.",
+      "La bandeja de entrada es una carpeta de esta computadora, a la que la app del teléfono no llega. Para escanear con ella, elegí una bandeja de entrada en iCloud Drive, OneDrive o Google Drive.",
     icloudInbox:
       "Los teléfonos Android no llegan a iCloud Drive: con uno, elegí una bandeja de entrada en Google Drive o OneDrive.",
     inboxSettings: "Ajustes de la bandeja de entrada…",

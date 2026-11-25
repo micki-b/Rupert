@@ -362,6 +362,16 @@ impl<R: Runtime> Device<R> {
     pub fn shared_folders(&self) -> Result<SharedFolders> {
         self.call::<SharedFolders>("sharedFolders", ())
     }
+
+    /// Android: whether the scan link (#124) opened Rupert since the last
+    /// time this was asked. (The iPhone gets it as `RunEvent::Opened`.)
+    pub fn take_scan_link(&self) -> Result<bool> {
+        #[derive(Deserialize)]
+        struct Taken {
+            scan: bool,
+        }
+        self.call::<Taken>("takeScanLink", ()).map(|t| t.scan)
+    }
 }
 
 /// See [`Device::shared_folders`].

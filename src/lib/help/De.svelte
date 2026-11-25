@@ -451,12 +451,22 @@
 <section id="scanning">
   <h2>Scannen</h2>
   <h3 id="scan-with-phone">Mit dem Telefon</h3>
+  {#if mac}
+    <p>
+      <b>Mit einem iPhone oder iPad in der Nähe</b> (Integrierte Kamera) brauchen Sie keine App: Klicken Sie im Eingang
+      auf <b>Scannen …</b> und dann auf <b>Mit dem iPhone scannen …</b>, oder wählen Sie <b>Ablage ▸ Von iPhone oder iPad
+      importieren</b>, und wählen Sie unter Ihrem iPhone <b>Dokumente scannen</b>. Scannen Sie die Seiten auf dem iPhone
+      und tippen Sie auf <b>Sichern</b>: Das PDF kommt direkt in den Eingang. Das iPhone muss mit demselben Apple Account
+      angemeldet sein wie der Mac, mit WLAN und Bluetooth eingeschaltet.
+    </p>
+  {/if}
   <p>
-    Rupert auf dem iPhone und auf Android scannt Papier mit der Kamera in denselben Eingang. Klicken Sie im Eingang auf
-    <b>Scannen …</b>: Dort sehen Sie Codes, auf die Sie die Kamera des Telefons richten, um die App zu holen, und den
-    Eingangsordner, den Sie in der App im Tab Scannen wählen. Das Telefon erreicht nur einen Eingang in iCloud Drive
-    (iPhone), OneDrive oder Google Drive, nicht einen Ordner auf diesem Computer. Siehe <a href="#iphone">Die iPhone-App</a>
-    und <a href="#android">Die Android-App</a>.
+    <b>Mit der Rupert-App</b> auf dem iPhone oder auf Android scannt die Kamera Papier in denselben Eingang. Klicken Sie
+    im Eingang auf <b>Scannen …</b> und richten Sie die Kamera des Telefons auf den Code: Er öffnet den Tab Scannen von
+    Rupert oder zeigt, wo Sie Rupert bekommen, falls es noch nicht auf dem Telefon ist. Wählen Sie im Tab Scannen den
+    Eingangsordner, den das Fenster nennt. Das Telefon erreicht nur einen Eingang in iCloud Drive (iPhone), OneDrive
+    oder Google Drive, nicht einen Ordner auf diesem Computer. Siehe <a href="#iphone">Die iPhone-App</a> und
+    <a href="#android">Die Android-App</a>.
   </p>
   <h3>ScanSnap und andere Scannersoftware</h3>
   <p>

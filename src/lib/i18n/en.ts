@@ -93,15 +93,19 @@ const en = {
   scanPhone: {
     title: "Scan with your phone",
     intro:
-      "Rupert on your phone scans paper with the camera and saves it in the inbox. Rupert on this computer then reads each scan and suggests where to file it.",
-    getApp: "Get Rupert on your phone: point its camera at a code.",
-    iphone: "iPhone",
-    android: "Android",
-    chooseInbox: (folder: string) => `In the app's Scan tab, choose the inbox folder: ${folder}.`,
+      "Scans go into the inbox, where Rupert reads each one and suggests where to file it.",
+    continuityTitle: "With an iPhone or iPad nearby",
+    continuityNote:
+      "No app needed: choose Scan Documents, and the iPhone's camera scans the pages straight into the inbox. It has to be signed in to the same Apple Account, with Wi-Fi and Bluetooth on.",
+    continuityButton: "Scan with iPhone…",
+    appTitle: "With the Rupert app",
+    pointCamera:
+      "Point your phone's camera at the code. It opens Rupert's Scan tab, or shows where to get Rupert if it isn't on the phone yet.",
+    chooseInbox: (folder: string) => `In the Scan tab, choose the inbox folder: ${folder}.`,
     noInbox:
       "Scans are saved to the inbox, so set it up first, in a folder in iCloud Drive, OneDrive or Google Drive: your phone can reach those too.",
     localInbox:
-      "The inbox is a folder on this computer, which phones can't reach. To scan with your phone, choose an inbox in iCloud Drive, OneDrive or Google Drive.",
+      "The inbox is a folder on this computer, which the phone app can't reach. To scan with it, choose an inbox in iCloud Drive, OneDrive or Google Drive.",
     icloudInbox: "Android phones can't reach iCloud Drive: with one, choose an inbox in Google Drive or OneDrive.",
     inboxSettings: "Inbox settings…",
     scannerApps:

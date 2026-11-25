@@ -14,6 +14,7 @@
   import {
     formatDocDate,
     onFoldersReady,
+    onScanLink,
     onIndexChanged,
     onProgress,
     onRemoteProgress,
@@ -292,12 +293,30 @@
     if (!first && inbox) sendShared();
   });
 
+  /** The desktop app's Scan QR code opened Rupert (#124): show the Scan tab. */
+  function checkScanLink() {
+    phone
+      .takeScanLink()
+      .then((opened) => {
+        if (opened) {
+          sheet = null;
+          chooser = null;
+          switchTab("scan");
+        }
+      })
+      .catch(() => {});
+  }
+
   onMount(() => {
     // Sharing on Android opens Rupert; on iPhone, anything the share sheet
-    // couldn't save waits for the app.
+    // couldn't save waits for the app. The scan link opens it too.
     sendShared();
+    checkScanLink();
     const onVisible = () => {
-      if (document.visibilityState === "visible") sendShared();
+      if (document.visibilityState === "visible") {
+        sendShared();
+        checkScanLink();
+      }
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
@@ -319,6 +338,7 @@
         if (!p.active) loadOverview();
       }),
       onFoldersReady(loadOverview),
+      onScanLink(checkScanLink),
     ];
     return () => unlisten.forEach((u) => u.then((f) => f()));
   });

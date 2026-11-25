@@ -409,11 +409,20 @@
 <section id="scanning">
   <h2>Scanning</h2>
   <h3 id="scan-with-phone">With your phone</h3>
+  {#if mac}
+    <p>
+      <b>With an iPhone or iPad nearby</b> (Continuity Camera), no app is needed: click <b>Scan…</b> in the inbox, then
+      <b>Scan with iPhone…</b>, or choose <b>File ▸ Import from iPhone or iPad</b>, and pick <b>Scan Documents</b> under
+      your iPhone. Scan the pages on the iPhone and tap <b>Save</b>: the PDF goes straight into the inbox. The iPhone has
+      to be signed in to the same Apple Account as the Mac, with Wi-Fi and Bluetooth on.
+    </p>
+  {/if}
   <p>
-    Rupert on the iPhone and on Android scans paper with the camera into the same inbox. Click <b>Scan…</b> in the inbox:
-    it shows codes to point your phone's camera at, to get the app, and the inbox folder to choose in the app's Scan tab.
-    The phone can only reach an inbox in iCloud Drive (iPhone), OneDrive or Google Drive, not one in a folder on this
-    computer. See <a href="#iphone">The iPhone app</a> and <a href="#android">The Android app</a>.
+    <b>With the Rupert app</b> on the iPhone or Android, the camera scans paper into the same inbox. Click <b>Scan…</b>
+    in the inbox and point your phone's camera at the code: it opens Rupert's Scan tab, or shows where to get Rupert if
+    it isn't on the phone yet. In the Scan tab, choose the inbox folder the window names. The phone can only reach an
+    inbox in iCloud Drive (iPhone), OneDrive or Google Drive, not one in a folder on this computer. See
+    <a href="#iphone">The iPhone app</a> and <a href="#android">The Android app</a>.
   </p>
   <h3>ScanSnap and other scanner software</h3>
   <p>

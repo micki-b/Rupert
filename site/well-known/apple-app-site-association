@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["9FP28N8GW3.io.github.micki-b.rupert"],
+        "components": [
+          { "/": "/scan", "comment": "The QR code in the desktop app's Scan panel opens the Scan tab (#124)." },
+          { "/": "/scan/" }
+        ]
+      }
+    ]
+  }
+}

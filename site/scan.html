@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    {{head}}
+  </head>
+  <body>
+    {{header}}
+
+    <!-- Where the QR code in the desktop app's Scan panel leads (#124). On a
+         phone with Rupert, the link opens its Scan tab before this page loads
+         (a universal link on the iPhone, an App Link on Android); this page is
+         for phones without Rupert, and for links opened in the browser. -->
+    <main class="wrap">
+      <article class="text scan-page">
+        <h1>{{t.scan.h1}}</h1>
+        <p>{{t.scan.p}}</p>
+        <p class="scan-actions">
+          <a class="button" data-os="ios android" data-open href="rupert://scan">{{t.scan.open}}</a>
+          <a class="button" data-os="ios other" href="https://apps.apple.com/us/app/rupert-the-librarian/id6836673217">{{t.scan.ios}}</a>
+          <a class="button" data-os="android other" href="{{base}}/#download">{{t.scan.android}}</a>
+        </p>
+        <p class="scan-computer" data-os="other">{{t.scan.computer}}</p>
+      </article>
+    </main>
+
+    {{footer}}
+    <script>
+      (function () {
+        var ua = navigator.userAgent;
+        var os = /Android/i.test(ua) ? "android" : /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ios" : "other";
+        document.querySelectorAll("[data-os]").forEach(function (el) {
+          if (el.dataset.os.split(" ").indexOf(os) < 0) el.hidden = true;
+        });
+        // Android: open the app if it's there, otherwise the download.
+        var open = document.querySelector("[data-open]");
+        if (os === "android" && open)
+          open.href = "intent://scan#Intent;scheme=rupert;package=io.github.micki_b.rupert;S.browser_fallback_url=" +
+            encodeURIComponent(location.origin + "{{base}}/#download") + ";end";
+      })();
+    </script>
+  </body>
+</html>

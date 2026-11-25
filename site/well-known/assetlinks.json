@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.micki_b.rupert",
+      "sha256_cert_fingerprints": ["97:31:4C:8A:31:A9:77:37:EB:FC:C0:5A:17:8D:C5:27:38:6E:A3:16:10:AD:5F:1B:D8:F7:57:F9:2D:23:11:33"]
+    }
+  }
+]

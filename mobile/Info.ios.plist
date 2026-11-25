@@ -8,6 +8,19 @@
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<!-- rupert://scan opens the Scan tab: the scan link's web page offers it
+	     when the link opened in the browser (#124). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.github.micki-b.rupert.scan</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rupert</string>
+			</array>
+		</dict>
+	</array>
 	<!-- Only standard encryption (HTTPS): answers App Store export compliance. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>

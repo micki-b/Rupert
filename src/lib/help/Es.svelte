@@ -445,11 +445,21 @@
 <section id="scanning">
   <h2>Escanear</h2>
   <h3 id="scan-with-phone">Con el teléfono</h3>
+  {#if mac}
+    <p>
+      <b>Con un iPhone o iPad cerca</b> (Cámara de Continuidad) no hace falta ninguna app: hacé clic en <b>Escanear…</b>
+      en la bandeja de entrada y después en <b>Escanear con el iPhone…</b>, o elegí <b>Archivo ▸ Importar desde el iPhone o
+      iPad</b>, y elegí <b>Escanear documentos</b> debajo de tu iPhone. Escaneá las páginas en el iPhone y tocá
+      <b>Guardar</b>: el PDF va directo a la bandeja de entrada. El iPhone tiene que tener la misma cuenta de Apple que la
+      Mac, con Wi-Fi y Bluetooth activados.
+    </p>
+  {/if}
   <p>
-    Rupert en el iPhone y en Android escanea papeles con la cámara a la misma bandeja de entrada. Hacé clic en
-    <b>Escanear…</b> en la bandeja de entrada: muestra códigos para apuntar la cámara del teléfono y conseguir la app, y la
-    carpeta de la bandeja de entrada que tenés que elegir en la pestaña Escanear de la app. El teléfono solo llega a una
-    bandeja de entrada en iCloud Drive (iPhone), OneDrive o Google Drive, no a una carpeta de esta computadora. Mirá
+    <b>Con la app de Rupert</b> en el iPhone o en Android, la cámara escanea papeles a la misma bandeja de entrada. Hacé
+    clic en <b>Escanear…</b> en la bandeja de entrada y apuntá la cámara del teléfono al código: abre la pestaña Escanear
+    de Rupert, o te muestra dónde conseguir Rupert si todavía no está en el teléfono. En la pestaña Escanear, elegí la
+    carpeta de la bandeja de entrada que indica la ventana. El teléfono solo llega a una bandeja de entrada en iCloud
+    Drive (iPhone), OneDrive o Google Drive, no a una carpeta de esta computadora. Mirá
     <a href="#iphone">La app del iPhone</a> y <a href="#android">La app de Android</a>.
   </p>
   <h3>ScanSnap y otros programas de escáner</h3>

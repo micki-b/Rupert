@@ -115,5 +115,14 @@
   "support.ideas.h": "Ideas and requests",
   "support.ideas.p": "Suggestions are welcome as a <a href=\"https://github.com/micki-b/Rupert/issues/new/choose\">feature request on GitHub</a>. You can also see <a href=\"https://github.com/micki-b/Rupert/issues\">what's being worked on</a>.",
   "support.privacy.h": "Privacy",
-  "support.privacy.p": "Rupert collects nothing about you. The <a href=\"/privacy/\">privacy policy</a> explains what happens to your information. Questions about privacy: <a href=\"mailto:contact@rupertlibrarian.com\">contact@rupertlibrarian.com</a>."
+  "support.privacy.p": "Rupert collects nothing about you. The <a href=\"/privacy/\">privacy policy</a> explains what happens to your information. Questions about privacy: <a href=\"mailto:contact@rupertlibrarian.com\">contact@rupertlibrarian.com</a>.",
+
+  "scan.title": "Scan with Rupert",
+  "scan.description": "Opens the Scan tab of Rupert on your phone, or shows where to get Rupert.",
+  "scan.h1": "Scan with Rupert",
+  "scan.p": "This link opens the Scan tab of Rupert on your phone. If you see this page instead, Rupert isn't on this phone yet, or the link opened in the browser.",
+  "scan.open": "Open Rupert",
+  "scan.ios": "Get Rupert on the App Store",
+  "scan.android": "Get Rupert for Android",
+  "scan.computer": "On your computer, click <b>Scan…</b> in Rupert's inbox and point your phone's camera at the code there."
 }

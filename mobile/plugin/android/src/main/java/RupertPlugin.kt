@@ -117,8 +117,9 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
     // it for the status bar): on layout changes, and once the page is there.
     webView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateNavInset() }
     Handler(Looper.getMainLooper()).postDelayed({ updateNavInset() }, 1500)
-    // Opened by sharing a document with Rupert.
+    // Opened by sharing a document with Rupert, or by the scan link.
     takeShared(activity.intent)
+    takeScanLink(activity.intent)
   }
 
   private fun updateNavInset() {
@@ -234,6 +235,7 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
 
   override fun onNewIntent(intent: Intent) {
     takeShared(intent)
+    takeScanLink(intent)
     val data = intent.data ?: return
     val pending = signIn ?: return
     if (data.scheme?.lowercase() == signInScheme) {
@@ -257,6 +259,34 @@ class RupertPlugin(private val activity: Activity) : Plugin(activity) {
         it.resolve(JSObject().put("url", JSONObject.NULL))
       }
     }, 800)
+  }
+
+  // MARK: - The scan link
+
+  /** Opened by the desktop app's Scan QR code (#124): an App Link to
+   * https://rupertlibrarian.com/scan/, or rupert://scan from that page. */
+  @Volatile private var scanLink = false
+
+  private fun takeScanLink(intent: Intent?) {
+    if (intent?.action != Intent.ACTION_VIEW) return
+    val data = intent.data ?: return
+    val scheme = data.scheme?.lowercase()
+    val host = data.host?.lowercase()
+    val path = data.path ?: ""
+    val isScan = (scheme == "https" && host == "rupertlibrarian.com" && path.trimEnd('/') == "/scan") ||
+      (scheme == "rupert" && host == "scan")
+    if (!isScan) return
+    // Handled once, even if the activity is created again.
+    intent.action = null
+    scanLink = true
+  }
+
+  /** Whether the scan link opened Rupert since the last time it was asked. */
+  @Command
+  fun takeScanLink(invoke: Invoke) {
+    val was = scanLink
+    scanLink = false
+    invoke.resolve(JSObject().put("scan", was))
   }
 
   // MARK: - Sharing from other apps

@@ -29,6 +29,21 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="msauth.io.github.micki-b.rupert" android:host="auth" />
             </intent-filter>
+            <!-- The scan link from the desktop app's QR code opens the Scan tab
+                 (#124): an App Link (the site serves /.well-known/assetlinks.json),
+                 and rupert://scan from the link's web page. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="rupertlibrarian.com" android:pathPrefix="/scan" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rupert" android:host="scan" />
+            </intent-filter>
             <!-- Documents shared from other apps go to the inbox (mobile/src/share.rs). -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

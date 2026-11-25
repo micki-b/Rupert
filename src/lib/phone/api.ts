@@ -119,6 +119,8 @@ export type CloudStatus = OneDriveStatus;
 export const phone = {
   overview: () => invoke<Overview>("overview"),
   appVersion: () => invoke<AppVersion>("app_version"),
+  /** Whether the scan link (#124) opened Rupert since this was last asked. */
+  takeScanLink: () => invoke<boolean>("take_scan_link"),
   openPrivacyPolicy: () => invoke<void>("open_privacy_policy"),
   setLanguage: (language: string | null) => invoke<LanguageInfo>("set_language", { language }),
   refresh: () => invoke<void>("refresh"),
@@ -175,6 +177,8 @@ export const onIndexChanged = (f: () => void): Promise<UnlistenFn> => listen("in
 export const onRemoteProgress = (f: (p: Progress) => void): Promise<UnlistenFn> =>
   listen<Progress>("remote-progress", (e) => f(e.payload));
 export const onFoldersReady = (f: () => void): Promise<UnlistenFn> => listen("folders-ready", () => f());
+/** The scan link opened Rupert while it was running (iPhone). */
+export const onScanLink = (f: () => void): Promise<UnlistenFn> => listen("scan-link", () => f());
 
 /** "Scan 2026-11-18 15.04.12", in local time (same as the desktop). */
 export function scanName(d = new Date()): string {

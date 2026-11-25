@@ -18,7 +18,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::{AppState, CmdResult, SETTINGS_CHANGED, err};
 
 /// The inbox folder on disk, if one is set.
-fn inbox_dir(state: &AppState, settings: &Settings) -> CmdResult<PathBuf> {
+pub(crate) fn inbox_dir(state: &AppState, settings: &Settings) -> CmdResult<PathBuf> {
     let inbox = settings
         .inbox
         .as_ref()

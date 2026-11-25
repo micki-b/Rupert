@@ -115,5 +115,14 @@
   "support.ideas.h": "Ideen und Wünsche",
   "support.ideas.p": "Vorschläge sind willkommen, als <a href=\"https://github.com/micki-b/Rupert/issues/new/choose\">Funktionswunsch auf GitHub</a>. Dort sehen Sie auch, <a href=\"https://github.com/micki-b/Rupert/issues\">woran gerade gearbeitet wird</a>.",
   "support.privacy.h": "Datenschutz",
-  "support.privacy.p": "Rupert sammelt nichts über Sie. Die <a href=\"/privacy/\">Datenschutzerklärung</a> (auf Englisch) erklärt, was mit Ihren Daten geschieht. Fragen zum Datenschutz: <a href=\"mailto:contact@rupertlibrarian.com\">contact@rupertlibrarian.com</a>."
+  "support.privacy.p": "Rupert sammelt nichts über Sie. Die <a href=\"/privacy/\">Datenschutzerklärung</a> (auf Englisch) erklärt, was mit Ihren Daten geschieht. Fragen zum Datenschutz: <a href=\"mailto:contact@rupertlibrarian.com\">contact@rupertlibrarian.com</a>.",
+
+  "scan.title": "Mit Rupert scannen",
+  "scan.description": "Öffnet den Tab Scannen von Rupert auf Ihrem Telefon oder zeigt, wo Sie Rupert bekommen.",
+  "scan.h1": "Mit Rupert scannen",
+  "scan.p": "Dieser Link öffnet den Tab Scannen von Rupert auf Ihrem Telefon. Sehen Sie stattdessen diese Seite, ist Rupert noch nicht auf diesem Telefon, oder der Link wurde im Browser geöffnet.",
+  "scan.open": "Rupert öffnen",
+  "scan.ios": "Rupert im App Store laden",
+  "scan.android": "Rupert für Android laden",
+  "scan.computer": "Klicken Sie auf Ihrem Computer im Eingang von Rupert auf <b>Scannen …</b> und richten Sie die Kamera des Telefons auf den Code dort."
 }
