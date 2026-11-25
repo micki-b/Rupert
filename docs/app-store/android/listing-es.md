@@ -38,6 +38,10 @@ TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 
 Rupert es libre, gratis y de código abierto.
 
+## Release notes, 0.6.0 [500]
+
+Mantiene la app de Android al día con Rupert 0.6.0 en tu computadora. Nada cambia en cómo funciona la app.
+
 ## Release notes, 0.5.2 [500]
 
 Si no se puede iniciar sesión en Google Drive, Rupert ahora dice por qué (por ejemplo, si no se puede conectar con Google) en vez de volver sin aviso a «No iniciaste sesión».

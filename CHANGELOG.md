@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 — 2026-11-25
 
 - **A roomier inbox** (#59): the waiting scans fill the middle of the window, with a search field (name, suggested title, tags, folder and the scanned text) and the same **List**, **Large icons** and **Gallery** views as folders, remembered for the inbox. The selected scan's page moves to the top of the right column, above **File it**, and its pages can be flipped through there. In the gallery the page is large in the middle and the right column has only the form.
 - **Long folder paths stay readable when filing** (#63): the inbox list shows the last two folders ("…/Sol y Mar/Purchase"); point at one to see the whole path. File it's fields show their full text on hover too.

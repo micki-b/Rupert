@@ -51,6 +51,10 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.6.0 [4000]
+
+Mantiene la app del iPhone al día con Rupert 0.6.0 en tu computadora, que trae una bandeja de entrada más amplia, un visor de páginas y la posibilidad de renombrar. Nada cambia en cómo funciona la app del iPhone.
+
 ## What's new in 0.5.2 [4000]
 
 Preguntale a Rupert encuentra más e inventa menos.
