@@ -50,7 +50,7 @@ function targetAt(p: Pointer) {
 
 let listening = false;
 /** Hands a drag to the system with the files at `relPaths` of a source. */
-function startDragOut(sourceId: string, relPaths: string[]) {
+function startDragOut(sourceId: string, relPaths: string[], ev: DragEvent) {
   if (!listening) {
     listening = true;
     listen<Pointer>("drag-out-pointer", (e) => {
@@ -65,7 +65,10 @@ function startDragOut(sourceId: string, relPaths: string[]) {
     });
   }
   drag.native = true;
-  api.dragOut(sourceId, relPaths).catch(() => endDrag());
+  // Where the page and the screen see the pointer, so the app can tell
+  // where on the page it is later.
+  const start = { clientX: ev.clientX, clientY: ev.clientY, screenX: ev.screenX, screenY: ev.screenY };
+  api.dragOut(sourceId, relPaths, start).catch(() => endDrag());
 }
 
 /** Handlers for something that can be dragged out of Rupert only (an inbox
@@ -76,7 +79,7 @@ export function dragOutSource(sourceId: string, relPath: string) {
     ondragstart: (ev: DragEvent) => {
       ev.preventDefault(); // the system's drag instead
       drag.outOnly = true;
-      startDragOut(sourceId, [relPath]);
+      startDragOut(sourceId, [relPath], ev);
     },
   };
 }
@@ -126,7 +129,7 @@ export function dragSource(item: MoveItem) {
     ondragstart: (ev: DragEvent) => {
       ev.preventDefault(); // the system's drag instead, so other apps get the file
       drag.item = item;
-      startDragOut(item.sourceId, [item.entry.relPath]);
+      startDragOut(item.sourceId, [item.entry.relPath], ev);
     },
   };
 }

@@ -3725,6 +3725,8 @@ version = "0.5.2"
 dependencies = [
  "drag",
  "keyring",
+ "objc2",
+ "objc2-app-kit",
  "rupert-core",
  "serde",
  "serde_json",
@@ -3734,6 +3736,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

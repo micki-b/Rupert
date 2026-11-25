@@ -456,7 +456,11 @@ export const api = {
   resumeIndexing: () => invoke<void>("resume_indexing"),
   indexFolder: (sourceId: string, relPath: string) => invoke<void>("index_folder", { sourceId, relPath }),
   /** Starts the system's drag of documents out of the window (#84). */
-  dragOut: (sourceId: string, relPaths: string[]) => invoke<void>("drag_out", { sourceId, relPaths }),
+  dragOut: (
+    sourceId: string,
+    relPaths: string[],
+    start: { clientX: number; clientY: number; screenX: number; screenY: number },
+  ) => invoke<void>("drag_out", { sourceId, relPaths, start }),
   /** A sharp picture of a page for the page viewer: a data: URL, or null. */
   pageImage: (sourceId: string, relPath: string, page: number, side: number) =>
     invoke<string | null>("page_image", { sourceId, relPath, page, side }),
