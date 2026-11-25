@@ -566,6 +566,7 @@
 
     <!-- MARK: Right column -->
     <section class="side">
+      <div class="side-scroll">
       {#if selected}
         <div class="preview">{@render pagePreview(false)}</div>
       {/if}
@@ -718,9 +719,12 @@
             >
           </button>
         </div>
-        <p class="muted small">{m.inbox.whatFilingDoes}</p>
       {/if}
       </div>
+      </div>
+      <!-- The bottom row, shared with the Ask Rupert button: the form scrolls
+           above it, so the button never covers a field or a button. -->
+      <p class="filing-note muted small">{#if selected}{m.inbox.whatFilingDoes}{/if}</p>
     </section>
   </div>
 {/if}
@@ -1050,7 +1054,21 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+  }
+  .side-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Beside the Ask Rupert button (46px, 18px from the window's right edge,
+     2px past this column's): the text wraps 20px before it. */
+  .filing-note {
+    flex: none;
+    margin: 0;
+    min-height: 46px;
+    padding: 4px 68px 0 14px;
   }
   .preview {
     flex: 1 1 auto;
@@ -1110,8 +1128,7 @@
   }
   .form {
     flex: none;
-    /* Room under the last line for the Ask Rupert button. */
-    padding: 12px 14px 64px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
