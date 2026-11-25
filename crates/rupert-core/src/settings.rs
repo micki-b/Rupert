@@ -47,6 +47,12 @@ pub struct Settings {
     /// Sending a PDF (Share…, Email…): include the notes Rupert keeps
     /// inside it. Off: a copy without them is sent.
     pub send_notes: bool,
+    /// Print to Rupert (#101): the entry that saves into the inbox from
+    /// outside Rupert (the Print dialog's PDF menu, File Explorer's Send to).
+    pub print_entry: bool,
+    /// Mac App Store edition: a bookmark to that entry, which the user
+    /// placed with a save panel.
+    pub print_entry_bookmark: Option<String>,
 }
 
 /// Where Local AI runs.
@@ -103,6 +109,8 @@ impl Default for Settings {
             check_updates: true,
             language: None,
             send_notes: false,
+            print_entry: false,
+            print_entry_bookmark: None,
         }
     }
 }

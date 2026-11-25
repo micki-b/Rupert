@@ -250,6 +250,16 @@ const es: Messages = {
     general: "General",
     search: "Buscar",
     noMatch: (q: string) => `Ningún ajuste coincide con «${q}».`,
+    printEntry: "Imprimir en Rupert",
+    printEntryMac: "Agregar “Guardar en Rupert” al menú PDF del cuadro Imprimir",
+    printEntryWindows: "Agregar “Bandeja de entrada de Rupert” al menú Enviar a del Explorador de archivos",
+    printEntryNoteMac:
+      "En cualquier app, elegí Imprimir y después PDF ▸ Guardar en Rupert: el PDF va a la bandeja de entrada, donde Rupert lo lee y sugiere dónde archivarlo.",
+    printEntryNoteStore:
+      "En cualquier app, elegí Imprimir y después PDF ▸ Guardar en Rupert: el PDF va a la bandeja de entrada, donde Rupert lo lee y sugiere dónde archivarlo. Al activarlo, Rupert pregunta dónde guardar la entrada: en la carpeta PDF Services de tu carpeta Biblioteca (creala si no está).",
+    printEntryNoteWindows:
+      "Hacé clic derecho en archivos en el Explorador ▸ Enviar a ▸ Bandeja de entrada de Rupert para ponerlos en la bandeja de entrada. Para traer lo que imprimís, elegí “Microsoft Print to PDF” y guardalo en la carpeta de la bandeja de entrada.",
+    printEntryLinux: "Para traer lo que imprimís, imprimí a un archivo PDF y guardalo en la carpeta de la bandeja de entrada.",
     sending: "Enviar documentos",
     sendNotes: "Incluir mis notas al enviar un PDF",
     sendNotesNote:

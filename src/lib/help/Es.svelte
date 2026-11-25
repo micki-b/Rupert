@@ -458,6 +458,26 @@
     Cualquier app de escáner que guarde en una carpeta funciona con Rupert. Para un ScanSnap, creá un perfil de ScanSnap
     Home que guarde los PDF en la carpeta de la bandeja de entrada de Rupert. Rupert levanta cada escaneo nuevo de ahí.
   </p>
+  <h3 id="print-to-rupert">Imprimir en Rupert</h3>
+  <p>
+    Muchos documentos nunca pasan por un escáner: una factura en el navegador, la página de un resumen, una confirmación
+    de reserva.
+    {#if mac}
+      Activá <b>Agregar “Guardar en Rupert” al menú PDF del cuadro Imprimir</b> en <b>Configuración ▸ Bandeja de
+      entrada</b>. Después, en cualquier app, elegí <b>Archivo ▸ Imprimir</b>, abrí el menú <b>PDF</b> de abajo y elegí
+      <b>Guardar en Rupert</b>: el PDF va a la bandeja de entrada, donde Rupert lo lee y sugiere dónde archivarlo, como un
+      escaneo. (En la edición de la Mac App Store, al activarlo te pregunta dónde guardar la entrada: elegí la carpeta
+      <b>PDF Services</b> de tu carpeta Biblioteca y creala si no está.)
+    {:else if windows}
+      Activá <b>Agregar “Bandeja de entrada de Rupert” al menú Enviar a del Explorador de archivos</b> en
+      <b>Configuración ▸ Bandeja de entrada</b>. Después hacé clic derecho en archivos en el Explorador y elegí <b>Enviar a
+      ▸ Bandeja de entrada de Rupert</b> para ponerlos en la bandeja de entrada. Para traer lo que imprimís, elegí la
+      impresora <b>Microsoft Print to PDF</b> y guardá en la carpeta de la bandeja de entrada.
+    {:else}
+      Imprimí a un archivo PDF y guardalo en la carpeta de la bandeja de entrada: Rupert lo lee y sugiere dónde archivarlo,
+      como un escaneo.
+    {/if}
+  </p>
   <h3>Con el iPhone</h3>
   <p>La app del iPhone escanea con la cámara a la misma bandeja de entrada. Mirá <a href="#iphone">La app del iPhone</a>.</p>
 </section>

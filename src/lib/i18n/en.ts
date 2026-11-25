@@ -242,6 +242,16 @@ const en = {
     general: "General",
     search: "Search",
     noMatch: (q: string) => `No settings match “${q}”.`,
+    printEntry: "Print to Rupert",
+    printEntryMac: "Add “Save to Rupert” to the Print dialog's PDF menu",
+    printEntryWindows: "Add “Rupert inbox” to File Explorer's Send to menu",
+    printEntryNoteMac:
+      "In any app, choose Print, then PDF ▸ Save to Rupert: the PDF goes to the inbox, where Rupert reads it and suggests where to file it.",
+    printEntryNoteStore:
+      "In any app, choose Print, then PDF ▸ Save to Rupert: the PDF goes to the inbox, where Rupert reads it and suggests where to file it. Turning this on asks where to save the entry: in the PDF Services folder in your Library folder (make it if it isn't there).",
+    printEntryNoteWindows:
+      "Right-click files in File Explorer ▸ Send to ▸ Rupert inbox to put them in the inbox. To bring in what you print, choose “Microsoft Print to PDF” and save into the inbox folder.",
+    printEntryLinux: "To bring in what you print, print to a PDF file and save it in the inbox folder.",
     sending: "Sending documents",
     sendNotes: "Include my notes when sending a PDF",
     sendNotesNote:

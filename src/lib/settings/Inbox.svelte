@@ -1,15 +1,40 @@
 <script lang="ts">
-  // Settings ▸ Inbox: where new scans arrive, filing suggestions, and how
-  // filed documents are named.
+  // Settings ▸ Inbox: where new scans arrive, filing suggestions, how
+  // filed documents are named, and Print to Rupert (#101).
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
-  import { fileNameFor, type Settings, type Source } from "#lib/api.ts";
+  import { api, fileNameFor, type Settings, type Source } from "#lib/api.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let {
     settings = $bindable(),
     sources,
+    os,
+    appStore,
     onerror,
-  }: { settings: Settings; sources: Source[]; onerror: (message: string | null) => void } = $props();
+  }: {
+    settings: Settings;
+    sources: Source[];
+    os: string | undefined;
+    appStore: boolean;
+    onerror: (message: string | null) => void;
+  } = $props();
+
+  /** Turns Print to Rupert on or off (the App Store edition asks where first). */
+  let printBusy = $state(false);
+  async function setPrintEntry(input: HTMLInputElement) {
+    printBusy = true;
+    onerror(null);
+    try {
+      const saved = await api.setPrintEntry(input.checked);
+      settings.printEntry = saved.printEntry;
+      settings.printEntryBookmark = saved.printEntryBookmark;
+    } catch (e) {
+      onerror(String(e));
+    } finally {
+      input.checked = settings.printEntry;
+      printBusy = false;
+    }
+  }
 
   const inboxSource = $derived(sources.find((s) => s.id === settings.inbox?.sourceId) ?? null);
   const example = $derived(fileNameFor(settings.namePattern, "2026-04-29", m.settings.exampleTitle) + ".pdf");
@@ -64,5 +89,30 @@
       {m.settings.patternHint[0]}<code>{"{date}"}</code>{m.settings.patternHint[1]}<code>{"{title}"}</code>{m.settings
         .patternHint[2]}{example}
     </p>
+  </div>
+
+  <hr />
+  <span class="lab">{m.settings.printEntry}</span>
+  <div>
+    {#if os === "linux"}
+      <p class="note">{m.settings.printEntryLinux}</p>
+    {:else}
+      <label class="check">
+        <input
+          type="checkbox"
+          checked={settings.printEntry}
+          disabled={!settings.inbox || printBusy}
+          onchange={(e) => setPrintEntry(e.currentTarget)}
+        />
+        {os === "windows" ? m.settings.printEntryWindows : m.settings.printEntryMac}
+      </label>
+      <p class="note">
+        {os === "windows"
+          ? m.settings.printEntryNoteWindows
+          : appStore
+            ? m.settings.printEntryNoteStore
+            : m.settings.printEntryNoteMac}
+      </p>
+    {/if}
   </div>
 </div>

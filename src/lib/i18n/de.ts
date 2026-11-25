@@ -254,6 +254,16 @@ const de: Messages = {
     general: "Allgemein",
     search: "Suchen",
     noMatch: (q: string) => `Keine Einstellung passt zu „${q}“.`,
+    printEntry: "In Rupert drucken",
+    printEntryMac: "„In Rupert sichern“ zum PDF-Menü des Druckdialogs hinzufügen",
+    printEntryWindows: "„Rupert-Eingang“ zum Menü „Senden an“ des Explorers hinzufügen",
+    printEntryNoteMac:
+      "Wählen Sie in einer beliebigen App „Drucken“ und dann PDF ▸ In Rupert sichern: Das PDF kommt in den Eingang, wo Rupert es liest und einen Ablageort vorschlägt.",
+    printEntryNoteStore:
+      "Wählen Sie in einer beliebigen App „Drucken“ und dann PDF ▸ In Rupert sichern: Das PDF kommt in den Eingang, wo Rupert es liest und einen Ablageort vorschlägt. Beim Einschalten fragt Rupert, wo der Eintrag gesichert wird: im Ordner „PDF Services“ in Ihrem Ordner „Library“ (legen Sie ihn an, falls er fehlt).",
+    printEntryNoteWindows:
+      "Klicken Sie im Explorer mit der rechten Maustaste auf Dateien ▸ Senden an ▸ Rupert-Eingang, um sie in den Eingang zu legen. Um Gedrucktes zu übernehmen, wählen Sie „Microsoft Print to PDF“ und sichern Sie in den Eingangsordner.",
+    printEntryLinux: "Um Gedrucktes zu übernehmen, drucken Sie in eine PDF-Datei und sichern Sie sie im Eingangsordner.",
     sending: "Dokumente senden",
     sendNotes: "Meine Notizen beim Senden eines PDFs einschließen",
     sendNotesNote:
