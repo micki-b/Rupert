@@ -318,8 +318,16 @@
     gallery the page is large in the middle instead, and the right column has only the form.
   </p>
   <p>
-    Long folder paths show the source and the last two folders, like “Boating/…/Sol y Mar/Purchase”. Point at a folder,
-    or at any field that doesn't show all its text, to see all of it.
+    <b>Folder</b> shows the whole path to where the document goes, with the folder itself in bold (the source's name is
+    left out when you have only one). To choose another, click it and type any part of a folder's name: the suggested
+    folders come first, then every folder that matches, each with where it is. Use the arrow keys and
+    {mac ? "Return" : "Enter"}, or click one. The folder button next to the field, or <b>Browse all folders…</b> at the
+    end of the list, opens all your folders as a tree; there, <b>New folder…</b> makes a folder inside the selected one
+    and chooses it. The suggestions under the field show just enough of each path to tell them apart.
+  </p>
+  <p>
+    In the inbox list, long folder paths show the last two folders, like “…/Sol y Mar/Purchase”. Point at a folder, or
+    at any field that doesn't show all its text, to see all of it.
   </p>
   <p>
     To get rid of a scan instead, click <b>{windows ? "Delete…" : "Move to Trash…"}</b> under the form, right-click

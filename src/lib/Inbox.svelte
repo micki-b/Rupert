@@ -20,6 +20,9 @@
   } from "#lib/api.ts";
   import Icon from "#lib/Icon.svelte";
   import Thumb from "#lib/Thumb.svelte";
+  import FolderPicker from "#lib/FolderPicker.svelte";
+  import FolderPickerDialog from "#lib/FolderPickerDialog.svelte";
+  import { crumbs, shortestEndings } from "#lib/folders.ts";
   import { formatDate, formatDay } from "#lib/format.ts";
   import { m } from "#lib/i18n/index.ts";
 
@@ -143,13 +146,16 @@
     );
   });
 
-  /** A folder's label in short: the source, then the last two folders
-   * ("Boating/…/Sol y Mar/Purchase"); the full path goes in a tooltip. */
-  function shortFolder(label: string): string {
-    const parts = label.split("/").filter(Boolean);
-    return parts.length <= 3 ? parts.join("/") : [parts[0], "…", ...parts.slice(-2)].join("/");
+  /** A folder in short for the list: the source (unless it's the only
+   * one), then the last two folders ("Boating/…/Sol y Mar/Purchase"); the
+   * full path goes in a tooltip. */
+  function shortFolder(f: FolderChoice): string {
+    const parts = crumbs(f, sources);
+    if (parts.length <= 3) return parts.join("/");
+    return sources.length > 1 ? [parts[0], "…", ...parts.slice(-2)].join("/") : ["…", ...parts.slice(-2)].join("/");
   }
-  let folderFocused = $state(false);
+  /** Browse… (the folder tree) is open. */
+  let browsing = $state(false);
 
   /** What the thumbnails need to know about an item. */
   function entryOf(i: IntakeItem): Entry {
@@ -504,7 +510,7 @@
                     <span title={i.name}>{i.name}</span>
                   </td>
                   <td class="state" class:busy={i.stage !== "ready"} title={stageText(i)}>{stageText(i)}</td>
-                  <td class="muted" title={i.suggestedFolder?.label}>{i.suggestedFolder ? shortFolder(i.suggestedFolder.label) : ""}</td>
+                  <td class="muted" title={i.suggestedFolder?.label}>{i.suggestedFolder ? shortFolder(i.suggestedFolder) : ""}</td>
                   <td class="muted when" title={formatDate(i.modifiedMs)}>{formatDay(i.modifiedMs)}</td>
                 </tr>
               {/each}
@@ -618,35 +624,25 @@
             />
           </div>
         </div>
-        <label class="field">
+        <div class="field">
           <span>{m.inbox.folder}</span>
-          <span class="folder-input" title={form.folder.trim() || undefined}>
-            <input
-              list="inbox-folders"
-              bind:value={form.folder}
-              placeholder={m.inbox.findFolder}
-              class:invalid={form.folder.trim() !== "" && !folderChoice}
-              class:shortened={!folderFocused && !!folderChoice}
-              onfocus={() => (folderFocused = true)}
-              onblur={() => (folderFocused = false)}
-            />
-            {#if !folderFocused && folderChoice}
-              <span class="folder-short" aria-hidden="true">{shortFolder(folderChoice.label)}</span>
-            {/if}
-          </span>
-          <datalist id="inbox-folders">
-            {#each selected.folders as f (f.label)}<option value={f.label}>{m.inbox.similar}</option>{/each}
-            {#each allFolders as f (f.sourceId + f.dir)}<option value={f.label}></option>{/each}
-          </datalist>
-        </label>
+          <FolderPicker
+            bind:value={form.folder}
+            suggested={selected.folders}
+            all={allFolders}
+            {sources}
+            onbrowse={() => (browsing = true)}
+          />
+        </div>
         {#if selected.folders.length}
+          {@const ends = shortestEndings(selected.folders.slice(0, 4), sources)}
           <div class="choices">
             {#each selected.folders.slice(0, 4) as f (f.label)}
               <button
                 class="choice"
                 class:on={f.label === form.folder}
                 onclick={() => (form.folder = f.label)}
-                title={f.label}>{shortFolder(f.label)}</button
+                title={f.label}>{ends.get(f.label)}</button
               >
             {/each}
           </div>
@@ -733,6 +729,21 @@
   </div>
 {/if}
 
+
+{#if browsing && selected}
+  {@const current = [...selected.folders, ...allFolders].find((f) => f.label === form.folder) ?? null}
+  <FolderPickerDialog
+    {sources}
+    {current}
+    title={form.title}
+    onchoose={(f) => {
+      if (!allFolders.some((x) => x.label === f.label)) allFolders = [...allFolders, f];
+      form.folder = f.label;
+      browsing = false;
+    }}
+    onclose={() => (browsing = false)}
+  />
+{/if}
 <style>
   .inbox {
     display: grid;
@@ -1067,9 +1078,6 @@
     font: inherit;
     min-width: 0;
   }
-  input.invalid {
-    border-color: #c0392b;
-  }
   input.unset:not(:focus)::-webkit-datetime-edit,
   input.unset:not(:focus)::-webkit-datetime-edit-fields-wrapper,
   input.unset:not(:focus)::-webkit-datetime-edit-month-field,
@@ -1140,26 +1148,6 @@
   .choice.on {
     border-color: var(--accent);
     background: var(--accent-soft);
-  }
-  /* The chosen folder, shown short (source …/last two folders) until the
-     field is clicked; the full path is in the tooltip. */
-  .field > .folder-input {
-    position: relative;
-    display: grid;
-    font-size: inherit;
-    color: var(--text);
-  }
-  .folder-input input.shortened {
-    color: transparent;
-  }
-  .folder-short {
-    position: absolute;
-    inset: 0;
-    padding: 5px 9px;
-    pointer-events: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .name-row {
     display: flex;

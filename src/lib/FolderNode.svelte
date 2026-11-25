@@ -1,7 +1,7 @@
 <script lang="ts">
   // One folder in the sidebar tree. Children are listed only when expanded,
   // and re-listed when the watcher reports a change in this folder.
-  import { onMount, type Snippet } from "svelte";
+  import { onMount, tick, type Snippet } from "svelte";
   import { api, type Entry } from "./api";
   import { changes } from "./changes.svelte";
   import Icon from "./Icon.svelte";
@@ -30,6 +30,8 @@
     renaming?: { sourceId: string; relPath: string } | null;
     onrename?: (sourceId: string, relPath: string, name: string) => void;
     onrenamecancel?: () => void;
+    /** Opens the folders down to this one (e.g. the current choice in a picker). */
+    expandTo?: { sourceId: string; relPath: string } | null;
   }
   let {
     sourceId,
@@ -46,6 +48,7 @@
     renaming = null,
     onrename,
     onrenamecancel,
+    expandTo = null,
   }: Props = $props();
 
   const editing = $derived(!!relPath && renaming?.sourceId === sourceId && renaming.relPath === relPath);
@@ -58,10 +61,16 @@
   );
 
   let expanded = $state(false);
+  let row: HTMLDivElement | undefined = $state();
   let children = $state<Entry[] | null>(null);
 
   onMount(() => {
-    if (startExpanded) {
+    const leadsTo =
+      !!expandTo &&
+      expandTo.sourceId === sourceId &&
+      (relPath === "" ? expandTo.relPath !== "" : expandTo.relPath.startsWith(relPath + "/"));
+    if (isSelected) tick().then(() => row?.scrollIntoView({ block: "nearest" }));
+    if (startExpanded || leadsTo) {
       expanded = true;
       load();
     }
@@ -90,6 +99,7 @@
 </script>
 
 <div
+  bind:this={row}
   class="row"
   class:selected={isSelected}
   class:drop={isDropOver(sourceId, relPath)}
@@ -143,6 +153,7 @@
       {renaming}
       {onrename}
       {onrenamecancel}
+      {expandTo}
     />
   {/each}
 {/if}

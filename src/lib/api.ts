@@ -455,6 +455,9 @@ export const api = {
   stopIndexing: () => invoke<void>("stop_indexing"),
   resumeIndexing: () => invoke<void>("resume_indexing"),
   indexFolder: (sourceId: string, relPath: string) => invoke<void>("index_folder", { sourceId, relPath }),
+  /** Makes a folder inside `parent`; resolves to its path (#63). */
+  createFolder: (sourceId: string, parent: string, name: string) =>
+    invoke<string>("create_folder", { sourceId, parent, name }),
   /** Renames a document or folder in place; resolves to its new path (#65). */
   renameEntry: (sourceId: string, relPath: string, newName: string) =>
     invoke<string>("rename_entry", { sourceId, relPath, newName }),

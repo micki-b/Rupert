@@ -348,8 +348,16 @@
     <kbd>Av Pág</kbd>. En la galería, la página se ve grande en el centro y la columna derecha tiene solo el formulario.
   </p>
   <p>
-    Las rutas de carpeta largas muestran el origen y las dos últimas carpetas, como “Boating/…/Sol y Mar/Purchase”.
-    Apoyá el puntero sobre una carpeta, o sobre cualquier campo que no muestre todo su texto, para verlo completo.
+    <b>Carpeta</b> muestra la ruta completa adonde va el documento, con la carpeta misma en negrita (el nombre de la fuente
+    no aparece si tenés una sola). Para elegir otra, hacé clic y escribí cualquier parte del nombre de una carpeta: primero
+    aparecen las sugeridas y después todas las que coinciden, cada una con dónde está. Usá las flechas y
+    {mac ? "Return" : "Enter"}, o hacé clic en una. El botón de carpeta al lado del campo, o <b>Ver todas las carpetas…</b>
+    al final de la lista, abre todas tus carpetas como un árbol; ahí, <b>Carpeta nueva…</b> crea una carpeta dentro de la
+    seleccionada y la elige. Las sugerencias debajo del campo muestran lo justo de cada ruta para distinguirlas.
+  </p>
+  <p>
+    En la lista de la bandeja, las rutas largas muestran las dos últimas carpetas, como “…/Sol y Mar/Purchase”. Apoyá el
+    puntero sobre una carpeta, o sobre cualquier campo que no muestre todo su texto, para verlo completo.
   </p>
   <p>
     Para deshacerte de un escaneo, hacé clic en <b>{windows ? "Eliminar…" : "Trasladar a la Papelera…"}</b> debajo del

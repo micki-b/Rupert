@@ -352,8 +352,16 @@
     rechte Spalte enthält nur das Formular.
   </p>
   <p>
-    Lange Ordnerpfade zeigen die Quelle und die letzten zwei Ordner, etwa „Boating/…/Sol y Mar/Purchase“. Zeigen Sie auf
-    einen Ordner oder auf ein Feld, das nicht seinen ganzen Text zeigt, um alles zu sehen.
+    <b>Ordner</b> zeigt den ganzen Pfad dorthin, wo das Dokument abgelegt wird, den Ordner selbst fett (der Name der Quelle
+    entfällt, wenn Sie nur eine haben). Um einen anderen zu wählen, klicken Sie darauf und tippen einen Teil eines
+    Ordnernamens: Zuerst kommen die vorgeschlagenen Ordner, dann alle passenden, jeweils mit ihrem Ort. Wählen Sie mit den
+    Pfeiltasten und der Eingabetaste oder per Klick. Die Ordnertaste neben dem Feld oder <b>Alle Ordner durchsuchen …</b>
+    am Ende der Liste öffnet alle Ordner als Baum; dort erstellt <b>Neuer Ordner …</b> einen Ordner im ausgewählten und
+    wählt ihn. Die Vorschläge unter dem Feld zeigen gerade so viel vom Pfad, dass man sie unterscheiden kann.
+  </p>
+  <p>
+    In der Liste des Eingangs zeigen lange Ordnerpfade die letzten zwei Ordner, etwa „…/Sol y Mar/Purchase“. Zeigen Sie
+    auf einen Ordner oder auf ein Feld, das nicht seinen ganzen Text zeigt, um alles zu sehen.
   </p>
   <p>
     Um einen Scan stattdessen loszuwerden, klicken Sie unter dem Formular auf
