@@ -60,6 +60,8 @@ export interface Progress {
   pdfText: boolean;
   downloadDone: number;
   downloadTotal: number;
+  /** Stopped with Stop in the status line (#78), until Resume or the next launch. */
+  stopped: boolean;
 }
 
 export interface IndexStats {
@@ -444,6 +446,9 @@ export const api = {
   tagEditPreview: (edit: TagEdit) => invoke<TagEditPreview>("tag_edit_preview", { edit }),
   tagEditApply: (edit: TagEdit) => invoke<TagEditReport>("tag_edit_apply", { edit }),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
+  stopIndexing: () => invoke<void>("stop_indexing"),
+  resumeIndexing: () => invoke<void>("resume_indexing"),
+  indexFolder: (sourceId: string, relPath: string) => invoke<void>("index_folder", { sourceId, relPath }),
   scansnapLibrary: () => invoke<string | null>("scansnap_library"),
   scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),
   scansnapApply: () => invoke<void>("scansnap_apply"),

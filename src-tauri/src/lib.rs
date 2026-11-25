@@ -894,6 +894,57 @@ fn index_status(state: State<AppState>) -> CmdResult<IndexStatus> {
     })
 }
 
+/// Stops indexing and downloading after the file in hand (#78).
+#[tauri::command]
+fn stop_indexing(app: AppHandle) {
+    let state = app.state::<AppState>();
+    state.indexer.stop();
+    let progress = {
+        let mut p = state.progress.lock().unwrap();
+        p.stopped = true;
+        p.clone()
+    };
+    let _ = app.emit(INDEX_PROGRESS, progress);
+}
+
+/// "Index this folder": re-reads every document in it and its subfolders
+/// and downloads its online-only ones to read them (#78). Asking for this
+/// also ends a Stop.
+#[tauri::command]
+fn index_folder(source_id: String, rel_path: String, app: AppHandle) -> CmdResult<()> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let was_stopped = state.progress.lock().unwrap().stopped;
+    if was_stopped {
+        state.indexer.resume();
+        let progress = {
+            let mut p = state.progress.lock().unwrap();
+            p.stopped = false;
+            p.clone()
+        };
+        let _ = app.emit(INDEX_PROGRESS, progress);
+    }
+    state.indexer.send(Job::IndexFolder {
+        source,
+        rel_dir: rel_path,
+    });
+    Ok(())
+}
+
+/// Lets indexing and downloading go on, checking every folder again.
+#[tauri::command]
+fn resume_indexing(app: AppHandle) {
+    let state = app.state::<AppState>();
+    state.indexer.resume();
+    let progress = {
+        let mut p = state.progress.lock().unwrap();
+        p.stopped = false;
+        p.clone()
+    };
+    let _ = app.emit(INDEX_PROGRESS, progress);
+    state.indexer.send(Job::SyncAll(state.sources()));
+}
+
 // MARK: - Commands: settings
 
 #[tauri::command]
@@ -1582,6 +1633,9 @@ pub fn run() {
             set_folder_favorite,
             tag_edit_apply,
             index_status,
+            stop_indexing,
+            resume_indexing,
+            index_folder,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

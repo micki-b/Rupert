@@ -196,6 +196,18 @@
     se guarda en la carpeta misma, así tus otras computadoras (y la app del iPhone) pueden buscar en esos documentos sin
     volver a descargarlos.
   </p>
+  <p>
+    Para poner al día una carpeta entera en el momento, hacé clic derecho sobre ella (en la barra lateral o en la vista de
+    la carpeta, o usá el menú <b>⋯</b> de una fuente) y elegí <b>Indexar esta carpeta</b>. Rupert vuelve a leer todos
+    los documentos de esa carpeta y sus subcarpetas, y descarga los que están solo en línea para leerlos y guardar una
+    imagen; después libera el espacio de nuevo. Funciona aunque <b>Descargar los archivos solo en línea para
+    indexarlos</b> esté apagado.
+  </p>
+  <p>
+    Mientras Rupert indexa o descarga, abajo a la derecha de la ventana se ve cuánto le falta, con <b>Detener</b>.
+    Detener deja terminar el archivo en curso y frena; lo hecho se conserva. <b>Reanudar</b>, o el próximo inicio de
+    Rupert, sigue desde ahí.
+  </p>
 </section>
 
 <!-- MARK: Encontrar -->

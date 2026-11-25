@@ -21,6 +21,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::{Duration, Instant};
 
@@ -96,6 +98,14 @@ pub enum Job {
         rel_path: String,
     },
     RemoveSource(String),
+    /// "Index this folder" (#78): re-read every document in a folder and
+    /// its subfolders, even unchanged ones, and download its online-only
+    /// PDFs and text files to read them (then free the space again), even
+    /// if the source doesn't download on its own.
+    IndexFolder {
+        source: Source,
+        rel_dir: String,
+    },
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -110,16 +120,33 @@ pub struct Progress {
     /// Online-only documents being downloaded to read their text.
     pub download_done: usize,
     pub download_total: usize,
+    /// Stopped by the user (#78): nothing is indexed, downloaded or drawn
+    /// until [`IndexerHandle::resume`].
+    pub stopped: bool,
 }
 
 #[derive(Clone)]
 pub struct IndexerHandle {
     tx: Sender<Job>,
+    stop: Arc<AtomicBool>,
 }
 
 impl IndexerHandle {
     pub fn send(&self, job: Job) {
         let _ = self.tx.send(job);
+    }
+
+    /// Stops indexing, downloading and picture making after the file in
+    /// hand (#78). Jobs sent meanwhile are dropped, except removing a
+    /// source; [`Self::resume`] and a sync bring everything up to date.
+    pub fn stop(&self) {
+        self.stop.store(true, Ordering::SeqCst);
+    }
+
+    /// Lets work happen again. The caller then sends the syncs it wants
+    /// (on the computer, a `SyncAll`).
+    pub fn resume(&self) {
+        self.stop.store(false, Ordering::SeqCst);
     }
 }
 
@@ -151,6 +178,8 @@ pub fn spawn_with(
 ) -> Result<IndexerHandle> {
     let index = Index::open(&index_path)?;
     let (tx, rx) = mpsc::channel();
+    let stop = Arc::new(AtomicBool::new(false));
+    let stopping = stop.clone();
     std::thread::Builder::new()
         .name("rupert-indexer".into())
         .spawn(move || {
@@ -169,10 +198,11 @@ pub fn spawn_with(
                     thumbs: options.pictures,
                     ..Pictures::default()
                 },
+                stop: stopping,
             };
             worker.run(rx);
         })?;
-    Ok(IndexerHandle { tx })
+    Ok(IndexerHandle { tx, stop })
 }
 
 // MARK: - Worker
@@ -189,6 +219,8 @@ struct Worker {
     mode: Mode,
     prepare_hidden: Option<PrepareHidden>,
     pictures: Pictures,
+    /// Set by [`IndexerHandle::stop`].
+    stop: Arc<AtomicBool>,
 }
 
 /// Kept pictures still to make for documents already indexed, in idle time.
@@ -208,6 +240,11 @@ struct Downloads {
     /// Tried this session (whatever the outcome); never queued again, so a
     /// file that can't be read or evicted can't loop.
     attempted: HashSet<(String, String)>,
+    /// Asked for with "Index this folder": downloaded even if the source
+    /// doesn't download on its own.
+    forced: HashSet<(String, String)>,
+    /// Set aside by Stop, back in the queue on Resume.
+    paused: VecDeque<(String, String)>,
     /// Latest settings of every source seen, by id.
     sources: HashMap<String, Source>,
 }
@@ -235,6 +272,11 @@ impl Worker {
         self.progress.pdf_text = self.extractor.pdf_supported();
         self.report(true);
         loop {
+            if self.stopped() {
+                self.pause_queues();
+            } else if !self.downloads.paused.is_empty() {
+                self.unpause_queues();
+            }
             // Jobs come first; downloads and then pictures fill the idle
             // time between them.
             let first = if self.downloads.queue.is_empty() && self.pictures.queue.is_empty() {
@@ -260,6 +302,15 @@ impl Worker {
             let mut jobs = vec![first];
             jobs.extend(rx.try_iter());
             let jobs = coalesce(jobs);
+
+            // Stopped: only removing a source still happens.
+            let jobs: Vec<Job> = if self.stopped() {
+                jobs.into_iter()
+                    .filter(|j| matches!(j, Job::RemoveSource(_)))
+                    .collect()
+            } else {
+                jobs
+            };
 
             self.progress.active = true;
             self.report(true);
@@ -316,6 +367,7 @@ impl Worker {
                     None => self.remove_file(&source, &rel_path)?,
                 }
             }
+            Job::IndexFolder { source, rel_dir } => self.index_folder(&source, &rel_dir)?,
             Job::RemoveSource(id) => {
                 self.index.remove_source(&id)?;
                 self.downloads.sources.remove(&id);
@@ -410,6 +462,9 @@ impl Worker {
             .collect();
         self.progress.total += todo.len();
         for f in todo {
+            if self.stopped() {
+                return Ok(()); // the rest waits for Resume or the next launch
+            }
             self.progress.current = Some(f.rel_path.clone());
             let result = catch_unwind(AssertUnwindSafe(|| self.index_file(source, f)));
             match result {
@@ -425,7 +480,7 @@ impl Worker {
         if !recursive {
             for d in &subdirs {
                 let prefix = format!("{d}/");
-                if !known.keys().any(|p| p.starts_with(&prefix)) {
+                if !known.keys().any(|p| p.starts_with(&prefix)) && !self.stopped() {
                     self.sync(source, d, true)?;
                 }
             }
@@ -582,9 +637,10 @@ impl Worker {
         {
             self.downloads.queued.remove(&key);
             self.downloads.attempted.insert(key.clone());
+            let forced = self.downloads.forced.remove(&key);
             let (id, rel) = key;
             match self.downloads.sources.get(&id) {
-                Some(s) if s.download_online_only && s.is_available() => {
+                Some(s) if (forced || s.download_online_only) && s.is_available() => {
                     batch.push((s.clone(), rel))
                 }
                 _ => self.progress.download_done += 1, // turned off or removed
@@ -669,6 +725,61 @@ impl Worker {
                 sidecar_ms: found.sidecar_ms,
             };
             self.index_file(source, &evicted)?;
+        }
+        Ok(())
+    }
+
+    // MARK: Index this folder
+
+    /// [`Job::IndexFolder`]: brings the folder in line with disk, re-reads
+    /// every document on this computer, and queues the online-only ones to
+    /// download (first in line).
+    fn index_folder(&mut self, source: &Source, rel_dir: &str) -> Result<()> {
+        if !source.is_available() {
+            return Ok(());
+        }
+        let rel_dir = rel_dir.trim_matches('/');
+        self.sync(source, rel_dir, true)?;
+        let (mut found, mut dirs) = (Vec::new(), Vec::new());
+        self.walk(source, rel_dir, &mut found, &mut dirs);
+
+        if self.mode == Mode::Library {
+            self.downloads
+                .sources
+                .insert(source.id.clone(), source.clone());
+            let wanted = |f: &Found| {
+                f.entry.cloud == CloudState::CloudOnly
+                    && matches!(f.entry.kind, Some(FileKind::Pdf | FileKind::Text))
+                    && f.entry.size <= MAX_DOWNLOAD_BYTES
+            };
+            for f in found.iter().filter(|f| wanted(f)).rev() {
+                let key = (source.id.clone(), f.rel_path.clone());
+                self.downloads.attempted.remove(&key);
+                self.downloads.forced.insert(key.clone());
+                if self.downloads.queued.insert(key.clone()) {
+                    self.downloads.queue.push_front(key);
+                    self.progress.download_total += 1;
+                }
+            }
+        }
+
+        let local: Vec<&Found> = found
+            .iter()
+            .filter(|f| f.entry.cloud != CloudState::CloudOnly)
+            .collect();
+        self.progress.total += local.len();
+        for f in local {
+            if self.stopped() {
+                return Ok(());
+            }
+            self.progress.current = Some(f.rel_path.clone());
+            match catch_unwind(AssertUnwindSafe(|| self.index_file(source, f))) {
+                Ok(Err(e)) => eprintln!("rupert: couldn't index {}: {e}", f.rel_path),
+                Err(_) => eprintln!("rupert: indexing {} crashed; skipped", f.rel_path),
+                Ok(Ok(())) => {}
+            }
+            self.progress.done += 1;
+            self.report(false);
         }
         Ok(())
     }
@@ -772,12 +883,44 @@ impl Worker {
     /// Reports progress at most ~4×/s (or immediately if `force`), and lets
     /// the UI refresh results about once a second while indexing.
     fn report(&mut self, force: bool) {
+        self.progress.stopped = self.stopped();
         if force || self.last_report.elapsed() >= Duration::from_millis(250) {
             (self.on_progress)(self.progress.clone());
             if self.last_report.elapsed() >= Duration::from_secs(1) {
                 self.flush_changed();
             }
             self.last_report = Instant::now();
+        }
+    }
+
+    fn stopped(&self) -> bool {
+        self.stop.load(Ordering::SeqCst)
+    }
+
+    /// After Stop: sets the downloads still to do aside (Resume carries on
+    /// with them, including "Index this folder" ones) and forgets the
+    /// pictures (a resume's sync queues those again).
+    fn pause_queues(&mut self) {
+        let had_work = !self.downloads.queue.is_empty() || !self.pictures.queue.is_empty();
+        let waiting: Vec<_> = self.downloads.queue.drain(..).collect();
+        self.downloads.paused.extend(waiting);
+        self.progress.download_done = 0;
+        self.progress.download_total = 0;
+        self.progress.current = None;
+        self.pictures.queue.clear();
+        self.pictures.seen.clear();
+        if had_work {
+            self.flush_changed();
+            self.report(true);
+        }
+    }
+
+    /// After Resume: the downloads set aside go first.
+    fn unpause_queues(&mut self) {
+        let paused: Vec<_> = self.downloads.paused.drain(..).collect();
+        self.progress.download_total += paused.len();
+        for key in paused.into_iter().rev() {
+            self.downloads.queue.push_front(key);
         }
     }
 
@@ -878,7 +1021,7 @@ fn coalesce(jobs: Vec<Job>) -> Vec<Job> {
                 !seen_files.insert((source.id.clone(), rel_path.clone()))
             }
             Job::SyncSource(_) => last_full.is_some_and(|f| f > i),
-            Job::RemoveSource(_) => false,
+            Job::RemoveSource(_) | Job::IndexFolder { .. } => false,
         };
         if !skip {
             out.push(job);
@@ -924,6 +1067,7 @@ pub(crate) mod tests {
             mode: Mode::Library,
             prepare_hidden: None,
             pictures: Pictures::default(),
+            stop: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -991,6 +1135,61 @@ pub(crate) mod tests {
         fs::write(root.join("Taxes/2025/w2.txt"), "Wages and tips").unwrap();
         w.sync(&src, "", false).unwrap();
         assert_eq!(search(&w, "wages"), ["Taxes/2025/w2.txt"]);
+    }
+
+    #[test]
+    fn stopping_halts_until_resumed() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::write(root.join("notes.txt"), "Marina fees due").unwrap();
+        fs::write(root.join("fuel.txt"), "Diesel receipt").unwrap();
+        let src = source(root, Provider::Local);
+        let mut w = worker(Index::open_in_memory().unwrap());
+
+        w.stop.store(true, Ordering::SeqCst);
+        w.sync(&src, "", true).unwrap();
+        assert!(search(&w, "marina").is_empty(), "stopped: nothing indexed");
+        w.report(true);
+        assert!(w.progress.stopped);
+
+        // Queued downloads wait; pictures are dropped (a sync re-queues them).
+        w.downloads.queue.push_back(("src".into(), "a.pdf".into()));
+        w.pictures.queue.push_back(root.join("b.pdf"));
+        w.pause_queues();
+        assert!(w.downloads.queue.is_empty() && w.pictures.queue.is_empty());
+        assert_eq!(w.downloads.paused.len(), 1);
+
+        w.stop.store(false, Ordering::SeqCst);
+        w.unpause_queues();
+        assert_eq!(w.downloads.queue.len(), 1);
+        assert_eq!(w.progress.download_total, 1);
+        w.sync(&src, "", true).unwrap();
+        assert_eq!(search(&w, "marina"), ["notes.txt"]);
+        w.report(true);
+        assert!(!w.progress.stopped);
+    }
+
+    #[test]
+    fn index_folder_rereads_everything_in_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("Boat/Engine")).unwrap();
+        fs::write(root.join("Boat/Engine/impeller.md"), "Impeller").unwrap();
+        fs::write(root.join("Boat/fuel.txt"), "Diesel receipt").unwrap();
+        fs::write(root.join("notes.txt"), "Marina fees due").unwrap();
+        let src = source(root, Provider::Local);
+        let mut w = worker(Index::open_in_memory().unwrap());
+        w.sync(&src, "", true).unwrap();
+
+        // Nothing changed: a sync reads nothing, "Index this folder" reads
+        // the folder's two documents (and only those).
+        w.progress = Progress::default();
+        w.sync(&src, "", true).unwrap();
+        assert_eq!(w.progress.total, 0);
+        w.index_folder(&src, "Boat").unwrap();
+        assert_eq!((w.progress.total, w.progress.done), (2, 2));
+        assert_eq!(search(&w, "diesel"), ["Boat/fuel.txt"]);
+        assert!(w.downloads.queue.is_empty(), "nothing online-only here");
     }
 
     #[test]
