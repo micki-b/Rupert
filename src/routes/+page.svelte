@@ -680,6 +680,9 @@
     if (progress && progress.downloadTotal > 0) {
       return m.main.downloadingToRead(progress.downloadDone, progress.downloadTotal);
     }
+    if (progress && progress.pictureTotal > 0) {
+      return m.main.keepingPictures(progress.pictureDone, progress.pictureTotal);
+    }
     if (!stats || stats.documents === 0) return "";
     const parts = [m.main.documents(stats.documents)];
     parts.push(m.main.searchable(stats.withText));

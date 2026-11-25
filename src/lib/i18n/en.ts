@@ -402,7 +402,9 @@ const en = {
     indexing: (done: number, total: number) => `Indexing ${num(done)} of ${num(total)}…`,
     checkingChanges: "Checking for changes…",
     downloadingToRead: (done: number, total: number) =>
-      `Downloading online-only documents to read them: ${num(done)} of ${num(total)}…`,
+      `Downloading online-only documents for their text and pictures: ${num(done)} of ${num(total)}…`,
+    keepingPictures: (done: number, total: number) =>
+      `Keeping pictures of documents in cloud folders: ${num(done)} of ${num(total)}…`,
     documents: (n: number) => `${num(n)} ${plural(n, "document", "documents")}`,
     searchable: (n: number) => `${num(n)} searchable by content`,
     onlineOnlyCount: (n: number) => `${num(n)} online-only (name and details only)`,
