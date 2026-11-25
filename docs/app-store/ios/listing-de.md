@@ -51,6 +51,12 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.8.0 [4000]
+
+Den Tab „Scannen“ vom Computer aus öffnen.
+
+• Klicken Sie auf Ihrem Computer im Eingang von Rupert auf „Scannen …“ und richten Sie die Kamera des iPhone auf den Code: Er öffnet den Tab „Scannen“ von Rupert, bereit zum Scannen in den Eingang.
+
 ## What's new in 0.7.0 [4000]
 
 Dokumente aus Rupert teilen.

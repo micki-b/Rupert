@@ -274,7 +274,7 @@ Since milestone 7, work is planned as releases; each is a GitHub milestone, and 
 | Release | Theme | Issues |
 |---|---|---|
 | 0.7.0 ✅ | Renaming and sending | Released 2026-11-25: Rename documents… (#64); Share… and Email… (#69) |
-| 0.8.0 | Getting documents in | Built, not released yet: Print to Rupert (#101); and #60 in three parts: Import into Inbox… (#122), network scanning removed (#123), Scan with your phone through Continuity Camera and a QR link (#124) |
+| 0.8.0 ✅ | Getting documents in | Released 2026-11-25: Print to Rupert (#101); and #60 in three parts: Import into Inbox… (#122), network scanning removed (#123), Scan with your phone through Continuity Camera and a QR link (#124) |
 | 0.9.0 | Working with many documents | Multi-select and bulk actions (#102); sorting and search filters (#103); Undo for moves, filing and tags (#104); quick open and spacebar preview (#105); highlighted hits and page citations (#106); export a bundle (#107); a page preview in Details while browsing, and an inbox preview that resizes and makes way for File it (#127) |
 | 0.10.0 | A smarter library | Sender, amount and due date (#108); reminders (#109); saved searches (#110); duplicate finder (#111); filing that learns, File all (#112); library health panel (#113) |
 | Android 0.1 | First Android release | The app (#24); release signing, Play bundle and CI (#39); Ask Rupert with Gemini Nano (#38); Google OAuth verification for Drive (#66) |

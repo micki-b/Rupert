@@ -38,6 +38,10 @@ TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 
 Rupert es libre, gratis y de código abierto.
 
+## Release notes, 0.8.0 [500]
+
+Abrí la pestaña Escanear desde tu computadora: hacé clic en Escanear… en la bandeja de entrada de Rupert y apuntá la cámara del teléfono al código.
+
 ## Release notes, 0.7.0 [500]
 
 Compartí documentos: en los detalles de un documento, tocá Compartir para enviarlo con Gmail, Mensajes u otra app. Un PDF va sin tus notas, salvo que Configuración ▸ Compartir las incluya.
