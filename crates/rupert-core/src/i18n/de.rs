@@ -156,49 +156,6 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Das Lesezeichen des Ordners hat keinen Pfad",
     ),
     // MARK: - Scanning and text recognition
-    ("scanner: {0}", "Scanner: {0}"),
-    (
-        "{0} isn't reachable ({1})",
-        "{0} ist nicht erreichbar ({1})",
-    ),
-    (
-        "{0} answered {1} (is it an eSCL scanner?)",
-        "{0} hat mit {1} geantwortet (ist es ein eSCL-Scanner?)",
-    ),
-    ("bad capabilities: {0}", "Fehlerhafte Geräteangaben: {0}"),
-    (
-        "the scanner reported no flatbed or feeder",
-        "Der Scanner meldet weder Vorlagenglas noch Einzug",
-    ),
-    (
-        "this scanner doesn't have that input",
-        "Dieser Scanner hat diese Zufuhr nicht",
-    ),
-    (
-        "couldn't start the scan ({0})",
-        "Der Scan konnte nicht gestartet werden ({0})",
-    ),
-    (
-        "the scanner is busy, or the feeder is empty",
-        "Der Scanner ist beschäftigt, oder der Einzug ist leer",
-    ),
-    (
-        "the scanner refused the scan ({0})",
-        "Der Scanner hat den Scan abgelehnt ({0})",
-    ),
-    (
-        "the scanner didn't say where the scan is",
-        "Der Scanner hat nicht mitgeteilt, wo der Scan liegt",
-    ),
-    (
-        "lost the scanner ({0})",
-        "Die Verbindung zum Scanner ist abgebrochen ({0})",
-    ),
-    ("the scan failed ({0})", "Der Scan ist fehlgeschlagen ({0})"),
-    (
-        "no pages were scanned (is the feeder empty?)",
-        "Es wurden keine Seiten gescannt (ist der Einzug leer?)",
-    ),
     ("the scan has no pages", "Der Scan hat keine Seiten"),
     (
         "a scanned page is unreadable: {0}",
@@ -245,6 +202,12 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     ("Text recognized ({0})", "Text erkannt ({0})"),
     ("Import into Inbox…", "In den Eingang importieren …"),
+    // MARK: - Camera scans (camera.rs)
+    ("a page isn't a JPEG", "eine Seite ist kein JPEG"),
+    (
+        "unsupported JPEG with {0} color components",
+        "nicht unterstütztes JPEG mit {0} Farbkomponenten",
+    ),
     // MARK: - Print to Rupert (print_entry.rs)
     ("Save to Rupert", "In Rupert sichern"),
     ("Rupert inbox", "Rupert-Eingang"),
@@ -305,10 +268,6 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     (
         "No text to suggest from.",
         "Kein Text für Vorschläge vorhanden.",
-    ),
-    (
-        "set up the inbox first: scans are saved there",
-        "Richten Sie zuerst den Eingang ein: Dort werden die Scans gespeichert",
     ),
     (
         "nothing to import; review the import first",
@@ -675,7 +634,6 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Show All", "Alle einblenden"),
     ("Quit {0}", "{0} beenden"),
     ("File", "Ablage"),
-    ("Scan…", "Scannen …"),
     (
         "Import from ScanSnap Home…",
         "Aus ScanSnap Home importieren …",

@@ -8,7 +8,6 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-mdns-sd = { version = "0.22.0", default-features = false }
 png = "0.18.1"
 # rustls: the assistant's cloud models are HTTPS (Local AI and scanners stay plain HTTP).
 ureq = { version = "3.4.0", default-features = false, features = ["json", "rustls"] }
@@ -25,6 +24,7 @@ thiserror = "2.0.21"
 uuid = { version = "1.29.3", features = ["v4"] }
 sys-locale = "0.3.2"
 jpeg-encoder = "0.7.1"
+qrcodegen = "1.8"
 
 [features]
 # OneDrive through Microsoft Graph (the phone app).

@@ -450,18 +450,21 @@
 <!-- MARK: Scannen -->
 <section id="scanning">
   <h2>Scannen</h2>
-  <h3>Netzwerkscanner</h3>
+  <h3 id="scan-with-phone">Mit dem Telefon</h3>
   <p>
-    Rupert scannt direkt von Scannern, die AirScan (auch eSCL genannt) unterstützen, wie die meisten aktuellen
-    Netzwerkscanner und Multifunktionsdrucker. Wählen Sie {#if mac}<b>Ablage ▸ Scannen …</b> oder {/if}<b>Scannen …</b>
-    im Eingang. Rupert findet Scanner in Ihrem Netzwerk, oder Sie fügen einen über seine Adresse hinzu. Wählen Sie Quelle
-    (Dokumenteneinzug oder Vorlagenglas), Seiten, Farbe, Auflösung und Seitenformat und klicken Sie auf <b>Scannen</b>.
-    Das PDF kommt direkt in den Eingang.
+    Rupert auf dem iPhone und auf Android scannt Papier mit der Kamera in denselben Eingang. Klicken Sie im Eingang auf
+    <b>Scannen …</b>: Dort sehen Sie Codes, auf die Sie die Kamera des Telefons richten, um die App zu holen, und den
+    Eingangsordner, den Sie in der App im Tab Scannen wählen. Das Telefon erreicht nur einen Eingang in iCloud Drive
+    (iPhone), OneDrive oder Google Drive, nicht einen Ordner auf diesem Computer. Siehe <a href="#iphone">Die iPhone-App</a>
+    und <a href="#android">Die Android-App</a>.
   </p>
   <h3>ScanSnap und andere Scannersoftware</h3>
   <p>
     Jede Scanner-App, die in einen Ordner speichert, funktioniert mit Rupert. Legen Sie für einen ScanSnap ein ScanSnap
-    Home-Profil an, das PDFs in Ruperts Eingangsordner speichert. Rupert holt jeden neuen Scan von dort ab.
+    Home-Profil an, das PDFs in Ruperts Eingangsordner speichert. Rupert holt jeden neuen Scan von dort ab. Ein
+    Netzwerkscanner ohne eigene Software funktioniert genauso: {#if mac}Wählen Sie in <b>Digitale Bilder</b> unter
+      <b>Scannen nach</b> den Eingangsordner{:else if windows}Wählen Sie in der App <b>Windows-Scan</b> den Eingangsordner als
+      Speicherort für Scans{/if}.
   </p>
   <h3 id="import-into-inbox">Viele Dateien importieren</h3>
   <p>
@@ -495,8 +498,6 @@
       einen Ablageort vor.
     {/if}
   </p>
-  <h3>Mit dem iPhone</h3>
-  <p>Die iPhone-App scannt mit der Kamera in denselben Eingang. Siehe <a href="#iphone">Die iPhone-App</a>.</p>
 </section>
 
 <!-- MARK: ScanSnap Home -->

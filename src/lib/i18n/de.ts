@@ -100,37 +100,23 @@ const de: Messages = {
     unchanged: "bereits aktuell",
     failed: (n: number) => `${docs(n)} ${plural(n, "konnte", "konnten")} nicht aktualisiert werden`,
   },
-  scan: {
-    title: "Scannen",
-    needsInbox:
-      "Scans werden im Eingang gespeichert, wo Rupert sie liest und vorschlägt, wie sie abgelegt werden. Richten Sie ihn zuerst ein.",
-    setUpInbox: "Eingang einrichten …",
-    scanner: "Scanner",
-    looking: "Scanner im Netzwerk werden gesucht …",
-    noneFound:
-      "Keine Netzwerkscanner gefunden. Prüfen Sie, ob der Scanner eingeschaltet und im selben Netzwerk ist, oder fügen Sie ihn über seine Adresse hinzu.",
-    addressPlaceholder: "Über Adresse hinzufügen, z. B. 192.168.1.20",
-    add: "Hinzufügen",
-    settings: "Einstellungen",
-    source: "Quelle",
-    feeder: "Dokumenteneinzug",
-    glass: "Vorlagenglas",
-    sides: "Seiten",
-    bothSides: "Beidseitig",
-    color: "Farbe",
-    grayscale: "Graustufen",
-    inColor: "Farbe",
-    resolution: "Auflösung",
-    dpi: (r: number) => `${r} dpi`,
-    pageSize: "Seitenformat",
-    letter: "US Letter",
-    legal: "US Legal",
-    a4: "A4",
-    max: "So groß wie möglich",
-    hint: "300 dpi in Graustufen passen zu den meisten Papieren und ergeben die beste Texterkennung.",
-    scanning: "Wird gescannt …",
-    pages: (n: number) => `${num(n)} ${plural(n, "Seite", "Seiten")}`,
-    scan: "Scannen",
+  scanPhone: {
+    title: "Mit dem Telefon scannen",
+    intro:
+      "Rupert auf Ihrem Telefon scannt Papier mit der Kamera und speichert es im Eingang. Rupert auf diesem Computer liest dann jeden Scan und schlägt vor, wo er abgelegt wird.",
+    getApp: "Holen Sie sich Rupert auf Ihr Telefon: Richten Sie dessen Kamera auf einen Code.",
+    iphone: "iPhone",
+    android: "Android",
+    chooseInbox: (folder: string) => `Wählen Sie in der App im Tab Scannen den Eingangsordner: ${folder}.`,
+    noInbox:
+      "Scans werden im Eingang gespeichert. Richten Sie ihn daher zuerst ein, in einem Ordner in iCloud Drive, OneDrive oder Google Drive: Diese erreicht auch Ihr Telefon.",
+    localInbox:
+      "Der Eingang ist ein Ordner auf diesem Computer, den Telefone nicht erreichen. Um mit dem Telefon zu scannen, wählen Sie einen Eingang in iCloud Drive, OneDrive oder Google Drive.",
+    icloudInbox:
+      "Android-Telefone erreichen iCloud Drive nicht: Wählen Sie für eines einen Eingang in Google Drive oder OneDrive.",
+    inboxSettings: "Eingangseinstellungen …",
+    scannerApps:
+      "Sie haben einen Scanner? Stellen Sie seine Software (etwa ScanSnap Home) so ein, dass sie PDFs im Eingangsordner speichert. Rupert holt jeden neuen Scan von dort ab.",
   },
   details: {
     inPdf: "Im PDF gespeichert",
