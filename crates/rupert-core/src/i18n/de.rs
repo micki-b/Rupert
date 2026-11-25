@@ -202,7 +202,10 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     ("Text recognized ({0})", "Text erkannt ({0})"),
     ("Import into Inbox…", "In den Eingang importieren …"),
-    ("Import from iPhone or iPad", "Von iPhone oder iPad importieren"),
+    (
+        "Import from iPhone or iPad",
+        "Von iPhone oder iPad importieren",
+    ),
     // MARK: - Camera scans (camera.rs)
     ("a page isn't a JPEG", "eine Seite ist kein JPEG"),
     (

@@ -309,7 +309,9 @@ fn is_scan_link(url: &tauri::Url) -> bool {
                 .is_some_and(|h| h.eq_ignore_ascii_case("rupertlibrarian.com"))
                 && url.path().trim_end_matches('/') == "/scan"
         }
-        "rupert" => url.host_str().is_some_and(|h| h.eq_ignore_ascii_case("scan")),
+        "rupert" => url
+            .host_str()
+            .is_some_and(|h| h.eq_ignore_ascii_case("scan")),
         _ => false,
     }
 }
