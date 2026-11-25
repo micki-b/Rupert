@@ -197,6 +197,18 @@
     Dateien über 100 MB werden übersprungen. Was Rupert dabei erfährt, wird im Ordner selbst gespeichert, sodass Ihre
     anderen Computer (und die iPhone-App) diese Dokumente durchsuchen können, ohne sie erneut herunterzuladen.
   </p>
+  <p>
+    Um einen Ordner sofort vollständig zu aktualisieren, klicken Sie ihn mit der rechten Maustaste an (in der
+    Seitenleiste oder in der Ordneransicht, oder im Menü <b>⋯</b> einer Quelle) und wählen <b>Diesen Ordner
+    indexieren</b>. Rupert liest alle Dokumente darin und in seinen Unterordnern erneut und lädt die nur online
+    verfügbaren herunter, um sie zu lesen und ein Bild zu behalten; danach gibt er den Platz wieder frei. Das geht auch,
+    wenn <b>Nur-online-Dateien zum Indexieren laden</b> ausgeschaltet ist.
+  </p>
+  <p>
+    Während Rupert indexiert oder herunterlädt, zeigt die Fensterecke unten rechts den Fortschritt, mit
+    <b>Anhalten</b>. Anhalten lässt die aktuelle Datei noch fertig werden und hält dann an; Erledigtes bleibt erhalten.
+    <b>Fortsetzen</b> oder der nächste Start von Rupert macht weiter.
+  </p>
 </section>
 
 <!-- MARK: Finden -->

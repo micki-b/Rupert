@@ -415,6 +415,13 @@ const de: Messages = {
     folderNotCopied: (name: string) => `„${name}“ ist ein Ordner. Hier können nur Dateien abgelegt werden; legen Sie stattdessen die Dateien darin ab.`,
     indexing: (done: number, total: number) => `${num(done)} von ${num(total)} werden indexiert …`,
     checkingChanges: "Änderungen werden gesucht …",
+    indexingStopped: "Indexieren angehalten",
+    stopIndexing: "Anhalten",
+    stopIndexingTip: "Hält Indexieren und Herunterladen nach der aktuellen Datei an. Bisheriges bleibt erhalten; „Fortsetzen“ oder der nächste Start von Rupert macht weiter.",
+    resumeIndexing: "Fortsetzen",
+    resumeIndexingTip: "Alle Ordner erneut prüfen und mit Indexieren und Herunterladen weitermachen",
+    indexFolder: "Diesen Ordner indexieren",
+    indexFolderTip: "Alle Dokumente in diesem Ordner und seinen Unterordnern erneut lesen und die nur online verfügbaren dafür herunterladen (danach wird der Platz wieder freigegeben)",
     downloadingToRead: (done: number, total: number) =>
       `Dokumente, die nur online verfügbar sind, werden für Text und Bild geladen: ${num(done)} von ${num(total)} …`,
     keepingPictures: (done: number, total: number) =>

@@ -411,6 +411,13 @@ const es: Messages = {
     folderNotCopied: (name: string) => `«${name}» es una carpeta. Acá solo se pueden soltar archivos; soltá los archivos que tiene adentro.`,
     indexing: (done: number, total: number) => `Indexando ${num(done)} de ${num(total)}…`,
     checkingChanges: "Buscando cambios…",
+    indexingStopped: "Indexación detenida",
+    stopIndexing: "Detener",
+    stopIndexingTip: "Detiene la indexación y las descargas después del archivo actual. Lo hecho se conserva; Reanudar, o el próximo inicio de Rupert, sigue desde ahí.",
+    resumeIndexing: "Reanudar",
+    resumeIndexingTip: "Vuelve a revisar todas las carpetas y sigue indexando y descargando",
+    indexFolder: "Indexar esta carpeta",
+    indexFolderTip: "Vuelve a leer todos los documentos de esta carpeta y sus subcarpetas, y descarga los que están solo en línea para leerlos (después libera el espacio de nuevo)",
     downloadingToRead: (done: number, total: number) =>
       `Descargando documentos solo en línea para su texto e imagen: ${num(done)} de ${num(total)}…`,
     keepingPictures: (done: number, total: number) =>

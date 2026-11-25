@@ -543,10 +543,31 @@
     ev.stopPropagation();
     menuFor = null;
     selected = sel;
-    // Keep it inside the window (the menu is about 220 × 150).
+    // Keep it inside the window (the menu is about 220 × 190).
     const x = Math.min(ev.clientX, window.innerWidth - 230);
-    const y = Math.min(ev.clientY, window.innerHeight - 160);
+    const y = Math.min(ev.clientY, window.innerHeight - 200);
     itemMenu = { x, y, sel, inSearch };
+  }
+
+  /** Right-click on a folder in the sidebar: a source's own menu for its
+   * top folder, the folder menu for the others. */
+  function folderMenu(sourceId: string, relPath: string, name: string, ev: MouseEvent) {
+    if (relPath === "") {
+      ev.preventDefault();
+      ev.stopPropagation();
+      itemMenu = null;
+      menuFor = sourceId;
+      return;
+    }
+    const entry = { name, relPath, isDir: true, kind: null, size: 0, modifiedMs: null, cloud: "local" } as Entry;
+    openItemMenu({ sourceId, entry }, ev);
+  }
+
+  /** "Index this folder" (#78): re-read it and download its online-only
+   * documents to read them. */
+  async function indexFolder(sourceId: string, relPath: string) {
+    menuFor = null;
+    await run(() => api.indexFolder(sourceId, relPath));
   }
 
   /** Runs a right-click menu command for the item it was opened on, closing
@@ -671,8 +692,16 @@
     return relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
   }
 
+  /** Indexing or downloading that Stop can halt (#78). */
+  const stoppable = $derived(
+    !!progress &&
+      !progress.stopped &&
+      ((progress.active && progress.total > 0) || progress.downloadTotal > 0 || progress.pictureTotal > 0),
+  );
+
   function statusText(): string {
     if (copying && copying.total > 0) return m.main.copying(copying.done, copying.total);
+    if (progress?.stopped) return m.main.indexingStopped;
     if (progress?.active && progress.total > 0) {
       return m.main.indexing(progress.done, progress.total);
     }
@@ -818,6 +847,7 @@
               onselect={selectFolder}
               onmove={moveItem}
               oncopy={copyFiles}
+              onmenu={folderMenu}
               startExpanded
             >
               {#snippet trailing()}
@@ -891,6 +921,9 @@
           <span class="check">{s.downloadOnlineOnly ? "✓" : ""}</span>{m.main.downloadToIndex}
         </button>
       {/if}
+      <button role="menuitem" onclick={() => indexFolder(s.id, "")} title={m.main.indexFolderTip}>
+        <span class="check"></span>{m.main.indexFolder}
+      </button>
       <button role="menuitem" onclick={() => startRename(s)}>
         <span class="check"></span>{m.main.rename}
       </button>
@@ -1178,6 +1211,11 @@
       <button role="menuitem" onclick={() => fromMenu(showInFolder)}>{m.main.showInRupert}</button>
     {/if}
     <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>{m.main.moveTo}</button>
+    {#if mn.sel.entry.isDir}
+      <button role="menuitem" title={m.main.indexFolderTip} onclick={() => fromMenu((sel) => indexFolder(sel.sourceId, sel.entry.relPath))}>
+        {m.main.indexFolder}
+      </button>
+    {/if}
     <hr />
     <button role="menuitem" class="danger" onclick={() => trashEntry(mn.sel)}>{trashLabel}</button>
   </div>
@@ -1271,6 +1309,11 @@
       {m.main.restarting} ·
     {/if}
     {statusText()}
+    {#if stoppable}
+      <button class="footer-btn" onclick={() => api.stopIndexing()} title={m.main.stopIndexingTip}>{m.main.stopIndexing}</button>
+    {:else if progress?.stopped}
+      <button class="footer-btn" onclick={() => api.resumeIndexing()} title={m.main.resumeIndexingTip}>{m.main.resumeIndexing}</button>
+    {/if}
     {#if progress && !progress.pdfText}· {m.main.noPdfText}{/if}
   </span>
 </footer>

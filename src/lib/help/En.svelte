@@ -182,6 +182,16 @@
     folder itself, so your other computers (and the iPhone app) can search those documents without downloading them
     again.
   </p>
+  <p>
+    To bring one folder fully up to date right away, right-click it (in the sidebar or the folder view, or use a
+    source's <b>⋯</b> menu) and choose <b>Index this folder</b>. Rupert reads every document in it and its subfolders
+    again, and downloads the online-only ones to read them and keep a picture, then frees the space again. This works
+    even with <b>Download online-only files to index them</b> turned off.
+  </p>
+  <p>
+    While Rupert indexes or downloads, the bottom right of the window shows how far it is, with <b>Stop</b>. Stop lets
+    the file in hand finish and then halts; what's done is kept. <b>Resume</b>, or the next start of Rupert, carries on.
+  </p>
 </section>
 
 <!-- MARK: Finding -->

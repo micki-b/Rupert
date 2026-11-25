@@ -401,6 +401,13 @@ const en = {
     folderNotCopied: (name: string) => `“${name}” is a folder. Only files can be dropped here; drop the files inside it instead.`,
     indexing: (done: number, total: number) => `Indexing ${num(done)} of ${num(total)}…`,
     checkingChanges: "Checking for changes…",
+    indexingStopped: "Indexing stopped",
+    stopIndexing: "Stop",
+    stopIndexingTip: "Stop indexing and downloading after the current file. What's done is kept; Resume, or the next start of Rupert, carries on.",
+    resumeIndexing: "Resume",
+    resumeIndexingTip: "Check every folder again and carry on indexing and downloading",
+    indexFolder: "Index this folder",
+    indexFolderTip: "Read every document in this folder and its subfolders again, and download the online-only ones to read them (then free the space again)",
     downloadingToRead: (done: number, total: number) =>
       `Downloading online-only documents for their text and pictures: ${num(done)} of ${num(total)}…`,
     keepingPictures: (done: number, total: number) =>

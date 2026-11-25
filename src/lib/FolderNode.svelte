@@ -23,8 +23,10 @@
     onmove?: (item: MoveItem, sourceId: string, relPath: string) => void;
     /** Files dropped from another app are copied here. */
     oncopy?: (dropped: Dropped, sourceId: string, relPath: string) => void;
+    /** Right-click on the row. */
+    onmenu?: (sourceId: string, relPath: string, name: string, ev: MouseEvent) => void;
   }
-  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing, onmove, oncopy }: Props =
+  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing, onmove, oncopy, onmenu }: Props =
     $props();
 
   const drop = $derived(
@@ -77,6 +79,7 @@
   aria-expanded={expanded}
   tabindex="0"
   onclick={() => onselect(sourceId, relPath)}
+  oncontextmenu={onmenu && ((ev) => onmenu(sourceId, relPath, name, ev))}
   onkeydown={(e) => {
     if (e.key === "Enter") onselect(sourceId, relPath);
     if (e.key === "ArrowRight" && !expanded) toggle(e as unknown as MouseEvent);
@@ -109,6 +112,7 @@
       {onselect}
       {onmove}
       {oncopy}
+      {onmenu}
     />
   {/each}
 {/if}
