@@ -806,6 +806,10 @@
     </li>
     <li><b>Open</b> a document to download and view it, then share or print it.</li>
     <li>
+      <b>Share</b> a document (beside Open) to send it with Mail, Messages, AirDrop or another app. As on the computer, a
+      PDF goes as a copy without your notes, unless Settings ▸ Sharing includes them.
+    </li>
+    <li>
       <b>Views</b>: at the top of a folder, switch between a list, large icons and a gallery (one document large, the
       others in a strip below; swipe to go through them). Rupert remembers the view for each folder. Pictures come from
       OneDrive or Google Drive, which make them without downloading the document; in folders from Files, the iPhone
@@ -857,6 +861,10 @@
     </li>
     <li>
       <b>Views</b>: a list, large icons or a gallery, as on the iPhone, with pictures from Google Drive or OneDrive.
+    </li>
+    <li>
+      <b>Share</b> a document (beside Open) to send it with Gmail, Messages or another app; a PDF goes without your notes
+      unless Settings ▸ Sharing includes them.
     </li>
     <li>
       <b>Scan</b> with Google's document scanner: in the Scan tab, choose the inbox folder in Google Drive or OneDrive.

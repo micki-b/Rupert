@@ -889,6 +889,10 @@
     </li>
     <li><b>Öffnen</b> Sie ein Dokument, um es zu laden und anzusehen, und teilen oder drucken Sie es dann.</li>
     <li>
+      <b>Teilen</b> Sie ein Dokument (neben „Öffnen“), um es mit Mail, Nachrichten, AirDrop oder einer anderen App zu
+      senden. Wie am Computer geht ein PDF als Kopie ohne Ihre Notizen, außer Einstellungen ▸ Teilen schließt sie ein.
+    </li>
+    <li>
       <b>Ansichten</b>: Oben in einem Ordner wechseln Sie zwischen Liste, großen Symbolen und Galerie (ein Dokument
       groß, die anderen in einem Streifen darunter; wischen Sie, um sie durchzugehen). Rupert merkt sich die Ansicht für
       jeden Ordner. Die Bilder kommen von OneDrive oder Google Drive, die sie erstellen, ohne das Dokument zu laden; in
@@ -946,6 +950,10 @@
     </li>
     <li>
       <b>Ansichten</b>: Liste, große Symbole oder Galerie, wie auf dem iPhone, mit Bildern aus Google Drive oder OneDrive.
+    </li>
+    <li>
+      <b>Teilen</b> Sie ein Dokument (neben „Öffnen“), um es mit Gmail, Nachrichten oder einer anderen App zu senden; ein
+      PDF geht ohne Ihre Notizen, außer Einstellungen ▸ Teilen schließt sie ein.
     </li>
     <li>
       <b>Scannen</b> Sie mit dem Dokumentscanner von Google: Wählen Sie im Bereich Scannen den Eingangsordner in Google

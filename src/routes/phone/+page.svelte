@@ -71,6 +71,9 @@
 
   let sheet = $state<Sheet | null>(null);
   let opening = $state(false);
+  let sharing = $state(false);
+  /** Settings ▸ Sharing: a PDF's notes go along. */
+  let sendNotes = $state(false);
   let openError = $state<string | null>(null);
 
   let scanning = $state(false);
@@ -179,6 +182,7 @@
     od = await phone.onedriveStatus().catch(() => null);
     gd = await phone.gdriveStatus().catch(() => null);
     favFolders = await phone.favoriteFolders().catch(() => []);
+    sendNotes = await phone.sendNotes().catch(() => false);
   }
 
   async function loadFolder() {
@@ -474,6 +478,21 @@
       openError = String(e);
     } finally {
       opening = false;
+    }
+  }
+
+  /** Share: the phone's share sheet (downloads the document first if needed). */
+  async function shareDoc(button: HTMLElement) {
+    if (!sheet) return;
+    const r = button.getBoundingClientRect();
+    sharing = true;
+    openError = null;
+    try {
+      await phone.share(sheet.sourceId, sheet.relPath, [r.left, r.top, r.width, r.height]);
+    } catch (e) {
+      openError = String(e);
+    } finally {
+      sharing = false;
     }
   }
 
@@ -1005,6 +1024,26 @@
         <button class="plain add" onclick={() => phone.refresh()} disabled={busyIndexing}>{m.phone.checkAgain}</button>
       </section>
       <section>
+        <h2>{m.phone.sharing}</h2>
+        <ul class="list boxed">
+          <li class="setting">
+            <label class="toggle">
+              <span class="main"><span class="name">{m.phone.sendNotes}</span></span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={sendNotes}
+                onchange={(e) => {
+                  sendNotes = e.currentTarget.checked;
+                  phone.setSendNotes(sendNotes);
+                }}
+              />
+            </label>
+          </li>
+        </ul>
+        <p class="note small left">{m.phone.sendNotesNote}</p>
+      </section>
+      <section>
         <h2>{m.phone.language}</h2>
         <ul class="list boxed">
           <li class="setting">
@@ -1141,7 +1180,11 @@
       {#if openError}<p class="error">{openError}</p>{/if}
       <div class="sheet-actions">
         <button class="plain" onclick={() => (sheet = null)}>{m.common.close}</button>
-        <button class="primary" onclick={openDoc} disabled={opening}>
+        <button class="plain share" onclick={(e) => shareDoc(e.currentTarget)} disabled={sharing || opening}>
+          <Icon name="share" />
+          {sharing ? (sheet.cloudOnly ? m.phone.downloading : m.phone.preparing) : m.phone.share}
+        </button>
+        <button class="primary" onclick={openDoc} disabled={opening || sharing}>
           {opening ? (sheet.cloudOnly ? m.phone.downloading : m.phone.opening) : m.phone.open}
         </button>
       </div>
@@ -1693,6 +1736,25 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
+  }
+  .sheet-actions .share {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .toggle input {
+    accent-color: var(--accent);
+    width: 20px;
+    height: 20px;
+    flex: none;
   }
   .spinner {
     width: 12px;

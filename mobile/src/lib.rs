@@ -74,6 +74,10 @@ struct Saved {
     /// Rupert's language ("en", "es"); `None` follows the phone's.
     #[serde(default)]
     language: Option<String>,
+    /// Sharing a PDF: include the notes kept inside it (off: a copy without
+    /// them is shared, as on the computer).
+    #[serde(default)]
+    send_notes: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -875,6 +879,97 @@ async fn open_document(
     Ok(())
 }
 
+// MARK: - Commands: sharing (#69)
+
+/// Share: downloads the document if needed and hands it to the phone's
+/// share sheet. A PDF goes as a copy without its notes (in the app's
+/// cache) unless Settings ▸ Sharing includes them; the library is only
+/// read. Only ever on an explicit tap.
+#[tauri::command]
+async fn share_document(
+    source_id: String,
+    rel_path: String,
+    at: [f64; 4],
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<()> {
+    let include_notes = state.saved.lock().unwrap().saved.send_notes;
+    let info = state
+        .index
+        .lock()
+        .unwrap()
+        .document(&source_id, &rel_path)
+        .map_err(err)?;
+    let (size, title) = info.map(|d| (d.hit.size, d.hit.title)).unwrap_or((0, None));
+    let cache = app.path().app_cache_dir().map_err(err)?;
+    let remote = state.remote(&source_id);
+    let local = match &remote {
+        Some(_) => None,
+        None => Some(state.source(&source_id)?),
+    };
+    let (handle, rel, from) = (app.clone(), rel_path.clone(), local.clone());
+    blocking(move || {
+        let device = device(&handle);
+        let path = match (&remote, &from) {
+            (Some(folder), _) => cloud::fetch_document(&handle, folder, &rel, size)?,
+            (None, Some(source)) => {
+                let path = rupert_core::resolve(&source.root, &rel).map_err(err)?;
+                // iCloud Drive and Files providers fetch on demand; a file
+                // on an Android phone is simply there.
+                #[cfg(not(target_os = "android"))]
+                device.download(&path.to_string_lossy()).map_err(err)?;
+                path
+            }
+            (None, None) => return Err("unknown folder".to_string()),
+        };
+        let sent = rupert_core::share::prepare(&path, None, include_notes, &cache).map_err(err)?;
+        // Android hands out files only from the app's cache (FileProvider).
+        #[cfg(target_os = "android")]
+        let sent = if sent.starts_with(&cache) {
+            sent
+        } else {
+            let folder = cache.join("sending").join(format!(
+                "{:x}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_nanos())
+                    .unwrap_or_default()
+            ));
+            fs::create_dir_all(&folder).map_err(err)?;
+            let copy = folder.join(sent.file_name().unwrap_or_default());
+            fs::copy(&sent, &copy).map_err(err)?;
+            copy
+        };
+        let name = sent
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let subject = title.unwrap_or_else(|| rupert_core::rename::split_name(&name).0.to_string());
+        device
+            .share(&sent.to_string_lossy(), &subject, at)
+            .map_err(err)
+    })
+    .await?;
+    if let Some(source) = local {
+        // Downloaded to share it: the index should know.
+        state.indexer.send(Job::File { source, rel_path });
+    }
+    Ok(())
+}
+
+/// Settings ▸ Sharing: whether a PDF's notes go along.
+#[tauri::command]
+fn send_notes(state: State<AppState>) -> bool {
+    state.saved.lock().unwrap().saved.send_notes
+}
+
+#[tauri::command]
+fn set_send_notes(on: bool, state: State<AppState>) {
+    let mut saved = state.saved.lock().unwrap();
+    saved.saved.send_notes = on;
+    saved.save();
+}
+
 // MARK: - Commands: scanning
 
 #[derive(Deserialize)]
@@ -1202,6 +1297,9 @@ pub fn run() {
             open_privacy_policy,
             language,
             set_language,
+            share_document,
+            send_notes,
+            set_send_notes,
             add_folder,
             remove_folder,
             choose_inbox,

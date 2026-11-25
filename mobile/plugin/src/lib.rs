@@ -165,6 +165,36 @@ impl<R: Runtime> Device<R> {
             .map(drop)
     }
 
+    /// The system's share sheet for a (downloaded) document (#69): Mail,
+    /// Messages, AirDrop, … on the iPhone; the share chooser on Android.
+    /// `subject`: the title, for apps that take one (email). `at`: the
+    /// Share button on the page (x, y, width, height), which the iPhone's
+    /// sheet opens from.
+    pub fn share(&self, path: &str, subject: &str, at: [f64; 4]) -> Result<()> {
+        #[derive(Serialize)]
+        struct Args<'a> {
+            path: &'a str,
+            subject: &'a str,
+            x: f64,
+            y: f64,
+            width: f64,
+            height: f64,
+        }
+        let [x, y, width, height] = at;
+        self.call::<serde_json::Value>(
+            "share",
+            Args {
+                path,
+                subject,
+                x,
+                y,
+                width,
+                height,
+            },
+        )
+        .map(drop)
+    }
+
     /// Opens a web page in the phone's browser.
     pub fn open_url(&self, url: &str) -> Result<()> {
         #[derive(Serialize)]

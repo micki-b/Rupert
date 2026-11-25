@@ -737,6 +737,12 @@ const de: Messages = {
     downloading: "Wird geladen …",
     opening: "Wird geöffnet …",
     open: "Öffnen",
+    share: "Teilen",
+    preparing: "Wird vorbereitet …",
+    sharing: "Teilen",
+    sendNotes: "Meine Notizen beim Teilen eines PDFs einschließen",
+    sendNotesNote:
+      "Rupert speichert Ihre Notizen im PDF. Ist dies aus, wird eine Kopie ohne sie geteilt; Titel, Datum und Tags gehen mit.",
   },
   help: {
     title: "Rupert-Hilfe",
