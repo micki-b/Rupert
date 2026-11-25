@@ -764,11 +764,19 @@ fn run_test_script(app: &AppHandle) {
     let Ok(js) = std::env::var("RUPERT_TEST_JS") else {
         return;
     };
+    // Once the page has loaded and shows the window's layout (a large
+    // library can take a while), and only once: asked every second.
+    let guarded = format!(
+        "if (!window.__rupertTest && document.readyState === 'complete' && \
+         document.querySelector('.shell')) {{ window.__rupertTest = true; {js} }}"
+    );
     let app = app.clone();
     std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(5));
-        if let Some(w) = app.get_webview_window("main") {
-            let _ = w.eval(&js);
+        for _ in 0..30 {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.eval(&guarded);
+            }
         }
     });
 }

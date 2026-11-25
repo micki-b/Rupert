@@ -42,8 +42,12 @@
   let pageInput = $state("");
 
   const PAD = 24;
-  const MIN_ZOOM = 0.25;
+  const MIN_ZOOM = 0.2;
   const MAX_ZOOM = 8;
+  /** The buttons and keys zoom in 10 % steps. */
+  const STEP = 0.1;
+  /** The system's scroll bar thickness (0 where they float over content). */
+  let scrollbar = $state(0);
   const turned = $derived(rotation % 180 !== 0);
   /** The page's box (as turned) when it fits the stage. */
   const fit = $derived.by(() => {
@@ -52,7 +56,8 @@
     const h = Math.max(50, stageH - 2 * PAD);
     return w * boxAspect <= h ? { w, h: w * boxAspect } : { w: h / boxAspect, h };
   });
-  const box = $derived({ w: fit.w * zoom, h: fit.h * zoom });
+  // Whole pixels, so nothing shifts by fractions.
+  const box = $derived({ w: Math.round(fit.w * zoom), h: Math.round(fit.h * zoom) });
   /** The picture itself, before turning. */
   const img = $derived(turned ? { w: box.h, h: box.w } : box);
   const quick = $derived(thumbUrl(sourceId, entry, page, 1600));
@@ -67,7 +72,11 @@
       .sort((a, b) => a.side - b.side);
     return (mine.find((x) => x.side >= need) ?? mine.at(-1))?.url ?? quick;
   });
-  const fitWidthZoom = $derived((stageW - 2 * PAD) / fit.w);
+  /** Fit width leaves room for the vertical scroll bar it brings, and
+   * snaps down to a 10 % step. */
+  const fitWidthZoom = $derived(
+    Math.max(MIN_ZOOM, Math.floor((stageW - scrollbar - 2 * PAD) / fit.w / STEP + 0.001) * STEP),
+  );
 
   onMount(() => {
     if (entry.kind === "pdf") {
@@ -76,10 +85,18 @@
         .then((n) => (pages = n))
         .catch(() => (pages = null));
     }
+    // The stage's size includes its scroll bars: measured without them,
+    // a scroll bar appearing would shrink "fit", which removes the scroll
+    // bar, which grows "fit" again… (the page flickered at Fit width).
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;width:100px;height:100px;overflow:scroll";
+    document.body.append(probe);
+    scrollbar = probe.offsetWidth - probe.clientWidth;
+    probe.remove();
     const ro = new ResizeObserver(() => {
       if (!stage) return;
-      stageW = stage.clientWidth;
-      stageH = stage.clientHeight;
+      stageW = stage.offsetWidth;
+      stageH = stage.offsetHeight;
     });
     if (stage) ro.observe(stage);
     return () => ro.disconnect();
@@ -111,7 +128,7 @@
   /** Zooms to `z`, keeping the point at (`x`, `y`) in the stage where it is. */
   async function zoomTo(z: number, x = stageW / 2, y = stageH / 2) {
     if (!stage) return;
-    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(z * 100) / 100));
     const ratio = next / zoom;
     const cx = stage.scrollLeft + x;
     const cy = stage.scrollTop + y;
@@ -120,8 +137,9 @@
     stage.scrollLeft = cx * ratio - x;
     stage.scrollTop = cy * ratio - y;
   }
-  const zoomIn = () => zoomTo(zoom * 1.25);
-  const zoomOut = () => zoomTo(zoom / 1.25);
+  // The next 10 % step up or down (from 105 %: 110 % and 100 %).
+  const zoomIn = () => zoomTo((Math.floor(zoom / STEP + 0.001) + 1) * STEP);
+  const zoomOut = () => zoomTo((Math.ceil(zoom / STEP - 0.001) - 1) * STEP);
   const fitPage = () => (zoom = 1);
   const fitWidth = () => zoomTo(fitWidthZoom, stageW / 2, 0);
   const rotate = () => (rotation = (rotation + 90) % 360);
