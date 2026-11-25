@@ -189,7 +189,9 @@
   </p>
   <p>
     Para buscar en el <em>texto</em> de los documentos solo en línea, activá <b>Descargar los archivos solo en línea para
-    indexarlos</b> en esa carpeta. Rupert los descarga de a poco, lee su texto y libera el espacio de nuevo. Los archivos
+    indexarlos</b> en esa carpeta. Rupert los descarga de a poco, lee su texto, guarda una imagen chica de la
+    primera página de cada PDF y libera el espacio de nuevo. Los PDF cuyo texto ya se conoce también se descargan una vez si
+    todavía no tienen imagen en esta computadora. Los archivos
     no cambian. En una carpeta grande puede tardar horas; los archivos de más de 100 MB se saltean. Lo que Rupert aprende
     se guarda en la carpeta misma, así tus otras computadoras (y la app del iPhone) pueden buscar en esos documentos sin
     volver a descargarlos.

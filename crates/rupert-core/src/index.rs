@@ -935,6 +935,23 @@ impl Index {
         rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
+    /// The online-only PDFs of a source up to `max_size`, whatever is known
+    /// of their text: candidates for downloading to make a kept picture.
+    pub fn online_pdfs(&self, source_id: &str, max_size: u64) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT rel_path FROM docs
+                 WHERE source_id = ?1 AND cloud = 1 AND kind = 'pdf' AND size <= ?2
+                 ORDER BY rel_path",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(params![source_id, max_size as i64], |r| r.get(0))
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
     /// The PDFs of a source that are on this computer (not online-only),
     /// for making their kept pictures.
     pub fn local_pdfs(&self, source_id: &str) -> Result<Vec<String>> {

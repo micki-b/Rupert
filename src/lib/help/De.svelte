@@ -191,8 +191,9 @@
   </p>
   <p>
     Um den <em>Text</em> von Dokumenten zu durchsuchen, die nur online verfügbar sind, schalten Sie für diesen Ordner
-    <b>Nur-online-Dateien zum Indexieren laden</b> ein. Rupert lädt sie dann nach und nach herunter, liest ihren Text und
-    gibt den Platz wieder frei. An den Dateien ändert sich nichts. Bei einem großen Ordner kann das Stunden dauern;
+    <b>Nur-online-Dateien zum Indexieren laden</b> ein. Rupert lädt sie dann nach und nach herunter, liest ihren Text, behält ein
+    kleines Bild der ersten Seite jedes PDFs und gibt den Platz wieder frei. PDFs, deren Text schon bekannt ist, werden
+    ebenfalls einmal geladen, wenn es auf diesem Computer noch kein Bild von ihnen gibt. An den Dateien ändert sich nichts. Bei einem großen Ordner kann das Stunden dauern;
     Dateien über 100 MB werden übersprungen. Was Rupert dabei erfährt, wird im Ordner selbst gespeichert, sodass Ihre
     anderen Computer (und die iPhone-App) diese Dokumente durchsuchen können, ohne sie erneut herunterzuladen.
   </p>

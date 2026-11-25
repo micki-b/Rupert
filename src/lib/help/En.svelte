@@ -176,7 +176,8 @@
   </p>
   <p>
     To search the <em>text</em> of online-only documents, turn on <b>Download online-only files to index them</b> for that
-    source. Rupert then downloads them a few at a time, reads their text, and frees the space again. Nothing in the
+    source. Rupert then downloads them a few at a time, reads their text, keeps a small picture of each PDF's first page, and
+    frees the space again. PDFs whose text is already known are downloaded once too if they have no picture on this computer yet. Nothing in the
     files changes. It can take hours for a big folder; files over 100 MB are skipped. What Rupert learns is saved in the
     folder itself, so your other computers (and the iPhone app) can search those documents without downloading them
     again.

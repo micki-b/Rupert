@@ -536,8 +536,8 @@ impl Worker {
 
     // MARK: Downloading online-only files
 
-    /// Queues the source's online-only documents whose text is unknown, if
-    /// the source has downloading turned on.
+    /// Queues the source's online-only documents whose text is unknown, and
+    /// PDFs without a kept picture, if the source has downloading turned on.
     fn queue_downloads(&mut self, source: &Source) -> Result<()> {
         if self.mode == Mode::Viewer {
             return Ok(());
@@ -548,10 +548,20 @@ impl Worker {
         if !source.download_online_only || !source.is_available() {
             return Ok(());
         }
-        for rel in self
+        let mut candidates = self
             .index
-            .download_candidates(&source.id, MAX_DOWNLOAD_BYTES)?
-        {
+            .download_candidates(&source.id, MAX_DOWNLOAD_BYTES)?;
+        // PDFs whose text is known (catalog, sidecar) but that have no kept
+        // picture on this computer yet (#62): fetched once to make one.
+        if let Some(thumbs) = &self.pictures.thumbs {
+            candidates.extend(
+                self.index
+                    .online_pdfs(&source.id, MAX_DOWNLOAD_BYTES)?
+                    .into_iter()
+                    .filter(|rel| !thumbs.has_kept(&source.root.join(rel))),
+            );
+        }
+        for rel in candidates {
             let key = (source.id.clone(), rel);
             if self.downloads.attempted.contains(&key) || !self.downloads.queued.insert(key.clone())
             {

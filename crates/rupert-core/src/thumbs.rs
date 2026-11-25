@@ -117,17 +117,44 @@ impl Thumbnails {
     /// first page, small. Only while the file is on this computer; an
     /// online-only file is left alone. `Ok(true)` if one was made.
     pub fn keep(&self, extractor: &TextExtractor, path: &Path) -> Result<bool> {
-        if FileKind::from_path(path) != FileKind::Pdf || cloud_state(path)? == CloudState::CloudOnly
+        if FileKind::from_path(path) != FileKind::Pdf
+            || !extractor.pdf_supported()
+            || cloud_state(path)? == CloudState::CloudOnly
         {
             return Ok(false);
         }
-        let file = self.kept_path(path, &Stamp::of(path)?);
-        if file.exists() {
+        let stamp = Stamp::of(path)?;
+        if self.has_kept_stamp(path, &stamp) {
             return Ok(false);
         }
-        let page = extractor.render_page(path, 0, KEEP_SIDE, 2.0, true)?;
-        self.store(&file, &to_jpeg(&page)?);
-        Ok(true)
+        let file = self.kept_path(path, &stamp);
+        match extractor
+            .render_page(path, 0, KEEP_SIDE, 2.0, true)
+            .and_then(|page| to_jpeg(&page))
+        {
+            Ok(jpeg) => {
+                self.store(&file, &jpeg);
+                Ok(true)
+            }
+            Err(e) => {
+                // Noted, so this version of the file isn't downloaded again
+                // for a picture that can't be made.
+                self.store(&file.with_extension("none"), b"");
+                Err(e)
+            }
+        }
+    }
+
+    /// Whether the PDF at `path` has a kept picture for its current version
+    /// (or one was tried and couldn't be made). Reads only the file
+    /// system's size and date, so it's safe for online-only files.
+    pub fn has_kept(&self, path: &Path) -> bool {
+        Stamp::of(path).is_ok_and(|stamp| self.has_kept_stamp(path, &stamp))
+    }
+
+    fn has_kept_stamp(&self, path: &Path, stamp: &Stamp) -> bool {
+        let file = self.kept_path(path, stamp);
+        file.exists() || file.with_extension("none").exists()
     }
 
     /// The kept picture of a PDF, if it has one for this version of the
@@ -302,6 +329,7 @@ mod tests {
         fs::write(&doc, b"%PDF-1.7 not really").unwrap();
         let stamp = Stamp::of(&doc).unwrap();
         assert!(thumbs.kept(&doc, &stamp).is_none());
+        assert!(!thumbs.has_kept(&doc));
 
         thumbs.store(&thumbs.kept_path(&doc, &stamp), b"jpeg");
         let old = UNIX_EPOCH + std::time::Duration::from_secs(1_000);
@@ -322,9 +350,17 @@ mod tests {
             .unwrap();
         assert!(used > old);
 
-        // A changed file doesn't show the old picture.
+        assert!(thumbs.has_kept(&doc));
+
+        // A changed file doesn't show the old picture, and needs a new one.
         fs::write(&doc, b"%PDF-1.7 changed, longer").unwrap();
-        assert!(thumbs.kept(&doc, &Stamp::of(&doc).unwrap()).is_none());
+        let stamp = Stamp::of(&doc).unwrap();
+        assert!(thumbs.kept(&doc, &stamp).is_none());
+        assert!(!thumbs.has_kept(&doc));
+        // One that couldn't be made isn't asked for again (no new download).
+        thumbs.store(&thumbs.kept_path(&doc, &stamp).with_extension("none"), b"");
+        assert!(thumbs.has_kept(&doc));
+        assert!(thumbs.kept(&doc, &stamp).is_none());
     }
 
     #[test]
