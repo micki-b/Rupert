@@ -8,6 +8,7 @@
   import MarkdownView from "#lib/MarkdownView.svelte";
   import DocStar from "#lib/DocStar.svelte";
   import CloudBadge from "#lib/CloudBadge.svelte";
+  import RenameField from "#lib/RenameField.svelte";
   import { isMarkdown } from "#lib/markdown.ts";
   import { api, type ListedEntry } from "#lib/api.ts";
   import { formatDate } from "#lib/format.ts";
@@ -26,6 +27,10 @@
     oncopy,
     onstar,
     ondownload,
+    renaming = null,
+    onrename,
+    onrenamecancel,
+    enterOpens = true,
   }: {
     mode: "icons" | "gallery";
     sourceId: string;
@@ -42,6 +47,12 @@
     onstar: (e: ListedEntry) => void;
     /** Downloads an online-only document (its cloud was clicked). */
     ondownload: (e: ListedEntry) => void;
+    /** The path whose name is being edited in place (#65). */
+    renaming?: string | null;
+    onrename: (e: ListedEntry, name: string) => void;
+    onrenamecancel: () => void;
+    /** Return opens the selected item (on the Mac it renames, as in the Finder). */
+    enterOpens?: boolean;
   } = $props();
 
   let strip: HTMLDivElement | undefined = $state();
@@ -107,7 +118,7 @@
       ev.preventDefault();
       flip(ev.key === "ArrowDown" || ev.key === "PageDown" ? 1 : -1);
       return;
-    } else if (ev.key === "Enter" && current) {
+    } else if (ev.key === "Enter" && current && enterOpens && !renaming) {
       ev.preventDefault();
       onactivate(current);
       return;
@@ -138,7 +149,7 @@
         onclick={() => onselect(e)}
         ondblclick={() => onactivate(e)}
         oncontextmenu={(ev) => onmenu(e, ev)}
-        {...dragSource({ sourceId, entry: e })}
+        {...renaming === e.relPath ? {} : dragSource({ sourceId, entry: e })}
         {...e.isDir ? dropTarget(sourceId, e.relPath, { move: (item) => onmove(item, sourceId, e.relPath), files: (d) => oncopy(d, sourceId, e.relPath) }) : {}}
         title={e.title ?? e.name}
       >
@@ -149,8 +160,14 @@
             <Thumb {sourceId} entry={e} side={320} iconSize={48} />
           {/if}
         </span>
-        <span class="label">{e.name}</span>
+        <span class="label" class:hidden={renaming === e.relPath}>{e.name}</span>
       </button>
+      {#if renaming === e.relPath}
+        <!-- Outside the tile's button: buttons can't hold inputs. -->
+        <span class="rename-at">
+          <RenameField name={e.name} isDir={e.isDir} oncommit={(name) => onrename(e, name)} oncancel={onrenamecancel} />
+        </span>
+      {/if}
       <!-- Over the picture, outside the tile's button (buttons can't hold buttons). -->
       <span class="pic-marks">
         {#if !e.isDir}
@@ -192,7 +209,12 @@
         <div class="caption doc-host selected">
           <strong class="cap-title">
             {#if !current.isDir}<DocStar {sourceId} doc={current} onclick={() => onstar(current!)} />{/if}
-            <span>{current.title ?? current.name}</span>
+            {#if renaming === current.relPath}
+              {@const doc = current}
+              <RenameField name={doc.name} isDir={doc.isDir} oncommit={(name) => onrename(doc, name)} oncancel={onrenamecancel} />
+            {:else}
+              <span>{current.title ?? current.name}</span>
+            {/if}
             {#if current.cloud === "cloudOnly"}<CloudBadge {sourceId} doc={current} onclick={() => ondownload(current!)} />{/if}
           </strong>
           <span class="muted">
@@ -425,5 +447,15 @@
   .frame.selected {
     border-color: var(--accent);
     background: var(--accent-soft);
+  }
+  .label.hidden {
+    visibility: hidden;
+  }
+  .rename-at {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 8px;
+    z-index: 2;
   }
 </style>

@@ -125,6 +125,21 @@
     primera página, así sigue mostrando una cuando el archivo pasa a estar solo en línea. Los documentos solo en línea sin
     imagen muestran su ícono. En los dos casos conservan la nube, y abrir uno lo descarga.
   </p>
+  <h3 id="renaming">Renombrar</h3>
+  <p>
+    Hacé clic derecho en un documento o una carpeta y elegí <b>Renombrar…</b>, o seleccionalo y apretá
+    {mac ? "Return" : "F2"}{mac ? " (⌘O o ⌘↓ lo abre)" : ""}. Escribí el nombre nuevo ahí mismo y apretá
+    {mac ? "Return" : "Enter"}; Escape lo deja como estaba. Solo queda seleccionada la parte antes de la extensión, y si
+    no escribís la extensión, se conserva la anterior. Se renombra en el disco en el acto, junto con su archivo oculto de
+    detalles, y los archivos que están solo en línea se renombran sin descargarlos.
+  </p>
+  <p>
+    Rupert nunca reemplaza nada: un nombre que ya existe en la carpeta no se acepta. Tampoco los nombres que algunas
+    computadoras no pueden usar, porque tus carpetas pueden sincronizarse entre una Mac, Windows y Linux: nombres con
+    <code>/ \ : * ? " &lt; &gt; |</code>, nombres que empiezan con un punto o terminan con un punto o un espacio, y nombres
+    que Windows se reserva, como CON o NUL. Si renombrás la carpeta de la bandeja de entrada (o una que la contiene), la
+    configuración de la bandeja la sigue. Los resultados de búsqueda no se pueden renombrar: abrí primero la carpeta.
+  </p>
   <h3 id="moving">Mover</h3>
   <p>
     Arrastrá un documento o una carpeta sobre una carpeta, en la barra lateral o en la vista de la carpeta, o hacé clic

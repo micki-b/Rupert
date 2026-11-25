@@ -6,6 +6,7 @@
   import { changes } from "./changes.svelte";
   import Icon from "./Icon.svelte";
   import FolderNode from "./FolderNode.svelte";
+  import RenameField from "./RenameField.svelte";
   import { dropTarget, isDropOver, type Dropped, type MoveItem } from "./drag.svelte";
   import { m } from "#lib/i18n/index.ts";
 
@@ -25,9 +26,29 @@
     oncopy?: (dropped: Dropped, sourceId: string, relPath: string) => void;
     /** Right-click on the row. */
     onmenu?: (sourceId: string, relPath: string, name: string, ev: MouseEvent) => void;
+    /** The folder whose name is being edited in place (#65). */
+    renaming?: { sourceId: string; relPath: string } | null;
+    onrename?: (sourceId: string, relPath: string, name: string) => void;
+    onrenamecancel?: () => void;
   }
-  let { sourceId, relPath, name, depth, selected, onselect, startExpanded, trailing, onmove, oncopy, onmenu }: Props =
-    $props();
+  let {
+    sourceId,
+    relPath,
+    name,
+    depth,
+    selected,
+    onselect,
+    startExpanded,
+    trailing,
+    onmove,
+    oncopy,
+    onmenu,
+    renaming = null,
+    onrename,
+    onrenamecancel,
+  }: Props = $props();
+
+  const editing = $derived(!!relPath && renaming?.sourceId === sourceId && renaming.relPath === relPath);
 
   const drop = $derived(
     dropTarget(sourceId, relPath, {
@@ -97,7 +118,13 @@
     <Icon name="chevron" size={12} />
   </button>
   <span class="icon"><Icon name="folder" size={15} /></span>
-  <span class="label">{name}</span>
+  {#if editing && onrename && onrenamecancel}
+    <span class="label editing"
+      ><RenameField {name} isDir oncommit={(n) => onrename(sourceId, relPath, n)} oncancel={onrenamecancel} /></span
+    >
+  {:else}
+    <span class="label">{name}</span>
+  {/if}
   {#if trailing}{@render trailing()}{/if}
 </div>
 
@@ -113,6 +140,9 @@
       {onmove}
       {oncopy}
       {onmenu}
+      {renaming}
+      {onrename}
+      {onrenamecancel}
     />
   {/each}
 {/if}
@@ -170,5 +200,10 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* Room for the edit field's outline. */
+  .label.editing {
+    overflow: visible;
+    padding: 0 4px 0 2px;
   }
 </style>

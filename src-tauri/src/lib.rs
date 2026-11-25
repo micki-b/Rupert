@@ -402,6 +402,71 @@ async fn move_entry(
     Ok(moved.rel_path)
 }
 
+/// Renames a document or folder in place (#65). The index catches up, and
+/// if the inbox is in a renamed folder, the setting follows it. Returns the
+/// new path.
+#[tauri::command]
+async fn rename_entry(
+    source_id: String,
+    rel_path: String,
+    new_name: String,
+    app: AppHandle,
+) -> CmdResult<String> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let (s, rel, name) = (source.clone(), rel_path.clone(), new_name.clone());
+    let moved = tauri::async_runtime::spawn_blocking(move || {
+        rupert_core::fileops::rename_entry(&s, &rel, &name)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    if moved.rel_path == rel_path {
+        return Ok(moved.rel_path);
+    }
+    let parent = rel_path
+        .rsplit_once('/')
+        .map(|(dir, _)| dir.to_string())
+        .unwrap_or_default();
+    if moved.is_dir {
+        state.indexer.send(Job::SyncDir {
+            source,
+            rel_dir: parent,
+        });
+        // The inbox is kept by its path.
+        let changed = {
+            let mut store = state.settings.lock().unwrap();
+            let mut settings = store.get().clone();
+            match &mut settings.inbox {
+                Some(inbox)
+                    if inbox.source_id == source_id
+                        && rupert_core::fileops::is_within(&inbox.rel_path, &rel_path) =>
+                {
+                    inbox.rel_path =
+                        format!("{}{}", moved.rel_path, &inbox.rel_path[rel_path.len()..]);
+                    store.set(settings.clone()).map_err(err)?;
+                    Some(settings)
+                }
+                _ => None,
+            }
+        };
+        if let Some(settings) = changed {
+            state.reconfigure_intake();
+            let _ = app.emit(SETTINGS_CHANGED, &settings);
+        }
+    } else {
+        state.indexer.send(Job::File {
+            source: source.clone(),
+            rel_path,
+        });
+        state.indexer.send(Job::File {
+            source,
+            rel_path: moved.rel_path.clone(),
+        });
+    }
+    Ok(moved.rel_path)
+}
+
 /// Where a file dropped onto the window goes (the `rupert-copy` header,
 /// JSON with non-ASCII characters escaped).
 #[derive(serde::Deserialize)]
@@ -1652,6 +1717,7 @@ pub fn run() {
             stop_indexing,
             resume_indexing,
             index_folder,
+            rename_entry,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

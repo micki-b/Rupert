@@ -581,6 +581,36 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Check for Updates…", "Nach Updates suchen …"),
     ("Settings…", "Einstellungen …"),
     ("Settings", "Einstellungen"),
+    ("The name is empty.", "Der Name ist leer."),
+    (
+        "Names can't contain “{0}”: it isn't allowed in file names on every computer (/ \\ : * ? \" < > | aren't).",
+        "Namen dürfen kein „{0}“ enthalten: Es ist nicht auf jedem Computer in Dateinamen erlaubt (/ \\ : * ? \" < > | sind es nicht).",
+    ),
+    (
+        "Names can't start with a dot: the file would be hidden.",
+        "Namen dürfen nicht mit einem Punkt beginnen: Die Datei wäre dann ausgeblendet.",
+    ),
+    (
+        "Names can't start or end with a space, or end with a dot.",
+        "Namen dürfen nicht mit einem Leerzeichen beginnen oder enden und nicht mit einem Punkt enden.",
+    ),
+    (
+        "“{0}” is a name Windows keeps for itself.",
+        "„{0}“ ist ein Name, den Windows für sich reserviert.",
+    ),
+    ("The name is too long.", "Der Name ist zu lang."),
+    (
+        "“{0}” is a name Rupert keeps for itself.",
+        "„{0}“ ist ein Name, den Rupert für sich reserviert.",
+    ),
+    (
+        "a source itself can't be renamed here",
+        "eine Quelle selbst kann hier nicht umbenannt werden",
+    ),
+    (
+        "“{0}” is already taken in this folder. Choose another name.",
+        "„{0}“ gibt es in diesem Ordner schon. Wählen Sie einen anderen Namen.",
+    ),
     ("Services", "Dienste"),
     ("Hide {0}", "{0} ausblenden"),
     ("Hide Others", "Andere ausblenden"),
