@@ -38,6 +38,10 @@ IHRE DOKUMENTE BLEIBEN IHRE
 
 Rupert ist kostenlos und quelloffen.
 
+## Release notes, 0.8.0 [500]
+
+Den Tab „Scannen“ vom Computer aus öffnen: Klicken Sie dort im Eingang von Rupert auf „Scannen …“ und richten Sie die Kamera des Telefons auf den Code.
+
 ## Release notes, 0.7.0 [500]
 
 Dokumente teilen: Tippen Sie in den Details eines Dokuments auf „Teilen“, um es mit Gmail, Nachrichten oder einer anderen App zu senden. Ein PDF geht ohne Ihre Notizen, außer Einstellungen ▸ Teilen schließt sie ein.

@@ -61,6 +61,12 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.8.0 [4000]
+
+Open the Scan tab from your computer.
+
+• On your computer, click Scan… in Rupert's inbox and point the iPhone's camera at the code: it opens Rupert's Scan tab, ready to scan into the inbox.
+
 ## What's new in 0.7.0 [4000]
 
 Share documents from Rupert.

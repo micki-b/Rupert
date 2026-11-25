@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0 — 2026-11-25
+
+Getting documents in.
+
+- **Print to Rupert** (#101): on a Mac, turn on **Add “Save to Rupert” to the Print dialog's PDF menu** in Settings ▸ Inbox; then **File ▸ Print ▸ PDF ▸ Save to Rupert** in any app puts the PDF in the inbox, to be read and filed like a scan (the Mac App Store edition asks once where to save the entry: the PDF Services folder in your Library folder). On Windows, the switch adds **Send to ▸ Rupert inbox** to File Explorer. The entry follows the inbox when it moves, and Rupert's language.
+- **Import into Inbox…** (#122): **Import…** in the inbox (or **File ▸ Import into Inbox…**, ⇧⌘I) takes many files and folders at once: drop them on the window, or **Add files…** / **Add folder…**. Rupert copies them into the inbox (the originals stay, with their names and dates), shows the progress at the top of the inbox with **Cancel**, and reads and suggests a folder for each as it arrives. A document whose content is already in your library isn't copied again; **Show** lists those with where they are. Files that aren't documents are left out.
+- **Scan with your phone** (#123, #124): **Scan…** in the inbox now opens a panel for scanning with a phone.
+  - On a Mac, **Scan with iPhone…** (or **File ▸ Import from iPhone or iPad**) uses Continuity Camera: choose **Scan Documents** under a nearby iPhone or iPad, and the PDF goes straight into the inbox. No app is needed on the phone.
+  - A QR code opens the Scan tab of Rupert on the iPhone or Android phone, or shows where to get Rupert if it isn't there yet (a new page, rupertlibrarian.com/scan/). The panel names the inbox folder to choose there, and says when the phone can't reach the inbox (a folder on this computer, or iCloud Drive for Android).
+  - A scanner's own software that saves to the inbox folder works as before; the help explains Image Capture and Windows Scan for network scanners without software of their own.
+- **Network scanning is removed** (#123): Rupert no longer finds and drives AirScan (eSCL) scanners itself. It was never tested with a real scanner, and the phone and scanner software cover it. Rupert no longer looks for devices on the local network.
+
 ## 0.7.0 — 2026-11-25
 
 - **Rename documents…** (#64): right-click a folder (or a document, or a source's ⋯ menu) ▸ **Rename documents…** gives a folder's documents new names together, in a before/after table with what changes highlighted and the selected document's first page and details beside it. New names start from each document's date and title (the name pattern). Change one, and Rupert names the others the same way: right away when the rule is in the date and title (another date format, the date last, a word in front), otherwise with Local AI following your example. With Local AI you can also describe the names ("insurer - policy - year") and **Propose with AI**, one document at a time with progress and Stop. Taken names get " (2)", names that aren't allowed or don't change are left out, nothing is ever replaced, and optionally the titles follow the new names. Afterwards **Undo** (the bar at the bottom of the window, Edit ▸ Undo / ⌘Z, Ctrl+Z) gives them their old names back.

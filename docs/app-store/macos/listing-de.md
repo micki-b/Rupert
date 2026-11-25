@@ -39,6 +39,15 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.8.0 [4000]
+
+Dokumente einfacher in den Eingang bringen: mit dem iPhone scannen, in Rupert drucken oder viele Dateien auf einmal importieren.
+
+• Mit dem iPhone scannen: Klicken Sie im Eingang auf „Scannen …“, dann auf „Mit dem iPhone scannen …“, und wählen Sie „Dokumente scannen“ unter einem iPhone oder iPad in der Nähe. Das PDF kommt direkt in den Eingang. Oder scannen Sie mit der Rupert-App auf Ihrem iPhone oder Android-Telefon: Richten Sie die Kamera auf den Code im selben Fenster.
+• In Rupert drucken: Schalten Sie es unter Einstellungen ▸ Eingang ein und wählen Sie dann in jeder App Ablage ▸ Drucken ▸ PDF ▸ In Rupert sichern.
+• In den Eingang importieren …: Bringen Sie viele Dateien und Ordner auf einmal herein. Dokumente, die schon in Ihrer Bibliothek sind, werden nicht noch einmal kopiert.
+• Rupert scannt nicht mehr selbst von Netzwerkscannern. Scannersoftware, die in den Eingangsordner speichert, funktioniert weiterhin.
+
 ## What's new in 0.7.0 [4000]
 
 Viele Dokumente auf einmal umbenennen und Dokumente per Mail, Nachrichten oder AirDrop senden.

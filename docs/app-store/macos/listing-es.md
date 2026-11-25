@@ -39,6 +39,15 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.8.0 [4000]
+
+Más formas de traer documentos a la bandeja de entrada: escaneá con el iPhone, imprimí en Rupert o importá muchos archivos de una vez.
+
+• Escanear con el iPhone: hacé clic en Escanear… en la bandeja de entrada, después en Escanear con el iPhone…, y elegí Escanear documentos debajo de un iPhone o iPad cercano. El PDF va directo a la bandeja de entrada. O escaneá con la app de Rupert en tu iPhone o teléfono Android: apuntá la cámara al código en la misma ventana.
+• Imprimir en Rupert: activalo en Configuración ▸ Bandeja de entrada y después elegí Archivo ▸ Imprimir ▸ PDF ▸ Guardar en Rupert en cualquier app.
+• Importar a la bandeja de entrada…: traé muchos archivos y carpetas de una vez. Los documentos que ya están en tu biblioteca no se copian de nuevo.
+• Rupert ya no escanea desde escáneres de red por su cuenta. El software de escáner que guarda en la carpeta de la bandeja de entrada sigue funcionando.
+
 ## What's new in 0.7.0 [4000]
 
 Cambiá el nombre de muchos documentos de una vez y enviá documentos por Mail, Mensajes o AirDrop.

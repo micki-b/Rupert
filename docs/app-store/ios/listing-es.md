@@ -51,6 +51,12 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.8.0 [4000]
+
+Abrí la pestaña Escanear desde tu computadora.
+
+• En tu computadora, hacé clic en Escanear… en la bandeja de entrada de Rupert y apuntá la cámara del iPhone al código: abre la pestaña Escanear de Rupert, lista para escanear a la bandeja de entrada.
+
 ## What's new in 0.7.0 [4000]
 
 Compartí documentos desde Rupert.

@@ -51,6 +51,15 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.8.0 [4000]
+
+Get documents into the inbox more easily: scan with your iPhone, print to Rupert, or import many files at once.
+
+• Scan with iPhone: click Scan… in the inbox, then Scan with iPhone…, and choose Scan Documents under a nearby iPhone or iPad. The PDF goes straight into the inbox. Or scan with the Rupert app on your iPhone or Android phone: point its camera at the code in the same window.
+• Print to Rupert: turn it on in Settings ▸ Inbox, then choose File ▸ Print ▸ PDF ▸ Save to Rupert in any app.
+• Import into Inbox…: bring in many files and folders at once. Documents already in your library aren't copied again.
+• Rupert no longer scans from network scanners itself. Scanner software that saves to the inbox folder still works.
+
 ## What's new in 0.7.0 [4000]
 
 Rename many documents at once, and send documents by Mail, Messages or AirDrop.

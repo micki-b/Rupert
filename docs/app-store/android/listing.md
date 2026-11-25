@@ -74,6 +74,10 @@ Rupert is free and open source.
 
   (Google Play counts sending data off the device as "collection" even when it goes to the user's own storage and never to the developer.)
 
+## Release notes, 0.8.0 [500]
+
+Open the Scan tab from your computer: click Scan… in Rupert's inbox there and point your phone's camera at the code.
+
 ## Release notes, 0.7.0 [500]
 
 Share documents: in a document's details, tap Share to send it with Gmail, Messages or another app. A PDF goes without your notes unless Settings ▸ Sharing includes them.
