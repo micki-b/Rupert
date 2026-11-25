@@ -86,6 +86,13 @@
   </p>
   <p>Los dos botones arriba de las carpetas cambian la barra lateral entre tus <b>carpetas</b> y tus <b>etiquetas</b>.</p>
   <p>
+    La <b>Configuración</b> ({mac ? "⌘," : "Ctrl+,"}, o el botón <b>Configuración</b> abajo a la izquierda) se abre en su
+    propia ventana, con sus partes a la izquierda: <b>General</b>, <b>Biblioteca</b>, <b>Bandeja de entrada</b>,
+    <b>Reconocimiento de texto</b>, <b>IA local</b> y <b>Asistente</b>. Escribí en el campo de búsqueda de arriba para
+    encontrar un ajuste. <b>Biblioteca</b> muestra tus fuentes con sus opciones, las mismas que las del <b>⋯</b> al lado
+    de cada una; <b>+</b> agrega una carpeta. Los cambios se aplican en el acto.
+  </p>
+  <p>
     Para darle más o menos lugar a la barra lateral, a los <b>Detalles</b> o a la vista previa y <b>Archivarlo</b> de la
     bandeja de entrada, arrastrá el borde entre las columnas. Doble clic en el borde para volver al ancho de siempre.
     Rupert recuerda cada ancho, y el centro siempre conserva algo de lugar. Con el teclado, apretá {mac ? "Opción-Tab" : "Tab"} hasta que el borde
@@ -336,7 +343,7 @@
     podés recuperar.
   </p>
   <p>
-    El nombre del archivo sigue el formato de <b>Configuración ▸ Nombres de archivo</b>: se completan
+    El nombre del archivo sigue el formato de <b>Configuración ▸ Bandeja de entrada</b>, en <b>Nombres de archivo</b>: se completan
     <code>{"{date}"}</code> (la fecha) y <code>{"{title}"}</code> (el título), así que el formato predeterminado
     <code>{"{date} {title}"}</code> da nombres como “2026-04-29 Renovación del seguro del auto.pdf”. Si ya existe un
     archivo con ese nombre, Rupert le agrega “(2)”; nunca sobrescribe.
@@ -431,7 +438,7 @@
       <tr>
         <td>Sugerencias de la bandeja de entrada (título, fecha, etiquetas, carpeta)</td>
         <td>IA local, siempre (en esta computadora o en tu red local)</td>
-        <td><b>Configuración ▸ IA local</b> y <b>Sugerencias</b></td>
+        <td><b>Configuración ▸ IA local</b>, y <b>Sugerencias</b> en <b>Configuración ▸ Bandeja de entrada</b></td>
       </tr>
       <tr>
         <td>Preguntale a Rupert (el chat)</td>
@@ -907,12 +914,12 @@
   </p>
   <ul>
     <li>
-      <b>Idioma:</b> Rupert usa el idioma de tu computadora, o el que elijas en <b>Configuración ▸ Idioma</b>. Habla
+      <b>Idioma:</b> Rupert usa el idioma de tu computadora, o el que elijas en <b>Configuración ▸ General</b>. Habla
       inglés, español rioplatense y alemán.
     </li>
     <li>
       <b>Actualizaciones:</b> Rupert busca una versión nueva una vez por día (lo desactivás en
-      <b>Configuración ▸ Actualizaciones</b>). Cuando sale una, aparece <b>Actualizar a …</b> en la barra de estado; hacé
+      <b>Configuración ▸ General</b>). Cuando sale una, aparece <b>Actualizar a …</b> en la barra de estado; hacé
       clic para instalarla, y Rupert se reinicia.{#if mac}
         O elegí <b>Rupert ▸ Buscar actualizaciones…</b>.{/if}
     </li>

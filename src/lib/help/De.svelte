@@ -82,6 +82,13 @@
   </p>
   <p>Die beiden Tasten über den Ordnern schalten die Seitenleiste zwischen Ihren <b>Ordnern</b> und Ihren <b>Tags</b> um.</p>
   <p>
+    Die <b>Einstellungen</b> ({mac ? "⌘," : "Strg+,"} oder die Taste <b>Einstellungen</b> unten links) öffnen sich in einem
+    eigenen Fenster, mit ihren Bereichen links: <b>Allgemein</b>, <b>Bibliothek</b>, <b>Eingang</b>,
+    <b>Texterkennung</b>, <b>Lokale KI</b> und <b>Assistent</b>. Tippen Sie in das Suchfeld darüber, um eine Einstellung
+    zu finden. <b>Bibliothek</b> zeigt Ihre Quellen mit ihren Optionen, denselben wie beim <b>⋯</b> neben jeder Quelle;
+    <b>+</b> fügt einen Ordner hinzu. Änderungen gelten sofort.
+  </p>
+  <p>
     Um der Seitenleiste, den <b>Angaben</b> oder der Vorschau mit <b>Ablegen</b> im Eingang mehr oder weniger Platz zu
     geben, ziehen Sie den Rand zwischen den Spalten. Ein Doppelklick auf den Rand stellt die übliche Breite wieder her.
     Rupert merkt sich jede Breite, und die Mitte behält immer etwas Platz. Mit der Tastatur drücken Sie {mac ? "Wahl-Tab" : "die Tabulatortaste"},
@@ -338,7 +345,7 @@
     gespeichert ist; er landet im Papierkorb, aus dem Sie ihn zurückholen können.
   </p>
   <p>
-    Der Dateiname folgt dem Muster unter <b>Einstellungen ▸ Dateinamen</b>: <code>{"{date}"}</code> (das Datum) und
+    Der Dateiname folgt dem Muster unter <b>Einstellungen ▸ Eingang</b>, bei <b>Dateinamen</b>: <code>{"{date}"}</code> (das Datum) und
     <code>{"{title}"}</code> (der Titel) werden ausgefüllt, sodass das Standardmuster <code>{"{date} {title}"}</code>
     Namen wie „2026-04-29 Verlängerung der Kfz-Versicherung.pdf“ ergibt. Gibt es eine Datei mit diesem Namen schon, hängt
     Rupert „(2)“ an; es überschreibt nie.
@@ -433,7 +440,7 @@
       <tr>
         <td>Vorschläge im Eingang (Titel, Datum, Tags, Ordner)</td>
         <td>Lokale KI, immer (auf diesem Computer oder in Ihrem lokalen Netzwerk)</td>
-        <td><b>Einstellungen ▸ Lokale KI</b> und <b>Vorschläge</b></td>
+        <td><b>Einstellungen ▸ Lokale KI</b>, und <b>Vorschläge</b> unter <b>Einstellungen ▸ Eingang</b></td>
       </tr>
       <tr>
         <td>Rupert fragen (der Chat)</td>
@@ -927,12 +934,12 @@
   </p>
   <ul>
     <li>
-      <b>Sprache:</b> Rupert verwendet die Sprache Ihres Computers oder die unter <b>Einstellungen ▸ Sprache</b> gewählte.
+      <b>Sprache:</b> Rupert verwendet die Sprache Ihres Computers oder die unter <b>Einstellungen ▸ Allgemein</b> gewählte.
       Er spricht Englisch, rioplatensisches Spanisch und Deutsch.
     </li>
     <li>
       <b>Updates:</b> Rupert sucht einmal am Tag nach einer neuen Version (abschaltbar unter
-      <b>Einstellungen ▸ Updates</b>). Gibt es eine, erscheint <b>Auf … aktualisieren</b> in der Statusleiste; ein Klick
+      <b>Einstellungen ▸ Allgemein</b>). Gibt es eine, erscheint <b>Auf … aktualisieren</b> in der Statusleiste; ein Klick
       installiert sie, und Rupert startet neu.{#if mac}
         Oder wählen Sie <b>Rupert ▸ Nach Updates suchen …</b>.{/if}
     </li>

@@ -1,12 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window (links in Markdown open in the browser)",
+  "description": "Capability for the main and Settings windows (links in Markdown open in the browser)",
   "windows": [
-    "main"
+    "main",
+    "settings"
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
     "dialog:allow-open",
     "dialog:allow-ask",
     "opener:allow-open-url",

@@ -241,6 +241,12 @@ const de: Messages = {
   },
   settings: {
     title: "Einstellungen",
+    general: "Allgemein",
+    search: "Suchen",
+    noMatch: (q: string) => `Keine Einstellung passt zu „${q}“.`,
+    libraryNote: "Die Ordner, die Rupert zeigt, so wie sie auf dem Datenträger liegen. Wenn Sie einen aus Rupert entfernen, bleiben der Ordner und seine Dateien, wo sie sind.",
+    inboxFolder: "Ordner",
+    notAvailable: "Gerade nicht verfügbar: Wählen Sie ihn in der Seitenleiste erneut.",
     applyNow: "Änderungen gelten sofort.",
     closeSettings: "Einstellungen schließen",
     language: "Sprache",
@@ -284,7 +290,7 @@ const de: Messages = {
     localAiNote: "Getestet mit LM Studio und Ollama. Andere Server mit einer OpenAI-kompatiblen API sollten ebenfalls funktionieren.",
     suggestionsNote: "Nur der Text von Dokumenten im Eingang wird gesendet, und nur an die lokale KI.",
     assistant: "Assistent",
-    providerLocal: "Lokale KI (oben eingerichtet)",
+    providerLocal: "Lokale KI",
     providerAnthropic: "Claude (Anthropic, Cloud)",
     providerOpenai: "OpenAI-kompatibler Dienst (Cloud)",
     providerChatgpt: "ChatGPT mit Ihrem Abo (Cloud)",
@@ -312,7 +318,7 @@ const de: Messages = {
     howToSetUp: "So richten Sie jede Art von Modell ein",
     chatgptNote:
       "Antworten zählen zu den Limits Ihres ChatGPT-Abos, nicht zu einem API-Schlüssel. Sie können Ruperts Anteil in den ChatGPT-Einstellungen begrenzen. Dies ist eine Vorschau von OpenAI und kann sich ändern.",
-    localNote: "Verwendet die oben eingerichtete lokale KI. Nichts geht ins Internet.",
+    localNote: "Verwendet die lokale KI, die auf ihrem eigenen Tab eingerichtet wird. Nichts geht ins Internet.",
     cloudNote:
       "☁ Mit einem Cloud-Modell werden Ihre Fragen und das, was der Assistent ansieht (Titel, Tags, Ordner und der Text gelesener Dokumente), an diesen Dienst gesendet. Vorschläge für den Eingang verwenden weiterhin nur die lokale KI.",
     updates: "Updates",

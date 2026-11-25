@@ -434,6 +434,9 @@ export const api = {
   assistantCancel: () => invoke<void>("assistant_cancel"),
   /** Opens the help window, at a section of it if given. */
   openHelp: (section?: string) => invoke<void>("open_help", { section: section ?? null }),
+  /** Opens the Settings window (#80) at a tab: "general", "library", "inbox",
+   * "text", "local-ai", "assistant", or "updates" (General, checking now). */
+  openSettings: (tab?: string) => invoke<void>("open_settings", { tab: tab ?? null }),
   assistantSetKey: (provider: AssistantProvider, key: string | null) =>
     invoke<void>("assistant_set_key", { provider, key }),
   assistantHasKey: (provider: AssistantProvider) => invoke<boolean>("assistant_has_key", { provider }),
@@ -491,6 +494,21 @@ export function onScanDone(handler: (done: ScanDone) => void): Promise<UnlistenF
 
 export function onMenuScan(handler: () => void): Promise<UnlistenFn> {
   return listen("menu-scan", () => handler());
+}
+
+/** Settings were saved, in any window. */
+export function onSettingsChanged(handler: (s: Settings) => void): Promise<UnlistenFn> {
+  return listen<Settings>("settings-changed", (e) => handler(e.payload));
+}
+
+/** Sources were added, removed, renamed or changed, in any window. */
+export function onSourcesChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen("sources-changed", () => handler());
+}
+
+/** The Settings window is asked to show a tab. */
+export function onSettingsShow(handler: (tab: string) => void): Promise<UnlistenFn> {
+  return listen<string>("settings-show", (e) => handler(e.payload));
 }
 
 export function onMenuSettings(handler: () => void): Promise<UnlistenFn> {

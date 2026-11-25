@@ -237,6 +237,12 @@ const es: Messages = {
   },
   settings: {
     title: "Configuración",
+    general: "General",
+    search: "Buscar",
+    noMatch: (q: string) => `Ningún ajuste coincide con «${q}».`,
+    libraryNote: "Las carpetas que muestra Rupert, tal como están en el disco. Quitar una de Rupert deja la carpeta y sus archivos donde están.",
+    inboxFolder: "Carpeta",
+    notAvailable: "No disponible por ahora: volvé a elegirla en la barra lateral.",
     applyNow: "Los cambios se aplican en el acto.",
     closeSettings: "Cerrar la configuración",
     language: "Idioma",
@@ -280,7 +286,7 @@ const es: Messages = {
     localAiNote: "Probado con LM Studio y Ollama. Otros servidores con una API compatible con OpenAI también deberían funcionar.",
     suggestionsNote: "Solo se manda el texto de los documentos de la bandeja de entrada, y solo a la IA local.",
     assistant: "Asistente",
-    providerLocal: "IA local (configurada arriba)",
+    providerLocal: "IA local",
     providerAnthropic: "Claude (Anthropic, en la nube)",
     providerOpenai: "Servicio compatible con OpenAI (en la nube)",
     providerChatgpt: "ChatGPT, con tu plan (en la nube)",
@@ -308,7 +314,7 @@ const es: Messages = {
     howToSetUp: "Cómo configurar cada tipo de modelo",
     chatgptNote:
       "Las respuestas cuentan para los límites de tu plan de ChatGPT, no para una clave de API. Podés limitar la parte de Rupert en la configuración de ChatGPT. Es una vista previa de OpenAI y puede cambiar.",
-    localNote: "Usa la IA local configurada arriba. Nada va a internet.",
+    localNote: "Usa la IA local, que se configura en su propia pestaña. Nada va a internet.",
     cloudNote:
       "☁ Con un modelo en la nube, tus preguntas y lo que mira el asistente (títulos, etiquetas, carpetas y el texto de los documentos que lee) se mandan a ese servicio. Las sugerencias de la bandeja de entrada siguen usando solo la IA local.",
     updates: "Actualizaciones",

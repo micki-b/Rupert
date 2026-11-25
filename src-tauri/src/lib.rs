@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 
 mod assistant;
 mod help;
+mod settings_window;
 mod thumbs;
 
 use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
@@ -48,6 +49,10 @@ const TAG_EDIT_PROGRESS: &str = "tag-edit-progress";
 const MENU_SCAN: &str = "menu-scan";
 /// The inbox list or an item in it changed. No payload.
 const INTAKE_CHANGED: &str = "intake-changed";
+/// Settings were saved (any window). Payload: the settings.
+const SETTINGS_CHANGED: &str = "settings-changed";
+/// Sources were added, removed, renamed or changed (any window). No payload.
+const SOURCES_CHANGED: &str = "sources-changed";
 /// Rupert ▸ Settings… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_SETTINGS: &str = "menu-settings";
@@ -175,7 +180,7 @@ fn list_sources(state: State<AppState>) -> Vec<SourceView> {
 }
 
 #[tauri::command]
-fn add_source(path: String, state: State<AppState>) -> CmdResult<SourceView> {
+fn add_source(path: String, app: AppHandle, state: State<AppState>) -> CmdResult<SourceView> {
     let source = {
         let mut store = state.store.lock().unwrap();
         let added = store.add(&path, None).map_err(err)?;
@@ -185,13 +190,19 @@ fn add_source(path: String, state: State<AppState>) -> CmdResult<SourceView> {
     state.rewatch();
     state.reconfigure_intake();
     state.indexer.send(Job::SyncSource(source.clone()));
+    let _ = app.emit(SOURCES_CHANGED, ());
     Ok(source.into())
 }
 
 /// The user picked an unavailable source's folder again (it moved, or a
 /// sandboxed app lost access): remember the pick and index it.
 #[tauri::command]
-fn relocate_source(id: String, path: String, state: State<AppState>) -> CmdResult<SourceView> {
+fn relocate_source(
+    id: String,
+    path: String,
+    app: AppHandle,
+    state: State<AppState>,
+) -> CmdResult<SourceView> {
     let path = PathBuf::from(path);
     if !path.is_dir() {
         return Err(err(trf("not a folder: {0}", &[&path.display()])));
@@ -205,15 +216,17 @@ fn relocate_source(id: String, path: String, state: State<AppState>) -> CmdResul
     state.rewatch();
     state.reconfigure_intake();
     state.indexer.send(Job::SyncSource(source.clone()));
+    let _ = app.emit(SOURCES_CHANGED, ());
     Ok(source.into())
 }
 
 #[tauri::command]
-fn remove_source(id: String, state: State<AppState>) -> CmdResult<()> {
+fn remove_source(id: String, app: AppHandle, state: State<AppState>) -> CmdResult<()> {
     state.store.lock().unwrap().remove(&id).map_err(err)?;
     state.rewatch();
     state.reconfigure_intake();
     state.indexer.send(Job::RemoveSource(id));
+    let _ = app.emit(SOURCES_CHANGED, ());
     Ok(())
 }
 
@@ -223,6 +236,7 @@ fn update_source(
     name: Option<String>,
     show_all_types: Option<bool>,
     download_online_only: Option<bool>,
+    app: AppHandle,
     state: State<AppState>,
 ) -> CmdResult<SourceView> {
     let updated = state
@@ -235,6 +249,7 @@ fn update_source(
     if show_all_types.is_some() || download_online_only.is_some() {
         state.indexer.send(Job::SyncSource(updated.clone()));
     }
+    let _ = app.emit(SOURCES_CHANGED, ());
     Ok(updated.into())
 }
 
@@ -966,9 +981,9 @@ fn set_settings(app: AppHandle, settings: Settings, state: State<AppState>) -> C
         i18n::set(lang);
         #[cfg(target_os = "macos")]
         install_menu(&app).map_err(err)?;
+        settings_window::retitle(&app);
     }
-    #[cfg(not(target_os = "macos"))]
-    let _ = app;
+    let _ = app.emit(SETTINGS_CHANGED, &settings);
     Ok(settings)
 }
 
@@ -1620,6 +1635,7 @@ pub fn run() {
             assistant::assistant_send,
             assistant::assistant_reset,
             help::open_help,
+            settings_window::open_settings,
             assistant::assistant_cancel,
             assistant::assistant_set_key,
             assistant::assistant_has_key,
