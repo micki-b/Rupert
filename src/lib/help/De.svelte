@@ -463,6 +463,18 @@
     Jede Scanner-App, die in einen Ordner speichert, funktioniert mit Rupert. Legen Sie für einen ScanSnap ein ScanSnap
     Home-Profil an, das PDFs in Ruperts Eingangsordner speichert. Rupert holt jeden neuen Scan von dort ab.
   </p>
+  <h3 id="import-into-inbox">Viele Dateien importieren</h3>
+  <p>
+    Um viele vorhandene Dateien zu übernehmen (alte Scans, einen Ordner mit Kontoauszügen), klicken Sie im Eingang auf
+    <b>Importieren …</b>{#if mac} oder wählen Sie <b>Ablage ▸ In den Eingang importieren …</b> (⇧⌘I){/if}. Ziehen Sie
+    Dateien oder Ordner auf das Fenster oder verwenden Sie <b>Dateien hinzufügen …</b> und <b>Ordner hinzufügen …</b>;
+    Ordner kommen mit allem, was darin ist. Das Fenster zeigt, wie viele Dokumente jeweils dazukommen; klicken Sie auf
+    <b>Importieren</b>. Rupert kopiert sie in den Eingang (die Originale bleiben, wo sie sind, mit Namen und Datum) und zeigt
+    den Fortschritt oben im Eingang, mit <b>Abbrechen</b>; jedes Dokument erscheint, sobald es da ist, und Rupert liest es
+    und schlägt wie bei einem Scan einen Ablageort vor. Ein Dokument, dessen Inhalt schon in Ihrer Bibliothek ist, wird
+    nicht noch einmal kopiert: Die Zusammenfassung nennt die Anzahl, und <b>Zeigen</b> listet sie mit ihrem Ablageort auf
+    (ein Klick zeigt es dort). Dateien, die keine Dokumente sind, werden ausgelassen.
+  </p>
   <h3 id="print-to-rupert">In Rupert drucken</h3>
   <p>
     Viele Dokumente kommen nie an einem Scanner vorbei: eine Rechnung im Browser, eine Kontoauszugsseite, eine

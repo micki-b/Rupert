@@ -458,6 +458,18 @@
     Cualquier app de escáner que guarde en una carpeta funciona con Rupert. Para un ScanSnap, creá un perfil de ScanSnap
     Home que guarde los PDF en la carpeta de la bandeja de entrada de Rupert. Rupert levanta cada escaneo nuevo de ahí.
   </p>
+  <h3 id="import-into-inbox">Importar muchos archivos</h3>
+  <p>
+    Para traer un montón de archivos que ya tenés (escaneos viejos, una carpeta de resúmenes), hacé clic en
+    <b>Importar…</b> en la bandeja de entrada{#if mac} o elegí <b>Archivo ▸ Importar a la bandeja de entrada…</b>
+      (⇧⌘I){/if}. Soltá archivos o carpetas en la ventana, o usá <b>Agregar archivos…</b> y <b>Agregar carpeta…</b>; las
+    carpetas vienen con todo lo que tienen adentro. La ventana muestra cuántos documentos trae cada uno; hacé clic en
+    <b>Importar</b>. Rupert los copia a la bandeja de entrada (los originales quedan donde están, con sus nombres y fechas) y
+    muestra el avance arriba de la bandeja, con <b>Cancelar</b>; cada documento aparece cuando llega, y Rupert lo lee y
+    sugiere dónde archivarlo, como un escaneo. Un documento cuyo contenido ya está en tu biblioteca no se copia de nuevo: el
+    resumen dice cuántos, y <b>Mostrar</b> los lista con dónde están (hacé clic en uno para verlo ahí). Los archivos que no
+    son documentos quedan afuera.
+  </p>
   <h3 id="print-to-rupert">Imprimir en Rupert</h3>
   <p>
     Muchos documentos nunca pasan por un escáner: una factura en el navegador, la página de un resumen, una confirmación

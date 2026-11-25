@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 mod assistant;
 mod drag_out;
 mod help;
+mod inbox_import;
 mod print_entry;
 mod rename;
 mod settings_window;
@@ -60,6 +61,9 @@ const SOURCES_CHANGED: &str = "sources-changed";
 /// Rupert ▸ Settings… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_SETTINGS: &str = "menu-settings";
+/// File ▸ Import into Inbox… was chosen (macOS menu). No payload.
+#[cfg(target_os = "macos")]
+const MENU_IMPORT_INBOX: &str = "menu-import-inbox";
 /// File ▸ Import from ScanSnap Home… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_IMPORT: &str = "menu-import-scansnap";
@@ -1531,6 +1535,11 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
         true,
         &[
             &item(MENU_SCAN, tr("Scan…"), None)?,
+            &item(
+                MENU_IMPORT_INBOX,
+                tr("Import into Inbox…"),
+                Some("CmdOrCtrl+Shift+I"),
+            )?,
             &item(MENU_IMPORT, tr("Import from ScanSnap Home…"), None)?,
             &sep()?,
             &PredefinedMenuItem::close_window(app, Some(tr("Close Window")))?,
@@ -1601,6 +1610,7 @@ fn on_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
         MENU_SCAN,
         MENU_UPDATES,
         MENU_UNDO,
+        MENU_IMPORT_INBOX,
     ] {
         if event.id() == id {
             let _ = app.emit(id, ());
@@ -1821,6 +1831,9 @@ pub fn run() {
             share::email_document,
             share::share_cancel,
             print_entry::set_print_entry,
+            inbox_import::inbox_import_plan,
+            inbox_import::inbox_import_file,
+            inbox_import::inbox_import_dropped,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

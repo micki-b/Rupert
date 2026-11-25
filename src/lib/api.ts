@@ -411,6 +411,21 @@ export const api = {
     const header = JSON.stringify(into).replace(/[\u007f-￿]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
     return invoke<string>("copy_in", new Uint8Array(await file.arrayBuffer()), { headers: { "rupert-copy": header } });
   },
+  // Import into Inbox (#122)
+  /** What chosen files and folders bring in. */
+  inboxImportPlan: (paths: string[]) => invoke<ImportPlan>("inbox_import_plan", { paths }),
+  /** Copies one document into the inbox, unless it's already in the library. */
+  inboxImportFile: (path: string) => invoke<Imported>("inbox_import_file", { path }),
+  /** The same for a file dropped on the Import window (its contents). */
+  inboxImportDropped: async (file: File) => {
+    const header = JSON.stringify({ name: file.name, modifiedMs: file.lastModified || null }).replace(
+      /[\u007f-\uffff]/g,
+      (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"),
+    );
+    return invoke<Imported>("inbox_import_dropped", new Uint8Array(await file.arrayBuffer()), {
+      headers: { "rupert-import": header },
+    });
+  },
   /** A Markdown file's text (its first `limit` bytes if given); null when it's online-only. */
   readMarkdown: (sourceId: string, relPath: string, limit?: number) =>
     invoke<string | null>("read_markdown", { sourceId, relPath, limit: limit ?? null }),
@@ -559,6 +574,29 @@ export function atElement(el: Element): ShareAt {
 /** While an online-only document downloads to be sent: its name; then null. */
 export function onShareProgress(handler: (downloading: string | null) => void): Promise<UnlistenFn> {
   return listen<{ downloading: string | null }>("share-progress", (e) => handler(e.payload.downloading));
+}
+
+export interface ImportChosen {
+  path: string;
+  name: string;
+  isDir: boolean;
+  documents: number;
+}
+
+export interface ImportPlan {
+  chosen: ImportChosen[];
+  files: string[];
+  leftOut: number;
+}
+
+export type Imported =
+  | { kind: "copied"; relPath: string }
+  | { kind: "duplicate"; sourceId: string; relPath: string }
+  | { kind: "leftOut" };
+
+/** File ▸ Import into Inbox… (macOS menu). */
+export function onMenuImportInbox(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-import-inbox", () => handler());
 }
 
 export interface RenameRow {

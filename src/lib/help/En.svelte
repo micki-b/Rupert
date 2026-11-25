@@ -419,6 +419,17 @@
     Any scanner app that saves to a folder works with Rupert. For a ScanSnap, create a ScanSnap Home profile that saves
     PDFs to Rupert's inbox folder. Rupert picks up each new scan from there.
   </p>
+  <h3 id="import-into-inbox">Importing many files</h3>
+  <p>
+    To bring in a batch of existing files (old scans, a folder of statements), click <b>Import…</b> in the inbox{#if mac}
+      or choose <b>File ▸ Import into Inbox…</b> (⇧⌘I){/if}. Drop files or folders on the window, or use <b>Add files…</b> and
+    <b>Add folder…</b>; folders come with everything inside. It lists how many documents each brings; click <b>Import</b>.
+    Rupert copies them into the inbox (the originals stay where they are, with their names and dates) and shows the progress
+    at the top of the inbox, with <b>Cancel</b>; each document appears as it arrives, and Rupert reads it and suggests where
+    to file it, as with a scan. A document whose content is already in your library isn't copied again: the summary says how
+    many, and <b>Show</b> lists them with where they are (click one to see it there). Files that aren't documents are left
+    out.
+  </p>
   <h3 id="print-to-rupert">Printing to Rupert</h3>
   <p>
     Many documents never pass a scanner: an invoice in a browser, a statement page, a booking confirmation.

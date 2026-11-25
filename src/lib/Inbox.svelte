@@ -27,7 +27,8 @@
   import { crumbs, shortestEndings } from "#lib/folders.ts";
   import { dragOutSource } from "#lib/drag.svelte.ts";
   import { formatDate, formatDay } from "#lib/format.ts";
-  import { m } from "#lib/i18n/index.ts";
+  import { m, num } from "#lib/i18n/index.ts";
+  import { dismissImport, importing, stopImport } from "#lib/inbox-import.svelte.ts";
 
   let {
     sources,
@@ -35,13 +36,27 @@
     onfiled,
     onsettings,
     onscan,
+    onimport,
+    onshow,
   }: {
     sources: Source[];
     settings: Settings;
     onfiled: (filed: Filed) => void;
     onsettings: () => void;
     onscan: () => void;
+    /** Import into Inbox… (#122). */
+    onimport: () => void;
+    /** Shows a document where it is in the library. */
+    onshow: (sourceId: string, relPath: string) => void;
   } = $props();
+
+  /** Import's summary: the documents that were already in the library. */
+  let showDuplicates = $state(false);
+  function placeOf(sourceId: string, relPath: string): string {
+    const dir = relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
+    const name = sources.find((s) => s.id === sourceId)?.name ?? "";
+    return [name, ...(dir ? dir.split("/") : [])].join(" › ");
+  }
 
   type Form = {
     title: string;
@@ -470,6 +485,7 @@
             {inboxSource.name}{settings.inbox.relPath ? "/" + settings.inbox.relPath : ""}
           </span>
           <span class="spacer"></span>
+          <button class="scan-btn" onclick={onimport} title={m.importInbox.buttonTip}>{m.importInbox.button}</button>
           <button class="scan-btn" onclick={onscan}>{m.inbox.scan}</button>
         </div>
         <div class="toolbar">
@@ -497,6 +513,52 @@
           </span>
         </div>
       </header>
+      <!-- MARK: Import's progress (#122) -->
+      {#if importing.active || importing.finished}
+        <div class="import-box" role="status">
+          <div class="import-row">
+            {#if importing.active}
+              <b>{m.importInbox.progress(num(importing.done), num(importing.total))}</b>
+              <span class="spacer"></span>
+              <button class="link" onclick={stopImport}>{m.importInbox.stop}</button>
+            {:else}
+              <b>{importing.stopped ? m.importInbox.stopped + " " : ""}{m.importInbox.copied(importing.copied)}</b>
+              <span class="spacer"></span>
+              <button class="link" onclick={() => ((showDuplicates = false), dismissImport())}>{m.importInbox.dismiss}</button>
+            {/if}
+          </div>
+          {#if importing.active}
+            <div class="import-bar"><i style:width="{(100 * importing.done) / Math.max(importing.total, 1)}%"></i></div>
+          {/if}
+          {#if importing.duplicates.length}
+            <p class="small muted">
+              {m.importInbox.duplicates(importing.duplicates.length)}
+              <button class="link" onclick={() => (showDuplicates = !showDuplicates)}
+                >{showDuplicates ? m.importInbox.hide : m.importInbox.show}</button
+              >
+            </p>
+            {#if showDuplicates}
+              <ul class="dupes">
+                {#each importing.duplicates as d, i (i)}
+                  <li>
+                    <button class="link" onclick={() => onshow(d.sourceId, d.relPath)} title={m.importInbox.openFolder}
+                      >{d.name}</button
+                    >
+                    <span class="muted">{placeOf(d.sourceId, d.relPath)}</span>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          {/if}
+          {#if importing.leftOut}<p class="small muted">{m.importInbox.leftOut(importing.leftOut)}</p>{/if}
+          {#if importing.failed.length}
+            <p class="small error" title={importing.failed.map((f) => `${f.name}: ${f.message}`).join("\n")}>
+              {m.importInbox.failed(importing.failed.length)}
+              {importing.failed[0].name}: {importing.failed[0].message}
+            </p>
+          {/if}
+        </div>
+      {/if}
       {#if lastFiled}
         <div class="filed">
           {m.inbox.filedIn(lastFiled.label)}
@@ -906,6 +968,47 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .import-box {
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    display: grid;
+    gap: 4px;
+  }
+  .import-box p {
+    margin: 0;
+  }
+  .import-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .import-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .import-bar i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+  .dupes {
+    margin: 0;
+    padding: 0 0 0 4px;
+    list-style: none;
+    max-height: 140px;
+    overflow: auto;
+    font-size: 12px;
+  }
+  .dupes li {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
   }
   .scan-btn {
     flex: none;

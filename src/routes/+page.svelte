@@ -10,6 +10,7 @@
     onIntakeChanged,
     onMenuImport,
     onMenuScan,
+    onMenuImportInbox,
     onMenuSettings,
     onMenuCheckUpdates,
     onSettingsChanged,
@@ -61,6 +62,7 @@
   import Splitter from "#lib/Splitter.svelte";
   import RenameField from "#lib/RenameField.svelte";
   import RenameDialog from "#lib/RenameDialog.svelte";
+  import InboxImportDialog from "#lib/InboxImportDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { loadLanguage, m } from "#lib/i18n/index.ts";
@@ -83,6 +85,8 @@
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
   let inboxCount = $state(0);
+  /** The Import into Inbox window (#122). */
+  let importInboxOpen = $state(false);
 
   // MARK: - Column widths (#61)
   // The sidebar and the right column (Details, or the inbox's preview and
@@ -289,6 +293,14 @@
       }),
       onSourcesChanged(() => loadSources()),
       onMenuScan(() => (scanOpen = true)),
+      onMenuImportInbox(() => {
+        if (appSettings?.inbox) {
+          openInbox();
+          importInboxOpen = true;
+        } else {
+          api.openSettings("inbox");
+        }
+      }),
       onIntakeChanged(loadInboxCount),
       onIndexProgress((p) => (progress = p)),
       onShareProgress((name) => (sendingName = name)),
@@ -1129,6 +1141,20 @@
         onfiled={showFiled}
         onsettings={() => api.openSettings("inbox")}
         onscan={() => (scanOpen = true)}
+        onimport={() => (importInboxOpen = true)}
+        onshow={(sourceId, relPath) =>
+          showInFolder({
+            sourceId,
+            entry: {
+              name: relPath.slice(relPath.lastIndexOf("/") + 1),
+              relPath,
+              isDir: false,
+              kind: null,
+              size: 0,
+              modifiedMs: null,
+              cloud: "local",
+            },
+          })}
       />
     </main>
   {:else}
@@ -1491,6 +1517,14 @@
 
 {#if importing}
   <ImportDialog {sources} onclose={() => (importing = false)} onsourceadded={() => loadSources()} />
+{/if}
+
+{#if importInboxOpen && appSettings?.inbox}
+  {@const inbox = appSettings.inbox}
+  <InboxImportDialog
+    inboxName={[sourceName(inbox.sourceId), inbox.relPath].filter(Boolean).join("/")}
+    onclose={() => (importInboxOpen = false)}
+  />
 {/if}
 
 {#if renameDocs}
