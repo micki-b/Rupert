@@ -1254,6 +1254,28 @@ async fn preview(
     .map_err(err)?
 }
 
+/// A sharp page for the page viewer's zoom (#83): a `data:` URL, or `None`
+/// if there's nothing to show without downloading the file.
+#[tauri::command]
+async fn page_image(
+    source_id: String,
+    rel_path: String,
+    page: usize,
+    side: u32,
+    app: AppHandle,
+) -> CmdResult<Option<String>> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let extractor = state.extractor.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        let image = rupert_core::thumbs::large_page(&extractor, &path, page, side).map_err(err)?;
+        Ok(image.map(|(bytes, mime)| format!("data:{mime};base64,{}", base64(&bytes))))
+    })
+    .await
+    .map_err(err)?
+}
+
 fn base64(bytes: &[u8]) -> String {
     const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
@@ -1756,6 +1778,7 @@ pub fn run() {
             index_folder,
             rename_entry,
             create_folder,
+            page_image,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

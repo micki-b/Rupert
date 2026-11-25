@@ -22,6 +22,7 @@
   import Thumb from "#lib/Thumb.svelte";
   import FolderPicker from "#lib/FolderPicker.svelte";
   import FolderPickerDialog from "#lib/FolderPickerDialog.svelte";
+  import PageViewer from "#lib/PageViewer.svelte";
   import { crumbs, shortestEndings } from "#lib/folders.ts";
   import { formatDate, formatDay } from "#lib/format.ts";
   import { m } from "#lib/i18n/index.ts";
@@ -156,6 +157,8 @@
   }
   /** Browse… (the folder tree) is open. */
   let browsing = $state(false);
+  /** The page viewer is open (#83). */
+  let viewing = $state(false);
 
   /** What the thumbnails need to know about an item. */
   function entryOf(i: IntakeItem): Entry {
@@ -378,6 +381,8 @@
   }
 
   function onkeydown(e: KeyboardEvent) {
+    // The page viewer and the folder tree have their own keys.
+    if (viewing || browsing) return;
     const typing =
       e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
     if (e.key === "Escape" && menu) {
@@ -557,7 +562,7 @@
 
     <!-- MARK: Right column -->
     <section class="side">
-      {#if selected && viewMode !== "gallery"}
+      {#if selected}
         <div class="preview">{@render pagePreview(false)}</div>
       {/if}
       <!-- MARK: Filing form -->
@@ -670,11 +675,44 @@
             {filing ? m.inbox.filing : m.inbox.file}
           </button>
           <button onclick={() => api.openEntry(selected!.sourceId, selected!.relPath)}>{m.inbox.open}</button>
-          <button onclick={() => api.inboxRedo(selected!.relPath)} disabled={selected.stage !== "ready"}
-            >{m.inbox.suggestAgain}</button
-          >
           <span class="spacer"></span>
-          <button class="danger" onclick={() => trash(selected!)} disabled={filing}>{m.common.ellipsis(trashLabel)}</button>
+          <button
+            class="icon-action"
+            class:spinning={selected.stage !== "ready"}
+            onclick={() => api.inboxRedo(selected!.relPath)}
+            disabled={selected.stage !== "ready"}
+            title={m.inbox.suggestAgainTip}
+            aria-label={m.inbox.suggestAgain}
+          >
+            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"
+              ><path
+                d="M19.5 11a7.5 7.5 0 0 0-13.6-4.3M4.5 4v4h4M4.5 13a7.5 7.5 0 0 0 13.6 4.3M19.5 20v-4h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            >
+          </button>
+          <button
+            class="icon-action trash"
+            onclick={() => trash(selected!)}
+            disabled={filing}
+            title={m.common.ellipsis(trashLabel)}
+            aria-label={m.common.ellipsis(trashLabel)}
+          >
+            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"
+              ><path
+                d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A.5.5 0 0 1 9.5 4h5a.5.5 0 0 1 .5.5V7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            >
+          </button>
         </div>
         <p class="muted small">{m.inbox.whatFilingDoes}</p>
       {/if}
@@ -686,7 +724,16 @@
 <!-- MARK: Page preview -->
 {#snippet pagePreview(big: boolean)}
   {#if selected}
-    <div class="page" class:big role="presentation" ondblclick={() => api.openEntry(selected!.sourceId, selected!.relPath)}>
+    <div
+      class="page"
+      class:big
+      class:zoomable={!!previewUrl}
+      role="button"
+      tabindex="-1"
+      title={previewUrl ? m.pictures.openViewer : undefined}
+      onclick={() => previewUrl && (viewing = true)}
+      onkeydown={() => {}}
+    >
       {#if previewUrl}
         <img src={previewUrl} alt={m.inbox.firstPage(selected.name)} />
       {:else if selected.cloud === "cloudOnly"}
@@ -697,10 +744,10 @@
         <p class="muted center">{m.inbox.noPreview}</p>
       {/if}
       {#if pages && pages > 1}
-        <button class="flip prev" onclick={() => flip(-1)} disabled={page === 0} title={m.pictures.previousPageKey} aria-label={m.pictures.previousPage}>
+        <button class="flip prev" onclick={(e) => (e.stopPropagation(), flip(-1))} disabled={page === 0} title={m.pictures.previousPageKey} aria-label={m.pictures.previousPage}>
           <Icon name="back" size={18} />
         </button>
-        <button class="flip next" onclick={() => flip(1)} disabled={page + 1 >= pages} title={m.pictures.nextPageKey} aria-label={m.pictures.nextPage}>
+        <button class="flip next" onclick={(e) => (e.stopPropagation(), flip(1))} disabled={page + 1 >= pages} title={m.pictures.nextPageKey} aria-label={m.pictures.nextPage}>
           <Icon name="chevron" size={18} />
         </button>
       {/if}
@@ -729,6 +776,16 @@
   </div>
 {/if}
 
+
+{#if viewing && selected}
+  <PageViewer
+    sourceId={selected.sourceId}
+    entry={entryOf(selected)}
+    title={form.title.trim() || selected.suggestion?.title || null}
+    startPage={page}
+    onclose={() => (viewing = false)}
+  />
+{/if}
 
 {#if browsing && selected}
   {@const current = [...selected.folders, ...allFolders].find((f) => f.label === form.folder) ?? null}
@@ -1243,5 +1300,31 @@
   }
   p {
     margin: 0;
+  }
+  /* Suggest again and Move to Trash as icons (#83). */
+  .icon-action {
+    width: 32px;
+    height: 30px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+  .icon-action.trash {
+    color: var(--danger);
+  }
+  .icon-action.trash:hover:not(:disabled) {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+  }
+  .icon-action.spinning svg {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .page.zoomable {
+    cursor: zoom-in;
   }
 </style>

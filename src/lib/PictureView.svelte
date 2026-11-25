@@ -31,6 +31,8 @@
     onrename,
     onrenamecancel,
     enterOpens = true,
+    onview,
+    paused = false,
   }: {
     mode: "icons" | "gallery";
     sourceId: string;
@@ -53,6 +55,10 @@
     onrenamecancel: () => void;
     /** Return opens the selected item (on the Mac it renames, as in the Finder). */
     enterOpens?: boolean;
+    /** Clicking the gallery's large page opens the page viewer at `page` (#83). */
+    onview?: (e: ListedEntry, page: number) => void;
+    /** Something over the view (the page viewer) has the keyboard. */
+    paused?: boolean;
   } = $props();
 
   let strip: HTMLDivElement | undefined = $state();
@@ -106,6 +112,7 @@
 
   /** Arrow keys move the selection (not while typing somewhere). */
   function onkeydown(ev: KeyboardEvent) {
+    if (paused) return;
     const t = ev.target;
     if (t instanceof Element && t.closest("input, textarea, select, [contenteditable], [role=dialog]")) return;
     if (!entries.length || ev.metaKey || ev.ctrlKey || ev.altKey) return;
@@ -195,7 +202,19 @@
               <div class="md-sheet"><MarkdownView {sourceId} relPath={current.relPath} /></div>
             {/key}
           {:else}
-            <Thumb {sourceId} entry={current} {page} side={BIG} iconSize={96} eager />
+            {@const doc = current}
+            {@const viewable = !!onview && !doc.isDir && doc.cloud !== "cloudOnly" && (doc.kind === "pdf" || doc.kind === "image")}
+            <div
+              class="viewable"
+              class:on={viewable}
+              role="button"
+              tabindex="-1"
+              title={viewable ? m.pictures.openViewer : undefined}
+              onclick={(e) => viewable && e.detail === 1 && onview?.(doc, page)}
+              onkeydown={() => {}}
+            >
+              <Thumb {sourceId} entry={doc} {page} side={BIG} iconSize={96} eager />
+            </div>
           {/if}
           {#if pages && pages > 1}
             <button class="flip prev" onclick={() => flip(-1)} disabled={page === 0} title={m.pictures.previousPageKey} aria-label={m.pictures.previousPage}>
@@ -457,5 +476,11 @@
     right: 6px;
     bottom: 8px;
     z-index: 2;
+  }
+  .viewable {
+    display: contents;
+  }
+  .viewable.on :global(img) {
+    cursor: zoom-in;
   }
 </style>

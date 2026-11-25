@@ -28,6 +28,9 @@ const MAX_SIDE: u32 = 1600;
 /// large icons and readable in the gallery, about 50 KB.
 const KEEP_SIDE: u32 = 720;
 const KEEP_QUALITY: u8 = 75;
+/// The page viewer's sharpest picture, and its quality.
+const LARGE_SIDE: u32 = 4000;
+const LARGE_QUALITY: u8 = 85;
 /// The kept pictures' folder inside the cache.
 const KEPT_DIR: &str = "kept";
 
@@ -228,6 +231,36 @@ fn prune_dir(dir: &Path, max_bytes: u64, keep_bytes: u64) {
     }
 }
 
+/// A sharp picture of a page for the page viewer's zoom (#83): a PDF's
+/// `page` at most `side` pixels on its longest side, as a JPEG; images as
+/// they are. Not cached (only shown while zoomed), and `None` for
+/// online-only files and kinds without pages.
+pub fn large_page(
+    extractor: &TextExtractor,
+    path: &Path,
+    page: usize,
+    side: u32,
+) -> Result<Option<Picture>> {
+    if cloud_state(path)? == CloudState::CloudOnly {
+        return Ok(None);
+    }
+    match FileKind::from_path(path) {
+        FileKind::Pdf => {
+            let side = side.clamp(MIN_SIDE, LARGE_SIDE);
+            let rendered = extractor.render_page(path, page, side, 6.0, true)?;
+            Ok(Some((
+                to_jpeg_with(&rendered, LARGE_QUALITY)?,
+                "image/jpeg",
+            )))
+        }
+        FileKind::Image => match image_mime(path) {
+            Some(mime) => Ok(Some((fs::read(path)?, mime))),
+            None => Ok(None),
+        },
+        _ => Ok(None),
+    }
+}
+
 /// A file's size and modification time, which change whenever it does.
 struct Stamp {
     len: u64,
@@ -255,6 +288,10 @@ impl Stamp {
 
 /// A rendered page as a JPEG (no transparency: pages are rendered on white).
 fn to_jpeg(page: &crate::text::RenderedPage) -> Result<Vec<u8>> {
+    to_jpeg_with(page, KEEP_QUALITY)
+}
+
+fn to_jpeg_with(page: &crate::text::RenderedPage, quality: u8) -> Result<Vec<u8>> {
     use jpeg_encoder::{ColorType, Encoder};
     let mut out = Vec::new();
     let color = if page.channels == 1 {
@@ -268,7 +305,7 @@ fn to_jpeg(page: &crate::text::RenderedPage) -> Result<Vec<u8>> {
         u16::try_from(page.height)
             .map_err(|_| crate::error::Error::InvalidValue("page too tall".into()))?,
     );
-    Encoder::new(&mut out, KEEP_QUALITY)
+    Encoder::new(&mut out, quality)
         .encode(&page.pixels, w, h, color)
         .map_err(|e| crate::error::Error::InvalidValue(e.to_string()))?;
     Ok(out)

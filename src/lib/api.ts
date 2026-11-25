@@ -455,6 +455,9 @@ export const api = {
   stopIndexing: () => invoke<void>("stop_indexing"),
   resumeIndexing: () => invoke<void>("resume_indexing"),
   indexFolder: (sourceId: string, relPath: string) => invoke<void>("index_folder", { sourceId, relPath }),
+  /** A sharp picture of a page for the page viewer: a data: URL, or null. */
+  pageImage: (sourceId: string, relPath: string, page: number, side: number) =>
+    invoke<string | null>("page_image", { sourceId, relPath, page, side }),
   /** Makes a folder inside `parent`; resolves to its path (#63). */
   createFolder: (sourceId: string, parent: string, name: string) =>
     invoke<string>("create_folder", { sourceId, parent, name }),
