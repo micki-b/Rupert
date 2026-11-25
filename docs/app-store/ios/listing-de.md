@@ -51,7 +51,9 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
-## What's new in 0.6.0 [4000]
+## What's new in 0.6.1 [4000]
+
+<!-- 0.6.0 wasn't published; this is its text. -->
 
 „Rupert fragen“ findet mehr und erfindet weniger.
 

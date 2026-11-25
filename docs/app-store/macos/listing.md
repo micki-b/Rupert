@@ -51,7 +51,9 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
-## What's new in 0.6.0 [4000]
+## What's new in 0.6.1 [4000]
+
+<!-- 0.6.0 wasn't published; this is its text. -->
 
 A roomier inbox, Settings in their own window, and renaming, dragging out and a page viewer.
 

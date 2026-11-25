@@ -39,7 +39,9 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
-## What's new in 0.6.0 [4000]
+## What's new in 0.6.1 [4000]
+
+<!-- 0.6.0 wasn't published; this is its text. -->
 
 Una bandeja de entrada más amplia, la configuración en su propia ventana, y renombrar, arrastrar hacia afuera y un visor de páginas.
 

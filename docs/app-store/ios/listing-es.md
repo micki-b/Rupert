@@ -51,7 +51,9 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
-## What's new in 0.6.0 [4000]
+## What's new in 0.6.1 [4000]
+
+<!-- 0.6.0 wasn't published; this is its text. -->
 
 Preguntale a Rupert encuentra más e inventa menos.
 

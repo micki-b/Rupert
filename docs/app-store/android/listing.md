@@ -74,9 +74,11 @@ Rupert is free and open source.
 
   (Google Play counts sending data off the device as "collection" even when it goes to the user's own storage and never to the developer.)
 
-## Release notes, 0.6.0 [500]
+## Release notes, 0.6.1 [500]
 
-Keeps the Android app in step with Rupert 0.6.0 on your computer. Nothing changes in how the app works.
+<!-- 0.6.0 wasn't published; this is its text. -->
+
+Keeps the Android app in step with Rupert 0.6.1 on your computer. Nothing changes in how the app works.
 
 ## Release notes, 0.5.2 [500]
 
