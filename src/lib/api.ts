@@ -60,6 +60,9 @@ export interface Progress {
   pdfText: boolean;
   downloadDone: number;
   downloadTotal: number;
+  /** Pictures of online-only-to-be documents made in idle time (#62). */
+  pictureDone: number;
+  pictureTotal: number;
 }
 
 export interface IndexStats {

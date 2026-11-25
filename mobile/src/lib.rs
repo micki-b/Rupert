@@ -1066,6 +1066,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         Options {
             mode: Mode::Viewer,
             prepare_hidden: Some(hidden_folder_fetcher(app.handle().clone())),
+            // No PDFium to draw pages with.
+            pictures: None,
         },
         move |p| {
             if let Some(state) = progress_handle.try_state::<AppState>() {

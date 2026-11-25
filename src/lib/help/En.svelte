@@ -105,8 +105,11 @@
     </li>
   </ul>
   <p>
-    Online-only files show a cloud instead of a picture, since showing their pages would download them. Pictures are
-    kept in a cache on this computer and made again whenever a document changes.
+    Pictures are kept in a cache on this computer and made again whenever a document changes. Rupert never reads an
+    online-only file to show it, since that would download it. Instead, while a PDF in an iCloud Drive, OneDrive or
+    Google Drive folder is on this computer, Rupert keeps a small picture of its first page, so it still shows one after
+    the file goes online-only. Online-only documents without one show their icon. Either way the cloud stays on them,
+    and opening one downloads it.
   </p>
   <h3 id="moving">Moving</h3>
   <p>
@@ -173,7 +176,8 @@
   </p>
   <p>
     To search the <em>text</em> of online-only documents, turn on <b>Download online-only files to index them</b> for that
-    source. Rupert then downloads them a few at a time, reads their text, and frees the space again. Nothing in the
+    source. Rupert then downloads them a few at a time, reads their text, keeps a small picture of each PDF's first page, and
+    frees the space again. PDFs whose text is already known are downloaded once too if they have no picture on this computer yet. Nothing in the
     files changes. It can take hours for a big folder; files over 100 MB are skipped. What Rupert learns is saved in the
     folder itself, so your other computers (and the iPhone app) can search those documents without downloading them
     again.

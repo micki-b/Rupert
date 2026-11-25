@@ -112,8 +112,11 @@
     </li>
   </ul>
   <p>
-    Los archivos que están solo en línea muestran una nube en vez de una imagen, porque mostrar sus páginas los
-    descargaría. Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento.
+    Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento. Rupert
+    nunca lee un archivo que está solo en línea para mostrarlo, porque eso lo descargaría. En cambio, mientras un PDF de
+    una carpeta de iCloud Drive, OneDrive o Google Drive está en esta computadora, Rupert guarda una imagen chica de su
+    primera página, así sigue mostrando una cuando el archivo pasa a estar solo en línea. Los documentos solo en línea sin
+    imagen muestran su ícono. En los dos casos conservan la nube, y abrir uno lo descarga.
   </p>
   <h3 id="moving">Mover</h3>
   <p>
@@ -186,7 +189,9 @@
   </p>
   <p>
     Para buscar en el <em>texto</em> de los documentos solo en línea, activá <b>Descargar los archivos solo en línea para
-    indexarlos</b> en esa carpeta. Rupert los descarga de a poco, lee su texto y libera el espacio de nuevo. Los archivos
+    indexarlos</b> en esa carpeta. Rupert los descarga de a poco, lee su texto, guarda una imagen chica de la
+    primera página de cada PDF y libera el espacio de nuevo. Los PDF cuyo texto ya se conoce también se descargan una vez si
+    todavía no tienen imagen en esta computadora. Los archivos
     no cambian. En una carpeta grande puede tardar horas; los archivos de más de 100 MB se saltean. Lo que Rupert aprende
     se guarda en la carpeta misma, así tus otras computadoras (y la app del iPhone) pueden buscar en esos documentos sin
     volver a descargarlos.

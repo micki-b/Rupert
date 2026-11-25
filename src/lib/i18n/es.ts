@@ -412,7 +412,9 @@ const es: Messages = {
     indexing: (done: number, total: number) => `Indexando ${num(done)} de ${num(total)}…`,
     checkingChanges: "Buscando cambios…",
     downloadingToRead: (done: number, total: number) =>
-      `Descargando documentos solo en línea para leerlos: ${num(done)} de ${num(total)}…`,
+      `Descargando documentos solo en línea para su texto e imagen: ${num(done)} de ${num(total)}…`,
+    keepingPictures: (done: number, total: number) =>
+      `Guardando imágenes de documentos en carpetas en la nube: ${num(done)} de ${num(total)}…`,
     documents: (n: number) => docs(n),
     searchable: (n: number) => `${num(n)} con búsqueda por contenido`,
     onlineOnlyCount: (n: number) => `${num(n)} solo en línea (solo nombre y detalles)`,

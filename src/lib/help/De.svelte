@@ -108,9 +108,12 @@
     </li>
   </ul>
   <p>
-    Dateien, die nur online verfügbar sind, zeigen eine Wolke statt eines Bildes, denn das Anzeigen ihrer Seiten würde
-    sie herunterladen. Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald
-    sich ein Dokument ändert.
+    Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald sich ein Dokument
+    ändert. Rupert liest eine Datei, die nur online verfügbar ist, nie, um sie anzuzeigen, denn das würde sie
+    herunterladen. Solange ein PDF aus einem Ordner in iCloud Drive, OneDrive oder Google Drive auf diesem Computer liegt,
+    behält Rupert stattdessen ein kleines Bild seiner ersten Seite, damit es auch danach noch eines zeigt. Dokumente, die
+    nur online verfügbar sind und kein solches Bild haben, zeigen ihr Symbol. In beiden Fällen bleibt die Wolke, und
+    beim Öffnen wird das Dokument heruntergeladen.
   </p>
   <h3 id="moving">Bewegen</h3>
   <p>
@@ -188,8 +191,9 @@
   </p>
   <p>
     Um den <em>Text</em> von Dokumenten zu durchsuchen, die nur online verfügbar sind, schalten Sie für diesen Ordner
-    <b>Nur-online-Dateien zum Indexieren laden</b> ein. Rupert lädt sie dann nach und nach herunter, liest ihren Text und
-    gibt den Platz wieder frei. An den Dateien ändert sich nichts. Bei einem großen Ordner kann das Stunden dauern;
+    <b>Nur-online-Dateien zum Indexieren laden</b> ein. Rupert lädt sie dann nach und nach herunter, liest ihren Text, behält ein
+    kleines Bild der ersten Seite jedes PDFs und gibt den Platz wieder frei. PDFs, deren Text schon bekannt ist, werden
+    ebenfalls einmal geladen, wenn es auf diesem Computer noch kein Bild von ihnen gibt. An den Dateien ändert sich nichts. Bei einem großen Ordner kann das Stunden dauern;
     Dateien über 100 MB werden übersprungen. Was Rupert dabei erfährt, wird im Ordner selbst gespeichert, sodass Ihre
     anderen Computer (und die iPhone-App) diese Dokumente durchsuchen können, ohne sie erneut herunterzuladen.
   </p>

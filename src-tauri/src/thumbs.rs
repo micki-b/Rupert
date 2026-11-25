@@ -1,8 +1,9 @@
 //! The `thumb:` URL scheme behind the large-icon and gallery views:
 //! `thumb://localhost/<source id>/<path>?w=<pixels>&p=<page>` (as built by the UI's
 //! `convertFileSrc`, percent-encoded; `http://thumb.localhost/…` on
-//! Windows). Pictures come from `rupert_core::thumbs`; anything that has
-//! none, including online-only files, is a 404 and the view shows an icon.
+//! Windows). Pictures come from `rupert_core::thumbs` (for online-only
+//! files, only what's cached); anything that has none is a 404 and the view
+//! shows an icon.
 
 use tauri::http::{Request, Response, StatusCode, Uri, header};
 use tauri::{AppHandle, Manager, UriSchemeResponder};
@@ -51,7 +52,7 @@ fn picture(app: &AppHandle, uri: &Uri) -> Option<Picture> {
     let page = param("p").and_then(|p| p.parse().ok()).unwrap_or(0);
     state
         .thumbs
-        .get(&state.extractor, &path, page, side)
+        .get(&state.extractor, &path, page, side, source.shares_catalog())
         .inspect_err(|e| eprintln!("rupert: thumbnail of {}: {e}", path.display()))
         .ok()?
 }
