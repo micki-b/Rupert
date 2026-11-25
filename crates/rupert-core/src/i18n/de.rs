@@ -580,6 +580,7 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("About {0}", "Über {0}"),
     ("Check for Updates…", "Nach Updates suchen …"),
     ("Settings…", "Einstellungen …"),
+    ("Settings", "Einstellungen"),
     ("Services", "Dienste"),
     ("Hide {0}", "{0} ausblenden"),
     ("Hide Others", "Andere ausblenden"),

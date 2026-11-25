@@ -12,6 +12,8 @@
     onMenuScan,
     onMenuSettings,
     onMenuCheckUpdates,
+    onSettingsChanged,
+    onSourcesChanged,
     providerLabel,
     revealLabel,
     editionLabel,
@@ -42,7 +44,6 @@
   import TagManager from "#lib/TagManager.svelte";
   import Assistant from "#lib/Assistant.svelte";
   import ScanDialog from "#lib/ScanDialog.svelte";
-  import SettingsDialog from "#lib/SettingsDialog.svelte";
   import MetaEditor from "#lib/MetaEditor.svelte";
   import PictureView from "#lib/PictureView.svelte";
   import DocStar from "#lib/DocStar.svelte";
@@ -54,7 +55,7 @@
   import RupertOwl from "#lib/RupertOwl.svelte";
   import Splitter from "#lib/Splitter.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
-  import { m } from "#lib/i18n/index.ts";
+  import { loadLanguage, m } from "#lib/i18n/index.ts";
 
   type Folder = { sourceId: string; relPath: string };
   type Selected = { sourceId: string; entry: Entry };
@@ -70,9 +71,6 @@
   let renaming = $state<string | null>(null);
   let renameValue = $state("");
   let importing = $state(false);
-  let settingsOpen = $state(false);
-  /** A section of Settings to show first (e.g. from the chat's gear). */
-  let settingsSection = $state<"assistant" | "updates" | null>(null);
   let scanOpen = $state(false);
   let appSettings = $state<Settings | null>(null);
   let inboxOpen = $state(false);
@@ -268,12 +266,19 @@
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
       onMenuImport(() => (importing = true)),
-      onMenuSettings(() => (settingsOpen = true)),
+      onMenuSettings(() => api.openSettings()),
       onMenuCheckUpdates(() => {
-        settingsSection = "updates";
-        settingsOpen = true;
+        api.openSettings("updates");
         updates.check(true);
       }),
+      // Settings live in their own window (#80): follow what changes there.
+      onSettingsChanged(async (s) => {
+        appSettings = s;
+        await loadLanguage();
+        loadInboxCount();
+        assistant?.refreshInfo();
+      }),
+      onSourcesChanged(() => loadSources()),
       onMenuScan(() => (scanOpen = true)),
       onIntakeChanged(loadInboxCount),
       onIndexProgress((p) => (progress = p)),
@@ -305,6 +310,10 @@
       ) {
         e.preventDefault();
         trashEntry(selected);
+      } else if (info?.os !== "macos" && e.ctrlKey && e.key === ",") {
+        // Ctrl+, opens Settings (the menu's ⌘, on the Mac).
+        e.preventDefault();
+        api.openSettings();
       } else if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         e.preventDefault();
         inboxOpen = false;
@@ -961,7 +970,7 @@
         {sources}
         settings={appSettings}
         onfiled={showFiled}
-        onsettings={() => (settingsOpen = true)}
+        onsettings={() => api.openSettings("inbox")}
         onscan={() => (scanOpen = true)}
       />
     </main>
@@ -1224,10 +1233,7 @@
 <Assistant
   bind:this={assistant}
   onaction={assistantAction}
-  onsettings={() => {
-    settingsSection = "assistant";
-    settingsOpen = true;
-  }}
+  onsettings={() => api.openSettings("assistant")}
 />
 
 {#if tagManagerOpen}
@@ -1251,7 +1257,7 @@
     }}
     onsettings={() => {
       scanOpen = false;
-      settingsOpen = true;
+      api.openSettings("inbox");
     }}
   />
 {/if}
@@ -1270,22 +1276,6 @@
   />
 {/if}
 
-{#if settingsOpen}
-  <SettingsDialog
-    {sources}
-    section={settingsSection}
-    onclose={() => {
-      settingsOpen = false;
-      settingsSection = null;
-    }}
-    onsaved={(s) => {
-      appSettings = s;
-      loadInboxCount();
-      assistant?.refreshInfo();
-    }}
-  />
-{/if}
-
 {#if importing}
   <ImportDialog {sources} onclose={() => (importing = false)} onsourceadded={() => loadSources()} />
 {/if}
@@ -1295,7 +1285,7 @@
     {#if info}
       <span title={m.main.versionTip}>{info.name} {info.version} · {editionLabel(info)}</span>
     {/if}
-    <button class="footer-btn" onclick={() => (settingsOpen = true)} title={m.main.settings}>{m.main.settings}</button>
+    <button class="footer-btn" onclick={() => api.openSettings()} title={m.main.settings}>{m.main.settings}</button>
     <button class="footer-btn" onclick={() => api.openHelp()} title={m.main.helpTip}>{m.main.help}</button>
   </span>
   <span class="status">

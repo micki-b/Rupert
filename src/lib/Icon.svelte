@@ -23,7 +23,9 @@
     | "close"
     | "view-list"
     | "view-grid"
-    | "view-gallery";
+    | "view-gallery"
+    | "text-scan"
+    | "chip";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
@@ -50,6 +52,8 @@
     "view-list": "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
     "view-grid": "M4 4h6.5v6.5H4zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5z",
     "view-gallery": "M4 4h16v11H4zM4 19h3.5M10.25 19h3.5M16.5 19H20",
+    "text-scan": "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9.5h8M8 12.5h8M8 15.5h5",
+    chip: "M7.5 6.5h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM10 3.5v3M14 3.5v3M10 17.5v3M14 17.5v3M3.5 10h3M3.5 14h3M17.5 10h3M17.5 14h3M10 10h4v4h-4z",
     tag: "M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8a1.4 1.4 0 0 1 0 2l-7.1 7.1a1.4 1.4 0 0 1-2 0zM8 8h.01",
   };
 </script>

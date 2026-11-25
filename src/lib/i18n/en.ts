@@ -229,6 +229,12 @@ const en = {
   },
   settings: {
     title: "Settings",
+    general: "General",
+    search: "Search",
+    noMatch: (q: string) => `No settings match “${q}”.`,
+    libraryNote: "The folders Rupert shows, as they are on disk. Removing one from Rupert leaves the folder and its files where they are.",
+    inboxFolder: "Folder",
+    notAvailable: "Not available right now: choose it again in the sidebar.",
     applyNow: "Changes apply right away.",
     closeSettings: "Close settings",
     language: "Language",
@@ -270,7 +276,7 @@ const en = {
     localAiNote: "Tested with LM Studio and Ollama. Other servers with an OpenAI-compatible API should work too.",
     suggestionsNote: "Only document text from the inbox is sent, and only to Local AI.",
     assistant: "Assistant",
-    providerLocal: "Local AI (set up above)",
+    providerLocal: "Local AI",
     providerAnthropic: "Claude (Anthropic, cloud)",
     providerOpenai: "OpenAI-compatible service (cloud)",
     providerChatgpt: "ChatGPT, with your plan (cloud)",
@@ -298,7 +304,7 @@ const en = {
     howToSetUp: "How to set up each kind of model",
     chatgptNote:
       "Answers count against your ChatGPT plan's limits, not an API key. You can cap Rupert's share in ChatGPT's settings. This is a preview from OpenAI and may change.",
-    localNote: "Uses the Local AI set up above. Nothing goes to the internet.",
+    localNote: "Uses Local AI, set up in its own tab. Nothing goes to the internet.",
     cloudNote:
       "☁ With a cloud model, your questions and what the assistant looks at (document titles, tags, folders and the text of documents it reads) are sent to that service. Inbox suggestions still use Local AI only.",
     updates: "Updates",

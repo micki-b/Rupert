@@ -79,6 +79,13 @@
   </p>
   <p>The two buttons above the sources switch the sidebar between your <b>folders</b> and your <b>tags</b>.</p>
   <p>
+    <b>Settings</b> ({mac ? "⌘," : "Ctrl+,"}, or the <b>Settings</b> button at the bottom left) opens in its own window,
+    with its parts listed on the left: <b>General</b>, <b>Library</b>, <b>Inbox</b>, <b>Text recognition</b>,
+    <b>Local AI</b> and <b>Assistant</b>. Type in the search field above them to find a setting. <b>Library</b> lists your
+    sources with their options, the same ones as the <b>⋯</b> next to each source; <b>+</b> adds a folder. Changes
+    apply right away.
+  </p>
+  <p>
     To give the sidebar, <b>Details</b> or the inbox's preview and <b>File it</b> more or less room, drag the edge
     between the columns. Double-click the edge for the usual width. Rupert remembers each width, and the middle always
     keeps some room. With the keyboard, press {mac ? "Option-Tab" : "Tab"} until the edge is selected and use the arrow keys (Shift for bigger
@@ -305,7 +312,7 @@
     anywhere else yet; it goes to the {windows ? "Recycle Bin" : "Trash"}, where you can get it back.
   </p>
   <p>
-    The file name follows the pattern in <b>Settings ▸ File names</b>: <code>{"{date}"}</code> and
+    The file name follows the pattern in <b>Settings ▸ Inbox</b>, under <b>File names</b>: <code>{"{date}"}</code> and
     <code>{"{title}"}</code> are filled in, so the default <code>{"{date} {title}"}</code> gives names like
     “2026-04-29 Car insurance renewal.pdf”. If a file with that name exists, Rupert adds “(2)”; it never overwrites.
   </p>
@@ -395,7 +402,7 @@
       <tr>
         <td>Inbox suggestions (title, date, tags, folder)</td>
         <td>Local AI, always (on this computer or your local network)</td>
-        <td><b>Settings ▸ Local AI</b> and <b>Suggestions</b></td>
+        <td><b>Settings ▸ Local AI</b>, and <b>Suggestions</b> in <b>Settings ▸ Inbox</b></td>
       </tr>
       <tr>
         <td>Ask Rupert (the chat)</td>
@@ -839,12 +846,12 @@
   </p>
   <ul>
     <li>
-      <b>Language:</b> Rupert follows your computer's language, or the one you choose in <b>Settings ▸ Language</b>. It
+      <b>Language:</b> Rupert follows your computer's language, or the one you choose in <b>Settings ▸ General</b>. It
       speaks English, Rioplatense Spanish and German. In Spanish the owl wears the sky-blue and white jersey, in German
       lederhosen.
     </li>
     <li>
-      <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ Updates</b>). When one is
+      <b>Updates:</b> Rupert looks for a new version once a day (turn it off in <b>Settings ▸ General</b>). When one is
       out, <b>Update to …</b> appears in the status bar; click it to install, and Rupert restarts.{#if mac}
         Or choose <b>Rupert ▸ Check for Updates…</b>.{/if}
     </li>
