@@ -22,9 +22,12 @@
   "hero.iphone": "App para iPhone",
 
   "android.status": "Beta temprana",
-  "android.hero": "Android: una beta temprana, desde este sitio. Google Play viene después.",
+  "android.hero": "Android: una beta temprana, desde este sitio o como prueba en Google Play.",
   "android.heading": "Rupert para Android es una beta temprana.",
-  "android.detail": "Todavía está en pruebas, así que puede tener detalles sin pulir; contanos lo que encuentres. Todavía no está en Google Play, así que Google no la revisó: bajala desde acá y abrila para instalarla. El teléfono te va a pedir que permitas instalar apps desde el navegador y puede advertirte sobre una app de fuera de Google Play. Lee Google Drive y OneDrive y escanea con la cámara. Todavía no se actualiza sola: volvé acá para las versiones nuevas.",
+  "android.detail": "Todavía está en pruebas, así que puede tener detalles sin pulir; contanos lo que encuentres. Bajala desde acá y abrila para instalarla: el teléfono te va a pedir que permitas instalar apps desde el navegador y puede advertirte sobre una app de fuera de Google Play. Lee Google Drive y OneDrive y escanea con la cámara. Bajada desde acá, no se actualiza sola: volvé para las versiones nuevas.",
+  "android.playTest": "O sumate a la prueba en Google Play, que instala Rupert desde Play Store y lo mantiene al día. Primero sumate al grupo de testers con tu cuenta de Google, después a la prueba.",
+  "android.joinGroup": "1. Sumate al grupo de testers",
+  "android.becomeTester": "2. Sumate a la prueba en Play Store",
 
   "dn.label": "Rupert en una Mac, en modo claro y oscuro",
   "dn.alt": "Rupert en una Mac en modo claro: una carpeta de documentos de seguros como íconos grandes, con el título, la fecha y las etiquetas del documento elegido",
