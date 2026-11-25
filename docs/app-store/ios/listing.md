@@ -61,6 +61,12 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.7.0 [4000]
+
+Share documents from Rupert.
+
+• Share: open a document's details and tap Share to send it with Mail, Messages, AirDrop or another app. A PDF goes without your notes unless Settings ▸ Sharing includes them.
+
 ## What's new in 0.6.1 [4000]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

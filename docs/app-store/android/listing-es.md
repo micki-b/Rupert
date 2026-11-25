@@ -38,6 +38,10 @@ TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 
 Rupert es libre, gratis y de código abierto.
 
+## Release notes, 0.7.0 [500]
+
+Compartí documentos: en los detalles de un documento, tocá Compartir para enviarlo con Gmail, Mensajes u otra app. Un PDF va sin tus notas, salvo que Configuración ▸ Compartir las incluya.
+
 ## Release notes, 0.6.1 [500]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->

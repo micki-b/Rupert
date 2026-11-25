@@ -51,6 +51,15 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.7.0 [4000]
+
+Rename many documents at once, and send documents by Mail, Messages or AirDrop.
+
+• Rename documents: right-click a folder ▸ Rename documents… New names come from each document's date and title. Change one, and Rupert names the others the same way, with Local AI if needed. Check the before and after list, then rename; Undo puts the old names back.
+• Share… and Email…: right-click a document, or use the buttons in the details and the inbox. A PDF goes without your notes unless you include them in Settings ▸ Library.
+• The Ask Rupert button no longer covers the inbox's buttons in a small window.
+• Dragging a document out and back no longer leaves a copy behind.
+
 ## What's new in 0.6.1 [4000]
 
 <!-- The stores never got 0.6.0 (only GitHub did); this is its text. -->
