@@ -18,6 +18,22 @@ use crate::i18n::tr;
 use crate::meta::{DocMeta, PartialMeta, split_keywords};
 use crate::xmp;
 
+// MARK: - Clean copies
+
+/// Rewrites the PDF at `path` whole, keeping only the objects in use, so
+/// nothing of its earlier revisions is left (incremental updates keep the
+/// old details, e.g. notes since removed). For copies that are sent away;
+/// never for the user's own files.
+pub fn rewrite_whole(path: &Path) -> Result<()> {
+    let mut doc = Document::load(path).map_err(pdf_err)?;
+    if let Some(why) = unwritable(&doc) {
+        return Err(Error::Unsupported(why.sidecar_reason()));
+    }
+    doc.prune_objects();
+    doc.save(path).map_err(pdf_err)?;
+    Ok(())
+}
+
 // MARK: - Reading
 
 #[derive(Debug)]

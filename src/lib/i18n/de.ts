@@ -254,6 +254,10 @@ const de: Messages = {
     general: "Allgemein",
     search: "Suchen",
     noMatch: (q: string) => `Keine Einstellung passt zu „${q}“.`,
+    sending: "Dokumente senden",
+    sendNotes: "Meine Notizen beim Senden eines PDFs einschließen",
+    sendNotesNote:
+      "Rupert speichert Ihre Notizen im PDF. Ist dies aus, fehlen sie in der gesendeten Kopie; Titel, Datum und Tags werden mitgesendet.",
     libraryNote: "Die Ordner, die Rupert zeigt, so wie sie auf dem Datenträger liegen. Wenn Sie einen aus Rupert entfernen, bleiben der Ordner und seine Dateien, wo sie sind.",
     inboxFolder: "Ordner",
     notAvailable: "Gerade nicht verfügbar: Wählen Sie ihn in der Seitenleiste erneut.",
@@ -425,6 +429,14 @@ const de: Messages = {
     email: "E-Mail",
     other: "Datei",
     folder: "Ordner",
+  },
+  share: {
+    share: "Teilen …",
+    email: "Per E-Mail senden …",
+    shareTip: "Mit Mail, Nachrichten, AirDrop oder einer anderen App senden",
+    shareTipWindows: "Mit dem Windows-Fenster „Teilen“ senden",
+    emailTip: "Eine neue E-Mail mit dem Dokument im Anhang",
+    downloading: (name: string) => `„${name}“ wird zum Senden geladen …`,
   },
   renameDocs: {
     menu: "Dokumente umbenennen …",

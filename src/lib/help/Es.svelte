@@ -29,6 +29,7 @@
 <script lang="ts">
   let { mac, windows, cmd, version, repo: REPO }: { mac: boolean; windows: boolean; cmd: string; version: string; repo: string } =
     $props();
+  const linux = $derived(!mac && !windows);
   const fileManager = $derived(mac ? "el Finder" : windows ? "el Explorador de archivos" : "tu administrador de archivos");
   const reveal = $derived(mac ? "Mostrar en el Finder" : windows ? "Mostrar en el Explorador" : "Mostrar en Archivos");
   const keychain = $derived(
@@ -142,6 +143,22 @@
     <em>copia</em> del archivo, con su nombre. Tu biblioteca conserva el archivo. Los archivos que están solo en línea los
     descarga la app donde los soltás. Si soltás un documento en una de las
     carpetas de Rupert (se resalta mientras estás encima), se mueve ahí, como siempre.
+  </p>
+  <h3 id="sending">Enviar documentos</h3>
+  <p>
+    Hacé clic derecho en un documento y elegí {#if linux}<b>Enviar por correo…</b>{:else}<b>Compartir…</b> o
+      <b>Enviar por correo…</b>{/if}, o usá los botones junto a {reveal} en los detalles y junto a Abrir en la bandeja de entrada.
+    {#if mac}<b>Compartir…</b> abre el menú Compartir de la Mac: Mail, Mensajes, AirDrop, Notas y las apps que hayas
+      agregado.
+    {:else if windows}<b>Compartir…</b> abre la ventana Compartir de Windows.{/if}
+    <b>Enviar por correo…</b> empieza un mensaje nuevo en tu programa de correo con el documento adjunto y su título
+    como asunto.
+  </p>
+  <p>
+    Rupert guarda tus notas dentro de cada PDF, así que un PDF se envía como una copia <b>sin sus notas</b> (el título,
+    la fecha y las etiquetas sí van). Para enviarlas también, activá <b>Incluir mis notas al enviar un PDF</b> en
+    Configuración ▸ Biblioteca. Un escaneo de la bandeja de entrada sale con el nombre con el que se archivaría, no con el
+    del escáner. Un documento solo en línea se descarga primero; abajo en la ventana se ve, con Cancelar.
   </p>
   <h3 id="renaming">Renombrar</h3>
   <p>

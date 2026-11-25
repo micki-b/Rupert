@@ -242,6 +242,10 @@ const en = {
     general: "General",
     search: "Search",
     noMatch: (q: string) => `No settings match “${q}”.`,
+    sending: "Sending documents",
+    sendNotes: "Include my notes when sending a PDF",
+    sendNotesNote:
+      "Rupert keeps your notes inside the PDF. Unless this is on, they're left out of the copy that's sent; the title, date and tags go along.",
     libraryNote: "The folders Rupert shows, as they are on disk. Removing one from Rupert leaves the folder and its files where they are.",
     inboxFolder: "Folder",
     notAvailable: "Not available right now: choose it again in the sidebar.",
@@ -412,6 +416,14 @@ const en = {
     email: "Email",
     other: "File",
     folder: "Folder",
+  },
+  share: {
+    share: "Share…",
+    email: "Email…",
+    shareTip: "Send it with Mail, Messages, AirDrop or another app",
+    shareTipWindows: "Send it with the Windows Share window",
+    emailTip: "A new email with the document attached",
+    downloading: (name: string) => `Downloading “${name}” to send it…`,
   },
   renameDocs: {
     menu: "Rename documents…",

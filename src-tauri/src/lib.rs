@@ -10,6 +10,7 @@ mod drag_out;
 mod help;
 mod rename;
 mod settings_window;
+mod share;
 mod thumbs;
 
 use rupert_core::escl::{self, Capabilities, ScanRequest, Scanner};
@@ -1809,6 +1810,9 @@ pub fn run() {
             rename::rename_stop,
             rename::rename_apply,
             rename::rename_undo,
+            share::share_document,
+            share::email_document,
+            share::share_cancel,
             scansnap_library,
             scansnap_plan,
             scansnap_apply,

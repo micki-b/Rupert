@@ -29,6 +29,7 @@
 <script lang="ts">
   let { mac, windows, cmd, version, repo: REPO }: { mac: boolean; windows: boolean; cmd: string; version: string; repo: string } =
     $props();
+  const linux = $derived(!mac && !windows);
   const fileManager = $derived(mac ? "im Finder" : windows ? "im Explorer" : "in Ihrem Dateimanager");
   const reveal = $derived(mac ? "Im Finder zeigen" : windows ? "Im Explorer zeigen" : "In Dateien zeigen");
   const keychain = $derived(
@@ -141,6 +142,23 @@
     unter ihrem Namen. Ihre Bibliothek behält die Datei. Dateien, die nur online verfügbar sind, lädt die App, auf die Sie
     sie ziehen. Auf einem von Ruperts eigenen Ordnern abgelegt (er wird hervorgehoben, solange
     Sie darüber sind), wird ein Dokument wie bisher dorthin bewegt.
+  </p>
+  <h3 id="sending">Dokumente senden</h3>
+  <p>
+    Klicken Sie mit der rechten Maustaste auf ein Dokument und wählen Sie {#if linux}<b>Per E-Mail senden …</b
+      >{:else}<b>Teilen …</b> oder <b>Per E-Mail senden …</b>{/if}, oder verwenden Sie die Tasten neben {reveal} in den Details und neben „Öffnen“ im Eingang.
+    {#if mac}<b>Teilen …</b> öffnet das Teilen-Menü des Mac: Mail, Nachrichten, AirDrop, Notizen und die Apps, die Sie
+      hinzugefügt haben.
+    {:else if windows}<b>Teilen …</b> öffnet das Windows-Fenster „Teilen“.{/if}
+    <b>Per E-Mail senden …</b> beginnt in Ihrem E-Mail-Programm eine neue Nachricht mit dem Dokument im Anhang und
+    seinem Titel als Betreff.
+  </p>
+  <p>
+    Rupert speichert Ihre Notizen in jedem PDF, daher wird ein PDF als Kopie <b>ohne seine Notizen</b> gesendet (Titel,
+    Datum und Tags gehen mit). Um sie mitzusenden, schalten Sie unter Einstellungen ▸ Bibliothek <b>Meine Notizen beim
+    Senden eines PDFs einschließen</b> ein. Ein Scan aus dem Eingang wird unter dem Namen gesendet, unter dem er abgelegt
+    würde, nicht unter dem des Scanners. Ein reines Online-Dokument wird zuerst geladen; das zeigt der untere Fensterrand,
+    mit „Abbrechen“.
   </p>
   <h3 id="renaming">Umbenennen</h3>
   <p>

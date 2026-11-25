@@ -204,6 +204,8 @@ export interface Settings {
   localUrl: string;
   localModel: string | null;
   /** `{date}` and `{title}` are replaced. */
+  /** Sending a PDF: include the notes kept inside it (off: a copy without them). */
+  sendNotes: boolean;
   namePattern: string;
   assistant: AssistantSettings;
   /** Desktop: look for a new version on GitHub now and then. */
@@ -470,6 +472,16 @@ export const api = {
   /** Renames a document or folder in place; resolves to its new path (#65). */
   renameEntry: (sourceId: string, relPath: string, newName: string) =>
     invoke<string>("rename_entry", { sourceId, relPath, newName }),
+  // Share… and Email… (#69)
+  /** The system's share menu for a document, at `at` on the page (the
+   * pointer, or a button). `name`: send it under this name (an inbox scan). */
+  shareDocument: (sourceId: string, relPath: string, name: string | null, at: ShareAt) =>
+    invoke<void>("share_document", { sourceId, relPath, name, at }),
+  /** A new email with the document attached and its title as the subject. */
+  emailDocument: (sourceId: string, relPath: string, name: string | null) =>
+    invoke<void>("email_document", { sourceId, relPath, name }),
+  /** Drops a send that's waiting for an online-only document to download. */
+  shareCancel: () => invoke<void>("share_cancel"),
   // Rename documents… (#64)
   /** A folder's documents, with names from the name pattern; `ai`: whether
    * Local AI can propose names. */
@@ -528,6 +540,20 @@ export function onScanProgress(handler: (pages: number) => void): Promise<Unlist
 
 export function onScanDone(handler: (done: ScanDone) => void): Promise<UnlistenFn> {
   return listen<ScanDone>("scan-done", (e) => handler(e.payload));
+}
+
+/** Where on the page the share menu opens. */
+export type ShareAt = { x: number; y: number; width?: number; height?: number };
+
+/** Where a button is, for the share menu to open beside it. */
+export function atElement(el: Element): ShareAt {
+  const r = el.getBoundingClientRect();
+  return { x: r.left, y: r.top, width: r.width, height: r.height };
+}
+
+/** While an online-only document downloads to be sent: its name; then null. */
+export function onShareProgress(handler: (downloading: string | null) => void): Promise<UnlistenFn> {
+  return listen<{ downloading: string | null }>("share-progress", (e) => handler(e.payload.downloading));
 }
 
 export interface RenameRow {

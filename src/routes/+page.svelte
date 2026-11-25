@@ -33,6 +33,9 @@
     type AssistantAction,
     type RenameOutcome,
     type Renamed,
+    type ShareAt,
+    atElement,
+    onShareProgress,
   } from "#lib/api.ts";
   import { changes } from "#lib/changes.svelte.ts";
   import { formatDate, formatSize, kindLabel } from "#lib/format.ts";
@@ -288,6 +291,7 @@
       onMenuScan(() => (scanOpen = true)),
       onIntakeChanged(loadInboxCount),
       onIndexProgress((p) => (progress = p)),
+      onShareProgress((name) => (sendingName = name)),
       onIndexChanged(() => {
         indexTick++;
         loadIndexInfo();
@@ -586,9 +590,9 @@
     ev.stopPropagation();
     menuFor = null;
     selected = sel;
-    // Keep it inside the window (the menu is about 220 × 190).
-    const x = Math.min(ev.clientX, window.innerWidth - 230);
-    const y = Math.min(ev.clientY, window.innerHeight - 200);
+    // Keep it inside the window (the menu is about 230 × 300).
+    const x = Math.min(ev.clientX, window.innerWidth - 240);
+    const y = Math.min(ev.clientY, window.innerHeight - 310);
     itemMenu = { x, y, sel, inSearch };
   }
 
@@ -748,6 +752,21 @@
     if (outcome.failed.length) error = `${m.renameDocs.failed(outcome.failed.length)}: ${outcome.failed[0].message}`;
     followRenamed(last.sourceId, outcome.renamed.map((r) => [r.from, r.to]));
     setTimeout(() => (renameNote = null), 5000);
+  }
+
+  // MARK: - Share… and Email… (#69)
+
+  /** The online-only document being downloaded to send it. */
+  let sendingName = $state<string | null>(null);
+
+  function shareDoc(sel: Selected, at: ShareAt) {
+    lastRename = null;
+    run(() => api.shareDocument(sel.sourceId, sel.entry.relPath, null, at));
+  }
+
+  function emailDoc(sel: Selected) {
+    lastRename = null;
+    run(() => api.emailDocument(sel.sourceId, sel.entry.relPath, null));
   }
   // MARK: - Moving
 
@@ -1341,6 +1360,19 @@
       <div class="actions">
         <button class="primary" onclick={() => activate(selected!.sourceId, e)}>{m.main.open}</button>
         <button onclick={() => reveal(selected!)}>{revealLabel(info?.os)}</button>
+        {#if !e.isDir}
+          {#if info?.os !== "linux"}
+            <button
+              class="icon-action"
+              onclick={(ev) => shareDoc(selected!, atElement(ev.currentTarget))}
+              title={m.common.ellipsis(info?.os === "windows" ? m.share.shareTipWindows : m.share.shareTip)}
+              aria-label={m.share.share}><Icon name="share" size={16} /></button
+            >
+          {/if}
+          <button class="icon-action" onclick={() => emailDoc(selected!)} title={m.share.emailTip} aria-label={m.share.email}
+            ><Icon name="mail" size={16} /></button
+          >
+        {/if}
         {#if searching}
           <button onclick={() => showInFolder(selected!)}>{m.main.showInRupert}</button>
         {/if}
@@ -1387,6 +1419,20 @@
       <button role="menuitem" onclick={() => fromMenu(openRenameDocs)}>{m.renameDocs.menu}</button>
     {/if}
     <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>{m.main.moveTo}</button>
+    {#if !mn.sel.entry.isDir}
+      <hr />
+      {#if info?.os !== "linux"}
+        <button
+          role="menuitem"
+          onclick={() => {
+            // Where the menu was, read before it closes.
+            const at = { x: mn.x, y: mn.y };
+            fromMenu((sel) => shareDoc(sel, at));
+          }}>{m.share.share}</button
+        >
+      {/if}
+      <button role="menuitem" onclick={() => fromMenu(emailDoc)}>{m.share.email}</button>
+    {/if}
     {#if mn.sel.entry.isDir}
       <button role="menuitem" title={m.main.indexFolderTip} onclick={() => fromMenu((sel) => indexFolder(sel.sourceId, sel.entry.relPath))}>
         {m.main.indexFolder}
@@ -1460,7 +1506,12 @@
   />
 {/if}
 
-{#if lastRename || renameNote}
+{#if sendingName}
+  <div class="undo-bar" role="status">
+    <span>{m.share.downloading(sendingName)}</span>
+    <button class="undo-link" onclick={() => api.shareCancel()}>{m.common.cancel}</button>
+  </div>
+{:else if lastRename || renameNote}
   <div class="undo-bar" role="status">
     <span>{lastRename?.text ?? renameNote}</span>
     {#if lastRename}
@@ -2154,6 +2205,13 @@
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
+  }
+  .actions .icon-action {
+    width: 32px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    color: var(--accent-strong);
   }
 
   .undo-bar {

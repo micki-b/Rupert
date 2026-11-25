@@ -44,6 +44,9 @@ pub struct Settings {
     pub check_updates: bool,
     /// Rupert's language ("en", "es"); `None` follows the system.
     pub language: Option<String>,
+    /// Sending a PDF (Share…, Email…): include the notes Rupert keeps
+    /// inside it. Off: a copy without them is sent.
+    pub send_notes: bool,
 }
 
 /// Where Local AI runs.
@@ -99,6 +102,7 @@ impl Default for Settings {
             assistant: AssistantSettings::default(),
             check_updates: true,
             language: None,
+            send_notes: false,
         }
     }
 }

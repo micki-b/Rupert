@@ -7,6 +7,7 @@
   import { ask } from "@tauri-apps/plugin-dialog";
   import {
     api,
+    atElement,
     fileNameFor,
     type Entry,
     type FileKind,
@@ -353,6 +354,22 @@
 
   /** Sends a scan to the Trash / Recycle Bin, after asking: a new scan may
    * not be saved anywhere else yet. Then the next one is selected. */
+  /** The name a scan is sent under (#69): the one it would be filed
+   * under, if there is one yet. */
+  function sendName(): string | null {
+    return form.fileName.trim() || null;
+  }
+
+  /** Share… or Email…, showing what went wrong here. */
+  async function send(action: () => Promise<void>) {
+    try {
+      error = null;
+      await action();
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
   async function trash(item: IntakeItem) {
     menu = null;
     const ok = await ask(
@@ -680,6 +697,22 @@
             {filing ? m.inbox.filing : m.inbox.file}
           </button>
           <button onclick={() => api.openEntry(selected!.sourceId, selected!.relPath)}>{m.inbox.open}</button>
+          <!-- Send it before (or without) filing (#69), named as it would be filed. -->
+          {#if os !== "linux"}
+            <button
+              class="icon-action send"
+              onclick={(ev) =>
+                send(() => api.shareDocument(selected!.sourceId, selected!.relPath, sendName(), atElement(ev.currentTarget)))}
+              title={m.common.ellipsis(os === "windows" ? m.share.shareTipWindows : m.share.shareTip)}
+              aria-label={m.share.share}><Icon name="share" size={16} /></button
+            >
+          {/if}
+          <button
+            class="icon-action send"
+            onclick={() => send(() => api.emailDocument(selected!.sourceId, selected!.relPath, sendName()))}
+            title={m.share.emailTip}
+            aria-label={m.share.email}><Icon name="mail" size={16} /></button
+          >
           <span class="spacer"></span>
           <button
             class="icon-action"
@@ -1329,6 +1362,9 @@
     padding: 0;
     display: grid;
     place-items: center;
+  }
+  .icon-action.send {
+    color: var(--accent-strong);
   }
   .icon-action.trash {
     color: var(--danger);

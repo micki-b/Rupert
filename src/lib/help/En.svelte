@@ -29,6 +29,7 @@
 <script lang="ts">
   let { mac, windows, cmd, version, repo: REPO }: { mac: boolean; windows: boolean; cmd: string; version: string; repo: string } =
     $props();
+  const linux = $derived(!mac && !windows);
   const fileManager = $derived(mac ? "Finder" : windows ? "File Explorer" : "your file manager");
   const reveal = $derived(mac ? "Show in Finder" : windows ? "Show in Explorer" : "Show in Files");
   const keychain = $derived(
@@ -134,6 +135,21 @@
     area, {fileManager} or the desktop, and that app gets a <em>copy</em> of the file, under its own name. Your library
     keeps the file. Online-only files are fetched by the app you drop them on. Dropped on one of Rupert's own folders
     (it lights up while you're over it), a document is still moved there, as before.
+  </p>
+  <h3 id="sending">Sending documents</h3>
+  <p>
+    Right-click a document and choose {#if linux}<b>Email…</b>{:else}<b>Share…</b> or <b>Email…</b>{/if}, or use the
+    buttons beside {reveal} in the details and
+    beside Open in the inbox.
+    {#if mac}<b>Share…</b> opens the Mac's share menu: Mail, Messages, AirDrop, Notes and the apps you've added.
+    {:else if windows}<b>Share…</b> opens the Windows Share window.{/if}
+    <b>Email…</b> starts a new message in your mail program with the document attached and its title as the subject.
+  </p>
+  <p>
+    Rupert keeps your notes inside each PDF, so a PDF is sent as a copy <b>without its notes</b> (the title, date and
+    tags go along). To send them too, turn on <b>Include my notes when sending a PDF</b> in Settings ▸ Library. A scan in
+    the inbox goes out under the name it would be filed under, not the scanner's. An online-only document is downloaded
+    first; the bottom of the window shows it, with Cancel.
   </p>
   <h3 id="renaming">Renaming</h3>
   <p>

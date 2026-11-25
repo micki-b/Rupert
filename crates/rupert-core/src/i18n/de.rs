@@ -244,6 +244,23 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Der erkannte Text konnte nicht gespeichert werden: {0}",
     ),
     ("Text recognized ({0})", "Text erkannt ({0})"),
+    // MARK: - Sending documents (share.rs)
+    (
+        "Rupert can't take the notes out of this PDF. To send it anyway, include notes in Settings ▸ Library.",
+        "Rupert kann die Notizen nicht aus diesem PDF entfernen. Um es trotzdem zu senden, schließen Sie Notizen unter Einstellungen ▸ Bibliothek ein.",
+    ),
+    (
+        "No mail app is set up to send it. Use Share… instead.",
+        "Es ist keine Mail-App eingerichtet, um es zu senden. Verwenden Sie stattdessen „Teilen …“.",
+    ),
+    (
+        "Sharing isn't available on Linux; use Email….",
+        "Teilen ist unter Linux nicht verfügbar; verwenden Sie „Per E-Mail senden …“.",
+    ),
+    (
+        "Rupert can't open your mail program: xdg-email isn't installed.",
+        "Rupert kann Ihr E-Mail-Programm nicht öffnen: xdg-email ist nicht installiert.",
+    ),
     // MARK: - Renaming documents (rename.rs)
     (
         "Local AI isn't set up: choose it in Settings ▸ Local AI.",
