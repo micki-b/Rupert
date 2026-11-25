@@ -118,6 +118,21 @@
     the file goes online-only. Online-only documents without one show their icon. Either way the cloud stays on them,
     and opening one downloads it.
   </p>
+  <h3 id="renaming">Renaming</h3>
+  <p>
+    Right-click a document or folder and choose <b>Rename…</b>, or select it and press
+    {mac ? "Return" : "F2"}{mac ? " (⌘O or ⌘↓ opens it)" : ""}. Type the new name in place and press
+    {mac ? "Return" : "Enter"}; Escape leaves it as it was. Only the part before the extension is selected, and if you
+    leave the extension out, the old one stays. It's renamed on disk right away, together with its hidden details file,
+    and online-only files are renamed without downloading them.
+  </p>
+  <p>
+    Rupert never replaces anything: a name that's already taken in the folder is refused. So are names some computers
+    can't use, since your folders may sync between a Mac, Windows and Linux: names with <code>/ \ : * ? " &lt; &gt; |</code>,
+    names that start with a dot or end with a dot or a space, and names Windows keeps for itself, such as CON or NUL. If
+    you rename the inbox folder (or a folder holding it), Rupert's inbox setting follows it. Search results can't be
+    renamed: open the folder first.
+  </p>
   <h3 id="moving">Moving</h3>
   <p>
     Drag a document or folder onto a folder, in the sidebar or in the folder view, or right-click it and choose

@@ -455,6 +455,9 @@ export const api = {
   stopIndexing: () => invoke<void>("stop_indexing"),
   resumeIndexing: () => invoke<void>("resume_indexing"),
   indexFolder: (sourceId: string, relPath: string) => invoke<void>("index_folder", { sourceId, relPath }),
+  /** Renames a document or folder in place; resolves to its new path (#65). */
+  renameEntry: (sourceId: string, relPath: string, newName: string) =>
+    invoke<string>("rename_entry", { sourceId, relPath, newName }),
   scansnapLibrary: () => invoke<string | null>("scansnap_library"),
   scansnapPlan: (library: string) => invoke<ImportSummary>("scansnap_plan", { library }),
   scansnapApply: () => invoke<void>("scansnap_apply"),

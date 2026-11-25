@@ -54,6 +54,7 @@
   import { checkNowAndThen, updates } from "#lib/updates.svelte.ts";
   import RupertOwl from "#lib/RupertOwl.svelte";
   import Splitter from "#lib/Splitter.svelte";
+  import RenameField from "#lib/RenameField.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { loadLanguage, m } from "#lib/i18n/index.ts";
 
@@ -310,6 +311,24 @@
       ) {
         e.preventDefault();
         trashEntry(selected);
+      } else if (
+        !typing &&
+        selected &&
+        !inboxOpen &&
+        !searching &&
+        !renamingAt &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        (info?.os === "macos" ? e.key === "Enter" : e.key === "F2")
+      ) {
+        // Return (Mac) or F2 renames, as in the Finder and File Explorer.
+        e.preventDefault();
+        startRenaming(selected);
+      } else if (!typing && selected && info?.os === "macos" && e.metaKey && (e.key === "o" || e.key === "ArrowDown")) {
+        // ⌘O or ⌘↓ opens, as in the Finder.
+        e.preventDefault();
+        activate(selected.sourceId, selected.entry);
       } else if (info?.os !== "macos" && e.ctrlKey && e.key === ",") {
         // Ctrl+, opens Settings (the menu's ⌘, on the Mac).
         e.preventDefault();
@@ -624,6 +643,34 @@
     }
   }
 
+  // MARK: - Renaming (#65)
+
+  /** The document or folder whose name is being edited in place. */
+  let renamingAt = $state<{ sourceId: string; relPath: string } | null>(null);
+  const isRenaming = (sourceId: string, relPath: string) =>
+    renamingAt?.sourceId === sourceId && renamingAt.relPath === relPath;
+
+  /** Starts editing a name: in a folder's listing or the sidebar. */
+  function startRenaming(sel: Selected) {
+    itemMenu = null;
+    renamingAt = { sourceId: sel.sourceId, relPath: sel.entry.relPath };
+  }
+
+  /** Renames on disk, then shows the new name (and follows a renamed
+   * folder that was open, or holds the open one). */
+  async function finishRenaming(sourceId: string, relPath: string, name: string) {
+    renamingAt = null;
+    const newRel = await run(() => api.renameEntry(sourceId, relPath, name));
+    if (!newRel) return;
+    const moved = (p: string) => (p === relPath || p.startsWith(relPath + "/") ? newRel + p.slice(relPath.length) : p);
+    if (folder?.sourceId === sourceId && moved(folder.relPath) !== folder.relPath) {
+      selectFolder(sourceId, moved(folder.relPath));
+      return;
+    }
+    if (selected?.sourceId === sourceId && selected.entry.relPath === relPath) pendingSelect = newRel;
+    if (folder?.sourceId === sourceId) loadEntries();
+  }
+
   // MARK: - Moving
 
   /** The document or folder "Move to…" is choosing a place for. */
@@ -857,6 +904,9 @@
               onmove={moveItem}
               oncopy={copyFiles}
               onmenu={folderMenu}
+              renaming={renamingAt}
+              onrename={finishRenaming}
+              onrenamecancel={() => (renamingAt = null)}
               startExpanded
             >
               {#snippet trailing()}
@@ -1094,6 +1144,10 @@
           oncopy={copyFiles}
           onstar={(e) => starDoc(source.id, e)}
           ondownload={(e) => downloadDoc(source.id, e)}
+          renaming={renamingAt?.sourceId === source.id ? renamingAt.relPath : null}
+          onrename={(e, name) => finishRenaming(source.id, e.relPath, name)}
+          onrenamecancel={() => (renamingAt = null)}
+          enterOpens={info?.os !== "macos"}
         />
       {:else}
         <table>
@@ -1114,7 +1168,7 @@
                 onclick={() => (selected = { sourceId: source.id, entry: e })}
                 ondblclick={() => activate(source.id, e)}
                 oncontextmenu={(ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
-                {...dragSource({ sourceId: source.id, entry: e })}
+                {...isRenaming(source.id, e.relPath) ? {} : dragSource({ sourceId: source.id, entry: e })}
                 {...e.isDir
                   ? dropTarget(source.id, e.relPath, {
                       move: (item) => moveItem(item, source.id, e.relPath),
@@ -1127,7 +1181,16 @@
                     <Icon name={e.isDir ? "folder" : e.kind === "pdf" ? "pdf" : "file"} size={15} />
                   </span>
                   {#if e.isDir}<span class="star-space"></span>{:else}<DocStar sourceId={source.id} doc={e} onclick={() => starDoc(source.id, e)} />{/if}
-                  <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
+                  {#if isRenaming(source.id, e.relPath)}
+                    <RenameField
+                      name={e.name}
+                      isDir={e.isDir}
+                      oncommit={(name) => finishRenaming(source.id, e.relPath, name)}
+                      oncancel={() => (renamingAt = null)}
+                    />
+                  {:else}
+                    <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
+                  {/if}
                   {@render tagChips(e.tags)}
                   {#if e.cloud === "cloudOnly"}
                     <CloudBadge sourceId={source.id} doc={e} onclick={() => downloadDoc(source.id, e)} />
@@ -1218,6 +1281,9 @@
     <button role="menuitem" onclick={() => fromMenu(reveal)}>{revealLabel(info?.os)}</button>
     {#if mn.inSearch}
       <button role="menuitem" onclick={() => fromMenu(showInFolder)}>{m.main.showInRupert}</button>
+    {/if}
+    {#if !mn.inSearch}
+      <button role="menuitem" onclick={() => fromMenu(startRenaming)}>{m.main.rename}</button>
     {/if}
     <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>{m.main.moveTo}</button>
     {#if mn.sel.entry.isDir}

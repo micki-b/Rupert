@@ -331,6 +331,146 @@ pub fn move_entry(from: &Source, rel_path: &str, to: &Source, dest_dir: &str) ->
     })
 }
 
+// MARK: - Renaming
+
+/// Characters no file name may hold on at least one of macOS, Windows and
+/// Linux (libraries sync between them).
+const FORBIDDEN: &[char] = &['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+
+/// Names Windows keeps for devices, with or without an extension.
+const RESERVED: &[&str] = &[
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
+
+/// Checks a new name as typed, before anything is tried: the reason it's
+/// refused, in the user's language. Names are taken as they are, never
+/// quietly changed.
+pub fn check_name(name: &str) -> Result<()> {
+    let refuse = |why: String| Err(Error::InvalidValue(why));
+    if name.trim().is_empty() {
+        return refuse(tr("The name is empty.").into());
+    }
+    if let Some(c) = name
+        .chars()
+        .find(|c| FORBIDDEN.contains(c) || c.is_control())
+    {
+        let shown = if c.is_control() {
+            "?".to_string()
+        } else {
+            c.to_string()
+        };
+        return refuse(trf(
+            "Names can't contain “{0}”: it isn't allowed in file names on every computer \
+             (/ \\ : * ? \" < > | aren't).",
+            &[&shown],
+        ));
+    }
+    if name.starts_with('.') {
+        return refuse(tr("Names can't start with a dot: the file would be hidden.").into());
+    }
+    if name.ends_with('.')
+        || name.ends_with(char::is_whitespace)
+        || name.starts_with(char::is_whitespace)
+    {
+        return refuse(tr("Names can't start or end with a space, or end with a dot.").into());
+    }
+    let base = name
+        .split('.')
+        .next()
+        .unwrap_or(name)
+        .trim()
+        .to_ascii_uppercase();
+    if RESERVED.contains(&base.as_str()) {
+        return refuse(trf("“{0}” is a name Windows keeps for itself.", &[&base]));
+    }
+    if name.len() > 255 {
+        return refuse(tr("The name is too long.").into());
+    }
+    if name.eq_ignore_ascii_case(sidecar::DIR_NAME) || is_ignored_name(name) {
+        return refuse(trf("“{0}” is a name Rupert keeps for itself.", &[&name]));
+    }
+    Ok(())
+}
+
+/// Renames the document (with its sidecar) or folder at `rel_path` in
+/// `source` to `new_name`, in the same folder. Never replaces anything: a
+/// taken name is refused (a change of case only is allowed). Its catalog
+/// entries follow, and nothing is read or downloaded, so online-only files
+/// rename like any other.
+pub fn rename_entry(source: &Source, rel_path: &str, new_name: &str) -> Result<Moved> {
+    let rel_path = rel_path.trim_matches('/');
+    if rel_path.is_empty() {
+        return Err(Error::InvalidPath(
+            tr("a source itself can't be renamed here").into(),
+        ));
+    }
+    check_name(new_name)?;
+    let path = crate::listing::resolve(&source.root, rel_path)?;
+    let is_dir = fs::symlink_metadata(&path)?.is_dir();
+    let parent = path
+        .parent()
+        .ok_or_else(|| Error::InvalidPath(rel_path.into()))?;
+    let target = parent.join(new_name);
+    if target == path {
+        return Ok(Moved {
+            rel_path: rel_path.into(),
+            is_dir,
+        });
+    }
+    if fs::symlink_metadata(&target).is_ok() && !same_file(&path, &target) {
+        return Err(Error::InvalidValue(trf(
+            "“{0}” is already taken in this folder. Choose another name.",
+            &[&new_name],
+        )));
+    }
+    let new_rel = crate::listing::relative(&source.root, &target)
+        .ok_or_else(|| Error::InvalidPath(target.display().to_string()))?;
+    let renamed = |old: &str| format!("{new_rel}{}", &old[rel_path.len()..]);
+
+    let docs = if is_dir {
+        let mut docs = Vec::new();
+        walk_files(&source.root, rel_path, &mut docs)?;
+        docs
+    } else {
+        vec![(rel_path.to_string(), cloud_state(&path)?)]
+    };
+    // As when moving: the catalog first, so the indexer finds it at once.
+    let mut written = Vec::new();
+    if source.shares_catalog() {
+        for (doc, _) in &docs {
+            if let Some(mut entry) = catalog::read(&source.root, doc)? {
+                entry.rel_path = renamed(doc);
+                catalog::write(&source.root, &entry)?;
+                written.push(entry.rel_path);
+            }
+        }
+    }
+    let result = if is_dir {
+        fs::rename(&path, &target).map_err(Error::from)
+    } else {
+        // Same folder: a rename, never a copy.
+        move_with_sidecar(&path, &target, false)
+    };
+    if let Err(e) = result {
+        for rel in &written {
+            let _ = catalog::remove(&source.root, rel);
+        }
+        return Err(e);
+    }
+    // A change of case only leaves the entries at the same (case-folded)
+    // path on some disks: remove the old ones only if they're different.
+    for (doc, _) in &docs {
+        if !written.iter().any(|w| w == doc) {
+            let _ = catalog::remove(&source.root, doc);
+        }
+    }
+    Ok(Moved {
+        rel_path: new_rel,
+        is_dir,
+    })
+}
+
 /// Whether `rel_path` is the folder `dir` or inside it.
 pub fn is_within(rel_path: &str, dir: &str) -> bool {
     let (rel_path, dir) = (rel_path.trim_matches('/'), dir.trim_matches('/'));
@@ -472,6 +612,112 @@ fn trash_with(root: &Path, rel_path: &str, delete: &dyn Fn(&Path) -> Result<()>)
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn names_are_checked_before_renaming() {
+        assert!(check_name("2026-03-01 Water bill.pdf").is_ok());
+        assert!(check_name("Rechnung für März.pdf").is_ok());
+        for bad in [
+            "",
+            "  ",
+            "a/b",
+            "a:b",
+            "a\\b",
+            "what?",
+            "x|y",
+            "\"q\"",
+            ".hidden",
+            "trailing.",
+            " lead",
+            "tail ",
+            "CON",
+            "nul.txt",
+            "Com1.pdf",
+            ".rupert",
+        ] {
+            assert!(check_name(bad).is_err(), "{bad:?} should be refused");
+        }
+        assert!(check_name(&"x".repeat(256)).is_err());
+        assert!(
+            check_name("Console.pdf").is_ok(),
+            "only the exact device names"
+        );
+    }
+
+    #[test]
+    fn rename_takes_the_sidecar_and_catalog_and_never_replaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("Bills")).unwrap();
+        fs::write(root.join("Bills/scan.pdf"), b"%PDF").unwrap();
+        fs::write(root.join("Bills/other.pdf"), b"%PDF").unwrap();
+        let side = sidecar::path_for(&root.join("Bills/scan.pdf")).unwrap();
+        fs::create_dir_all(side.parent().unwrap()).unwrap();
+        fs::write(&side, "{}").unwrap();
+        let src = Source {
+            id: "s".into(),
+            name: "S".into(),
+            root: root.to_path_buf(),
+            provider: Provider::OneDrive,
+            show_all_types: false,
+            download_online_only: false,
+            bookmark: None,
+        };
+        catalog::write(
+            root,
+            &catalog::CatalogEntry::new(
+                "Bills/scan.pdf",
+                4,
+                Some(1),
+                Default::default(),
+                crate::meta::Storage::None,
+                Some("text".into()),
+            ),
+        )
+        .unwrap();
+
+        let moved = rename_entry(&src, "Bills/scan.pdf", "2026-03-01 Water bill.pdf").unwrap();
+        assert_eq!(moved.rel_path, "Bills/2026-03-01 Water bill.pdf");
+        assert!(root.join("Bills/2026-03-01 Water bill.pdf").is_file());
+        assert!(
+            sidecar::path_for(&root.join("Bills/2026-03-01 Water bill.pdf"))
+                .unwrap()
+                .is_file()
+        );
+        assert!(
+            catalog::read(root, "Bills/2026-03-01 Water bill.pdf")
+                .unwrap()
+                .is_some()
+        );
+        assert!(catalog::read(root, "Bills/scan.pdf").unwrap().is_none());
+
+        // Taken: refused, both files untouched.
+        assert!(rename_entry(&src, "Bills/2026-03-01 Water bill.pdf", "other.pdf").is_err());
+        assert!(root.join("Bills/other.pdf").is_file());
+
+        // A folder, with what's inside.
+        let moved = rename_entry(&src, "Bills", "Utilities").unwrap();
+        assert!(moved.is_dir);
+        assert!(root.join("Utilities/2026-03-01 Water bill.pdf").is_file());
+        assert!(
+            catalog::read(root, "Utilities/2026-03-01 Water bill.pdf")
+                .unwrap()
+                .is_some()
+        );
+
+        // A change of case only.
+        rename_entry(&src, "Utilities/other.pdf", "Other.pdf").unwrap();
+        assert!(
+            fs::read_dir(root.join("Utilities"))
+                .unwrap()
+                .flatten()
+                .any(|e| e.file_name() == "Other.pdf")
+        );
+
+        // Bad names never reach the disk; a source can't be renamed here.
+        assert!(rename_entry(&src, "Utilities/Other.pdf", "a:b.pdf").is_err());
+        assert!(rename_entry(&src, "", "x").is_err());
+    }
     use crate::meta::DocMeta;
 
     #[test]

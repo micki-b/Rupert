@@ -122,6 +122,23 @@
     nur online verfügbar sind und kein solches Bild haben, zeigen ihr Symbol. In beiden Fällen bleibt die Wolke, und
     beim Öffnen wird das Dokument heruntergeladen.
   </p>
+  <h3 id="renaming">Umbenennen</h3>
+  <p>
+    Klicken Sie mit der rechten Maustaste auf ein Dokument oder einen Ordner und wählen Sie <b>Umbenennen …</b>, oder
+    wählen Sie es aus und drücken Sie {mac ? "die Eingabetaste" : "F2"}{mac ? " (⌘O oder ⌘↓ öffnet es)" : ""}. Tippen Sie
+    den neuen Namen direkt ein und drücken Sie die Eingabetaste; Escape lässt alles, wie es war. Ausgewählt ist nur der
+    Teil vor der Dateiendung, und wenn Sie die Endung weglassen, bleibt die alte. Umbenannt wird sofort auf dem
+    Laufwerk, zusammen mit der versteckten Begleitdatei, und Dateien, die nur online verfügbar sind, werden umbenannt,
+    ohne sie herunterzuladen.
+  </p>
+  <p>
+    Rupert ersetzt nie etwas: Ein Name, den es im Ordner schon gibt, wird abgelehnt. Ebenso Namen, die manche Computer
+    nicht verwenden können, denn Ihre Ordner werden vielleicht zwischen Mac, Windows und Linux synchronisiert: Namen mit
+    <code>/ \ : * ? " &lt; &gt; |</code>, Namen, die mit einem Punkt beginnen oder mit einem Punkt oder Leerzeichen enden,
+    und Namen, die Windows für sich reserviert, etwa CON oder NUL. Wenn Sie den Eingangsordner (oder einen Ordner, der
+    ihn enthält) umbenennen, folgt ihm die Einstellung für den Eingang. Suchergebnisse lassen sich nicht umbenennen:
+    Öffnen Sie zuerst den Ordner.
+  </p>
   <h3 id="moving">Bewegen</h3>
   <p>
     Ziehen Sie ein Dokument oder einen Ordner auf einen Ordner, in der Seitenleiste oder in der Ordneransicht, oder
