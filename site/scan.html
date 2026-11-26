@@ -29,7 +29,8 @@
         var ua = navigator.userAgent;
         var os = /Android/i.test(ua) ? "android" : /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ios" : "other";
         document.querySelectorAll("[data-os]").forEach(function (el) {
-          if (el.dataset.os.split(" ").indexOf(os) < 0) el.hidden = true;
+          // (style, not `hidden`: the buttons' own display would win)
+          if (el.dataset.os.split(" ").indexOf(os) < 0) el.style.display = "none";
         });
         // Android: open the app if it's there, otherwise the download.
         var open = document.querySelector("[data-open]");
