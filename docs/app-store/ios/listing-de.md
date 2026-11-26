@@ -51,6 +51,13 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.9.0 [4000]
+
+„Rupert fragen“ nennt die Seite, aus der eine Antwort stammt.
+
+• Antworten sagen, von welcher Seite eines Dokuments sie stammen, etwa „[Mietvertrag 2024, S. 3]“.
+• Schnellere Suche in langen Dokumenten.
+
 ## What's new in 0.8.0 [4000]
 
 Den Tab „Scannen“ vom Computer aus öffnen.

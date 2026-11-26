@@ -51,6 +51,20 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.9.0 [4000]
+
+Work with many documents at once.
+
+• Select several: ⌘-click or Shift-click, then move, tag, star, share, export or trash them together.
+• Sort the list by any column, and narrow searches by date, kind and place.
+• Undo: Edit ▸ Undo (⌘Z) takes back the last move, filing, rename or tag change.
+• Quick open: ⌘K goes to any folder, document, tag or command. Press Space to preview the selected document.
+• Search words are marked on the page, ⌘F finds words in a document, and Ask Rupert names the page an answer comes from; click it to see the passage.
+• Export…: copies of documents in a zip or a folder, with a list for a spreadsheet.
+• A page preview in Details while browsing, and a resizable preview in the inbox.
+• List columns you can resize, move, show and hide, with stars for folders too.
+• Faster search in long documents, and fixes.
+
 ## What's new in 0.8.0 [4000]
 
 Get documents into the inbox more easily: scan with your iPhone, print to Rupert, or import many files at once.

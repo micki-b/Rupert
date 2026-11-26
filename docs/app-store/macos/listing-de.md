@@ -39,6 +39,20 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.9.0 [4000]
+
+Mit vielen Dokumenten auf einmal arbeiten.
+
+• Mehrere auswählen: ⌘-Klick oder Umschalt-Klick, dann gemeinsam bewegen, verschlagworten, mit Stern markieren, teilen, exportieren oder in den Papierkorb legen.
+• Die Liste nach jeder Spalte sortieren und Suchen nach Datum, Art und Ort eingrenzen.
+• Widerrufen: Bearbeiten ▸ Widerrufen (⌘Z) nimmt das letzte Bewegen, Ablegen, Umbenennen oder die letzte Tag-Änderung zurück.
+• Schnell öffnen: ⌘K führt zu jedem Ordner, Dokument, Tag oder Befehl. Mit der Leertaste sehen Sie das ausgewählte Dokument an.
+• Suchwörter sind auf der Seite markiert, ⌘F sucht Wörter in einem Dokument, und „Rupert fragen“ nennt die Seite, aus der eine Antwort stammt; ein Klick zeigt die Stelle.
+• Exportieren …: Kopien von Dokumenten in einer ZIP-Datei oder einem Ordner, mit einer Liste für eine Tabellenkalkulation.
+• Eine Seitenvorschau in den Details beim Durchsehen und eine größenverstellbare Vorschau im Eingang.
+• Listenspalten, die Sie verbreitern, verschieben, ein- und ausblenden können, mit Sternen auch für Ordner.
+• Schnellere Suche in langen Dokumenten und Fehlerbehebungen.
+
 ## What's new in 0.8.0 [4000]
 
 Dokumente einfacher in den Eingang bringen: mit dem iPhone scannen, in Rupert drucken oder viele Dateien auf einmal importieren.

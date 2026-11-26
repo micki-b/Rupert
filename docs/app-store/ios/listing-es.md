@@ -51,6 +51,13 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.9.0 [4000]
+
+Preguntale a Rupert dice de qué página sale una respuesta.
+
+• Las respuestas dicen de qué página de un documento salen, por ejemplo "[Contrato 2024, pág. 3]".
+• Búsquedas más rápidas en documentos largos.
+
 ## What's new in 0.8.0 [4000]
 
 Abrí la pestaña Escanear desde tu computadora.
