@@ -150,17 +150,23 @@ pub fn ocr_pdf(
     if pages.is_empty() {
         return Ok(report);
     }
-    report.text = pages
-        .iter()
-        .map(|p| {
-            p.words
+    // Page by page, with page breaks where the PDF has them (#106), so the
+    // text kept beside a PDF that couldn't take it still tells pages apart.
+    let mut by_page = vec![String::new(); report.pages];
+    for p in &pages {
+        if let Some(slot) = by_page.get_mut(p.index) {
+            *slot = p
+                .words
                 .iter()
                 .map(|w| w.text.as_str())
                 .collect::<Vec<_>>()
-                .join(" ")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
+                .join(" ");
+        }
+    }
+    report.text = by_page
+        .join(&format!("\n{}\n", crate::text::PAGE_BREAK))
+        .trim_end()
+        .to_string();
     if let Err(e) = text_layer::add(path, &pages, |bytes| pdf.extract_pdf_bytes(bytes)) {
         report.layer_error = Some(e.to_string());
     }

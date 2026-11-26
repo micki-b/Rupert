@@ -13,6 +13,7 @@ pub mod cloud;
 pub mod error;
 pub mod file_kind;
 pub mod fileops;
+pub mod find;
 pub mod folder_info;
 #[cfg(feature = "gdrive")]
 pub mod gdrive;

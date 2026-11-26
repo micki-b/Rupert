@@ -10,7 +10,7 @@ use std::process::Command;
 use std::sync::Mutex;
 
 use rupert_core::assistant::{
-    self, AnthropicAuth, Backend, Cancel, Chat, LibraryTools, Step, UiAction,
+    self, AnthropicAuth, Backend, Cancel, Chat, Citation, LibraryTools, Step, UiAction,
 };
 use rupert_core::chatgpt::{self, Credentials, PlanModel, SignIn};
 use rupert_core::llm::{self, LocalAi, Reach};
@@ -555,6 +555,8 @@ pub struct AssistantReply {
     steps: Vec<Step>,
     /// Things to show in the main window.
     actions: Vec<UiAction>,
+    /// Pages the answer cites, to open in the page viewer (#106).
+    citations: Vec<Citation>,
     model: String,
     cloud: bool,
     /// The user stopped it; nothing was answered or shown.
@@ -583,6 +585,7 @@ pub async fn assistant_send(text: String, app: AppHandle) -> CmdResult<Assistant
         let cloud = is_cloud(&settings);
         match result {
             Ok(reply) => Ok(AssistantReply {
+                citations: tools.citations(&reply.text),
                 text: reply.text,
                 steps: reply.steps,
                 actions: tools.take_actions(),
@@ -594,6 +597,7 @@ pub async fn assistant_send(text: String, app: AppHandle) -> CmdResult<Assistant
                 text: String::new(),
                 steps: Vec::new(),
                 actions: Vec::new(),
+                citations: Vec::new(),
                 model: backend.model().to_string(),
                 cloud,
                 stopped: true,

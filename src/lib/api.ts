@@ -300,10 +300,30 @@ export type AssistantAction =
   | { kind: "showDocument"; sourceId: string; relPath: string }
   | { kind: "search"; text: string; tags: string[]; tagMode: TagMode; favoritesOnly: boolean };
 
+/** A page an answer cites ("[Lease 2024, p. 3]", #106). */
+export interface Citation {
+  /** As written in the answer. */
+  text: string;
+  sourceId: string;
+  relPath: string;
+  /** 0-based. */
+  page: number;
+  /** The line on that page to highlight. */
+  passage: string | null;
+}
+
+/** Where words are on a page (#106): rectangles `[x, y, width, height]` in
+ * fractions of the page as shown, from the top left. */
+export interface FoundHit {
+  page: number;
+  rects: [number, number, number, number][];
+}
+
 export interface AssistantReply {
   text: string;
   steps: AssistantStep[];
   actions: AssistantAction[];
+  citations: Citation[];
   model: string;
   cloud: boolean;
   /** Stopped by the user: nothing was answered or shown. */
@@ -432,6 +452,9 @@ export const api = {
   /** Downloads an online-only document; Rupert then reads it. */
   downloadFile: (sourceId: string, relPath: string) => invoke<void>("download_file", { sourceId, relPath }),
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
+  /** Where words (or, with `phrase`, a passage) are on a local PDF's pages (#106). */
+  findInDocument: (sourceId: string, relPath: string, text: string, phrase = false) =>
+    invoke<FoundHit[]>("find_in_document", { sourceId, relPath, text, phrase }),
   /** Quick open (#105): documents by title or file name, best first. */
   quickFind: (text: string) => invoke<Hit[]>("quick_find", { text }),
   /** These documents' indexed details, in order, without any no longer indexed. */

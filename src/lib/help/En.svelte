@@ -135,6 +135,13 @@
     it.
   </p>
   <p>
+    From the search results, the viewer opens on the first page with a match and marks the words you searched for.
+    <b>3 of 7</b> counts the matches; the arrows beside it (or {mac ? "⌘G and ⇧⌘G" : "Ctrl+G and Shift+Ctrl+G"}) go to
+    the next or previous one. To look for other words, press {cmd}F in the viewer, or click the magnifying glass, and
+    type them; Return goes to the next match. Words are found in PDFs on this computer, including scans whose text
+    Rupert recognized. Online-only documents can't be searched this way, since that would download them.
+  </p>
+  <p>
     Pictures are kept in a cache on this computer and made again whenever a document changes. Rupert never reads an
     online-only file to show it, since that would download it. Instead, while a PDF in an iCloud Drive, OneDrive or
     Google Drive folder is on this computer, Rupert keeps a small picture of its first page, so it still shows one after
@@ -572,6 +579,11 @@
   <p>
     Rupert can look at your library, but <b>never changes</b> anything: no renaming, moving, tagging or deleting. He only
     reads the text Rupert already knows, so he never downloads online-only files.
+  </p>
+  <p>
+    When an answer comes from a document, Rupert names the page it's on, like <b>Lease 2024, p. 3</b>. Click it to
+    see that page in the page viewer, with the passage marked. Documents indexed before Rupert 0.9 get their pages
+    once Rupert has read them again, which it does by itself after the update.
   </p>
   <p>
     By default he runs on Local AI, on this computer. You can choose Claude or another cloud service instead: see
@@ -1020,7 +1032,7 @@
   <table class="keys">
     <tbody>
       <tr><td><kbd>{cmd}K</kbd></td><td>Quick open: go to a folder, document, tag or command</td></tr>
-      <tr><td><kbd>{cmd}F</kbd></td><td>Search</td></tr>
+      <tr><td><kbd>{cmd}F</kbd></td><td>Search; in the page viewer, find in the document ({cmd}G: next match)</td></tr>
       <tr><td><kbd>Space</kbd></td><td>See the selected document in the page viewer; there <kbd>↑</kbd> <kbd>↓</kbd> go to the previous or next one</td></tr>
       <tr><td><kbd>{mac ? "⌘⌫" : "Delete"}</kbd></td><td>Move what's selected to the {windows ? "Recycle Bin" : "Trash"}</td></tr>
       <tr><td><kbd>{cmd}A</kbd></td><td>Select everything in the folder or the search results</td></tr>

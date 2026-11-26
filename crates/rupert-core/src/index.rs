@@ -8,18 +8,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
+use crate::find::{FindQuery, excerpt};
 use crate::folder_info::FolderInfo;
 use crate::listing::CloudState;
 use crate::meta::{DocMeta, Storage};
 
 /// Bump to throw away and rebuild every user's index on schema changes
 /// (or add a step to `upgrade` when the tables can stay).
-const SCHEMA_VERSION: i32 = 5;
+const SCHEMA_VERSION: i32 = 6;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
 pub const HIGHLIGHT_START: char = '\u{E000}';
 pub const HIGHLIGHT_END: char = '\u{E001}';
+/// Search results' excerpts come from this much of each document's text.
+const EXCERPT_FROM: usize = 100_000;
 
 // MARK: - Types
 
@@ -402,18 +405,9 @@ impl Index {
     pub fn search(&self, q: &SearchQuery) -> Result<Vec<Hit>> {
         let fts = fts_query(&q.text);
         let limit = if q.limit == 0 { 200 } else { q.limit } as i64;
-        let mut sql = String::from(
-            "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
-                    d.title, d.tags, d.document_date, d.favorite, ",
-        );
-        if fts.is_some() {
-            sql.push_str(&format!(
-                "snippet(fts, 4, '{HIGHLIGHT_START}', '{HIGHLIGHT_END}', '…', 14)
-                 FROM fts JOIN docs d ON d.id = fts.rowid WHERE fts MATCH :q"
-            ));
-        } else {
-            sql.push_str("NULL FROM docs d WHERE 1");
-        }
+        // The documents' conditions, then their order (`sql` from here on
+        // is the WHERE clause's rest and the ORDER BY).
+        let mut sql = String::new();
         if q.source_id.is_some() {
             sql.push_str(" AND d.source_id = :source");
         }
@@ -456,7 +450,22 @@ impl Index {
                 " ORDER BY d.document_date IS NULL, d.document_date DESC, d.name COLLATE NOCASE",
             );
         }
-        sql.push_str(" LIMIT :limit");
+        const COLUMNS: &str = "d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, \
+                               d.cloud, d.title, d.tags, d.document_date, d.favorite";
+        let sql = if fts.is_some() {
+            // The text (its start) only for the documents shown, for their
+            // excerpts (see below).
+            format!(
+                "SELECT {COLUMNS}, substr(fts.body, 1, {EXCERPT_FROM})
+                 FROM fts JOIN docs d ON d.id = fts.rowid WHERE fts MATCH :q AND d.id IN (
+                     SELECT d.id FROM fts JOIN docs d ON d.id = fts.rowid
+                     WHERE fts MATCH :q{sql} LIMIT :limit
+                 ){order}",
+                order = &sql[sql.find(" ORDER BY").unwrap_or(sql.len())..],
+            )
+        } else {
+            format!("SELECT {COLUMNS}, NULL FROM docs d WHERE 1{sql} LIMIT :limit")
+        };
 
         let mut stmt = self.conn.prepare(&sql).map_err(db)?;
         let mut named: Vec<(&str, &dyn rusqlite::ToSql)> = vec![(":limit", &limit)];
@@ -486,7 +495,20 @@ impl Index {
             named.push((":below", b));
         }
         let rows = stmt.query_map(named.as_slice(), hit).map_err(db)?;
-        rows.collect::<std::result::Result<_, _>>().map_err(db)
+        let mut hits: Vec<Hit> = rows.collect::<std::result::Result<_, _>>().map_err(db)?;
+        // Excerpts made here, not by SQLite's `snippet()`: that reads each
+        // document's whole text to choose one, and over long documents a
+        // one-letter search took seconds (long enough to hold up the window).
+        if fts.is_some() {
+            let words = FindQuery::words(&q.text);
+            for h in &mut hits {
+                h.snippet = h
+                    .snippet
+                    .take()
+                    .and_then(|body| excerpt(&body, &words, 14, (HIGHLIGHT_START, HIGHLIGHT_END)));
+            }
+        }
+        Ok(hits)
     }
 
     /// The documents directly in `dir` of a source that match `text` (every
@@ -1103,11 +1125,12 @@ impl Index {
 fn upgrade(conn: &Connection, version: i32) -> Result<bool> {
     match version {
         // 4 → 5: text extraction no longer cuts off pages shown turned
-        // (`/Rotate`). Marking every local PDF as changed makes the next
-        // pass read them again (and refresh their catalog entries); search
-        // keeps working meanwhile. Online-only PDFs can't be read; theirs
-        // stays as the catalog has it.
-        4 => {
+        // (`/Rotate`). 5 → 6: extracted text keeps page breaks (#106).
+        // Marking every local PDF as changed makes the next pass read them
+        // again (and refresh their catalog entries); search keeps working
+        // meanwhile. Online-only PDFs can't be read; theirs stays as the
+        // catalog has it.
+        4 | 5 => {
             conn.execute(
                 "UPDATE docs SET mtime_ms = -1 WHERE kind = 'pdf' AND cloud = 0",
                 [],
@@ -1858,11 +1881,17 @@ mod tests {
     }
 
     #[test]
-    fn upgrading_from_4_rereads_local_pdfs_only() {
+    fn upgrading_from_4_or_5_rereads_local_pdfs_only() {
+        for from in [4, 5] {
+            upgrade_from(from);
+        }
+    }
+
+    fn upgrade_from(from: i32) {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("index.sqlite");
         {
-            let idx = Index::open_at_version(&path, 4).unwrap();
+            let idx = Index::open_at_version(&path, from).unwrap();
             idx.upsert(&row("local.pdf", Some("Kept"), &[], false), Some("text"))
                 .unwrap();
             let mut online = row("online.pdf", None, &[], false);

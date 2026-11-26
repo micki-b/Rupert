@@ -16,11 +16,17 @@ use pdfium_render::prelude::*;
 
 use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
+use crate::find::{self, FindQuery, FoundHit};
 
 /// Stop after this many pages or characters; enough to find any document,
 /// and keeps scanned books from bloating the index.
 const MAX_PAGES: i32 = 1500;
 const MAX_CHARS: usize = 1_000_000;
+
+/// Between two pages in extracted text, on a line of its own (#106): a form
+/// feed, so the text can be told apart by page (the assistant cites pages)
+/// while search sees only a space.
+pub const PAGE_BREAK: char = '\u{c}';
 
 // MARK: - Rendered pages
 
@@ -75,6 +81,7 @@ enum Request {
     ExtractBytes(Vec<u8>, Sender<Result<String>>),
     PageTextLengths(PathBuf, Sender<Result<Vec<usize>>>),
     PageCount(PathBuf, Sender<Result<usize>>),
+    Find(PathBuf, FindQuery, Sender<Result<Vec<FoundHit>>>),
     Render {
         path: PathBuf,
         page: usize,
@@ -164,6 +171,15 @@ impl TextExtractor {
         self.ask(|reply| Request::PageCount(path.to_path_buf(), reply))
     }
 
+    /// Where `query` is on a PDF's pages (#106), page by page, at most
+    /// [`find::MAX_HITS`] hits.
+    pub fn find(&self, path: &Path, query: FindQuery) -> Result<Vec<FoundHit>> {
+        if query.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.ask(|reply| Request::Find(path.to_path_buf(), query, reply))
+    }
+
     /// Renders one page (0-based), at most `max_scale` pixels per point and
     /// `max_side` pixels on the longest side.
     pub fn render_page(
@@ -228,6 +244,9 @@ fn serve(pdfium: &Pdfium, request: Request) {
         Request::PageCount(path, reply) => {
             let _ = reply.send(open(pdfium, &path).map(|doc| doc.pages().len() as usize));
         }
+        Request::Find(path, query, reply) => {
+            let _ = reply.send(open(pdfium, &path).and_then(|d| find_in(&d, &query)));
+        }
         Request::Render {
             path,
             page,
@@ -272,13 +291,113 @@ fn document_text(doc: &PdfDocument) -> Result<String> {
         if i as i32 >= MAX_PAGES || out.len() >= MAX_CHARS {
             break;
         }
+        if i > 0 {
+            out.push(PAGE_BREAK);
+            out.push('\n');
+        }
         if let Some(text) = page_text(&page) {
             push_normalized(&mut out, &text);
-            out.push('\n');
         }
     }
     truncate(&mut out);
-    Ok(out.trim().to_string())
+    // Not trimmed at the start: leading page breaks keep page numbers right.
+    Ok(out.trim_end().to_string())
+}
+
+/// The hits of `query` on every page (see [`TextExtractor::find`]).
+fn find_in(doc: &PdfDocument, query: &FindQuery) -> Result<Vec<FoundHit>> {
+    let mut out = Vec::new();
+    for (index, page) in doc.pages().iter().enumerate() {
+        if index as i32 >= MAX_PAGES || out.len() >= find::MAX_HITS {
+            break;
+        }
+        let Ok(text) = page.text() else { continue };
+        let all = text.chars();
+        let chars: Vec<PdfPageTextChar> = all.iter().collect();
+        let letters: Vec<char> = chars
+            .iter()
+            .map(|c| c.unicode_char().unwrap_or(' '))
+            .collect();
+        let ranges = find::match_ranges(&letters, query);
+        if ranges.is_empty() {
+            continue;
+        }
+        let Some(to_shown) = page_to_shown(&page) else {
+            continue;
+        };
+        for (start, end) in ranges {
+            let boxes = chars[start..end].iter().map(|c| match c.loose_bounds() {
+                Ok(r) => to_shown(r),
+                Err(_) => [0.0; 4],
+            });
+            let rects = find::line_rects(boxes);
+            if !rects.is_empty() {
+                out.push(FoundHit { page: index, rects });
+            }
+            if out.len() >= find::MAX_HITS {
+                break;
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Maps a box on the page (PDF points) to `[left, top, right, bottom]` as
+/// fractions of the page as it's shown (turned by `/Rotate`, cut to its
+/// crop box), the way it's rendered.
+fn page_to_shown(page: &PdfPage) -> Option<impl Fn(PdfRect) -> [f32; 4]> {
+    // Device pixels at 10 per point: the mapping is affine, so three
+    // points give it; the crop box's corners give the shown page's extent.
+    let config = PdfRenderConfig::new().scale_page_by_factor(10.0);
+    let px = |x: f32, y: f32| -> Option<(f64, f64)> {
+        let (a, b) = page
+            .points_to_pixels(PdfPoints::new(x), PdfPoints::new(y), &config)
+            .ok()?;
+        Some((a as f64, b as f64))
+    };
+    let o = px(0.0, 0.0)?;
+    let ux = px(1000.0, 0.0)?;
+    let uy = px(0.0, 1000.0)?;
+    let map = move |x: f64, y: f64| {
+        (
+            o.0 + (ux.0 - o.0) * x / 1000.0 + (uy.0 - o.0) * y / 1000.0,
+            o.1 + (ux.1 - o.1) * x / 1000.0 + (uy.1 - o.1) * y / 1000.0,
+        )
+    };
+    let crop = page
+        .boundaries()
+        .crop()
+        .or_else(|_| page.boundaries().media())
+        .ok()?
+        .bounds;
+    let corners = [
+        map(crop.left().value as f64, crop.bottom().value as f64),
+        map(crop.right().value as f64, crop.top().value as f64),
+        map(crop.left().value as f64, crop.top().value as f64),
+        map(crop.right().value as f64, crop.bottom().value as f64),
+    ];
+    let (x0, x1) = min_max(corners.iter().map(|c| c.0));
+    let (y0, y1) = min_max(corners.iter().map(|c| c.1));
+    let (w, h) = (x1 - x0, y1 - y0);
+    if w <= 0.0 || h <= 0.0 {
+        return None;
+    }
+    Some(move |r: PdfRect| {
+        let a = map(r.left().value as f64, r.bottom().value as f64);
+        let b = map(r.right().value as f64, r.top().value as f64);
+        let (l, rr) = min_max([a.0, b.0].into_iter());
+        let (t, bb) = min_max([a.1, b.1].into_iter());
+        [
+            ((l - x0) / w) as f32,
+            ((t - y0) / h) as f32,
+            ((rr - x0) / w) as f32,
+            ((bb - y0) / h) as f32,
+        ]
+    })
+}
+
+fn min_max(values: impl Iterator<Item = f64>) -> (f64, f64) {
+    values.fold((f64::MAX, f64::MIN), |(lo, hi), v| (lo.min(v), hi.max(v)))
 }
 
 fn render(
@@ -400,6 +519,116 @@ pub(crate) mod tests {
         std::fs::write(&file, "# Boat\n\nReplace   impeller").unwrap();
         let text = TextExtractor::new(None).extract(&file).unwrap();
         assert_eq!(text.as_deref(), Some("# Boat\nReplace impeller"));
+    }
+
+    /// A one-page PDF with "Grüße Señor 42" written at known places (as OCR
+    /// would), shown turned by `rotate`.
+    fn pdf_with_words(dir: &Path, rotate: i64) -> PathBuf {
+        use crate::text_layer::{PageWords, PlacedWord};
+        let path = dir.join("words.pdf");
+        crate::pdf_meta::tests::make_pdf(&path, None);
+        if rotate != 0 {
+            let mut doc = lopdf::Document::load(&path).unwrap();
+            let page_id = doc.get_pages()[&1];
+            doc.get_object_mut(page_id)
+                .and_then(lopdf::Object::as_dict_mut)
+                .unwrap()
+                .set("Rotate", rotate);
+            doc.save(&path).unwrap();
+        }
+        let word = |text: &str, x: f64, w: f64| PlacedWord {
+            text: text.into(),
+            quad: [(x, 714.0), (x + w, 714.0), (x + w, 700.0), (x, 700.0)],
+        };
+        let pages = [PageWords {
+            index: 0,
+            words: vec![
+                word("Grüße", 72.0, 80.0),
+                word("Señor", 160.0, 70.0),
+                word("42", 240.0, 30.0),
+            ],
+        }];
+        let pdfium = shared_pdfium().unwrap();
+        crate::text_layer::add(&path, &pages, |b| pdfium.extract_pdf_bytes(b)).unwrap();
+        path
+    }
+
+    #[test]
+    fn finds_words_where_they_are_on_the_page() {
+        let Some(pdfium) = shared_pdfium() else {
+            return;
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let path = pdf_with_words(dir.path(), 0);
+        let hits = pdfium.find(&path, FindQuery::words("senor")).unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].page, 0);
+        assert_eq!(hits[0].rects.len(), 1);
+        let [x, y, w, h] = hits[0].rects[0];
+        // 160..230 of 612 across; 714..700 of 792, from the top.
+        assert!((x - 160.0 / 612.0).abs() < 0.02, "x {x}");
+        assert!((y - 78.0 / 792.0).abs() < 0.02, "y {y}");
+        assert!((w - 70.0 / 612.0).abs() < 0.03, "w {w}");
+        assert!(h > 0.005 && h < 0.04, "h {h}");
+        // A passage over several words.
+        let hits = pdfium
+            .find(&path, FindQuery::phrase("grüße senor 42"))
+            .unwrap();
+        assert_eq!(hits.len(), 1);
+        assert!(
+            pdfium
+                .find(&path, FindQuery::words("nothing"))
+                .unwrap()
+                .is_empty()
+        );
+
+        // Shown turned a quarter clockwise: the word's box turns with it,
+        // to the right edge of the shown page.
+        let dir = tempfile::tempdir().unwrap();
+        let path = pdf_with_words(dir.path(), 90);
+        let hits = pdfium.find(&path, FindQuery::words("senor")).unwrap();
+        let [x, y, _, _] = hits[0].rects[0];
+        assert!(x > 0.8, "x {x}");
+        assert!((y - 160.0 / 612.0).abs() < 0.02, "y {y}");
+    }
+
+    #[test]
+    fn extracted_text_keeps_page_breaks() {
+        use lopdf::dictionary;
+        let Some(pdfium) = shared_pdfium() else {
+            return;
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("two.pdf");
+        let mut doc =
+            lopdf::Document::load_mem(&std::fs::read(pdf_with_words(dir.path(), 0)).unwrap())
+                .unwrap();
+        // A blank first page in front.
+        let pages_id = doc
+            .catalog()
+            .unwrap()
+            .get(b"Pages")
+            .unwrap()
+            .as_reference()
+            .unwrap();
+        let blank = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "Parent" => pages_id,
+            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+        });
+        let pages = doc
+            .get_object_mut(pages_id)
+            .and_then(lopdf::Object::as_dict_mut)
+            .unwrap();
+        let mut kids = pages.get(b"Kids").unwrap().as_array().unwrap().clone();
+        kids.insert(0, blank.into());
+        pages.set("Kids", kids);
+        pages.set("Count", 2);
+        doc.save(&path).unwrap();
+        let text = pdfium.extract(&path).unwrap().unwrap();
+        assert!(text.starts_with(PAGE_BREAK), "{text:?}");
+        assert_eq!(text.split(PAGE_BREAK).count(), 2);
+        assert!(text.contains("Señor"));
     }
 
     #[test]

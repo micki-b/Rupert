@@ -25,6 +25,7 @@ uuid = { version = "1.29.3", features = ["v4"] }
 sys-locale = "0.3.2"
 jpeg-encoder = "0.7.1"
 qrcodegen = "1.8"
+unicode-normalization = "0.1.26"
 
 [features]
 # OneDrive through Microsoft Graph (the phone app).

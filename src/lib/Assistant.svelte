@@ -3,16 +3,32 @@
   // show. Uses the model chosen in Settings ▸ Assistant (Local AI by default;
   // a cloud model only when chosen there).
   import { onMount, tick } from "svelte";
-  import { api, onAssistantStep, type AssistantAction, type AssistantInfo, type AssistantStep } from "#lib/api.ts";
+  import {
+    api,
+    onAssistantStep,
+    type AssistantAction,
+    type AssistantInfo,
+    type AssistantStep,
+    type Citation,
+  } from "#lib/api.ts";
   import Icon from "#lib/Icon.svelte";
   import RupertOwl, { type OwlMood } from "#lib/RupertOwl.svelte";
   import { m } from "#lib/i18n/index.ts";
 
-  let { onaction, onsettings }: { onaction: (a: AssistantAction) => void; onsettings: () => void } = $props();
+  let {
+    onaction,
+    oncite,
+    onsettings,
+  }: {
+    onaction: (a: AssistantAction) => void;
+    /** A cited page was clicked (#106): open it there. */
+    oncite: (c: Citation) => void;
+    onsettings: () => void;
+  } = $props();
 
   type Message =
     | { role: "user"; text: string }
-    | { role: "assistant"; text: string; steps: AssistantStep[]; shown: string[]; model: string }
+    | { role: "assistant"; text: string; steps: AssistantStep[]; shown: string[]; model: string; citations: Citation[] }
     | { role: "error"; text: string }
     | { role: "stopped" };
 
@@ -84,9 +100,30 @@
     }
   }
 
-  /** Splits **bold** markers (models use them even when asked not to). */
-  function boldParts(text: string): { text: string; bold: boolean }[] {
-    return text.split("**").map((t, i) => ({ text: t, bold: i % 2 === 1 }));
+  type Piece = { text: string; bold: boolean; cite?: Citation };
+
+  /** Splits **bold** markers (models use them even when asked not to), and
+   * cited pages ("[Lease 2024, p. 3]") out as links (#106). */
+  function pieces(text: string, citations: Citation[]): Piece[] {
+    const out: Piece[] = [];
+    text.split("**").forEach((part, i) => {
+      const bold = i % 2 === 1;
+      let rest = part;
+      while (rest) {
+        const next = citations
+          .map((c) => ({ c, at: rest.indexOf(c.text) }))
+          .filter((x) => x.at >= 0)
+          .sort((a, b) => a.at - b.at)[0];
+        if (!next) {
+          out.push({ text: rest, bold });
+          break;
+        }
+        if (next.at > 0) out.push({ text: rest.slice(0, next.at), bold });
+        out.push({ text: next.c.text.slice(1, -1), bold, cite: next.c });
+        rest = rest.slice(next.at + next.c.text.length);
+      }
+    });
+    return out;
   }
 
   function describe(a: AssistantAction): string {
@@ -127,6 +164,7 @@
           steps: reply.steps,
           shown: reply.actions.map(describe),
           model: reply.model,
+          citations: reply.citations ?? [],
         },
       ];
       after = "happy";
@@ -230,7 +268,11 @@
             <div class="steps">{msg.steps.map((s) => s.summary).join(" · ")}</div>
           {/if}
           <div class="msg bot">
-            {#each boldParts(msg.text) as p, j (j)}{#if p.bold}<strong>{p.text}</strong>{:else}{p.text}{/if}{/each}
+            {#each pieces(msg.text, msg.citations) as p, j (j)}{#if p.cite}{@const c = p.cite}<button
+                  class="cite"
+                  onclick={() => oncite(c)}
+                  title={m.assistant.openCited}>{p.text}</button
+                >{:else if p.bold}<strong>{p.text}</strong>{:else}{p.text}{/if}{/each}
           </div>
           {#if msg.shown.length}<div class="shown">{msg.shown.join(" · ")}</div>{/if}
         {:else if msg.role === "stopped"}
@@ -462,6 +504,23 @@
     font-size: 11px;
     color: var(--muted);
     padding: 0 4px;
+  }
+  .cite {
+    all: unset;
+    cursor: pointer;
+    font-size: 0.92em;
+    padding: 0 5px;
+    margin: 0 1px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    white-space: nowrap;
+  }
+  .cite:hover {
+    text-decoration: underline;
+  }
+  .cite:focus-visible {
+    outline: 2px solid var(--accent);
   }
   .link {
     border: 0;

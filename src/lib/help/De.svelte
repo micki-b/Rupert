@@ -140,6 +140,13 @@
     Rupert davon behalten hat (siehe unten); heruntergeladen wird erst, wenn Sie es öffnen.
   </p>
   <p>
+    Aus den Suchergebnissen öffnet sich die Ansicht auf der ersten Seite mit einem Treffer und markiert die gesuchten
+    Wörter. <b>3 von 7</b> zählt die Treffer; die Pfeile daneben (oder {mac ? "⌘G und ⇧⌘G" : "Strg+G und Umschalt+Strg+G"}) springen zum nächsten oder vorherigen. Um andere Wörter zu suchen, drücken Sie in der Ansicht
+    {cmd}F oder klicken Sie auf die Lupe und tippen Sie sie ein; die Eingabetaste springt zum nächsten Treffer. Gefunden
+    wird in PDFs auf diesem Computer, auch in Scans, deren Text Rupert erkannt hat. In Dokumenten, die nur online
+    verfügbar sind, geht das nicht, weil sie dafür heruntergeladen werden müssten.
+  </p>
+  <p>
     Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald sich ein Dokument
     ändert. Rupert liest eine Datei, die nur online verfügbar ist, nie, um sie anzuzeigen, denn das würde sie
     herunterladen. Solange ein PDF aus einem Ordner in iCloud Drive, OneDrive oder Google Drive auf diesem Computer liegt,
@@ -628,6 +635,11 @@
   <p>
     Rupert kann Ihre Bibliothek ansehen, <b>ändert aber nie</b> etwas: kein Umbenennen, Bewegen, Taggen oder Löschen. Er
     liest nur den Text, den Rupert bereits kennt, und lädt daher nie Dateien herunter, die nur online verfügbar sind.
+  </p>
+  <p>
+    Stammt eine Antwort aus einem Dokument, nennt Rupert die Seite, etwa <b>Mietvertrag 2024, S. 3</b>. Ein Klick darauf
+    zeigt diese Seite in der Seitenansicht, mit der Stelle markiert. Dokumente, die vor Rupert 0.9 erfasst wurden,
+    bekommen ihre Seiten, sobald Rupert sie erneut gelesen hat; das geschieht nach dem Update von selbst.
   </p>
   <p>
     Standardmäßig läuft er mit lokaler KI auf diesem Computer. Stattdessen können Sie Claude oder einen anderen
@@ -1127,7 +1139,7 @@
   <table class="keys">
     <tbody>
       <tr><td><kbd>{cmd}K</kbd></td><td>Schnell öffnen: zu einem Ordner, Dokument, Tag oder Befehl</td></tr>
-      <tr><td><kbd>{cmd}F</kbd></td><td>Suchen</td></tr>
+      <tr><td><kbd>{cmd}F</kbd></td><td>Suchen; in der Seitenansicht im Dokument suchen ({cmd}G: nächster Treffer)</td></tr>
       <tr><td><kbd>Leertaste</kbd></td><td>Das ausgewählte Dokument in der Seitenansicht zeigen; dort wechseln <kbd>↑</kbd> <kbd>↓</kbd> zum vorherigen oder nächsten</td></tr>
       <tr><td><kbd>{deleteKey}</kbd></td><td>Das Ausgewählte in den Papierkorb legen</td></tr>
       <tr><td><kbd>{cmd}A</kbd></td><td>Alles im Ordner oder in den Suchergebnissen auswählen</td></tr>

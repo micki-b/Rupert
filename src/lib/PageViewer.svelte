@@ -6,10 +6,13 @@
   // is changed in the file. Space opens it from any view (#105): then Space
   // closes it too, and ↑ ↓ go to the neighboring documents. An online-only
   // document shows only the picture Rupert kept of it, never downloading.
+  // Words are marked on the page (#106): a search's words or a cited
+  // passage when it opens, or what's typed after ⌘F, with the previous and
+  // next hit and a count.
   import { onMount, tick } from "svelte";
   import Icon from "#lib/Icon.svelte";
   import { thumbUrl } from "#lib/Thumb.svelte";
-  import { api, type Entry } from "#lib/api.ts";
+  import { api, type Entry, type FoundHit } from "#lib/api.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let {
@@ -17,6 +20,7 @@
     entry,
     title = null,
     startPage = 0,
+    find = null,
     onclose,
     onstep,
   }: {
@@ -25,6 +29,9 @@
     /** The document's title, shown instead of its file name. */
     title?: string | null;
     startPage?: number;
+    /** What to mark when it opens (#106): a search's words, or a passage
+     * (`phrase`); it opens on the first hit from `startPage` on. */
+    find?: { text: string; phrase: boolean } | null;
     onclose: () => void;
     /** ↑ ↓: the previous or next document of the view (#105). */
     onstep?: (step: 1 | -1) => void;
@@ -34,6 +41,9 @@
   const online = entry.cloud === "cloudOnly";
   /** No picture to show: a kind without one, or online-only with none kept. */
   let failed = $state(false);
+  /** Words can be found in it: a PDF on this computer. */
+  // svelte-ignore state_referenced_locally
+  const findable = entry.kind === "pdf" && !online;
 
   // svelte-ignore state_referenced_locally
   let page = $state(startPage);
@@ -139,6 +149,69 @@
     pageInput = String(page + 1);
   });
 
+  $effect(() => {
+    void quick;
+    failed = false;
+  });
+
+  // MARK: Finding (#106)
+
+  let hits = $state<FoundHit[]>([]);
+  /** The hit shown, or -1 before one is chosen. */
+  let current = $state(-1);
+  /** What's looked for, and whether the find field (⌘F) is open. */
+  // svelte-ignore state_referenced_locally
+  let findText = $state(find && !find.phrase ? find.text : "");
+  let finding = $state(false);
+  let findOpen = $state(false);
+  let findInput: HTMLInputElement | undefined = $state();
+  const onPage = $derived(hits.map((h, i) => ({ h, i })).filter(({ h }) => h.page === page));
+
+  async function look(text: string, phrase: boolean, from: number) {
+    if (!findable || !text.trim()) {
+      hits = [];
+      current = -1;
+      return;
+    }
+    finding = true;
+    const found = await api.findInDocument(sourceId, entry.relPath, text, phrase).catch(() => [] as FoundHit[]);
+    finding = false;
+    hits = found;
+    const first = found.findIndex((h) => h.page >= from);
+    if (found.length) showHit(first < 0 ? 0 : first);
+    else current = -1;
+  }
+
+  async function showHit(i: number) {
+    if (!hits.length) return;
+    current = (i + hits.length) % hits.length;
+    const p = hits[current].page;
+    if (p !== page) {
+      page = p;
+      stage?.scrollTo({ top: 0 });
+    }
+    await tick();
+    stage?.querySelector(".mark.current")?.scrollIntoView({ block: "center", inline: "center" });
+  }
+
+  function openFind() {
+    findOpen = true;
+    tick().then(() => {
+      findInput?.focus();
+      findInput?.select();
+    });
+  }
+
+  let findTimer: ReturnType<typeof setTimeout> | undefined;
+  function typedFind() {
+    clearTimeout(findTimer);
+    findTimer = setTimeout(() => look(findText, false, page), 200);
+  }
+
+  onMount(() => {
+    if (find) look(find.text, find.phrase, startPage);
+  });
+
   // MARK: Zooming and turning
 
   /** Zooms to `z`, keeping the point at (`x`, `y`) in the stage where it is. */
@@ -215,10 +288,21 @@
     const typing = (e.target as HTMLElement)?.tagName === "INPUT";
     const cmd = e.metaKey || e.ctrlKey;
     const plain = !cmd && !e.altKey && !e.shiftKey;
-    if (e.key === "Escape" || (e.key === " " && !typing && plain)) {
+    if (e.key === "Escape" && findOpen && typing) {
+      e.preventDefault();
+      e.stopPropagation();
+      findOpen = false;
+    } else if (e.key === "Escape" || (e.key === " " && !typing && plain)) {
       e.preventDefault();
       e.stopPropagation();
       onclose();
+    } else if (cmd && e.key === "f" && findable) {
+      e.preventDefault();
+      openFind();
+    } else if (cmd && e.key === "g" && hits.length) {
+      // ⌘G / ⇧⌘G: the next or previous hit, as in other apps.
+      e.preventDefault();
+      showHit(current + (e.shiftKey ? -1 : 1));
     } else if (onstep && !typing && plain && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
       e.preventDefault();
       onstep(e.key === "ArrowDown" ? 1 : -1);
@@ -286,6 +370,39 @@
         <button class="txt" class:on={Math.abs(zoom - 1) < 0.01} onclick={fitPage} title="{m.pictures.fitPage} (⌘0)">{m.pictures.fitPage}</button>
         <button class="txt" class:on={Math.abs(zoom - fitWidthZoom) < 0.01} onclick={fitWidth}>{m.pictures.fitWidth}</button>
       </span>
+      {#if findable && (findOpen || hits.length || finding)}
+        <span class="group find">
+          {#if findOpen}
+            <input
+              bind:this={findInput}
+              bind:value={findText}
+              oninput={typedFind}
+              onkeydown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  showHit(current + (e.shiftKey ? -1 : 1));
+                }
+              }}
+              placeholder={m.pictures.findPlaceholder}
+              aria-label={m.pictures.find}
+              spellcheck="false"
+            />
+          {/if}
+          <span class="count" aria-live="polite">
+            {#if finding}…{:else if hits.length}{m.pictures.hitOf(current + 1, hits.length)}{:else if findOpen && findText.trim()}{m.pictures.noHits}{/if}
+          </span>
+          <button class="ib" onclick={() => showHit(current - 1)} disabled={hits.length < 2} title={m.pictures.previousHit} aria-label={m.pictures.previousHit}>
+            <Icon name="back" size={14} />
+          </button>
+          <button class="ib" onclick={() => showHit(current + 1)} disabled={hits.length < 2} title={m.pictures.nextHit} aria-label={m.pictures.nextHit}>
+            <Icon name="chevron" size={14} />
+          </button>
+        </span>
+      {:else if findable}
+        <button class="ib" onclick={openFind} title={m.pictures.findKey} aria-label={m.pictures.find}>
+          <Icon name="search" size={15} />
+        </button>
+      {/if}
       <button class="ib" onclick={rotate} title={m.pictures.rotate} aria-label={m.pictures.rotate}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"
           ><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg
@@ -331,6 +448,27 @@
             }}
             onerror={() => (failed = true)}
           />
+          {#if onPage.length}
+            <div
+              class="marks"
+              style:width="{img.w}px"
+              style:height="{img.h}px"
+              style:transform="translate(-50%, -50%) rotate({rotation}deg)"
+            >
+              {#each onPage as { h, i } (i)}
+                {#each h.rects as [x, y, w, hh], k (k)}
+                  <span
+                    class="mark"
+                    class:current={i === current}
+                    style:left="{x * 100}%"
+                    style:top="{y * 100}%"
+                    style:width="{w * 100}%"
+                    style:height="{hh * 100}%"
+                  ></span>
+                {/each}
+              {/each}
+            </div>
+          {/if}
         </div>
       </div>
       {/if}
@@ -430,6 +568,43 @@
   }
   .muted {
     color: var(--muted);
+  }
+  .find input {
+    width: 150px;
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 6px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .find .count {
+    min-width: 48px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .marks {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    pointer-events: none;
+    transition: transform 0.15s;
+  }
+  .mark {
+    position: absolute;
+    /* A little room around the words. */
+    margin: -1px -2px;
+    padding: 1px 2px;
+    box-sizing: content-box;
+    background: rgb(255 214 0 / 0.38);
+    border-radius: 2px;
+    mix-blend-mode: multiply;
+  }
+  .mark.current {
+    background: rgb(255 150 0 / 0.5);
+    box-shadow: 0 0 0 2px rgb(255 140 0 / 0.85);
   }
   .note {
     display: inline-flex;
