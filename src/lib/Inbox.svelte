@@ -38,6 +38,10 @@
     onscan,
     onimport,
     onshow,
+    onfiling,
+    onundo,
+    canUndo = false,
+    filingUndone = 0,
   }: {
     sources: Source[];
     settings: Settings;
@@ -48,7 +52,20 @@
     onimport: () => void;
     /** Shows a document where it is in the library. */
     onshow: (sourceId: string, relPath: string) => void;
+    /** A scan was filed (from `relPath` of `sourceId`, to `filed`), for Undo (#104). */
+    onfiling?: (sourceId: string, relPath: string, filed: Filed, label: string) => void;
+    /** Undoes the last filing (the notice's Undo). */
+    onundo?: () => void;
+    /** Whether the last filing can still be undone. */
+    canUndo?: boolean;
+    /** Goes up when a filing was undone, from here or Edit ▸ Undo. */
+    filingUndone?: number;
   } = $props();
+
+  // A filing undone (here or with Edit ▸ Undo): its notice goes.
+  $effect(() => {
+    if (filingUndone) lastFiled = null;
+  });
 
   /** Import's summary: the documents that were already in the library. */
   let showDuplicates = $state(false);
@@ -342,6 +359,7 @@
         fileName: form.fileName.trim(),
       });
       lastFiled = { filed, label: destination.label };
+      onfiling?.(item.sourceId, item.relPath, filed, destination.label);
       selectedRel = nextAfter(item.relPath);
       items = items.filter((i) => i.relPath !== item.relPath);
       formFor = null;
@@ -563,6 +581,7 @@
         <div class="filed">
           {m.inbox.filedIn(lastFiled.label)}
           <button class="link" onclick={() => onfiled(lastFiled!.filed)}>{m.inbox.show}</button>
+          {#if canUndo}<button class="link" onclick={() => onundo?.()}>{m.renameDocs.undo}</button>{/if}
           <button class="link" onclick={() => (lastFiled = null)} aria-label={m.inbox.dismiss}>×</button>
         </div>
       {/if}

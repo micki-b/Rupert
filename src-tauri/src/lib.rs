@@ -30,7 +30,7 @@ use rupert_core::intake::{self, Filed, Filing, FolderChoice, IntakeHandle, Intak
 use rupert_core::llm::{self, LocalAi, Reach};
 use rupert_core::scansnap::{self, ImportPlan, ImportReport, ImportSummary};
 use rupert_core::settings::{Settings, SettingsStore};
-use rupert_core::tag_edit::{self, Preview, TagEdit};
+use rupert_core::tag_edit::{self, DocRef, Preview, TagAction, TagChange, TagEdit};
 use rupert_core::text::TextExtractor;
 use rupert_core::thumbs::Thumbnails;
 use rupert_core::{
@@ -420,6 +420,88 @@ async fn move_entry(
         }
     }
     Ok(moved.rel_path)
+}
+
+/// Something to put back where it was (Undo of a move or of File it, #104).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MoveBack {
+    now_source_id: String,
+    now_rel_path: String,
+    was_source_id: String,
+    was_rel_path: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MovedBack {
+    /// How many went back.
+    done: usize,
+    /// Those that didn't, and why.
+    failed: Vec<TagEditFailure>,
+}
+
+/// Undo of a move or of File it (#104): each item goes back to its old
+/// place and name, if it's still where Rupert left it and that place is
+/// free; otherwise it stays and the reason is reported.
+#[tauri::command]
+async fn move_back(items: Vec<MoveBack>, app: AppHandle) -> CmdResult<MovedBack> {
+    let state = app.state::<AppState>();
+    let mut out = MovedBack {
+        done: 0,
+        failed: Vec::new(),
+    };
+    for it in items {
+        let (now, was) = (
+            state.source(&it.now_source_id)?,
+            state.source(&it.was_source_id)?,
+        );
+        let (n, w, nr, wr) = (
+            now.clone(),
+            was.clone(),
+            it.now_rel_path.clone(),
+            it.was_rel_path.clone(),
+        );
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            rupert_core::fileops::move_back(&n, &nr, &w, &wr)
+        })
+        .await
+        .map_err(err)?;
+        match result {
+            Ok(moved) => {
+                out.done += 1;
+                let dir_of = |rel: &str| {
+                    rel.rsplit_once('/')
+                        .map(|(d, _)| d.to_string())
+                        .unwrap_or_default()
+                };
+                if moved.is_dir {
+                    state.indexer.send(Job::SyncDir {
+                        source: now,
+                        rel_dir: dir_of(&it.now_rel_path),
+                    });
+                    state.indexer.send(Job::SyncDir {
+                        source: was,
+                        rel_dir: dir_of(&it.was_rel_path),
+                    });
+                } else {
+                    state.indexer.send(Job::File {
+                        source: now,
+                        rel_path: it.now_rel_path,
+                    });
+                    state.indexer.send(Job::File {
+                        source: was,
+                        rel_path: moved.rel_path,
+                    });
+                }
+            }
+            Err(e) => out.failed.push(TagEditFailure {
+                path: it.now_rel_path,
+                error: e.to_string(),
+            }),
+        }
+    }
+    Ok(out)
 }
 
 /// Makes a folder (File it's New folder…, #63); the index picks it up.
@@ -919,46 +1001,80 @@ struct TagEditFailure {
 struct TagEditReport {
     changed: usize,
     failed: Vec<TagEditFailure>,
+    /// What changed, document by document, for Undo (#104).
+    changes: Vec<TagChange>,
 }
 
 /// Renames, merges or deletes tags in every document that has them.
 #[tauri::command]
 async fn tag_edit_apply(edit: TagEdit, app: AppHandle) -> CmdResult<TagEditReport> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let state = app.state::<AppState>();
-        let sources = state.sources();
-        let (targets, _) = {
+    tauri::async_runtime::spawn_blocking(move || run_tag_edits(&app, vec![edit]))
+        .await
+        .map_err(err)?
+}
+
+/// Undo of a tag edit (#104): each document gets its tags back, unless they
+/// changed since (then it's left alone and not counted).
+#[tauri::command]
+async fn tag_undo(changes: Vec<TagChange>, app: AppHandle) -> CmdResult<TagEditReport> {
+    let edits = changes
+        .into_iter()
+        .map(|c| TagEdit {
+            from: Vec::new(),
+            action: TagAction::Restore {
+                before: c.before,
+                after: c.after,
+            },
+            only: Some(vec![DocRef {
+                source_id: c.source_id,
+                rel_path: c.rel_path,
+            }]),
+        })
+        .collect();
+    tauri::async_runtime::spawn_blocking(move || run_tag_edits(&app, edits))
+        .await
+        .map_err(err)?
+}
+
+/// Applies tag edits document by document, with progress, re-indexing each.
+fn run_tag_edits(app: &AppHandle, edits: Vec<TagEdit>) -> CmdResult<TagEditReport> {
+    let state = app.state::<AppState>();
+    let sources = state.sources();
+    let mut jobs = Vec::new();
+    for edit in &edits {
+        let index = state.index.lock().unwrap();
+        let (targets, _) = tag_edit::plan(&index, &sources, edit).map_err(err)?;
+        jobs.extend(targets.into_iter().map(|t| (t, edit)));
+    }
+    let total = jobs.len();
+    let mut report = TagEditReport {
+        changed: 0,
+        failed: Vec::new(),
+        changes: Vec::new(),
+    };
+    for (i, (target, edit)) in jobs.iter().enumerate() {
+        let result = {
             let index = state.index.lock().unwrap();
-            tag_edit::plan(&index, &sources, &edit).map_err(err)?
+            tag_edit::apply_one(&index, target, edit)
         };
-        let total = targets.len();
-        let mut report = TagEditReport {
-            changed: 0,
-            failed: Vec::new(),
-        };
-        for (i, target) in targets.iter().enumerate() {
-            let result = {
-                let index = state.index.lock().unwrap();
-                tag_edit::apply_one(&index, target, &edit)
-            };
-            match result {
-                Ok(true) => report.changed += 1,
-                Ok(false) => {}
-                Err(e) => report.failed.push(TagEditFailure {
-                    path: format!("{}/{}", target.source.name, target.rel_path),
-                    error: e.to_string(),
-                }),
+        match result {
+            Ok(Some(change)) => {
+                report.changed += 1;
+                report.changes.push(change);
             }
-            state.indexer.send(Job::File {
-                source: target.source.clone(),
-                rel_path: target.rel_path.clone(),
-            });
-            let _ = app.emit(TAG_EDIT_PROGRESS, TagEditProgress { done: i + 1, total });
+            Ok(None) => {}
+            Err(e) => report.failed.push(TagEditFailure {
+                path: format!("{}/{}", target.source.name, target.rel_path),
+                error: e.to_string(),
+            }),
         }
-        Ok(report)
-    })
-    .await
-    .map_err(err)?
+        state.indexer.send(Job::File {
+            source: target.source.clone(),
+            rel_path: target.rel_path.clone(),
+        });
+        let _ = app.emit(TAG_EDIT_PROGRESS, TagEditProgress { done: i + 1, total });
+    }
+    Ok(report)
 }
 
 // MARK: - Commands: search
@@ -1481,6 +1597,8 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
             &PredefinedMenuItem::close_window(app, Some(tr("Close Window")))?,
         ],
     )?;
+    let undo = item(MENU_UNDO, tr("Undo"), Some("CmdOrCtrl+Z"))?;
+    *UNDO_ITEM.lock().unwrap() = Some(undo.clone());
     let edit = Submenu::with_items(
         app,
         tr("Edit"),
@@ -1488,7 +1606,7 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
         &[
             // Rupert's own, so it can also undo renaming documents; the
             // page undoes typing itself.
-            &item(MENU_UNDO, tr("Undo"), Some("CmdOrCtrl+Z"))?,
+            &undo,
             &PredefinedMenuItem::redo(app, Some(tr("Redo")))?,
             &sep()?,
             &PredefinedMenuItem::cut(app, Some(tr("Cut")))?,
@@ -1535,6 +1653,22 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     // into Inbox….
     continuity::add_to_file_menu(app);
     Ok(())
+}
+
+/// Edit ▸ Undo, to name what it would undo (#104).
+#[cfg(target_os = "macos")]
+static UNDO_ITEM: Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>> = Mutex::new(None);
+
+/// Edit ▸ Undo's title (#104): what Undo would undo ("Undo Move of 3
+/// Documents"), or plain "Undo". The Mac's menu only.
+#[tauri::command]
+fn set_undo_label(label: Option<String>) {
+    #[cfg(target_os = "macos")]
+    if let Some(item) = UNDO_ITEM.lock().unwrap().as_ref() {
+        let _ = item.set_text(label.as_deref().unwrap_or(tr("Undo")));
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = label;
 }
 
 /// The menu's own items: open the help, or tell the window.
@@ -1754,6 +1888,9 @@ pub fn run() {
             folder_favorite,
             set_folder_favorite,
             tag_edit_apply,
+            tag_undo,
+            move_back,
+            set_undo_label,
             index_status,
             stop_indexing,
             resume_indexing,

@@ -331,6 +331,39 @@ pub fn move_entry(from: &Source, rel_path: &str, to: &Source, dest_dir: &str) ->
     })
 }
 
+// MARK: - Moving back (Undo, #104)
+
+/// Undoes a move: puts what's now at `now_rel` in `now` back at `was_rel`
+/// in `was`, under its old name. Only if it's still where the move left it
+/// and its old place is free; otherwise nothing is touched and the error
+/// says why. Like any move, its sidecar and catalog entries go along.
+pub fn move_back(now: &Source, now_rel: &str, was: &Source, was_rel: &str) -> Result<Moved> {
+    let now_rel = now_rel.trim_matches('/');
+    let was_rel = was_rel.trim_matches('/');
+    let here = crate::listing::resolve(&now.root, now_rel)?;
+    let name_of = |rel: &str| rel.rsplit('/').next().unwrap_or(rel).to_string();
+    if fs::symlink_metadata(&here).is_err() {
+        return Err(Error::InvalidValue(trf(
+            "“{0}” isn't where Rupert put it any more",
+            &[&name_of(now_rel)],
+        )));
+    }
+    let there = crate::listing::resolve(&was.root, was_rel)?;
+    if fs::symlink_metadata(&there).is_ok() && !same_file(&here, &there) {
+        return Err(Error::InvalidValue(trf(
+            "something else is called “{0}” there now",
+            &[&name_of(was_rel)],
+        )));
+    }
+    let was_dir = was_rel.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
+    let moved = move_entry(now, now_rel, was, was_dir)?;
+    // It came in under another name (" (2)") or was renamed by the filing.
+    if moved.rel_path != was_rel {
+        return rename_entry(was, &moved.rel_path, &name_of(was_rel));
+    }
+    Ok(moved)
+}
+
 // MARK: - Renaming
 
 /// Characters no file name may hold on at least one of macOS, Windows and
@@ -865,6 +898,37 @@ mod tests {
             move_document(&moved, &dest, "Acme notice (2)").unwrap(),
             moved
         );
+    }
+
+    #[test]
+    fn moves_back_only_when_nothing_changed() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("Inbox")).unwrap();
+        fs::create_dir_all(root.join("Taxes")).unwrap();
+        fs::write(root.join("Inbox/scan.pdf"), "%PDF").unwrap();
+        let src = source("s", root, Provider::Local);
+        // Filed: moved and renamed; then undone.
+        let filed = move_document(
+            &root.join("Inbox/scan.pdf"),
+            &root.join("Taxes"),
+            "2025 Return",
+        )
+        .unwrap();
+        assert!(filed.ends_with("Taxes/2025 Return.pdf"));
+        let back = move_back(&src, "Taxes/2025 Return.pdf", &src, "Inbox/scan.pdf").unwrap();
+        assert_eq!(back.rel_path, "Inbox/scan.pdf");
+        assert!(root.join("Inbox/scan.pdf").is_file());
+        assert!(!root.join("Taxes/2025 Return.pdf").exists());
+
+        // Gone meanwhile: nothing happens.
+        assert!(move_back(&src, "Taxes/missing.pdf", &src, "Inbox/missing.pdf").is_err());
+        // Its old place taken meanwhile: nothing happens.
+        fs::write(root.join("Taxes/a.pdf"), "A").unwrap();
+        fs::write(root.join("Inbox/a.pdf"), "new").unwrap();
+        assert!(move_back(&src, "Taxes/a.pdf", &src, "Inbox/a.pdf").is_err());
+        assert!(root.join("Taxes/a.pdf").is_file(), "left where it was");
+        assert_eq!(fs::read_to_string(root.join("Inbox/a.pdf")).unwrap(), "new");
     }
 
     fn source(id: &str, root: &Path, provider: Provider) -> Source {

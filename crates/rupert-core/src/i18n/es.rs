@@ -201,6 +201,14 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ),
     // MARK: - Print to Rupert (print_entry.rs)
     ("{0} documents", "{0} documentos"),
+    (
+        "“{0}” isn't where Rupert put it any more",
+        "«{0}» ya no está donde lo dejó Rupert",
+    ),
+    (
+        "something else is called “{0}” there now",
+        "otra cosa se llama «{0}» ahí ahora",
+    ),
     ("Save to Rupert", "Guardar en Rupert"),
     ("Rupert inbox", "Bandeja de entrada de Rupert"),
     (

@@ -261,6 +261,16 @@
     OneDrive and Google Drive also keep deleted files for a while on their websites. Folders you added as sources can't be deleted this way; use
     <b>Remove from Rupert…</b> in the source's <b>⋯</b> menu (that leaves the folder on disk).
   </p>
+  <h3 id="undo">Undo</h3>
+  <p>
+    Right after Rupert changes something, a notice at the bottom of the window says what, with <b>Undo</b>. The same is
+    {#if mac}<b>Edit ▸ Undo</b> (<kbd>⌘Z</kbd>), which names the change{:else}<kbd>Ctrl+Z</kbd>{/if}. It undoes the last
+    one of these: moving documents or folders (dragging or <b>Move to…</b>), renaming one or many, filing a scan from the
+    inbox (it goes back into the inbox with its old name, the details it got stay in it), and changing tags (in the tag
+    manager or with <b>Add tags…</b> / <b>Remove tags…</b>). Rupert only undoes what's still as it left it: a file moved
+    or changed since, or a name taken again, stays as it is, and the notice says so. Undo covers the last change only,
+    until you quit Rupert. Something moved to the {windows ? "Recycle Bin" : "Trash"} comes back from there.
+  </p>
   <h3>Source options</h3>
   <p>Click <b>⋯</b> next to a source:</p>
   <ul>

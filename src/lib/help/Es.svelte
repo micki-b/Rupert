@@ -279,6 +279,17 @@
     agregaste a la biblioteca no se pueden borrar así; usá <b>Quitar de Rupert…</b> en el menú <b>⋯</b> de la carpeta
     (eso deja la carpeta en el disco).
   </p>
+  <h3 id="undo">Deshacer</h3>
+  <p>
+    Justo después de que Rupert cambia algo, un aviso abajo en la ventana dice qué, con <b>Deshacer</b>. Lo mismo hace
+    {#if mac}<b>Edición ▸ Deshacer</b> (<kbd>⌘Z</kbd>), que nombra el cambio{:else}<kbd>Ctrl+Z</kbd>{/if}. Deshace el último
+    de estos: mover documentos o carpetas (arrastrando o con <b>Mover a…</b>), cambiar el nombre de uno o de muchos,
+    archivar un escaneo de la bandeja de entrada (vuelve a la bandeja con su nombre anterior; los detalles que recibió
+    quedan en él) y cambiar etiquetas (en el administrador de etiquetas o con <b>Agregar etiquetas…</b> / <b>Quitar
+    etiquetas…</b>). Rupert solo deshace lo que sigue como lo dejó: un archivo que se movió o cambió desde entonces, o un
+    nombre que volvió a estar ocupado, queda como está, y el aviso lo dice. Deshacer alcanza solo al último cambio, hasta
+    que cierres Rupert. Lo que mandaste a la {trash} se recupera desde ahí.
+  </p>
   <h3>Opciones de las carpetas</h3>
   <p>Hacé clic en <b>⋯</b> al lado de una carpeta:</p>
   <ul>
