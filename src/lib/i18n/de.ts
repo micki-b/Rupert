@@ -114,6 +114,16 @@ const de: Messages = {
     failed: (n: number) => `${num(n)} ${plural(n, "konnte", "konnten")} nicht kopiert werden:`,
     resultsTip: "Diese Suchergebnisse exportieren",
   },
+  preview: {
+    hide: "Seitenvorschau ausblenden",
+    hideTip: "Seitenvorschau ausblenden (über das Menü „Darstellung“ wieder einblenden)",
+    show: "Seitenvorschau einblenden",
+    openPage: "Seite zeigen",
+    noRoomTip: "Hier ist kein Platz für die Seite: zeigt sie groß",
+    heightLabel: "Höhe der Seitenvorschau",
+    resizeTip: "Ziehen, um die Größe zu ändern; Doppelklick für die übliche Höhe",
+    notesResizeTip: "Ziehen, um die Notizen höher oder niedriger zu machen; Doppelklick für die übliche Höhe",
+  },
   quickOpen: {
     title: "Schnell öffnen",
     placeholder: "Zu einem Ordner, Dokument, Tag oder Befehl",

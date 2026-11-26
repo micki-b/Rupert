@@ -540,6 +540,8 @@ export const api = {
     invoke<{ done: number; failed: { path: string; error: string }[] }>("move_back", { items }),
   /** Edit ▸ Undo's title on the Mac ("Undo Move of 3 Documents"); null for plain "Undo". */
   setUndoLabel: (label: string | null) => invoke<void>("set_undo_label", { label }),
+  /** View ▸ Hide/Show Page Preview's title (the Mac's menu). */
+  setPreviewMenu: (shown: boolean) => invoke<void>("set_preview_menu", { shown }),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
   stopIndexing: () => invoke<void>("stop_indexing"),
   resumeIndexing: () => invoke<void>("resume_indexing"),
@@ -733,6 +735,11 @@ export function onContinuityScan(handler: (r: { name: string | null; error: stri
 /** File ▸ Quick Open… (macOS menu, #105). */
 export function onMenuQuickOpen(handler: () => void): Promise<UnlistenFn> {
   return listen("menu-quick-open", () => handler());
+}
+
+/** View ▸ Hide/Show Page Preview (#127). */
+export function onMenuTogglePreview(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-toggle-preview", () => handler());
 }
 
 /** Edit ▸ Undo (macOS menu). */

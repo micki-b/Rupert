@@ -109,6 +109,16 @@ const en = {
     failed: (n: number) => `${num(n)} couldn't be copied:`,
     resultsTip: "Export these search results",
   },
+  preview: {
+    hide: "Hide page preview",
+    hideTip: "Hide the page preview (View menu shows it again)",
+    show: "Show page preview",
+    openPage: "Show page",
+    noRoomTip: "There's no room for the page here: shows it large",
+    heightLabel: "Page preview height",
+    resizeTip: "Drag to resize, double-click for the usual height",
+    notesResizeTip: "Drag to make the notes taller or shorter, double-click for the usual height",
+  },
   quickOpen: {
     title: "Quick open",
     placeholder: "Go to a folder, document, tag or command",

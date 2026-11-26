@@ -118,6 +118,15 @@
     icons and the gallery, choose the order in <b>Sort</b> beside the view buttons. Folders stay on top, and the order is
     kept for all folders.
   </p>
+  <p id="page-preview">
+    <b>Page preview:</b> in the list, large icons and search results, the selected PDF or picture's page is at the top of
+    <b>Details</b>. Flip through its pages with the arrows on it, and click it to open the
+    <a href="#viewer">page viewer</a>. Online-only documents show the small picture Rupert kept, without downloading.
+    Drag the edge below the page to make it taller or shorter (double-click it for the usual height). When the window
+    gets short, the page gives up its room first and the details stay whole; when there's no room left, a
+    <b>Show page</b> button takes its place. The × on the page{mac ? ", or View ▸ Hide Page Preview," : ""} hides it, in
+    Details and in the inbox, until you show it again.
+  </p>
   <h3 id="viewer">The page viewer</h3>
   <p>
     Click a page (in the gallery, or the inbox's preview) to see it large. Zoom with <b>+</b> and <b>−</b>,
@@ -461,7 +470,9 @@
     folder; Rupert remembers the view for the inbox. The selected scan's page is at the top of the right column, above
     the form, in every view: flip through its pages with the arrows on the page or <kbd>Page Up</kbd> and
     <kbd>Page Down</kbd>, and click it to open the <a href="#viewer">page viewer</a>. In the gallery the page is also
-    large in the middle.
+    large in the middle. The page takes what <b>File it</b> leaves: drag the edge between them to set its height, and on
+    a small window it shrinks or gives way so the form never has to be scrolled (see
+    <a href="#page-preview">Page preview</a>).
   </p>
   <p>
     <b>Folder</b> shows the whole path to where the document goes, with the folder itself in bold (the source's name is

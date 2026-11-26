@@ -24,6 +24,9 @@
   import FolderPicker from "#lib/FolderPicker.svelte";
   import FolderPickerDialog from "#lib/FolderPickerDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
+  import PagePicture from "#lib/PagePicture.svelte";
+  import PreviewPane from "#lib/PreviewPane.svelte";
+  import NotesBox from "#lib/NotesBox.svelte";
   import { crumbs, shortestEndings } from "#lib/folders.ts";
   import { dragOutSource } from "#lib/drag.svelte.ts";
   import { formatDate, formatDay } from "#lib/format.ts";
@@ -255,6 +258,12 @@
   /** The page shown, and how many there are (null until known). */
   let page = $state(0);
   let pages = $state<number | null>(null);
+  /** The page's height / width, from its picture (a letter page until then). */
+  let aspect = $state(1.294);
+  /** The right column's size and the form's height, for the preview's share. */
+  let sideH = $state(0);
+  let sideW = $state(0);
+  let formH = $state(0);
 
   $effect(() => {
     const item = selected;
@@ -664,12 +673,20 @@
 
     <!-- MARK: Right column -->
     <section class="side">
-      <div class="side-scroll">
+      <div class="side-scroll" bind:clientHeight={sideH} bind:clientWidth={sideW}>
       {#if selected}
-        <div class="preview">{@render pagePreview(false)}</div>
+        <!-- The page gets what File it leaves (#127). -->
+        <PreviewPane
+          pane="inbox"
+          room={sideH - formH}
+          natural={(sideW - 24) * aspect + 18 + (pages && pages > 1 ? 20 : 0)}
+          onopen={previewUrl ? () => (viewing = true) : undefined}
+        >
+          <div class="preview">{@render pagePreview(false)}</div>
+        </PreviewPane>
       {/if}
       <!-- MARK: Filing form -->
-      <div class="form">
+      <div class="form" bind:offsetHeight={formH}>
       {#if selected}
         <h2>{m.inbox.fileIt}</h2>
         {#if selected.stage !== "ready"}
@@ -769,7 +786,7 @@
         </label>
         <label class="field">
           <span>{m.inbox.notes}</span>
-          <textarea bind:value={form.notes} rows="2" title={form.notes.trim() || undefined}></textarea>
+          <NotesBox bind:value={form.notes} rows={2} title={form.notes.trim() || undefined} />
         </label>
 
         {#if error}<p class="error small">{error}</p>{/if}
@@ -846,35 +863,17 @@
 <!-- MARK: Page preview -->
 {#snippet pagePreview(big: boolean)}
   {#if selected}
-    <div
-      class="page"
-      class:big
-      class:zoomable={!!previewUrl}
-      role="button"
-      tabindex="-1"
-      title={previewUrl ? m.pictures.openViewer : undefined}
-      onclick={() => previewUrl && (viewing = true)}
-      onkeydown={() => {}}
-    >
-      {#if previewUrl}
-        <img src={previewUrl} alt={m.inbox.firstPage(selected.name)} />
-      {:else if selected.cloud === "cloudOnly"}
-        <p class="muted center">{m.inbox.onlineOnly}</p>
-      {:else if previewLoading}
-        <p class="muted center">{m.inbox.loadingPreview}</p>
-      {:else}
-        <p class="muted center">{m.inbox.noPreview}</p>
-      {/if}
-      {#if pages && pages > 1}
-        <button class="flip prev" onclick={(e) => (e.stopPropagation(), flip(-1))} disabled={page === 0} title={m.pictures.previousPageKey} aria-label={m.pictures.previousPage}>
-          <Icon name="back" size={18} />
-        </button>
-        <button class="flip next" onclick={(e) => (e.stopPropagation(), flip(1))} disabled={page + 1 >= pages} title={m.pictures.nextPageKey} aria-label={m.pictures.nextPage}>
-          <Icon name="chevron" size={18} />
-        </button>
-      {/if}
-    </div>
-    {#if pages && pages > 1}<p class="muted small page-of">{m.pictures.pageOf(page + 1, pages)}</p>{/if}
+    <PagePicture
+      src={previewUrl}
+      alt={m.inbox.firstPage(selected.name)}
+      loading={previewLoading}
+      empty={selected.cloud === "cloudOnly" ? m.inbox.onlineOnly : m.inbox.noPreview}
+      {pages}
+      bind:page
+      {big}
+      onopen={() => (viewing = true)}
+      onaspect={(a) => (aspect = a)}
+    />
   {/if}
 {/snippet}
 
@@ -1227,60 +1226,21 @@
   }
   .preview {
     flex: 1 1 auto;
-    min-height: 220px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     background: var(--panel);
     padding: 12px 12px 6px;
-    border-bottom: 1px solid var(--border);
   }
-  .page {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-  }
-  .page img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    box-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
-    background: #fff;
-  }
-  .page.big {
-    background: var(--panel);
-    border-radius: 8px;
-    padding: 12px;
-  }
-  .page-of {
-    margin-top: 4px;
-  }
-  .flip {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    padding: 0;
-    display: grid;
-    place-items: center;
-    opacity: 0.85;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
-  }
-  .flip:disabled {
-    opacity: 0.25;
-  }
-  .flip.prev {
-    left: 4px;
-  }
-  .flip.next {
-    right: 4px;
-  }
+
+
+
+
+
+
+
+
   .form {
     flex: none;
     padding: 12px 14px;
@@ -1302,7 +1262,7 @@
     gap: 8px;
   }
   input,
-  textarea {
+  .field :global(textarea) {
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 4px 8px;
@@ -1502,8 +1462,5 @@
     to {
       transform: rotate(360deg);
     }
-  }
-  .page.zoomable {
-    cursor: zoom-in;
   }
 </style>
