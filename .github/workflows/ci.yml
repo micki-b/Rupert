@@ -20,8 +20,43 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
 
 jobs:
+  # Whether anything but documentation changed. A pull request (or push)
+  # that only touches Markdown, docs/ or site/ (built and uploaded by hand,
+  # not here) skips the jobs below; GitHub counts a skipped job as passing
+  # for the required "check". If this job fails, they all run.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # No base to compare with (a manual run, a new branch): run everything.
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$BASE" HEAD)
+          echo "$files"
+          if echo "$files" | grep -vE '\.md$|^docs/|^site/' | grep -q .; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Documentation only: the checks and builds are skipped."
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Fast checks on Linux only.
   check:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -57,6 +92,8 @@ jobs:
   # The Android app (mobile/) still compiles and passes clippy. Only the Rust
   # side: the Gradle build and signing happen in scripts/build-android.sh.
   android:
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.code == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
