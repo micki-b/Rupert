@@ -73,7 +73,8 @@ const MENU_IMPORT: &str = "menu-import-scansnap";
 /// File ▸ Quick Open… was chosen (macOS menu, #105). No payload.
 #[cfg(target_os = "macos")]
 const MENU_QUICK_OPEN: &str = "menu-quick-open";
-/// View ▸ Hide/Show Page Preview (#127): the window switches it.
+/// View ▸ Hide/Show Page Preview (#127, macOS menu): the window switches it.
+#[cfg(target_os = "macos")]
 const MENU_PREVIEW: &str = "menu-toggle-preview";
 /// Help ▸ Rupert Help (macOS menu); handled here, not in the window.
 #[cfg(target_os = "macos")]
