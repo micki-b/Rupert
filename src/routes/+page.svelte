@@ -1669,6 +1669,7 @@
             >
               <div class="r-title">
                 <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
+                <span class="star-space"></span>
                 <strong>{h.title ?? h.name}</strong>
                 {#if h.title}<span class="muted r-name">{h.name}</span>{/if}
               </div>
@@ -1683,11 +1684,13 @@
                 {@render tagChips(h.tags)}
               </div>
             </button>
-            <!-- Beside the result's button (buttons can't hold buttons). -->
-            <span class="r-marks">
-              {#if h.cloud === "cloudOnly"}<CloudBadge sourceId={h.sourceId} doc={h} size={13} onclick={() => downloadDoc(h.sourceId, h)} />{/if}
-              <DocStar sourceId={h.sourceId} doc={h} onclick={() => starDoc(h.sourceId, h)} />
-            </span>
+            <!-- Beside the result's button (buttons can't hold buttons), placed
+                 as in the folder list: the star before the title, the cloud
+                 at the end. -->
+            <span class="r-star"><DocStar sourceId={h.sourceId} doc={h} onclick={() => starDoc(h.sourceId, h)} /></span>
+            {#if h.cloud === "cloudOnly"}
+              <span class="r-marks"><CloudBadge sourceId={h.sourceId} doc={h} size={13} onclick={() => downloadDoc(h.sourceId, h)} /></span>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -2775,9 +2778,17 @@
     position: relative;
   }
   .result {
-    padding-right: 56px;
+    padding-right: 32px;
   }
-  /* The star and cloud, at the end of a result's title line. */
+  /* A result's star, over the space kept for it after the file icon
+     (10px padding + 15px icon + 6px gap), as in the folder list. */
+  .r-star {
+    position: absolute;
+    top: 9px;
+    left: 31px;
+    display: flex;
+  }
+  /* The cloud, at the end of a result's title line. */
   .r-marks {
     position: absolute;
     top: 9px;
