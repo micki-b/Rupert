@@ -31,7 +31,7 @@ app-store = []
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-rupert-core = { path = "../crates/rupert-core" }
+rupert-core = { path = "../crates/rupert-core", features = ["export"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }

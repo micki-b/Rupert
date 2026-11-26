@@ -11,6 +11,7 @@ pub mod catalog;
 pub mod chatgpt;
 pub mod cloud;
 pub mod error;
+#[cfg(feature = "export")]
 pub mod export;
 pub mod file_kind;
 pub mod fileops;
