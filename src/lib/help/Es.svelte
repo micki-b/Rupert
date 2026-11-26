@@ -125,6 +125,13 @@
     archivo si no tiene). En íconos grandes y en la galería, elegí el orden en <b>Ordenar</b>, al lado de los botones de
     vista. Las carpetas quedan arriba, y el orden vale para todas las carpetas.
   </p>
+  <p id="columns">
+    <b>Columnas:</b> la lista muestra Favorito (★), Nombre, Tipo, Tamaño, Fecha y Modificado. Arrastrá la línea entre
+    dos títulos para hacer una columna más ancha o más angosta (doble clic para el ancho de siempre); Nombre ocupa el
+    lugar que queda. Arrastrá el título de una columna hacia un costado para moverla. Hacé clic derecho en los títulos
+    para mostrar u ocultar columnas, o elegí <b>Restablecer columnas</b>. Rupert guarda las columnas en esta
+    computadora. En una ventana angosta, Tipo se oculta primero.
+  </p>
   <p id="page-preview">
     <b>Vista previa:</b> en la lista, en íconos grandes y en los resultados de búsqueda, la página del PDF o la imagen
     seleccionada está arriba de todo en <b>Detalles</b>. Pasá sus páginas con las flechas y hacé clic para abrir el
@@ -427,7 +434,7 @@
     Hacé clic en la ☆ de un documento para marcarlo como favorito. Aparece cuando apuntás a un documento en la lista,
     en los íconos o en los resultados de búsqueda, y siempre en sus detalles y en la galería; los favoritos conservan
     la ★. Hacé clic en la ★ para quitarla. Quitarle la estrella a un PDF solo en línea lo descarga, porque la estrella
-    se guarda dentro del archivo. Marcá una carpeta con la ☆ al lado de su ruta, arriba de la lista de documentos.
+    se guarda dentro del archivo. Marcá una carpeta con la ☆ al lado de su ruta, arriba de la lista de documentos, o con su ☆ en la lista.
     <b>Favoritos</b> en la barra lateral muestra los dos. Los favoritos se guardan con los archivos, así que
     aparecen en tus otras computadoras y en el iPhone.
   </p>

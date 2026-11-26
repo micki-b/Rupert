@@ -122,6 +122,13 @@
     (sonst das Datum seiner Datei). Bei großen Symbolen und in der Galerie wählen Sie die Reihenfolge unter
     <b>Sortieren</b> neben den Darstellungstasten. Ordner bleiben oben, und die Reihenfolge gilt für alle Ordner.
   </p>
+  <p id="columns">
+    <b>Spalten:</b> Die Liste zeigt Favorit (★), Name, Art, Größe, Datum und Geändert. Ziehen Sie die Linie zwischen
+    zwei Spaltentiteln, um eine Spalte breiter oder schmaler zu machen (Doppelklick für die übliche Breite); Name nimmt
+    den restlichen Platz. Ziehen Sie einen Spaltentitel zur Seite, um die Spalte zu verschieben. Mit einem Rechtsklick
+    auf die Titel blenden Sie Spalten ein oder aus oder wählen <b>Spalten zurücksetzen</b>. Rupert behält die Spalten
+    auf diesem Computer. In einem schmalen Fenster weicht zuerst Art.
+  </p>
   <p id="page-preview">
     <b>Seitenvorschau:</b> In der Liste, bei großen Symbolen und in Suchergebnissen steht die Seite des ausgewählten PDFs
     oder Bildes oben in den <b>Details</b>. Blättern Sie mit den Pfeilen darauf, und klicken Sie sie an, um die
@@ -437,7 +444,7 @@
     den Symbolen oder in den Suchergebnissen auf ein Dokument zeigen, und immer in seinen Angaben und in der Galerie;
     Favoriten behalten ihren ★. Klicken Sie auf den ★, um ihn zu entfernen. Bei einem PDF, das nur online verfügbar
     ist, lädt das Entfernen des Sterns die Datei herunter, weil der Stern in der Datei gespeichert ist. Markieren Sie
-    einen Ordner mit dem ☆ neben seinem Pfad über der Dokumentliste. <b>Favoriten</b> in der Seitenleiste zeigt
+    einen Ordner mit dem ☆ neben seinem Pfad über der Dokumentliste oder mit seinem ☆ in der Liste. <b>Favoriten</b> in der Seitenleiste zeigt
     beides. Favoriten werden mit den Dateien gespeichert und
     erscheinen deshalb auch auf Ihren anderen Computern und auf dem iPhone.
   </p>

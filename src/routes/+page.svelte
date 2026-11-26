@@ -74,6 +74,8 @@
   import ExportDialog from "#lib/ExportDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import DocPreview from "#lib/DocPreview.svelte";
+  import ListHeader from "#lib/ListHeader.svelte";
+  import { columnWidth, listColumns, NAME_MIN } from "#lib/listColumns.svelte.ts";
   import { preview as pagePreview, setPreviewHidden } from "#lib/previewPane.svelte.ts";
   import QuickOpen, { type QuickCommand } from "#lib/QuickOpen.svelte";
   import { rememberDocument } from "#lib/recent.ts";
@@ -1097,6 +1099,34 @@
     };
   });
 
+  // MARK: - List columns (#138)
+
+  let documentsWidth = $state(0);
+  /** The columns shown, in order. In a narrow middle Kind steps aside
+   * first, so names keep their room (as before #138). */
+  const shownColumns = $derived(
+    listColumns.order.filter(
+      (c) => !listColumns.hidden.includes(c) && !(c === "kind" && documentsWidth > 0 && documentsWidth < 640),
+    ),
+  );
+  /** Below this the list scrolls sideways: Name keeps its smallest width. */
+  const listMinWidth = $derived(shownColumns.reduce((sum, c) => sum + (columnWidth(c) ?? NAME_MIN), 0));
+  const favoriteFolderKeys = $derived(new Set(favoriteFolders.map((f) => keyOf(f.sourceId, f.relPath))));
+  const isFavoriteFolder = (sourceId: string, relPath: string) => favoriteFolderKeys.has(keyOf(sourceId, relPath));
+
+  /** A subfolder's star in the list: a favorite folder, written to the
+   * folder's own .rupert/.folder.json (as the star by the folder path). */
+  async function toggleSubfolderFav(sourceId: string, relPath: string) {
+    const next = !isFavoriteFolder(sourceId, relPath);
+    try {
+      error = null;
+      await api.setFolderFavorite(sourceId, relPath, next);
+    } catch (e) {
+      error = String(e);
+    }
+    favoriteFolders = await api.favoriteFolders();
+  }
+
   // MARK: - Page preview in Details (#127)
 
   let detailsH = $state(0);
@@ -1905,6 +1935,7 @@
   <!-- MARK: Documents -->
   <main
     class="documents"
+    bind:clientWidth={documentsWidth}
     class:gallery-mode={galleryShown}
     class:drop={!searching && !!folder && isDropOver(folder.sourceId, folder.relPath)}
     {...!searching && folder ? dropTarget(folder.sourceId, folder.relPath, { files: (d) => copyFiles(d, folder!.sourceId, folder!.relPath) }) : {}}
@@ -2101,18 +2132,8 @@
           paused={!!viewer}
         />
       {:else}
-        <table>
-          <thead>
-            <tr>
-              {#each [["name", m.main.name, "name"], ["kind", m.main.kind, "kind"], ["size", m.main.size, "num size"], ["date", m.filters.date, "date"], ["modified", m.main.modified, "modified"]] as const as [key, label, cls] (key)}
-                <th class={cls} aria-sort={sort.key === key ? (sort.desc ? "descending" : "ascending") : "none"}>
-                  <button class="sort-head" class:on={sort.key === key} onclick={() => sortBy(key)} title={m.filters.sortBy(label)}>
-                    {label}{#if sort.key === key}<span class="sort-arrow">{sort.desc ? "▼" : "▲"}</span>{/if}
-                  </button>
-                </th>
-              {/each}
-            </tr>
-          </thead>
+        <table style:min-width="{listMinWidth}px">
+          <ListHeader columns={shownColumns} {sort} onsort={(k) => sortBy(k)} />
           <tbody>
             {#each sortedEntries as e (e.relPath)}
               <tr
@@ -2131,30 +2152,58 @@
                     })
                   : {}}
               >
-                <td class="name">
-                  <span class="file-icon" class:folder={e.isDir}>
-                    <Icon name={e.isDir ? "folder" : e.kind === "pdf" ? "pdf" : "file"} size={15} />
-                  </span>
-                  {#if e.isDir}<span class="star-space"></span>{:else}<DocStar sourceId={source.id} doc={e} onclick={() => starDoc(source.id, e)} />{/if}
-                  {#if isRenaming(source.id, e.relPath)}
-                    <RenameField
-                      name={e.name}
-                      isDir={e.isDir}
-                      oncommit={(name) => finishRenaming(source.id, e.relPath, name)}
-                      oncancel={() => (renamingAt = null)}
-                    />
+                {#each shownColumns as c (c)}
+                  {#if c === "star"}
+                    <td class="star">
+                      {#if e.isDir}
+                        {@const fav = isFavoriteFolder(source.id, e.relPath)}
+                        <button
+                          type="button"
+                          class="folder-star"
+                          class:on={fav}
+                          title={fav ? m.main.unfavoriteFolder : m.main.favoriteFolder}
+                          aria-label={fav ? m.main.unfavoriteFolder : m.main.favoriteFolder}
+                          aria-pressed={fav}
+                          draggable="false"
+                          onclick={(ev) => (ev.stopPropagation(), toggleSubfolderFav(source.id, e.relPath))}
+                          ondblclick={(ev) => ev.stopPropagation()}>{fav ? "★" : "☆"}</button
+                        >
+                      {:else}
+                        <DocStar sourceId={source.id} doc={e} onclick={() => starDoc(source.id, e)} />
+                      {/if}
+                    </td>
+                  {:else if c === "name"}
+                    <td class="name">
+                      <span class="name-cell">
+                        <span class="file-icon" class:folder={e.isDir}>
+                          <Icon name={e.isDir ? "folder" : e.kind === "pdf" ? "pdf" : "file"} size={15} />
+                        </span>
+                        {#if isRenaming(source.id, e.relPath)}
+                          <RenameField
+                            name={e.name}
+                            isDir={e.isDir}
+                            oncommit={(name) => finishRenaming(source.id, e.relPath, name)}
+                            oncancel={() => (renamingAt = null)}
+                          />
+                        {:else}
+                          <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
+                        {/if}
+                        {#if e.tags?.length}<span class="row-tags">{@render tagChips(e.tags)}</span>{/if}
+                        {#if e.cloud === "cloudOnly"}
+                          <CloudBadge sourceId={source.id} doc={e} onclick={() => downloadDoc(source.id, e)} />
+                        {/if}
+                      </span>
+                    </td>
+                  {:else if c === "kind"}
+                    <td class="muted kind">{kindLabel(e.isDir ? "folder" : e.kind)}</td>
+                  {:else if c === "size"}
+                    <td class="num muted">{e.isDir || (e.cloud === "cloudOnly" && !e.size) ? "" : formatSize(e.size)}</td>
+                  {:else if c === "date"}
+                    <td class="muted">{e.isDir ? "" : formatDocDay(e.documentDate)}</td>
                   {:else}
-                    <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
+                    <td class="muted" title={formatDate(e.modifiedMs)}>{formatDay(e.modifiedMs)}</td>
                   {/if}
-                  {#if e.tags?.length}<span class="row-tags">{@render tagChips(e.tags)}</span>{/if}
-                  {#if e.cloud === "cloudOnly"}
-                    <CloudBadge sourceId={source.id} doc={e} onclick={() => downloadDoc(source.id, e)} />
-                  {/if}
-                </td>
-                <td class="muted kind">{kindLabel(e.isDir ? "folder" : e.kind)}</td>
-                <td class="num muted">{e.isDir || (e.cloud === "cloudOnly" && !e.size) ? "" : formatSize(e.size)}</td>
-                <td class="muted">{e.isDir ? "" : formatDocDay(e.documentDate)}</td>
-                <td class="muted" title={formatDate(e.modifiedMs)}>{formatDay(e.modifiedMs)}</td>
+                {/each}
               </tr>
             {/each}
           </tbody>
@@ -2852,8 +2901,10 @@
     overflow: auto;
     padding: 12px 16px;
     min-width: 0;
-    /* The list's columns follow the middle's width (#103). */
-    container: documents / inline-size;
+    /* Not a CSS container: that would make it the box fixed menus and
+       dialogs inside it (the inbox's right-click menu, the column menu,
+       the folder picker, the page viewer) are placed in and clipped by.
+       The list's columns follow its width from `documentsWidth` (#138). */
   }
   .searchbar {
     display: flex;
@@ -2973,54 +3024,6 @@
     border-collapse: collapse;
     table-layout: fixed;
   }
-  th {
-    text-align: left;
-    font-weight: 500;
-    font-size: 11px;
-    color: var(--muted);
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--border);
-  }
-  th.kind {
-    width: 62px;
-  }
-  th.size {
-    width: 64px;
-  }
-  th.date,
-  th.modified {
-    width: 100px;
-  }
-  /* A narrow middle keeps room for names: Kind goes first. */
-  @container documents (max-width: 640px) {
-    th.kind,
-    td.kind {
-      display: none;
-    }
-  }
-  /* Column headers sort the folder (#103). */
-  .sort-head {
-    all: unset;
-    cursor: default;
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    max-width: 100%;
-  }
-  .sort-head:hover,
-  .sort-head.on {
-    color: var(--text);
-  }
-  .sort-head:focus-visible {
-    outline: 2px solid var(--accent-soft);
-  }
-  th.num .sort-head {
-    justify-content: flex-end;
-    width: 100%;
-  }
-  .sort-arrow {
-    font-size: 8px;
-  }
   .sort-pick {
     display: flex;
     align-items: center;
@@ -3059,10 +3062,40 @@
     background: var(--accent-soft);
     box-shadow: inset 0 0 0 2px var(--accent);
   }
-  td.name {
+  /* The name, its tags and badge in a row; the cell stays a table cell. */
+  .name-cell {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
+  }
+  td.star {
+    padding: 4px 0;
+    text-align: center;
+  }
+  /* A folder's star in the list (#138), as DocStar shows a document's. */
+  .folder-star {
+    border: 0;
+    background: none;
+    padding: 0 1px;
+    line-height: 1;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .folder-star.on {
+    color: #d9a520;
+  }
+  .folder-star.on,
+  .folder-star:focus-visible,
+  .doc-host:hover .folder-star,
+  .doc-host.selected .folder-star {
+    opacity: 1;
+  }
+  .folder-star:hover {
+    color: #d9a520;
   }
   .file-name {
     flex: 0 1 auto;

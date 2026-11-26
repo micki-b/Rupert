@@ -124,6 +124,12 @@ const de: Messages = {
     resizeTip: "Ziehen, um die Größe zu ändern; Doppelklick für die übliche Höhe",
     notesResizeTip: "Ziehen, um die Notizen höher oder niedriger zu machen; Doppelklick für die übliche Höhe",
   },
+  listColumns: {
+    favorite: "Favorit",
+    widthOf: (name: string) => `Breite von ${name}`,
+    resizeTip: "Ziehen, um die Breite zu ändern; Doppelklick für die übliche Breite",
+    reset: "Spalten zurücksetzen",
+  },
   quickOpen: {
     title: "Schnell öffnen",
     placeholder: "Zu einem Ordner, Dokument, Tag oder Befehl",

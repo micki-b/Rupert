@@ -119,6 +119,12 @@ const en = {
     resizeTip: "Drag to resize, double-click for the usual height",
     notesResizeTip: "Drag to make the notes taller or shorter, double-click for the usual height",
   },
+  listColumns: {
+    favorite: "Favorite",
+    widthOf: (name: string) => `${name} width`,
+    resizeTip: "Drag to resize, double-click for the usual width",
+    reset: "Reset Columns",
+  },
   quickOpen: {
     title: "Quick open",
     placeholder: "Go to a folder, document, tag or command",
