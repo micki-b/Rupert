@@ -34,8 +34,8 @@
     relDir: string;
     /** The folder as shown ("Documents › Cars"). */
     where: string;
-    /** Started from one document: only it is ticked. */
-    only?: string | null;
+    /** Started from one document, or several selected (#102): only they are ticked. */
+    only?: string[] | null;
     /** The name pattern, as set in Settings. */
     pattern: string;
     ondone: (outcome: RenameOutcome) => void;
@@ -87,14 +87,14 @@
           return {
             ...row,
             next,
-            on: (only ? row.relPath === only : true) && next !== row.stem,
+            on: (only ? only.includes(row.relPath) : true) && next !== row.stem,
             how: "pattern" as How,
             typedAt: 0,
             state: "idle" as const,
             error: null,
           };
         });
-        selected = only ?? rows[0]?.relPath ?? null;
+        selected = only?.[0] ?? rows[0]?.relPath ?? null;
       })
       .catch((e) => (error = String(e)))
       .finally(() => (loading = false));

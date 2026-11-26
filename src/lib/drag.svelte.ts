@@ -19,15 +19,38 @@ export type Dropped = { files: File[]; folders: string[] };
 
 export const drag = $state<{
   item: MoveItem | null;
+  /** Everything being dragged: the item, or the selection it's part of (#102). */
+  items: MoveItem[];
   over: string | null;
   /** The system's drag (a copy), not the page's own. */
   native: boolean;
   /** Only to other apps: an inbox scan is filed with File it, not dropped. */
   outOnly: boolean;
-}>({ item: null, over: null, native: false, outOnly: false });
+}>({ item: null, items: [], over: null, native: false, outOnly: false });
+
+/** Moves several dragged items into a folder at once (the window's batch,
+ * with one summary); set by the window. */
+let moveMany: ((items: MoveItem[], sourceId: string, relPath: string) => void) | null = null;
+export function onMoveMany(fn: (items: MoveItem[], sourceId: string, relPath: string) => void) {
+  moveMany = fn;
+}
+
+/** Whether what's dragged can go into the folder (several: any of them). */
+function canTake(sourceId: string, relPath: string): boolean {
+  return drag.items.length > 1
+    ? drag.items.some((it) => canMoveInto(it, sourceId, relPath))
+    : canMoveInto(drag.item, sourceId, relPath);
+}
+
+/** Moves what was dragged into the folder of `t`. */
+function moveDragged(t: { sourceId: string; relPath: string; move?: (item: MoveItem) => void }, item: MoveItem, items: MoveItem[]) {
+  if (items.length > 1 && moveMany) moveMany(items.filter((it) => canMoveInto(it, t.sourceId, t.relPath)), t.sourceId, t.relPath);
+  else t.move?.(item);
+}
 
 function endDrag() {
   drag.item = null;
+  drag.items = [];
   drag.over = null;
   drag.native = false;
   drag.outOnly = false;
@@ -45,7 +68,7 @@ function targetAt(p: Pointer) {
   const el = document.elementFromPoint(p.x, p.y)?.closest("[data-drop-key]");
   const key = el?.getAttribute("data-drop-key");
   const t = key ? targets.get(key) : undefined;
-  return key && t?.move && canMoveInto(drag.item, t.sourceId, t.relPath) ? { key, t } : null;
+  return key && t?.move && canTake(t.sourceId, t.relPath) ? { key, t } : null;
 }
 
 /** The names of the files last dragged out, and until when a drop of them
@@ -74,9 +97,9 @@ function startDragOut(sourceId: string, relPaths: string[], ev: DragEvent) {
       ours.until = Date.now() + 3000;
       // Taken by another app (e.g. a window over Rupert's): not moved here.
       const hit = e.payload.dropped ? null : targetAt(e.payload);
-      const item = drag.item;
+      const [item, items] = [drag.item, drag.items];
       endDrag();
-      if (hit && item) hit.t.move?.(item);
+      if (hit && item) moveDragged(hit.t, item, items);
     });
   }
   drag.native = true;
@@ -138,14 +161,18 @@ function dropped(ev: DragEvent): Dropped {
   return result;
 }
 
-/** Handlers for something that can be dragged. */
-export function dragSource(item: MoveItem) {
+/** Handlers for something that can be dragged. `group`: what the drag
+ * carries when it starts on this item (the selection it's part of, #102);
+ * only the items in the item's own source go. */
+export function dragSource(item: MoveItem, group?: () => MoveItem[]) {
   return {
     draggable: true,
     ondragstart: (ev: DragEvent) => {
-      ev.preventDefault(); // the system's drag instead, so other apps get the file
+      ev.preventDefault(); // the system's drag instead, so other apps get the files
+      const items = (group?.() ?? [item]).filter((it) => it.sourceId === item.sourceId);
       drag.item = item;
-      startDragOut(item.sourceId, [item.entry.relPath], ev);
+      drag.items = items.length ? items : [item];
+      startDragOut(item.sourceId, drag.items.map((it) => it.entry.relPath), ev);
     },
   };
 }
@@ -161,7 +188,7 @@ export function dropTarget(
   const key = `${sourceId}\n${relPath}`;
   targets.set(key, { sourceId, relPath, move: on.move });
   const takes = (ev: DragEvent) =>
-    on.files && bringsFiles(ev) ? "copy" : on.move && canMoveInto(drag.item, sourceId, relPath) ? "move" : null;
+    on.files && bringsFiles(ev) ? "copy" : on.move && canTake(sourceId, relPath) ? "move" : null;
   return {
     "data-drop-key": key,
     ondragover: (ev: DragEvent) => {
@@ -195,9 +222,10 @@ export function dropTarget(
         on.files?.(dropped(ev));
         return;
       }
-      const item = drag.item;
+      const [item, items] = [drag.item, drag.items];
       drag.item = null;
-      if (item) on.move?.(item);
+      drag.items = [];
+      if (item) moveDragged({ sourceId, relPath, move: on.move }, item, items);
     },
   };
 }

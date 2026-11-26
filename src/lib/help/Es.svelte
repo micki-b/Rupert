@@ -136,6 +136,39 @@
     primera página, así sigue mostrando una cuando el archivo pasa a estar solo en línea. Los documentos solo en línea sin
     imagen muestran su ícono. En los dos casos conservan la nube, y abrir uno lo descarga.
   </p>
+  <h3 id="selecting">Seleccionar varios</h3>
+  <p>
+    Hacé clic en un documento y después {mac ? "⌘-clic" : "Ctrl-clic"} en otros para sumarlos (o para sacar uno), o
+    Mayúsculas-clic para seleccionar todo lo que hay entre medio. <kbd>{cmd}A</kbd> selecciona todo lo de la carpeta o de
+    los resultados de búsqueda, y Mayúsculas con <kbd>↑</kbd> <kbd>↓</kbd> (<kbd>←</kbd> <kbd>→</kbd> en íconos grandes)
+    amplía la selección desde el teclado. Funciona en la lista, los íconos grandes, la tira de la galería y los resultados
+    de búsqueda.
+  </p>
+  <p>
+    Con varios seleccionados, <b>Detalles</b> muestra cuántos son, el tamaño total y las etiquetas que tienen en común,
+    con lo que podés hacer con todos. Hacé clic derecho en uno de ellos para lo mismo en un menú:
+  </p>
+  <ul>
+    <li>
+      <b>Mover a…</b> una carpeta para todos, o arrastralos a una carpeta. Arrastrados fuera de la ventana, las otras apps
+      reciben copias de todos.
+    </li>
+    <li>
+      <b>Agregar etiquetas…</b> y <b>Quitar etiquetas…</b>, que se guardan donde cada documento tiene sus detalles, como en
+      <a href="#tags">Administrar etiquetas</a>. Los PDF solo en línea que quedarían sin etiquetas se descargan, después de
+      preguntar.
+    </li>
+    <li><b>Marcar con estrella</b> o quitarla.</li>
+    <li>
+      {#if !linux}<b>Compartir…</b> y {/if}<b>Enviar por correo…</b>: {#if !linux}una sola vez, o {/if}un solo correo con
+      todos adjuntos.
+    </li>
+    <li><b>Cambiar el nombre de documentos…</b> con solo estos marcados (en una carpeta, no en resultados de búsqueda).</li>
+    <li><b>{windows ? "Eliminar" : "Trasladar a la Papelera"}</b>, con una sola pregunta para todos.</li>
+  </ul>
+  <p>
+    Los lotes largos muestran su avance abajo en la ventana y después un resumen, con lo que no haya funcionado.
+  </p>
   <h3 id="dragging-out">Arrastrar documentos hacia afuera</h3>
   <p>
     Arrastrá un documento (o una carpeta, o un escaneo de la bandeja de entrada) fuera de la ventana de Rupert hasta
@@ -1027,10 +1060,11 @@
       <tr><td><kbd>{cmd}F</kbd></td><td>Buscar</td></tr>
       <tr>
         <td><kbd>{mac ? "⌘⌫" : "Supr"}</kbd></td>
-        <td>Mandar el documento o la carpeta elegida a la {trash}</td>
+        <td>Mandar lo seleccionado a la {trash}</td>
       </tr>
+      <tr><td><kbd>{cmd}A</kbd></td><td>Seleccionar todo lo de la carpeta o de los resultados de búsqueda</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Íconos grandes y galería: documento anterior o siguiente</td></tr>
-      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Galería: página anterior o siguiente</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Galería: página anterior o siguiente. Lista y resultados de búsqueda: documento anterior o siguiente (con Mayúsculas, también lo selecciona)</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Borrar la búsqueda; en el chat, cortar la respuesta o cerrar el panel</td></tr>
       <tr><td><kbd>{cmd}J</kbd></td><td>Abrir o cerrar Preguntale a Rupert</td></tr>
       <tr><td><kbd>Enter</kbd></td><td>En el chat: enviar (<kbd>Mayús+Enter</kbd> empieza una línea nueva)</td></tr>

@@ -200,6 +200,7 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "JPEG no compatible con {0} componentes de color",
     ),
     // MARK: - Print to Rupert (print_entry.rs)
+    ("{0} documents", "{0} documentos"),
     ("Save to Rupert", "Guardar en Rupert"),
     ("Rupert inbox", "Bandeja de entrada de Rupert"),
     (

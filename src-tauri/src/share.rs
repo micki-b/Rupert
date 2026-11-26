@@ -43,58 +43,79 @@ struct Progress {
     downloading: Option<String>,
 }
 
-/// The file(s) to send and the subject for an email. `None` when the send
-/// was cancelled meanwhile.
-async fn prepare(
-    app: &AppHandle,
-    source_id: &str,
-    rel_path: &str,
+/// A document to send: by source and path, and optionally under another
+/// name (an inbox scan goes under the name it would be filed under).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToSend {
+    source_id: String,
+    rel_path: String,
+    #[serde(default)]
     name: Option<String>,
-) -> CmdResult<Option<(Vec<PathBuf>, String)>> {
-    let state = app.state::<AppState>();
-    let source = state.source(source_id)?;
-    let include_notes = state.settings.lock().unwrap().get().send_notes;
-    let title = state
-        .index
-        .lock()
-        .unwrap()
-        .doc_meta(source_id, rel_path)
-        .ok()
-        .flatten()
-        .and_then(|m| m.title);
-    let cache = app.path().app_cache_dir().map_err(err)?;
-    let path = rupert_core::resolve(&source.root, rel_path).map_err(err)?;
-    let file_name = path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default();
-    let subject = title
-        .or_else(|| name.clone())
-        .unwrap_or_else(|| rupert_core::rename::split_name(&file_name).0.to_string());
+}
 
+/// The files to send (one per document, in order) and the subject for an
+/// email. `None` when the send was cancelled meanwhile.
+async fn prepare(app: &AppHandle, docs: Vec<ToSend>) -> CmdResult<Option<(Vec<PathBuf>, String)>> {
     let me = LATEST.fetch_add(1, Ordering::SeqCst) + 1;
-    let online =
-        rupert_core::cloud_state(&path).map_err(err)? == rupert_core::CloudState::CloudOnly;
-    if online {
-        let _ = app.emit(
-            SHARE_PROGRESS,
-            Progress {
-                downloading: Some(file_name),
-            },
+    let mut files = Vec::with_capacity(docs.len());
+    let mut subjects = Vec::with_capacity(docs.len());
+    for doc in docs {
+        let state = app.state::<AppState>();
+        let source = state.source(&doc.source_id)?;
+        let include_notes = state.settings.lock().unwrap().get().send_notes;
+        let title = state
+            .index
+            .lock()
+            .unwrap()
+            .doc_meta(&doc.source_id, &doc.rel_path)
+            .ok()
+            .flatten()
+            .and_then(|m| m.title);
+        let cache = app.path().app_cache_dir().map_err(err)?;
+        let path = rupert_core::resolve(&source.root, &doc.rel_path).map_err(err)?;
+        let file_name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let name = doc.name;
+        subjects.push(
+            title
+                .or_else(|| name.clone())
+                .unwrap_or_else(|| rupert_core::rename::split_name(&file_name).0.to_string()),
         );
+        let online =
+            rupert_core::cloud_state(&path).map_err(err)? == rupert_core::CloudState::CloudOnly;
+        if online {
+            let _ = app.emit(
+                SHARE_PROGRESS,
+                Progress {
+                    downloading: Some(file_name),
+                },
+            );
+        }
+        let prepared = tauri::async_runtime::spawn_blocking(move || {
+            rupert_core::share::prepare(&path, name.as_deref(), include_notes, &cache)
+        })
+        .await
+        .map_err(err)?;
+        if online {
+            let _ = app.emit(SHARE_PROGRESS, Progress { downloading: None });
+        }
+        if LATEST.load(Ordering::SeqCst) != me {
+            return Ok(None);
+        }
+        files.push(prepared.map_err(err)?);
     }
-    let prepared = tauri::async_runtime::spawn_blocking(move || {
-        rupert_core::share::prepare(&path, name.as_deref(), include_notes, &cache)
-    })
-    .await
-    .map_err(err)?;
-    if online {
-        let _ = app.emit(SHARE_PROGRESS, Progress { downloading: None });
+    Ok(Some((files, subject(&subjects))))
+}
+
+/// An email's subject: the document's title, a few titles, or how many.
+fn subject(titles: &[String]) -> String {
+    match titles.len() {
+        0..=3 => titles.join(", "),
+        n => rupert_core::i18n::trf("{0} documents", &[&n.to_string()]),
     }
-    if LATEST.load(Ordering::SeqCst) != me {
-        return Ok(None);
-    }
-    Ok(Some((vec![prepared.map_err(err)?], subject)))
 }
 
 /// Drops the send that's waiting for a download.
@@ -115,7 +136,23 @@ pub async fn share_document(
     window: WebviewWindow,
     app: AppHandle,
 ) -> CmdResult<()> {
-    let Some((files, subject)) = prepare(&app, &source_id, &rel_path, name).await? else {
+    let doc = ToSend {
+        source_id,
+        rel_path,
+        name,
+    };
+    share_documents(vec![doc], at, window, app).await
+}
+
+/// Share… for several documents at once (#102).
+#[tauri::command]
+pub async fn share_documents(
+    docs: Vec<ToSend>,
+    at: At,
+    window: WebviewWindow,
+    app: AppHandle,
+) -> CmdResult<()> {
+    let Some((files, subject)) = prepare(&app, docs).await? else {
         return Ok(());
     };
     show_share(&window, files, subject, at)
@@ -131,7 +168,23 @@ pub async fn email_document(
     window: WebviewWindow,
     app: AppHandle,
 ) -> CmdResult<()> {
-    let Some((files, subject)) = prepare(&app, &source_id, &rel_path, name).await? else {
+    let doc = ToSend {
+        source_id,
+        rel_path,
+        name,
+    };
+    email_documents(vec![doc], window, app).await
+}
+
+/// Email… for several documents: one message with all of them attached
+/// (#102).
+#[tauri::command]
+pub async fn email_documents(
+    docs: Vec<ToSend>,
+    window: WebviewWindow,
+    app: AppHandle,
+) -> CmdResult<()> {
+    let Some((files, subject)) = prepare(&app, docs).await? else {
         return Ok(());
     };
     compose_email(&window, files, subject).await

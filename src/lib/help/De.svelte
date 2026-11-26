@@ -135,6 +135,40 @@
     nur online verfügbar sind und kein solches Bild haben, zeigen ihr Symbol. In beiden Fällen bleibt die Wolke, und
     beim Öffnen wird das Dokument heruntergeladen.
   </p>
+  <h3 id="selecting">Mehrere auswählen</h3>
+  <p>
+    Klicken Sie auf ein Dokument und dann mit gedrückter {mac ? "⌘-Taste" : "Strg-Taste"} auf weitere, um sie
+    hinzuzufügen (oder eines wieder herauszunehmen), oder mit gedrückter Umschalttaste, um alles dazwischen auszuwählen.
+    <kbd>{cmd}A</kbd> wählt alles im Ordner oder in den Suchergebnissen aus, und die Umschalttaste mit <kbd>↑</kbd>
+    <kbd>↓</kbd> (<kbd>←</kbd> <kbd>→</kbd> bei großen Symbolen) erweitert die Auswahl über die Tastatur. Das geht in der
+    Liste, bei großen Symbolen, im Streifen der Galerie und in den Suchergebnissen.
+  </p>
+  <p>
+    Sind mehrere ausgewählt, zeigt <b>Details</b>, wie viele es sind, ihre Gesamtgröße und die gemeinsamen Tags, dazu,
+    was Sie mit allen tun können. Ein Rechtsklick auf eines davon zeigt dasselbe als Menü:
+  </p>
+  <ul>
+    <li>
+      <b>Bewegen nach …</b> in einen Ordner für alle, oder ziehen Sie sie auf einen Ordner. Aus dem Fenster gezogen,
+      bekommen andere Apps Kopien von allen.
+    </li>
+    <li>
+      <b>Tags hinzufügen …</b> und <b>Tags entfernen …</b>, gespeichert dort, wo jedes Dokument seine Angaben hat, wie unter
+      <a href="#tags">Tags verwalten</a>. Reine Online-PDFs, die danach keine Tags mehr hätten, werden nach Rückfrage
+      geladen.
+    </li>
+    <li><b>Mit Stern markieren</b> oder den Stern entfernen.</li>
+    <li>
+      {#if !linux}<b>Teilen …</b> und {/if}<b>Per E-Mail senden …</b>: {#if !linux}einmal teilen, oder {/if}eine Nachricht mit
+      allen als Anhang.
+    </li>
+    <li><b>Dokumente umbenennen …</b> mit nur diesen angehakt (in einem Ordner, nicht in Suchergebnissen).</li>
+    <li><b>{windows ? "Löschen" : "In den Papierkorb legen"}</b>, mit einer Rückfrage für alle.</li>
+  </ul>
+  <p>
+    Längere Stapel zeigen ihren Fortschritt unten im Fenster und danach eine Zusammenfassung, mit allem, was nicht
+    geklappt hat.
+  </p>
   <h3 id="dragging-out">Dokumente hinausziehen</h3>
   <p>
     Ziehen Sie ein Dokument (oder einen Ordner oder einen Scan im Eingang) aus Ruperts Fenster auf Mail, Nachrichten, den
@@ -1053,9 +1087,10 @@
   <table class="keys">
     <tbody>
       <tr><td><kbd>{cmd}F</kbd></td><td>Suchen</td></tr>
-      <tr><td><kbd>{deleteKey}</kbd></td><td>Das ausgewählte Dokument oder den Ordner in den Papierkorb legen</td></tr>
+      <tr><td><kbd>{deleteKey}</kbd></td><td>Das Ausgewählte in den Papierkorb legen</td></tr>
+      <tr><td><kbd>{cmd}A</kbd></td><td>Alles im Ordner oder in den Suchergebnissen auswählen</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Große Symbole und Galerie: vorheriges oder nächstes Dokument</td></tr>
-      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Galerie: vorherige oder nächste Seite</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Galerie: vorherige oder nächste Seite. Liste und Suchergebnisse: vorheriges oder nächstes Dokument (mit Umschalt auch auswählen)</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Suche löschen; im Chat die Antwort stoppen oder den Bereich schließen</td></tr>
       <tr><td><kbd>{cmd}J</kbd></td><td>Rupert fragen öffnen oder schließen</td></tr>
       <tr><td><kbd>Return</kbd></td><td>Im Chat: senden (<kbd>Umschalt+Return</kbd> beginnt eine neue Zeile)</td></tr>

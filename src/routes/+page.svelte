@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import { ask, open } from "@tauri-apps/plugin-dialog";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import {
@@ -22,6 +22,7 @@
     type AppInfo,
     type Filed,
     type Settings,
+    type TagEditReport,
     type Entry,
     type Hit,
     type IndexStats,
@@ -42,7 +43,7 @@
   import { formatDate, formatSize, kindLabel } from "#lib/format.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import MoveDialog from "#lib/MoveDialog.svelte";
-  import { dragSource, dropTarget, isDropOver, type Dropped, type MoveItem } from "#lib/drag.svelte.ts";
+  import { canMoveInto, dragSource, dropTarget, isDropOver, onMoveMany, type Dropped, type MoveItem } from "#lib/drag.svelte.ts";
   import Icon from "#lib/Icon.svelte";
   import ImportDialog from "#lib/ImportDialog.svelte";
   import Inbox from "#lib/Inbox.svelte";
@@ -63,6 +64,7 @@
   import RenameField from "#lib/RenameField.svelte";
   import RenameDialog from "#lib/RenameDialog.svelte";
   import InboxImportDialog from "#lib/InboxImportDialog.svelte";
+  import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { loadLanguage, m } from "#lib/i18n/index.ts";
@@ -87,6 +89,105 @@
   let inboxCount = $state(0);
   /** The Import into Inbox window (#122). */
   let importInboxOpen = $state(false);
+
+  // MARK: - Selecting several (#102)
+
+  /** Everything selected, in the order picked. `selected` is the one picked
+   * last (what Details shows when it's alone); a plain `selected = …`
+   * anywhere selects just that one. */
+  let picked = $state<Selected[]>([]);
+  /** Where a Shift-click range starts. */
+  let anchor: Selected | null = null;
+  const keyOf = (sourceId: string, relPath: string) => sourceId + "\n" + relPath;
+  const pickedKeys = $derived(new Set(picked.map((p) => keyOf(p.sourceId, p.entry.relPath))));
+  const isPicked = (sourceId: string, relPath: string) => pickedKeys.has(keyOf(sourceId, relPath));
+  const several = $derived(picked.length > 1);
+  /** The picked paths in one source (for the picture views). */
+  const pickedIn = (sourceId: string) =>
+    new Set(picked.filter((p) => p.sourceId === sourceId).map((p) => p.entry.relPath));
+
+  $effect(() => {
+    const s = selected;
+    untrack(() => {
+      if (!s) {
+        if (picked.length) picked = [];
+        anchor = null;
+      } else if (!pickedKeys.has(keyOf(s.sourceId, s.entry.relPath))) {
+        picked = [s];
+        anchor = s;
+      }
+    });
+  });
+
+  /** What the middle shows, in order: search results or the folder. */
+  function shownItems(): Selected[] {
+    if (inboxOpen) return [];
+    if (searching) return hits.map((h) => ({ sourceId: h.sourceId, entry: h }));
+    if (folder && source) return entries.map((e) => ({ sourceId: source.id, entry: e }));
+    return [];
+  }
+
+  type Mods = { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean };
+
+  /** A click (or arrow key) on an item: just it; with ⌘ (Ctrl elsewhere)
+   * added or taken away; with Shift, the range from the last one picked. */
+  function pick(sel: Selected, ev?: Mods) {
+    const k = keyOf(sel.sourceId, sel.entry.relPath);
+    if (ev?.shiftKey && anchor) {
+      const list = shownItems();
+      const at = (x: Selected) => list.findIndex((y) => keyOf(y.sourceId, y.entry.relPath) === keyOf(x.sourceId, x.entry.relPath));
+      const [a, b] = [at(anchor), at(sel)];
+      if (a >= 0 && b >= 0) {
+        picked = list.slice(Math.min(a, b), Math.max(a, b) + 1);
+        selected = sel;
+        return;
+      }
+    }
+    if (ev && (info?.os === "macos" ? ev.metaKey : ev.ctrlKey) && picked.length) {
+      if (pickedKeys.has(k)) {
+        const rest = picked.filter((p) => keyOf(p.sourceId, p.entry.relPath) !== k);
+        picked = rest;
+        selected = rest.at(-1) ?? null;
+      } else {
+        picked = [...picked, sel];
+        selected = sel;
+      }
+      anchor = sel;
+      return;
+    }
+    picked = [sel];
+    selected = sel;
+    anchor = sel;
+  }
+
+  /** What a drag starting on an item carries: the selection, if the item is
+   * part of it. */
+  function dragGroup(sourceId: string, relPath: string): Selected[] {
+    return several && isPicked(sourceId, relPath) ? picked.slice() : [];
+  }
+
+  /** ⌘A / Ctrl+A: everything shown. */
+  function pickAll() {
+    const all = shownItems();
+    if (!all.length) return;
+    picked = all;
+    if (!selected || !all.some((x) => x.sourceId === selected!.sourceId && x.entry.relPath === selected!.entry.relPath)) {
+      selected = all[0];
+      anchor = all[0];
+    }
+  }
+
+  /** ↑ ↓ in the list and search results (Shift extends the selection). */
+  function stepPick(step: number, shift: boolean) {
+    const list = shownItems();
+    if (!list.length) return;
+    const i = selected ? list.findIndex((x) => x.sourceId === selected!.sourceId && x.entry.relPath === selected!.entry.relPath) : -1;
+    const next = list[Math.min(list.length - 1, Math.max(0, i < 0 ? 0 : i + step))];
+    pick(next, { shiftKey: shift, metaKey: false, ctrlKey: false });
+    tick().then(() =>
+      document.querySelector(`[data-pick="${CSS.escape(keyOf(next.sourceId, next.entry.relPath))}"]`)?.scrollIntoView({ block: "nearest" }),
+    );
+  }
 
   // MARK: - Column widths (#61)
   // The sidebar and the right column (Details, or the inbox's preview and
@@ -214,6 +315,18 @@
       const still = entries.find((e) => e.relPath === rel);
       selected = still ? { sourceId: current.sourceId, entry: still } : null;
     }
+    if (!searching) refreshPicked(entries.map((e) => ({ sourceId: current.sourceId, entry: e })));
+  }
+
+  /** Points the selection at freshly loaded entries (new tags, stars and
+   * sizes), dropping any that went away. */
+  function refreshPicked(fresh: Selected[]) {
+    if (picked.length < 2) return;
+    const byKey = new Map(fresh.map((f) => [keyOf(f.sourceId, f.entry.relPath), f]));
+    picked = picked.flatMap((p) => {
+      const f = byKey.get(keyOf(p.sourceId, p.entry.relPath));
+      return f ? [f] : [];
+    });
   }
 
   /** A document to select once its folder has loaded (from the assistant). */
@@ -329,8 +442,25 @@
       if (viewer) return; // the page viewer has the keyboard
       const typing =
         e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
+      const cmd = info?.os === "macos" ? e.metaKey : e.ctrlKey;
       if (e.key === "Escape" && itemMenu) {
         itemMenu = null;
+      } else if (!typing && !inboxOpen && cmd && !e.shiftKey && !e.altKey && e.key === "a" && shownItems().length) {
+        // ⌘A / Ctrl+A selects everything shown (#102).
+        e.preventDefault();
+        pickAll();
+      } else if (
+        !typing &&
+        !inboxOpen &&
+        !renamingAt &&
+        (searching || folderMode === "list") &&
+        (e.key === "ArrowDown" || e.key === "ArrowUp") &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        stepPick(e.key === "ArrowDown" ? 1 : -1, e.shiftKey);
       } else if (e.key === "F1") {
         e.preventDefault();
         api.openHelp();
@@ -341,13 +471,14 @@
         (info?.os === "macos" ? e.metaKey && e.key === "Backspace" : e.key === "Delete")
       ) {
         e.preventDefault();
-        trashEntry(selected);
+        trashPicked();
       } else if (
         !typing &&
         selected &&
         !inboxOpen &&
         !searching &&
         !renamingAt &&
+        !several &&
         !e.metaKey &&
         !e.ctrlKey &&
         !e.altKey &&
@@ -356,7 +487,7 @@
         // Return (Mac) or F2 renames, as in the Finder and File Explorer.
         e.preventDefault();
         startRenaming(selected);
-      } else if (!typing && selected && info?.os === "macos" && e.metaKey && (e.key === "o" || e.key === "ArrowDown")) {
+      } else if (!typing && selected && !several && info?.os === "macos" && e.metaKey && (e.key === "o" || e.key === "ArrowDown")) {
         // ⌘O or ⌘↓ opens, as in the Finder.
         e.preventDefault();
         activate(selected.sourceId, selected.entry);
@@ -420,6 +551,7 @@
       const result = await run(() => api.search(args));
       if (seq !== searchSeq) return;
       hits = result ?? [];
+      refreshPicked(hits.map((h) => ({ sourceId: h.sourceId, entry: h })));
       searchedOnce = true;
     }, 150);
     return () => clearTimeout(timer);
@@ -610,7 +742,8 @@
     ev.preventDefault();
     ev.stopPropagation();
     menuFor = null;
-    selected = sel;
+    // On one of several selected: the menu is for all of them (#102).
+    if (!isPicked(sel.sourceId, sel.entry.relPath)) pick(sel);
     // Keep it inside the window (the menu is about 230 × 300).
     const x = Math.min(ev.clientX, window.innerWidth - 240);
     const y = Math.min(ev.clientY, window.innerHeight - 310);
@@ -677,12 +810,141 @@
     const gone = (x: Entry & { sourceId?: string }, sourceId: string) =>
       sourceId === sel.sourceId && (x.relPath === e.relPath || x.relPath.startsWith(e.relPath + "/"));
     hits = hits.filter((h) => !gone(h, h.sourceId));
+    picked = picked.filter((p) => !gone(p.entry, p.sourceId));
     if (folder?.sourceId === sel.sourceId) entries = entries.filter((x) => !gone(x, sel.sourceId));
     if (selected && gone(selected.entry, selected.sourceId)) {
       const next = folderMode === "gallery" && at >= 0 ? (entries[at] ?? entries[at - 1]) : undefined;
       selected = next ? { sourceId: sel.sourceId, entry: next } : null;
     }
   }
+
+  // MARK: - Acting on several (#102)
+
+  /** A batch under way: what it does and how far it is. */
+  let batch = $state<{ label: (done: number, total: number) => string; done: number; total: number } | null>(null);
+  /** What the last batch did ("18 moved · 2 not: …"), shown in the bar at the bottom. */
+  let batchNote = $state<string | null>(null);
+
+  /** Runs `act` on each item in turn, showing the progress, then a summary.
+   * Resolves to the items it worked for. */
+  async function runBatch(
+    items: Selected[],
+    act: (s: Selected) => Promise<unknown>,
+    label: (done: number, total: number) => string,
+    summary: (ok: number) => string,
+  ): Promise<Selected[]> {
+    lastRename = null;
+    batchNote = null;
+    error = null;
+    const ok: Selected[] = [];
+    const failed: string[] = [];
+    batch = { label, done: 0, total: items.length };
+    for (const it of items) {
+      try {
+        await act(it);
+        ok.push(it);
+      } catch (e) {
+        failed.push(`${it.entry.name}: ${e}`);
+      }
+      batch = { label, done: batch.done + 1, total: items.length };
+    }
+    batch = null;
+    batchNote = summary(ok.length) + (failed.length ? ` · ${m.several.notDone(failed.length)}: ${failed[0]}` : "");
+    return ok;
+  }
+
+  /** Move to Trash for what's selected: one question for several. */
+  async function trashPicked() {
+    const items = picked.slice();
+    itemMenu = null;
+    if (items.length < 2) {
+      if (selected) trashEntry(selected);
+      return;
+    }
+    const ok = await ask(m.several.trashAsk(items.length, binName), { title: trashLabel, kind: "warning", okLabel: trashLabel });
+    if (!ok) return;
+    const bin = binName;
+    const done = await runBatch(
+      items,
+      (it) => api.trashEntry(it.sourceId, it.entry.relPath),
+      (d, t) => m.several.trashing(d, t, bin),
+      (n) => m.several.trashed(n, bin),
+    );
+    done.forEach(forget);
+  }
+
+  /** Stars the selected documents, or unstars them if all are starred. */
+  async function starPicked() {
+    itemMenu = null;
+    const docs = picked.filter((p) => !p.entry.isDir) as { sourceId: string; entry: ListedEntry }[];
+    const on = docs.some((d) => !d.entry.favorite);
+    await runBatch(
+      docs,
+      async (it) => {
+        const meta = await api.setFavorite(it.sourceId, it.entry.relPath, on);
+        (it.entry as ListedEntry).favorite = meta.favorite;
+      },
+      on ? m.several.starring : m.several.unstarring,
+      on ? m.several.starred : m.several.unstarred,
+    );
+    loadIndexInfo();
+  }
+
+  /** Add tags… / Remove tags… for the selected documents. */
+  let bulkTags = $state<{ mode: "add" | "remove"; docs: { sourceId: string; entry: ListedEntry }[] } | null>(null);
+
+  function openBulkTags(mode: "add" | "remove") {
+    itemMenu = null;
+    bulkTags = { mode, docs: picked.filter((p) => !p.entry.isDir) as { sourceId: string; entry: ListedEntry }[] };
+  }
+
+  function bulkTagsDone(report: TagEditReport) {
+    lastRename = null;
+    batchNote =
+      m.tags.changed(report.changed) +
+      (report.failed.length ? ` · ${m.several.notDone(report.failed.length)}: ${report.failed[0].path}: ${report.failed[0].error}` : "");
+    if (folder) loadEntries();
+    loadIndexInfo();
+  }
+
+  /** Share… and Email… for the selected documents: one share, one email. */
+  function pickedDocs() {
+    return picked.filter((p) => !p.entry.isDir).map((p) => ({ sourceId: p.sourceId, relPath: p.entry.relPath }));
+  }
+  function sharePicked(at: ShareAt) {
+    itemMenu = null;
+    lastRename = null;
+    run(() => api.shareDocuments(pickedDocs(), at));
+  }
+  function emailPicked() {
+    itemMenu = null;
+    lastRename = null;
+    run(() => api.emailDocuments(pickedDocs()));
+  }
+
+  /** Rename documents… with just the selected documents ticked (they're in
+   * the open folder: it isn't offered for search results). */
+  function renamePicked() {
+    itemMenu = null;
+    lastRename = null;
+    const docs = picked.filter((p) => !p.entry.isDir);
+    if (!docs.length || !folder) return;
+    renameDocs = { sourceId: folder.sourceId, relDir: folder.relPath, only: docs.map((d) => d.entry.relPath) };
+  }
+
+  /** The selected documents' details at a glance (Details with several). */
+  const pickedSummary = $derived.by(() => {
+    const docs = picked.filter((p) => !p.entry.isDir);
+    const tagLists = docs.map((d) => (d.entry as ListedEntry).tags ?? []);
+    const common = tagLists.length ? tagLists.reduce((a, b) => a.filter((t) => b.includes(t))) : [];
+    return {
+      docs: docs.length,
+      folders: picked.length - docs.length,
+      size: docs.reduce((n, d) => n + (d.entry.size || 0), 0),
+      common,
+      allStarred: docs.length > 0 && docs.every((d) => (d.entry as ListedEntry).favorite),
+    };
+  });
 
   // MARK: - Page viewer (#83)
 
@@ -722,7 +984,7 @@
   // MARK: - Rename documents (#64)
 
   /** The folder whose documents are being renamed together. */
-  let renameDocs = $state<{ sourceId: string; relDir: string; only: string | null } | null>(null);
+  let renameDocs = $state<{ sourceId: string; relDir: string; only: string[] | null } | null>(null);
   /** The last batch renamed, offered for Undo until something else is done. */
   let lastRename = $state<{ sourceId: string; relDir: string; renamed: Renamed[]; text: string } | null>(null);
   /** A short note after Undo. */
@@ -738,7 +1000,7 @@
     const e = sel.entry;
     renameDocs = e.isDir
       ? { sourceId: sel.sourceId, relDir: e.relPath, only: null }
-      : { sourceId: sel.sourceId, relDir: parentDir(e.relPath), only: e.relPath };
+      : { sourceId: sel.sourceId, relDir: parentDir(e.relPath), only: [e.relPath] };
   }
 
   function whereLabel(sourceId: string, relDir: string): string {
@@ -791,8 +1053,8 @@
   }
   // MARK: - Moving
 
-  /** The document or folder "Move to…" is choosing a place for. */
-  let moving = $state<Selected | null>(null);
+  /** What "Move to…" is choosing a place for: one item, or the selection. */
+  let moving = $state<Selected[] | null>(null);
 
   /** Moves a document (with its details) or a folder into another folder,
    * in this source or another. Resolves to whether it worked. */
@@ -802,6 +1064,22 @@
   }
   function downloadDoc(sourceId: string, e: Entry) {
     run(() => docActions.download(sourceId, e));
+  }
+
+  // Dragging several onto a folder moves them as one batch.
+  onMoveMany((items, sourceId, relPath) => movePicked(items, sourceId, relPath));
+
+  /** Moves several items into a folder, one by one, with progress and a
+   * summary (#102). */
+  async function movePicked(items: Selected[], destSourceId: string, destDir: string) {
+    const done = await runBatch(
+      items,
+      (it) => api.moveEntry(it.sourceId, it.entry.relPath, destSourceId, destDir),
+      m.several.moving,
+      m.several.moved,
+    );
+    done.forEach(forget);
+    if (folder?.sourceId === destSourceId && folder.relPath === destDir) loadEntries();
   }
 
   async function moveItem(item: MoveItem, destSourceId: string, destDir: string): Promise<boolean> {
@@ -874,6 +1152,7 @@
   );
 
   function statusText(): string {
+    if (batch) return batch.label(batch.done, batch.total);
     if (copying && copying.total > 0) return m.main.copying(copying.done, copying.total);
     if (progress?.stopped) return m.main.indexingStopped;
     if (progress?.active && progress.total > 0) {
@@ -908,6 +1187,31 @@
     if (ev.dataTransfer?.types.includes("Files")) ev.preventDefault();
   }}
 />
+
+<!-- What can be done to several at once (#102): in Details and the
+     right-click menu. -->
+{#snippet bulkActions(kind: "buttons" | "menu")}
+  {@const role = kind === "menu" ? "menuitem" : undefined}
+  {@const sm = pickedSummary}
+  <button {role} class:primary={kind === "buttons"} onclick={() => ((itemMenu = null), (moving = picked.slice()))}>{m.main.moveTo}</button>
+  {#if sm.docs}
+    <button {role} onclick={() => openBulkTags("add")}>{m.several.addTags}</button>
+    <button {role} onclick={() => openBulkTags("remove")}>{m.several.removeTags}</button>
+    <button {role} onclick={starPicked}>{sm.allStarred ? "☆ " + m.several.unstar : "★ " + m.several.star}</button>
+    {#if kind === "menu"}<hr />{/if}
+    {#if info?.os !== "linux"}
+      <button
+        {role}
+        onclick={(ev) => sharePicked(kind === "menu" && itemMenu ? { x: itemMenu.x, y: itemMenu.y } : atElement(ev.currentTarget))}
+        >{m.share.share}</button
+      >
+    {/if}
+    <button {role} onclick={emailPicked}>{m.share.email}</button>
+    {#if !searching}<button {role} onclick={renamePicked}>{m.renameDocs.menu}</button>{/if}
+  {/if}
+  {#if kind === "menu"}<hr />{/if}
+  <button {role} class="danger" onclick={trashPicked}>{trashLabel}</button>
+{/snippet}
 
 <div
   class="shell"
@@ -1137,6 +1441,7 @@
     {/if}
   {/snippet}
 
+
   {#snippet tagChips(list: string[] | undefined)}
     {#each list ?? [] as t (t)}<span class="chip">{t}</span>{/each}
   {/snippet}
@@ -1210,14 +1515,15 @@
       </p>
       <ul class="results">
         {#each hits as h (h.sourceId + "\n" + h.relPath)}
-          <li class="doc-host" class:selected={selected?.sourceId === h.sourceId && selected?.entry.relPath === h.relPath}>
+          <li class="doc-host" class:selected={isPicked(h.sourceId, h.relPath)}>
             <button
               class="result"
-              class:selected={selected?.sourceId === h.sourceId && selected?.entry.relPath === h.relPath}
-              onclick={() => (selected = { sourceId: h.sourceId, entry: h })}
+              class:selected={isPicked(h.sourceId, h.relPath)}
+              data-pick={keyOf(h.sourceId, h.relPath)}
+              onclick={(ev) => pick({ sourceId: h.sourceId, entry: h }, ev)}
               ondblclick={() => activate(h.sourceId, h)}
               oncontextmenu={(ev) => openItemMenu({ sourceId: h.sourceId, entry: h }, ev, true)}
-              {...dragSource({ sourceId: h.sourceId, entry: h })}
+              {...dragSource({ sourceId: h.sourceId, entry: h }, () => dragGroup(h.sourceId, h.relPath))}
             >
               <div class="r-title">
                 <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
@@ -1279,7 +1585,9 @@
           sourceId={source.id}
           {entries}
           selectedRelPath={selected?.sourceId === source.id ? selected.entry.relPath : null}
-          onselect={(e) => (selected = { sourceId: source.id, entry: e })}
+          picked={pickedIn(source.id)}
+          dragGroup={(e) => dragGroup(source.id, e.relPath)}
+          onselect={(e, ev) => pick({ sourceId: source.id, entry: e }, ev)}
           onactivate={(e) => activate(source.id, e)}
           onmenu={(e, ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
           onmove={moveItem}
@@ -1307,12 +1615,13 @@
             {#each entries as e (e.relPath)}
               <tr
                 class="doc-host"
-                class:selected={selected?.entry.relPath === e.relPath}
+                class:selected={isPicked(source.id, e.relPath)}
                 class:drop={e.isDir && isDropOver(source.id, e.relPath)}
-                onclick={() => (selected = { sourceId: source.id, entry: e })}
+                data-pick={keyOf(source.id, e.relPath)}
+                onclick={(ev) => pick({ sourceId: source.id, entry: e }, ev)}
                 ondblclick={() => activate(source.id, e)}
                 oncontextmenu={(ev) => openItemMenu({ sourceId: source.id, entry: e }, ev)}
-                {...isRenaming(source.id, e.relPath) ? {} : dragSource({ sourceId: source.id, entry: e })}
+                {...isRenaming(source.id, e.relPath) ? {} : dragSource({ sourceId: source.id, entry: e }, () => dragGroup(source.id, e.relPath))}
                 {...e.isDir
                   ? dropTarget(source.id, e.relPath, {
                       move: (item) => moveItem(item, source.id, e.relPath),
@@ -1335,7 +1644,7 @@
                   {:else}
                     <span class="file-name" title={e.title ?? undefined}>{e.name}</span>
                   {/if}
-                  {@render tagChips(e.tags)}
+                  {#if e.tags?.length}<span class="row-tags">{@render tagChips(e.tags)}</span>{/if}
                   {#if e.cloud === "cloudOnly"}
                     <CloudBadge sourceId={source.id} doc={e} onclick={() => downloadDoc(source.id, e)} />
                   {/if}
@@ -1369,7 +1678,29 @@
   <!-- MARK: Details -->
   <section class="details">
     <h2>{m.main.details}</h2>
-    {#if selected}
+    {#if several}
+      {@const sm = pickedSummary}
+      <div class="detail-name">{m.several.selectedCount(picked.length)}</div>
+      <dl>
+        {#if sm.docs}
+          <dt>{m.several.documents}</dt>
+          <dd>{sm.docs}{sm.size ? ` · ${formatSize(sm.size)}` : ""}</dd>
+        {/if}
+        {#if sm.folders}
+          <dt>{m.several.folders}</dt>
+          <dd>{sm.folders}</dd>
+        {/if}
+        {#if sm.docs}
+          <dt>{m.several.tagsInCommon}</dt>
+          <dd class="common-tags">
+            {#if sm.common.length}{@render tagChips(sm.common)}{:else}<span class="muted">{m.several.noCommonTags}</span>{/if}
+          </dd>
+        {/if}
+      </dl>
+      <div class="actions several-actions">
+        {@render bulkActions("buttons")}
+      </div>
+    {:else if selected}
       {@const e = selected.entry}
       <div class="detail-name">{e.name}</div>
       {#if !e.isDir}
@@ -1433,7 +1764,21 @@
   <MarkdownReader sourceId={reader.sourceId} relPath={reader.relPath} onclose={() => (reader = null)} />
 {/if}
 
-{#if itemMenu}
+{#if itemMenu && several && isPicked(itemMenu.sel.sourceId, itemMenu.sel.entry.relPath)}
+  {@const mn = itemMenu}
+  <div
+    class="menu item-menu"
+    role="menu"
+    tabindex="-1"
+    style:left="{mn.x}px"
+    style:top="{mn.y}px"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={() => {}}
+  >
+    <div class="menu-head">{m.several.selectedCount(picked.length)}</div>
+    {@render bulkActions("menu")}
+  </div>
+{:else if itemMenu}
   {@const mn = itemMenu}
   <div
     class="menu item-menu"
@@ -1453,7 +1798,7 @@
       <button role="menuitem" onclick={() => fromMenu(startRenaming)}>{m.main.rename}</button>
       <button role="menuitem" onclick={() => fromMenu(openRenameDocs)}>{m.renameDocs.menu}</button>
     {/if}
-    <button role="menuitem" onclick={() => fromMenu((sel) => (moving = sel))}>{m.main.moveTo}</button>
+    <button role="menuitem" onclick={() => fromMenu((sel) => (moving = [sel]))}>{m.main.moveTo}</button>
     {#if !mn.sel.entry.isDir}
       <hr />
       {#if info?.os !== "linux"}
@@ -1507,12 +1852,22 @@
   />
 {/if}
 
+{#if bulkTags}
+  <BulkTagsDialog mode={bulkTags.mode} docs={bulkTags.docs} onclose={() => (bulkTags = null)} ondone={bulkTagsDone} />
+{/if}
+
 {#if moving}
   <MoveDialog
-    item={moving}
+    items={moving}
     {sources}
     onmove={async (sourceId, relPath) => {
-      if (await moveItem(moving!, sourceId, relPath)) return null;
+      const items = moving!.filter((it) => canMoveInto(it, sourceId, relPath));
+      if (items.length > 1) {
+        moving = null;
+        movePicked(items, sourceId, relPath);
+        return null;
+      }
+      if (await moveItem(items[0], sourceId, relPath)) return null;
       const message = error; // shown in the dialog instead of behind it
       error = null;
       return message ?? m.main.moveFailed;
@@ -1551,15 +1906,15 @@
     <span>{m.share.downloading(sendingName)}</span>
     <button class="undo-link" onclick={() => api.shareCancel()}>{m.common.cancel}</button>
   </div>
-{:else if lastRename || renameNote}
+{:else if lastRename || renameNote || batchNote}
   <div class="undo-bar" role="status">
-    <span>{lastRename?.text ?? renameNote}</span>
+    <span>{lastRename?.text ?? renameNote ?? batchNote}</span>
     {#if lastRename}
       <button class="undo-link" onclick={undoRename} title={info?.os === "macos" ? "⌘Z" : "Ctrl+Z"}>{m.renameDocs.undo}</button>
     {/if}
     <button
       class="undo-close"
-      onclick={() => ((lastRename = null), (renameNote = null))}
+      onclick={() => ((lastRename = null), (renameNote = null), (batchNote = null))}
       aria-label={m.renameDocs.dismiss}>×</button
     >
   </div>
@@ -1900,6 +2255,20 @@
     border-top: 1px solid var(--border);
     margin: 4px 0;
   }
+  .menu-head {
+    padding: 4px 8px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .several-actions button.danger {
+    color: var(--danger);
+  }
+  .common-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
   .view-switch {
     margin-left: auto;
     display: flex;
@@ -2051,8 +2420,19 @@
     gap: 6px;
   }
   .file-name {
+    flex: 0 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* A document's tags in the list give way first, so its name stays
+     readable; the name is cut only once they're out of room. */
+  .row-tags {
+    flex: 0 1000 auto;
+    min-width: 0;
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
   }
   .file-icon {
     display: grid;

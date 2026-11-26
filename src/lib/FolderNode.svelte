@@ -108,6 +108,8 @@
   role="treeitem"
   aria-selected={isSelected}
   aria-expanded={expanded}
+  data-source={sourceId}
+  data-rel={relPath}
   tabindex="0"
   onclick={() => onselect(sourceId, relPath)}
   oncontextmenu={onmenu && ((ev) => onmenu(sourceId, relPath, name, ev))}

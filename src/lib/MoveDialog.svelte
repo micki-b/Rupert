@@ -1,20 +1,20 @@
 <script lang="ts">
-  // "Move to…": pick a folder (in any source) for a document or folder.
-  // The window does the moving; this only chooses where.
+  // "Move to…": pick a folder (in any source) for a document or folder, or
+  // for several (#102). The window does the moving; this only chooses where.
   import type { Source } from "#lib/api.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import { canMoveInto, type MoveItem } from "#lib/drag.svelte.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let {
-    item,
+    items,
     sources,
     onmove,
     onclose,
   }: {
-    item: MoveItem;
+    items: MoveItem[];
     sources: Source[];
-    /** Moves the item there; resolves to an error message, or null if it worked. */
+    /** Moves the items there; resolves to an error message, or null if it worked. */
     onmove: (sourceId: string, relPath: string) => Promise<string | null>;
     onclose: () => void;
   } = $props();
@@ -23,10 +23,15 @@
   let busy = $state(false);
   let error = $state<string | null>(null);
 
-  const ok = $derived(!!dest && canMoveInto(item, dest.sourceId, dest.relPath));
+  const item = $derived(items[0]);
+  /** Several can go as long as one of them can (the rest stay). */
+  const ok = $derived(!!dest && items.some((it) => canMoveInto(it, dest!.sourceId, dest!.relPath)));
   const why = $derived.by(() => {
     if (!dest || ok) return "";
-    return item.entry.isDir && dest.sourceId === item.sourceId && dest.relPath !== parentOf(item.entry.relPath)
+    return items.length === 1 &&
+      item.entry.isDir &&
+      dest.sourceId === item.sourceId &&
+      dest.relPath !== parentOf(item.entry.relPath)
       ? m.move.intoItself
       : m.move.alreadyHere;
   });
@@ -48,10 +53,10 @@
 
 <div class="backdrop" role="presentation">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="move-title">
-    <h1 id="move-title">{m.move.title(item.entry.name)}</h1>
+    <h1 id="move-title">{items.length === 1 ? m.move.title(item.entry.name) : m.move.titleSeveral(items.length)}</h1>
     <p class="muted small">
       {m.move.chooseFolder}
-      {item.entry.isDir ? m.move.folderMoves : m.move.documentMoves}
+      {items.length > 1 ? m.move.severalMove : item.entry.isDir ? m.move.folderMoves : m.move.documentMoves}
     </p>
     <div class="tree" role="tree">
       {#each sources.filter((s) => s.available) as s (s.id)}

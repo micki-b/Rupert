@@ -20,6 +20,8 @@
     sourceId,
     entries,
     selectedRelPath,
+    picked,
+    dragGroup,
     onselect,
     onactivate,
     onmenu,
@@ -38,7 +40,12 @@
     sourceId: string;
     entries: ListedEntry[];
     selectedRelPath: string | null;
-    onselect: (e: ListedEntry) => void;
+    /** Everything selected (#102): the selected one and any others picked with it. */
+    picked?: Set<string>;
+    /** What a drag starting on a tile carries (the selection it's part of). */
+    dragGroup?: (e: ListedEntry) => MoveItem[];
+    /** A click or arrow key; `ev` carries Shift and ⌘/Ctrl to select several. */
+    onselect: (e: ListedEntry, ev?: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }) => void;
     onactivate: (e: ListedEntry) => void;
     onmenu: (e: ListedEntry, ev: MouseEvent) => void;
     /** Moves a dropped document or folder into a folder here. */
@@ -64,6 +71,7 @@
   let strip: HTMLDivElement | undefined = $state();
   let grid: HTMLDivElement | undefined = $state();
   const index = $derived(entries.findIndex((e) => e.relPath === selectedRelPath));
+  const isPicked = (e: ListedEntry) => e.relPath === selectedRelPath || !!picked?.has(e.relPath);
   const current = $derived(index >= 0 ? entries[index] : null);
 
   // MARK: Pages (gallery)
@@ -132,7 +140,7 @@
     } else return;
     ev.preventDefault();
     const next = Math.min(entries.length - 1, Math.max(0, (index < 0 ? -step : index) + step));
-    onselect(entries[next]);
+    onselect(entries[next], { shiftKey: ev.shiftKey, metaKey: false, ctrlKey: false });
   }
 
   /** Tiles per row in the grid. */
@@ -148,15 +156,15 @@
 {#if mode === "icons"}
   <div class="grid" bind:this={grid}>
     {#each entries as e (e.relPath)}
-      <div class="tile-wrap doc-host" class:selected={e.relPath === selectedRelPath}>
+      <div class="tile-wrap doc-host" class:selected={isPicked(e)}>
       <button
         class="tile"
-        class:selected={e.relPath === selectedRelPath}
+        class:selected={isPicked(e)}
         class:drop={e.isDir && isDropOver(sourceId, e.relPath)}
-        onclick={() => onselect(e)}
+        onclick={(ev) => onselect(e, ev)}
         ondblclick={() => onactivate(e)}
         oncontextmenu={(ev) => onmenu(e, ev)}
-        {...renaming === e.relPath ? {} : dragSource({ sourceId, entry: e })}
+        {...renaming === e.relPath ? {} : dragSource({ sourceId, entry: e }, dragGroup && (() => dragGroup(e)))}
         {...e.isDir ? dropTarget(sourceId, e.relPath, { move: (item) => onmove(item, sourceId, e.relPath), files: (d) => oncopy(d, sourceId, e.relPath) }) : {}}
         title={e.title ?? e.name}
       >
@@ -248,11 +256,11 @@
       {#each entries as e (e.relPath)}
         <button
           class="frame"
-          class:selected={e.relPath === selectedRelPath}
-          onclick={() => onselect(e)}
+          class:selected={isPicked(e)}
+          onclick={(ev) => onselect(e, ev)}
           ondblclick={() => onactivate(e)}
           oncontextmenu={(ev) => onmenu(e, ev)}
-          {...dragSource({ sourceId, entry: e })}
+          {...dragSource({ sourceId, entry: e }, dragGroup && (() => dragGroup(e)))}
           title={e.title ?? e.name}
         >
           <Thumb {sourceId} entry={e} side={200} iconSize={26} />

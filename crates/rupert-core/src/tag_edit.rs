@@ -1,6 +1,7 @@
 //! The tag manager: rename, merge or delete a tag across every document
-//! that has it. Changes go where each document's details live, as when
-//! editing one document:
+//! that has it. The same edits, plus adding tags, work on a chosen set of
+//! documents (several selected in the window, #102). Changes go where each
+//! document's details live, as when editing one document:
 //!
 //! - local PDFs: inside the file (XMP and Info dictionary, appended);
 //! - other formats: their sidecar (the file itself isn't read);
@@ -17,7 +18,7 @@ use crate::error::{Error, Result};
 use crate::file_kind::FileKind;
 use crate::i18n::tr;
 use crate::index::Index;
-use crate::listing::{CloudState, resolve};
+use crate::listing::{CloudState, cloud_state, resolve};
 use crate::meta::{self, DocMeta};
 use crate::source::Source;
 
@@ -31,6 +32,16 @@ pub enum TagAction {
     Rename { to: String },
     /// Remove the tags.
     Delete,
+    /// Add these tags where they're missing (#102; `from` isn't used).
+    Add { tags: Vec<String> },
+}
+
+/// A document, by source and path.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocRef {
+    pub source_id: String,
+    pub rel_path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,12 +50,20 @@ pub struct TagEdit {
     /// The tags to change (matched ignoring case).
     pub from: Vec<String>,
     pub action: TagAction,
+    /// Only these documents (#102); every document with the tags otherwise.
+    #[serde(default)]
+    pub only: Option<Vec<DocRef>>,
 }
 
 impl TagEdit {
     /// Checks the edit makes sense before touching anything.
     pub fn validate(&self) -> Result<()> {
-        if self.from.iter().all(|t| t.trim().is_empty()) {
+        let none = |tags: &[String]| tags.iter().all(|t| t.trim().is_empty());
+        let empty = match &self.action {
+            TagAction::Add { tags } => none(tags),
+            _ => none(&self.from),
+        };
+        if empty {
             return Err(Error::InvalidValue(tr("choose at least one tag").into()));
         }
         if let TagAction::Rename { to } = &self.action
@@ -59,6 +78,15 @@ impl TagEdit {
     /// The renamed tag takes the place of the first tag it replaces, and
     /// appears only once.
     pub fn apply(&self, tags: &[String]) -> Option<Vec<String>> {
+        if let TagAction::Add { tags: add } = &self.action {
+            let mut out = tags.to_vec();
+            for t in add.iter().map(|t| t.trim()).filter(|t| !t.is_empty()) {
+                if !out.iter().any(|o| o.trim().eq_ignore_ascii_case(t)) {
+                    out.push(t.to_string());
+                }
+            }
+            return (out != tags).then_some(out);
+        }
         let from: Vec<String> = self.from.iter().map(|t| t.trim().to_lowercase()).collect();
         let hit = |t: &str| from.contains(&t.trim().to_lowercase());
         if !tags.iter().any(|t| hit(t)) {
@@ -67,6 +95,7 @@ impl TagEdit {
         let mut out: Vec<String> = Vec::with_capacity(tags.len());
         match &self.action {
             TagAction::Delete => out.extend(tags.iter().filter(|t| !hit(t)).cloned()),
+            TagAction::Add { .. } => unreachable!("handled above"),
             TagAction::Rename { to } => {
                 let to = to.trim();
                 let mut placed = false;
@@ -136,7 +165,20 @@ pub fn plan(index: &Index, sources: &[Source], edit: &TagEdit) -> Result<(Vec<Ta
     edit.validate()?;
     let mut targets = Vec::new();
     let mut preview = Preview::default();
-    for (source_id, rel_path, cloud) in index.documents_with_tags(&edit.from)? {
+    let candidates: Vec<(String, String, Option<CloudState>)> = match &edit.only {
+        // Their cloud state is read below, from the file system (it doesn't
+        // download anything).
+        Some(docs) => docs
+            .iter()
+            .map(|d| (d.source_id.clone(), d.rel_path.clone(), None))
+            .collect(),
+        None => index
+            .documents_with_tags(&edit.from)?
+            .into_iter()
+            .map(|(s, r, c)| (s, r, Some(c)))
+            .collect(),
+    };
+    for (source_id, rel_path, cloud) in candidates {
         let Some(source) = sources.iter().find(|s| s.id == source_id) else {
             continue;
         };
@@ -147,6 +189,10 @@ pub fn plan(index: &Index, sources: &[Source], edit: &TagEdit) -> Result<(Vec<Ta
             continue;
         };
         let path = resolve(&source.root, &rel_path)?;
+        let cloud = match cloud {
+            Some(c) => c,
+            None => cloud_state(&path)?,
+        };
         let m = method(&path, cloud, &new_tags);
         match m {
             Method::InFile => preview.in_file += 1,
@@ -207,6 +253,7 @@ mod tests {
         TagEdit {
             from: from.iter().map(|s| s.to_string()).collect(),
             action,
+            only: None,
         }
     }
 
@@ -335,6 +382,95 @@ mod tests {
                 .documents_with_tags(&tags(&["ins."]))
                 .unwrap()
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn adds_missing_tags_only() {
+        let add = edit(
+            &[],
+            TagAction::Add {
+                tags: tags(&["Insurance", " 2026 ", ""]),
+            },
+        );
+        assert_eq!(
+            add.apply(&tags(&["insurance", "Car"])),
+            Some(tags(&["insurance", "Car", "2026"])),
+            "a tag already there in other capitals isn't added again"
+        );
+        assert_eq!(add.apply(&tags(&["Insurance", "2026"])), None);
+        assert_eq!(add.apply(&[]), Some(tags(&["Insurance", "2026"])));
+        assert!(
+            edit(&[], TagAction::Add { tags: tags(&[" "]) })
+                .validate()
+                .is_err()
+        );
+        assert!(add.validate().is_ok(), "Add needs no `from`");
+    }
+
+    #[test]
+    fn edits_only_the_chosen_documents() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        for f in ["a.txt", "b.txt", "c.txt"] {
+            fs::write(root.join(f), f).unwrap();
+            meta::write_meta(
+                &root.join(f),
+                DocMeta {
+                    tags: tags(&["Receipts"]),
+                    ..Default::default()
+                },
+                true,
+            )
+            .unwrap();
+        }
+        let source = Source {
+            id: "src".into(),
+            name: "Test".into(),
+            root: root.to_path_buf(),
+            provider: Provider::Local,
+            show_all_types: false,
+            download_online_only: false,
+            bookmark: None,
+        };
+        let index = index_as_local(root, &source);
+        let only = |files: &[&str]| {
+            Some(
+                files
+                    .iter()
+                    .map(|f| DocRef {
+                        source_id: "src".into(),
+                        rel_path: f.to_string(),
+                    })
+                    .collect(),
+            )
+        };
+        let sources = std::slice::from_ref(&source);
+        let mut add = edit(
+            &[],
+            TagAction::Add {
+                tags: tags(&["2026"]),
+            },
+        );
+        add.only = only(&["a.txt", "b.txt"]);
+        let (targets, preview) = plan(&index, sources, &add).unwrap();
+        assert_eq!(preview.documents, 2);
+        assert_eq!(preview.sidecar, 2);
+        for t in &targets {
+            assert!(apply_one(&index, t, &add).unwrap());
+        }
+        let mut remove = edit(&["receipts"], TagAction::Delete);
+        remove.only = only(&["b.txt"]);
+        for t in &plan(&index, sources, &remove).unwrap().0 {
+            assert!(apply_one(&index, t, &remove).unwrap());
+        }
+        let tags_of = |f: &str| meta::read_meta(&root.join(f)).unwrap().meta.tags;
+        assert_eq!(tags_of("a.txt"), tags(&["Receipts", "2026"]));
+        assert_eq!(tags_of("b.txt"), tags(&["2026"]));
+        assert_eq!(
+            tags_of("c.txt"),
+            tags(&["Receipts"]),
+            "not chosen: untouched"
         );
     }
 

@@ -213,6 +213,7 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "nicht unterstütztes JPEG mit {0} Farbkomponenten",
     ),
     // MARK: - Print to Rupert (print_entry.rs)
+    ("{0} documents", "{0} Dokumente"),
     ("Save to Rupert", "In Rupert sichern"),
     ("Rupert inbox", "Rupert-Eingang"),
     (
