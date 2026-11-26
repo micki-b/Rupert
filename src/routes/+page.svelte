@@ -11,6 +11,7 @@
     onMenuImport,
     onMenuImportInbox,
     onMenuQuickOpen,
+    onMenuTogglePreview,
     onContinuityScan,
     onMenuSettings,
     onMenuCheckUpdates,
@@ -72,6 +73,8 @@
   import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
   import ExportDialog from "#lib/ExportDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
+  import DocPreview from "#lib/DocPreview.svelte";
+  import { preview as pagePreview, setPreviewHidden } from "#lib/previewPane.svelte.ts";
   import QuickOpen, { type QuickCommand } from "#lib/QuickOpen.svelte";
   import { rememberDocument } from "#lib/recent.ts";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
@@ -504,6 +507,8 @@
       onSettingsChanged(async (s) => {
         appSettings = s;
         await loadLanguage();
+        // The menu is built again in the new language.
+        api.setPreviewMenu(!pagePreview.hidden).catch(() => {});
         loadInboxCount();
         assistant?.refreshInfo();
       }),
@@ -521,6 +526,7 @@
       onMenuQuickOpen(() => {
         if (!viewer && !reader) quickOpen = true;
       }),
+      onMenuTogglePreview(() => setPreviewHidden(!pagePreview.hidden)),
       onMenuImportInbox(() => {
         if (appSettings?.inbox) {
           openInbox();
@@ -1091,6 +1097,21 @@
     };
   });
 
+  // MARK: - Page preview in Details (#127)
+
+  let detailsH = $state(0);
+  let detailsW = $state(0);
+  let detailsBodyH = $state(0);
+  /** The gallery shows the page large already. */
+  const galleryShown = $derived(!searching && !!folder && folderMode === "gallery" && entries.length > 0);
+  /** The document whose page Details shows: one PDF or picture selected,
+   * outside the gallery. */
+  const pagePreviewFor = $derived(
+    selected && !several && !selected.entry.isDir && !galleryShown && (selected.entry.kind === "pdf" || selected.entry.kind === "image")
+      ? selected
+      : null,
+  );
+
   // MARK: - Page viewer (#83)
 
   /** The document shown large in the page viewer: from the gallery, or
@@ -1315,6 +1336,11 @@
   let renameNote = $state<string | null>(null);
   /** Counted up when a filing is undone, so the inbox drops its notice. */
   let filingUndone = $state(0);
+
+  // View ▸ Hide/Show Page Preview says what it would do (#127).
+  $effect(() => {
+    api.setPreviewMenu(!pagePreview.hidden).catch(() => {});
+  });
 
   $effect(() => {
     api.setUndoLabel(lastChange?.label ?? null).catch(() => {});
@@ -1879,7 +1905,7 @@
   <!-- MARK: Documents -->
   <main
     class="documents"
-    class:gallery-mode={!searching && folder && folderMode === "gallery" && entries.length > 0}
+    class:gallery-mode={galleryShown}
     class:drop={!searching && !!folder && isDropOver(folder.sourceId, folder.relPath)}
     {...!searching && folder ? dropTarget(folder.sourceId, folder.relPath, { files: (d) => copyFiles(d, folder!.sourceId, folder!.relPath) }) : {}}
   >
@@ -2153,7 +2179,20 @@
   </main>
 
   <!-- MARK: Details -->
-  <section class="details">
+  <section class="details" bind:clientHeight={detailsH} bind:clientWidth={detailsW}>
+    {#if pagePreviewFor}
+      {@const pv = pagePreviewFor}
+      {#key `${pv.sourceId}\n${pv.entry.relPath}`}
+        <DocPreview
+          sourceId={pv.sourceId}
+          entry={pv.entry}
+          room={detailsH - detailsBodyH}
+          width={detailsW}
+          onopen={(page) => preview(pv, page)}
+        />
+      {/key}
+    {/if}
+    <div class="details-body" bind:offsetHeight={detailsBodyH}>
     <h2>{m.main.details}</h2>
     {#if several}
       {@const sm = pickedSummary}
@@ -2223,6 +2262,7 @@
     {:else}
       <p class="empty">{m.main.selectDocument}</p>
     {/if}
+    </div>
   </section>
   {/if}
 </div>
@@ -3198,8 +3238,13 @@
   .details {
     background: var(--panel);
     border-left: 1px solid var(--border);
-    padding: 10px 14px;
     overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .details-body {
+    flex: none;
+    padding: 10px 14px;
   }
   .details h2 {
     margin-bottom: 10px;

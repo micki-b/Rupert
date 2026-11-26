@@ -4,6 +4,7 @@
   import { untrack } from "svelte";
   import { api, type DocMeta, type Entry, type MetaRecord } from "./api";
   import Icon from "./Icon.svelte";
+  import NotesBox from "#lib/NotesBox.svelte";
   import { m } from "#lib/i18n/index.ts";
 
   let { sourceId, entry }: { sourceId: string; entry: Entry } = $props();
@@ -253,7 +254,7 @@
 
     <label class="field">
       <span>{m.details.notes}</span>
-      <textarea bind:value={form.notes} rows="3" disabled={loading}></textarea>
+      <NotesBox bind:value={form.notes} rows={3} disabled={loading} />
     </label>
 
     {#if error}<p class="error">{error}</p>{/if}
@@ -292,7 +293,7 @@
     min-width: 0;
   }
   input,
-  textarea {
+  .field :global(textarea) {
     font: inherit;
     color: var(--text);
     background: var(--bg);
@@ -302,13 +303,10 @@
     width: 100%;
   }
   input:focus,
-  textarea:focus,
+  .field :global(textarea:focus),
   .tags:focus-within {
     outline: 2px solid var(--accent-soft);
     border-color: var(--accent);
-  }
-  textarea {
-    resize: vertical;
   }
   .title-row {
     display: flex;

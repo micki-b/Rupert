@@ -73,6 +73,9 @@ const MENU_IMPORT: &str = "menu-import-scansnap";
 /// File ▸ Quick Open… was chosen (macOS menu, #105). No payload.
 #[cfg(target_os = "macos")]
 const MENU_QUICK_OPEN: &str = "menu-quick-open";
+/// View ▸ Hide/Show Page Preview (#127, macOS menu): the window switches it.
+#[cfg(target_os = "macos")]
+const MENU_PREVIEW: &str = "menu-toggle-preview";
 /// Help ▸ Rupert Help (macOS menu); handled here, not in the window.
 #[cfg(target_os = "macos")]
 const MENU_HELP: &str = "menu-help";
@@ -1678,14 +1681,21 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
             &PredefinedMenuItem::select_all(app, Some(tr("Select All")))?,
         ],
     )?;
+    let preview = item(
+        MENU_PREVIEW,
+        tr("Hide Page Preview"),
+        Some("CmdOrCtrl+Shift+P"),
+    )?;
+    *PREVIEW_ITEM.lock().unwrap() = Some(preview.clone());
     let view = Submenu::with_items(
         app,
         tr("View"),
         true,
-        &[&PredefinedMenuItem::fullscreen(
-            app,
-            Some(tr("Enter Full Screen")),
-        )?],
+        &[
+            &preview,
+            &sep()?,
+            &PredefinedMenuItem::fullscreen(app, Some(tr("Enter Full Screen")))?,
+        ],
     )?;
     let window = Submenu::with_id_and_items(
         app,
@@ -1722,6 +1732,26 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
 #[cfg(target_os = "macos")]
 static UNDO_ITEM: Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>> = Mutex::new(None);
 
+/// View ▸ Hide/Show Page Preview (#127).
+#[cfg(target_os = "macos")]
+static PREVIEW_ITEM: Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>> = Mutex::new(None);
+
+/// View ▸ Hide Page Preview or Show Page Preview, as the window has it. The
+/// Mac's menu only.
+#[tauri::command]
+fn set_preview_menu(shown: bool) {
+    #[cfg(target_os = "macos")]
+    if let Some(item) = PREVIEW_ITEM.lock().unwrap().as_ref() {
+        let _ = item.set_text(if shown {
+            tr("Hide Page Preview")
+        } else {
+            tr("Show Page Preview")
+        });
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = shown;
+}
+
 /// Edit ▸ Undo's title (#104): what Undo would undo ("Undo Move of 3
 /// Documents"), or plain "Undo". The Mac's menu only.
 #[tauri::command]
@@ -1747,6 +1777,7 @@ fn on_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
         MENU_UNDO,
         MENU_IMPORT_INBOX,
         MENU_QUICK_OPEN,
+        MENU_PREVIEW,
     ] {
         if event.id() == id {
             let _ = app.emit(id, ());
@@ -1964,6 +1995,7 @@ pub fn run() {
             tag_undo,
             move_back,
             set_undo_label,
+            set_preview_menu,
             index_status,
             stop_indexing,
             resume_indexing,

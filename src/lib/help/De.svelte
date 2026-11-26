@@ -122,6 +122,16 @@
     (sonst das Datum seiner Datei). Bei großen Symbolen und in der Galerie wählen Sie die Reihenfolge unter
     <b>Sortieren</b> neben den Darstellungstasten. Ordner bleiben oben, und die Reihenfolge gilt für alle Ordner.
   </p>
+  <p id="page-preview">
+    <b>Seitenvorschau:</b> In der Liste, bei großen Symbolen und in Suchergebnissen steht die Seite des ausgewählten PDFs
+    oder Bildes oben in den <b>Details</b>. Blättern Sie mit den Pfeilen darauf, und klicken Sie sie an, um die
+    <a href="#viewer">Seitenansicht</a> zu öffnen. Nur online verfügbare Dokumente zeigen das kleine Bild, das Rupert
+    behalten hat, ohne etwas herunterzuladen. Ziehen Sie die Kante unter der Seite, um sie höher oder niedriger zu machen
+    (Doppelklick für die übliche Höhe). Wird das Fenster niedrig, gibt zuerst die Seite Platz ab, und die Details bleiben
+    ganz sichtbar; ist kein Platz mehr, tritt eine Taste <b>Seite zeigen</b> an ihre Stelle. Das × auf der
+    Seite{mac ? " oder Darstellung ▸ Seitenvorschau ausblenden" : ""} blendet sie aus, in den Details und im Eingang, bis Sie
+    sie wieder einblenden.
+  </p>
   <h3 id="viewer">Die Seitenansicht</h3>
   <p>
     Klicken Sie auf eine Seite (in der Galerie oder in der Vorschau des Eingangs), um sie groß zu sehen. Zoomen Sie mit
@@ -510,6 +520,9 @@
     gewählten Scans steht oben in der rechten Spalte, über dem Formular, in jeder Ansicht: Blättern Sie mit den Pfeilen
     auf der Seite oder mit <kbd>Bild ↑</kbd> und <kbd>Bild ↓</kbd>, und klicken Sie darauf, um die
     <a href="#viewer">Seitenansicht</a> zu öffnen. In der Galerie ist die Seite außerdem groß in der Mitte.
+    Die Seite nimmt den Platz, den <b>Ablegen</b> übrig lässt: Ziehen Sie die Kante dazwischen, um ihre Höhe festzulegen;
+    in einem kleinen Fenster wird sie kleiner oder verschwindet, damit das Formular nie gescrollt werden muss (siehe
+    <a href="#page-preview">Seitenvorschau</a>).
   </p>
   <p>
     <b>Ordner</b> zeigt den ganzen Pfad dorthin, wo das Dokument abgelegt wird, den Ordner selbst fett (der Name der Quelle

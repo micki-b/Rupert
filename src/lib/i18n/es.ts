@@ -112,6 +112,16 @@ const es: Messages = {
     failed: (n: number) => `${num(n)} no se ${plural(n, "pudo", "pudieron")} copiar:`,
     resultsTip: "Exportar estos resultados de búsqueda",
   },
+  preview: {
+    hide: "Ocultar la vista previa",
+    hideTip: "Ocultar la vista previa de la página (el menú Visualización la vuelve a mostrar)",
+    show: "Mostrar la vista previa",
+    openPage: "Ver la página",
+    noRoomTip: "No hay lugar para la página acá: la muestra en grande",
+    heightLabel: "Alto de la vista previa",
+    resizeTip: "Arrastrá para cambiar el tamaño, doble clic para el alto de siempre",
+    notesResizeTip: "Arrastrá para agrandar o achicar las notas, doble clic para el alto de siempre",
+  },
   quickOpen: {
     title: "Apertura rápida",
     placeholder: "Ir a una carpeta, un documento, una etiqueta o un comando",

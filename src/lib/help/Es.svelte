@@ -125,6 +125,15 @@
     archivo si no tiene). En íconos grandes y en la galería, elegí el orden en <b>Ordenar</b>, al lado de los botones de
     vista. Las carpetas quedan arriba, y el orden vale para todas las carpetas.
   </p>
+  <p id="page-preview">
+    <b>Vista previa:</b> en la lista, en íconos grandes y en los resultados de búsqueda, la página del PDF o la imagen
+    seleccionada está arriba de todo en <b>Detalles</b>. Pasá sus páginas con las flechas y hacé clic para abrir el
+    <a href="#viewer">visor de páginas</a>. Los documentos solo en línea muestran la imagen chica que guardó Rupert, sin
+    descargar nada. Arrastrá el borde de abajo de la página para agrandarla o achicarla (doble clic para el alto de
+    siempre). Si la ventana queda baja, la página cede su lugar primero y los detalles se ven enteros; si ya no hay lugar,
+    aparece un botón <b>Ver la página</b>. La × sobre la página{mac ? ", o Visualización ▸ Ocultar la vista previa de la página," : ""}
+    la oculta, en Detalles y en la bandeja de entrada, hasta que la vuelvas a mostrar.
+  </p>
   <h3 id="viewer">El visor de páginas</h3>
   <p>
     Hacé clic en una página (en la galería, o en la vista previa de la bandeja de entrada) para verla en grande. Acercá y
@@ -500,7 +509,9 @@
     como en una carpeta; Rupert recuerda la vista de la bandeja de entrada. La página del escaneo elegido está arriba de
     la columna derecha, sobre el formulario, en todas las vistas: pasá sus páginas con las flechas sobre la página o con
     <kbd>Re Pág</kbd> y <kbd>Av Pág</kbd>, y hacé clic en ella para abrir el <a href="#viewer">visor de páginas</a>. En la
-    galería, la página también se ve grande en el centro.
+    galería, la página también se ve grande en el centro. La página ocupa lo que deja <b>Archivarlo</b>: arrastrá el
+    borde entre los dos para elegir su alto, y en una ventana chica se achica o desaparece para que el formulario nunca
+    haya que desplazarlo (mirá <a href="#page-preview">Vista previa</a>).
   </p>
   <p>
     <b>Carpeta</b> muestra la ruta completa adonde va el documento, con la carpeta misma en negrita (el nombre de la fuente

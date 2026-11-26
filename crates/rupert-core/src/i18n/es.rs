@@ -659,6 +659,8 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Paste", "Pegar"),
     ("Select All", "Seleccionar todo"),
     ("View", "Visualización"),
+    ("Hide Page Preview", "Ocultar la vista previa de la página"),
+    ("Show Page Preview", "Mostrar la vista previa de la página"),
     ("Enter Full Screen", "Entrar en pantalla completa"),
     ("Window", "Ventana"),
     ("Minimize", "Minimizar"),
