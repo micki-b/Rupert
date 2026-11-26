@@ -849,6 +849,8 @@ fn search(query: SearchArgs, state: State<AppState>) -> CmdResult<Vec<Hit>> {
         tag_mode: query.tag_mode,
         favorites_only: query.favorites_only,
         limit: 200,
+        // The desktop's date, kind and place filters (#103) aren't on the phone yet.
+        ..Default::default()
     };
     state.index.lock().unwrap().search(&q).map_err(err)
 }

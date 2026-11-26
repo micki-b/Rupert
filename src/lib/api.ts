@@ -84,6 +84,13 @@ export interface SearchArgs {
   tags?: string[];
   tagMode?: TagMode;
   favoritesOnly?: boolean;
+  /** #103: dated from / to (YYYY-MM-DD), only these kinds, only in a folder
+   * of `sourceId` (and below), and newest first instead of best match. */
+  dateFrom?: string;
+  dateTo?: string;
+  kinds?: string[];
+  folder?: string | null;
+  byDate?: boolean;
 }
 
 /** A folder marked as a favorite (kept in the folder's own `.rupert`). */
