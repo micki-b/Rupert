@@ -2,6 +2,29 @@
 
 One block per build uploaded to Google Play, newest first. Paste the whole block into Play Console's **Release notes** field (Test and release ▸ Testing ▸ Closed testing, or Production ▸ Create new release): the tags are Play's language codes, and Play fills in each language from its tag. At most 500 characters per language. Each block covers everything since the previous build on Google Play, not only its own version.
 
+## 0.9.0 (version code: added when the bundle is built)
+
+Since 0.8.0. If 0.8.0 never reached Google Play, put 0.8.0's lines (the scan link) in front of these.
+
+```
+<en-US>
+Ask Rupert names the page an answer comes from, like "[Lease 2024, p. 3]".
+Faster search in long documents.
+</en-US>
+<es-419>
+Preguntale a Rupert dice de qué página sale una respuesta, por ejemplo "[Contrato 2024, pág. 3]".
+Búsquedas más rápidas en documentos largos.
+</es-419>
+<es-ES>
+Preguntale a Rupert dice de qué página sale una respuesta, por ejemplo "[Contrato 2024, pág. 3]".
+Búsquedas más rápidas en documentos largos.
+</es-ES>
+<de-DE>
+„Rupert fragen“ nennt die Seite, aus der eine Antwort stammt, etwa „[Mietvertrag 2024, S. 3]“.
+Schnellere Suche in langen Dokumenten.
+</de-DE>
+```
+
 ## 0.8.0 (version code 263292359)
 
 Since 0.6.0, the build on Google Play before it: Share (0.7.0) and the scan link (0.8.0).

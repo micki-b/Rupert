@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0 — 2026-11-26
+
+Working with many documents.
+
+- **Select several** (#102): ⌘-click (Ctrl-click) and Shift-click select several documents and folders in the list, large icons, gallery and search results; ⌘A selects all. Details then shows how many, their size and the tags they share, with actions for all of them: **Move to…**, **Add tag** / **Remove tag**, **Star** / **Unstar**, **Share…**, **Email…**, **Export…** and **Move to Trash…**, also in the right-click menu. Dragging one of them drags them all.
+- **Sort and filter** (#103): click a column title (Name, Kind, Size, Date, Modified) to sort the list, again to reverse it; **Date** is the date on the document. Large icons and the gallery have a **Sort** menu. Folders stay on top, and the order is kept for all folders. Searches can be narrowed by date (this year, last year, a range), by kind and by place (a source or folder), and sorted by best match or newest.
+- **Undo** (#104): Edit ▸ Undo (⌘Z, Ctrl+Z) or the bar at the bottom of the window takes back the last move, filing, rename or tag change, as long as the files are still as Rupert left them. Edit ▸ Undo says what it would undo.
+- **Quick open and a spacebar preview** (#105): ⌘K (Ctrl+K), or File ▸ Quick Open…, goes to a folder, a document (by title or name), a tag or a command by typing a few letters, with your recent documents and favorite folders first. **Space** opens the selected document in the page viewer from any view; ↑ and ↓ move to the neighbors.
+- **Search hits on the page, find, and page citations** (#106): a document opened from search results shows the search's words marked on its pages, with next and previous. ⌘F (Ctrl+F) in the page viewer finds words in a document. Ask Rupert names the page an answer comes from, like "[Lease 2024, p. 3]"; click it to open that page with the passage marked. Searching long documents is much faster, and typing in the search field no longer stalls the window.
+- **Export…** (#107): copies of a selection, a folder, a source or the search results go into a zip file or a folder, keeping their folders and names, with a list (index.csv for a spreadsheet, index.html to read) of each document's title, date, tags and original place. Notes go along only if you include them. The originals stay as they are.
+- **Page preview while browsing** (#127): the selected PDF or picture's page is at the top of Details in the list, large icons and search results, with page flipping and a click to the page viewer; online-only documents show the picture Rupert kept. The inbox's page and this one have a divider to make them taller or shorter; on a short window they shrink first and give way to a **Show page** button, so the form below never has to scroll. × on the page, or View ▸ Hide Page Preview (⇧⌘P), hides them. The Notes boxes now resize only up and down.
+- **List columns** (#138): drag the line between two column titles to resize a column, drag a title sideways to move it, and right-click the titles to show or hide columns or **Reset Columns**; Rupert keeps the layout on this computer. A new Star column stars folders too, as favorite folders.
+- **Fixed:** the inbox's right-click **Open** and **Show in Finder** did nothing. Menus and dialogs in the middle of the window are no longer placed off to the side or cut off.
+- **Phones:** Ask Rupert names the page an answer comes from, and search is faster in long documents.
+
 ## 0.8.0 — 2026-11-25
 
 Getting documents in.

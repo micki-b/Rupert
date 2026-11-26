@@ -39,6 +39,20 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.9.0 [4000]
+
+Trabajá con muchos documentos a la vez.
+
+• Seleccioná varios: ⌘-clic o Mayúscula-clic, y después movelos, etiquetalos, marcalos con estrella, compartilos, exportalos o mandalos a la papelera juntos.
+• Ordená la lista por cualquier columna y acotá las búsquedas por fecha, tipo y lugar.
+• Deshacer: Edición ▸ Deshacer (⌘Z) revierte el último movimiento, archivado, cambio de nombre o de etiquetas.
+• Apertura rápida: ⌘K te lleva a cualquier carpeta, documento, etiqueta o comando. Con la barra espaciadora ves el documento seleccionado.
+• Las palabras buscadas aparecen marcadas en la página, ⌘F busca palabras en un documento y Preguntale a Rupert dice de qué página sale una respuesta; hacé clic para ver el pasaje.
+• Exportar…: copias de documentos en un zip o una carpeta, con una lista para una planilla.
+• Una vista previa de la página en Detalles mientras navegás, y una vista previa de tamaño ajustable en la bandeja de entrada.
+• Columnas de la lista que podés agrandar, mover, mostrar y ocultar, con estrellas también para las carpetas.
+• Búsquedas más rápidas en documentos largos, y correcciones.
+
 ## What's new in 0.8.0 [4000]
 
 Más formas de traer documentos a la bandeja de entrada: escaneá con el iPhone, imprimí en Rupert o importá muchos archivos de una vez.

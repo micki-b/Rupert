@@ -61,6 +61,13 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.9.0 [4000]
+
+Ask Rupert names the page an answer comes from.
+
+• Answers say which page of a document they come from, like "[Lease 2024, p. 3]".
+• Faster search in long documents.
+
 ## What's new in 0.8.0 [4000]
 
 Open the Scan tab from your computer.
