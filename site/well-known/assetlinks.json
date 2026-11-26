@@ -1,10 +1,15 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "io.github.micki_b.rupert",
-      "sha256_cert_fingerprints": ["97:31:4C:8A:31:A9:77:37:EB:FC:C0:5A:17:8D:C5:27:38:6E:A3:16:10:AD:5F:1B:D8:F7:57:F9:2D:23:11:33"]
+      "sha256_cert_fingerprints": [
+        "97:31:4C:8A:31:A9:77:37:EB:FC:C0:5A:17:8D:C5:27:38:6E:A3:16:10:AD:5F:1B:D8:F7:57:F9:2D:23:11:33",
+        "F8:80:B2:2D:DA:16:6B:4A:A3:B6:AF:50:BF:61:88:C5:63:A7:10:2A:A2:FF:59:94:0C:FF:46:DA:4F:89:96:22"
+      ]
     }
   }
 ]
