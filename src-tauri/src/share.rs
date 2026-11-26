@@ -158,6 +158,17 @@ pub async fn share_documents(
     show_share(&window, files, subject, at)
 }
 
+/// Share… for a file Rupert just made (an exported zip, #107).
+#[tauri::command]
+pub fn share_file(path: String, at: At, window: WebviewWindow) -> CmdResult<()> {
+    let path = PathBuf::from(path);
+    let subject = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    show_share(&window, vec![path], subject, at)
+}
+
 /// Email…: a new message with the document attached and its title as the
 /// subject.
 #[tauri::command]

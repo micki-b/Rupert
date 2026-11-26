@@ -300,6 +300,40 @@ export type AssistantAction =
   | { kind: "showDocument"; sourceId: string; relPath: string }
   | { kind: "search"; text: string; tags: string[]; tagMode: TagMode; favoritesOnly: boolean };
 
+// Export… (#107)
+export type DocPlace = { sourceId: string; relPath: string };
+
+export interface ExportPlan {
+  documents: number;
+  size: number;
+  /** Online-only documents, which copying downloads. */
+  online: number;
+  /** Notes go along by default as Share… sends them (Settings). */
+  includeNotes: boolean;
+}
+
+export interface ExportOptions {
+  format: "zip" | "folder";
+  includeNotes: boolean;
+}
+
+export interface ExportDone {
+  path: string;
+  copied: number;
+  failed: [string, string][];
+}
+
+export interface ExportProgress {
+  done: number;
+  total: number;
+  name: string;
+  downloading: boolean;
+}
+
+export function onExportProgress(handler: (p: ExportProgress) => void): Promise<UnlistenFn> {
+  return listen<ExportProgress>("export-progress", (e) => handler(e.payload));
+}
+
 /** A page an answer cites ("[Lease 2024, p. 3]", #106). */
 export interface Citation {
   /** As written in the answer. */
@@ -455,6 +489,18 @@ export const api = {
   /** Where words (or, with `phrase`, a passage) are on a local PDF's pages (#106). */
   findInDocument: (sourceId: string, relPath: string, text: string, phrase = false) =>
     invoke<FoundHit[]>("find_in_document", { sourceId, relPath, text, phrase }),
+  /** Every indexed document in a folder and its subfolders (Export folder…). */
+  exportFolderDocs: (sourceId: string, relPath: string) =>
+    invoke<DocPlace[]>("export_folder_docs", { sourceId, relPath }),
+  exportPlan: (docs: DocPlace[]) => invoke<ExportPlan>("export_plan", { docs }),
+  /** Copies `docs` into `dest` (a new folder or a zip) with a list headed `title`. */
+  exportRun: (docs: DocPlace[], options: ExportOptions, dest: string, title: string) =>
+    invoke<ExportDone>("export_run", { docs, options, dest, title }),
+  exportCancel: () => invoke<void>("export_cancel"),
+  /** Show in Finder / File Explorer for an export. */
+  exportReveal: (path: string) => invoke<void>("export_reveal", { path }),
+  /** Share… for a file Rupert made (an exported zip). */
+  shareFile: (path: string, at: ShareAt) => invoke<void>("share_file", { path, at }),
   /** Quick open (#105): documents by title or file name, best first. */
   quickFind: (text: string) => invoke<Hit[]>("quick_find", { text }),
   /** These documents' indexed details, in order, without any no longer indexed. */

@@ -17,6 +17,7 @@ mod continuity {
     }
 }
 mod drag_out;
+mod export;
 mod help;
 mod inbox_import;
 mod print_entry;
@@ -1932,6 +1933,12 @@ pub fn run() {
             download_file,
             search,
             quick_find,
+            export::export_folder_docs,
+            export::export_plan,
+            export::export_run,
+            export::export_cancel,
+            export::export_reveal,
+            share::share_file,
             find_in_document,
             documents_info,
             list_tags,

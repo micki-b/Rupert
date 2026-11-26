@@ -316,7 +316,7 @@ pub fn utc_today() -> String {
     utc_now()[..10].to_string()
 }
 
-fn format_utc(secs: u64) -> String {
+pub(crate) fn format_utc(secs: u64) -> String {
     let days = (secs / 86_400) as i64;
     let rem = secs % 86_400;
     // Civil-from-days (Howard Hinnant's algorithm).

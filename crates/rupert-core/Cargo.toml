@@ -26,6 +26,8 @@ sys-locale = "0.3.2"
 jpeg-encoder = "0.7.1"
 qrcodegen = "1.8"
 unicode-normalization = "0.1.26"
+# Export as a zip (#107); PDFs go stored, lists deflated.
+zip = { version = "9.7.1", default-features = false, features = ["deflate-flate2"] }
 
 [features]
 # OneDrive through Microsoft Graph (the phone app).

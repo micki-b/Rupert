@@ -188,6 +188,21 @@
     Längere Stapel zeigen ihren Fortschritt unten im Fenster und danach eine Zusammenfassung, mit allem, was nicht
     geklappt hat.
   </p>
+  <h3 id="export">Mehrere Dokumente exportieren</h3>
+  <p>
+    Um mehrere Dokumente zusammen weiterzugeben (die Steuerunterlagen eines Jahres für die Steuerberatung, alles zu einem
+    Auto, das Sie verkaufen), wählen Sie <b>Exportieren …</b>: für die Auswahl (in den Details oder im Kontextmenü), für
+    einen Ordner mit allem darin (Rechtsklick darauf) oder für die Suchergebnisse (die Taste darüber, etwa für das Tag
+    Steuern und das letzte Jahr).
+  </p>
+  <p>
+    Rupert kopiert die Dokumente in eine <b>ZIP-Datei</b> oder einen <b>Ordner</b>, wohin Sie im Sichern-Dialog wählen,
+    und legt eine Liste bei: <b>index.csv</b> für eine Tabellenkalkulation und <b>index.html</b> zum Lesen im Browser,
+    mit Titel, Datum, Tags und ursprünglichem Ordner jedes Dokuments. Die Kopien behalten ihre Ordner und Dateinamen,
+    und Notizen gehen mit, wenn Sie <b>Notizen mitgeben</b> ankreuzen. Die Originale bleiben, wie sie sind. Dokumente,
+    die nur online verfügbar sind, müssen zum Kopieren heruntergeladen werden; der Dialog sagt, wie viele. Danach zeigt
+    <b>{reveal}</b> das Ergebnis, und <b>Teilen …</b> sendet die ZIP-Datei.
+  </p>
   <h3 id="dragging-out">Dokumente hinausziehen</h3>
   <p>
     Ziehen Sie ein Dokument (oder einen Ordner oder einen Scan im Eingang) aus Ruperts Fenster auf Mail, Nachrichten, den
