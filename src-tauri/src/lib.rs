@@ -69,6 +69,9 @@ const MENU_IMPORT_INBOX: &str = "menu-import-inbox";
 /// File ▸ Import from ScanSnap Home… was chosen (macOS menu). No payload.
 #[cfg(target_os = "macos")]
 const MENU_IMPORT: &str = "menu-import-scansnap";
+/// File ▸ Quick Open… was chosen (macOS menu, #105). No payload.
+#[cfg(target_os = "macos")]
+const MENU_QUICK_OPEN: &str = "menu-quick-open";
 /// Help ▸ Rupert Help (macOS menu); handled here, not in the window.
 #[cfg(target_os = "macos")]
 const MENU_HELP: &str = "menu-help";
@@ -1119,6 +1122,31 @@ async fn search(query: SearchArgs, state: State<'_, AppState>) -> CmdResult<Vec<
     state.index.lock().unwrap().search(&q).map_err(err)
 }
 
+/// Quick open (#105): documents by title or file name.
+#[tauri::command]
+fn quick_find(text: String, state: State<AppState>) -> CmdResult<Vec<Hit>> {
+    state
+        .index
+        .lock()
+        .unwrap()
+        .quick_find(&text, 12)
+        .map_err(err)
+}
+
+/// The indexed details of these documents, in the same order, leaving out
+/// any the index no longer has (quick open's recent documents, #105).
+#[tauri::command]
+fn documents_info(docs: Vec<DocRef>, state: State<AppState>) -> CmdResult<Vec<Hit>> {
+    let index = state.index.lock().unwrap();
+    let mut out = Vec::new();
+    for d in docs {
+        if let Some(info) = index.document(&d.source_id, &d.rel_path).map_err(err)? {
+            out.push(info.hit);
+        }
+    }
+    Ok(out)
+}
+
 /// Tags for the tag filter (see `Index::tag_suggestions`).
 #[tauri::command]
 fn tag_suggestions(
@@ -1587,6 +1615,8 @@ fn install_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
         tr("File"),
         true,
         &[
+            &item(MENU_QUICK_OPEN, tr("Quick Open…"), Some("CmdOrCtrl+K"))?,
+            &sep()?,
             &item(
                 MENU_IMPORT_INBOX,
                 tr("Import into Inbox…"),
@@ -1683,6 +1713,7 @@ fn on_menu(app: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
         MENU_UPDATES,
         MENU_UNDO,
         MENU_IMPORT_INBOX,
+        MENU_QUICK_OPEN,
     ] {
         if event.id() == id {
             let _ = app.emit(id, ());
@@ -1868,6 +1899,8 @@ pub fn run() {
             set_favorite,
             download_file,
             search,
+            quick_find,
+            documents_info,
             list_tags,
             tag_suggestions,
             tag_edit_preview,

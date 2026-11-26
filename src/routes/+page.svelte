@@ -10,6 +10,7 @@
     onIntakeChanged,
     onMenuImport,
     onMenuImportInbox,
+    onMenuQuickOpen,
     onContinuityScan,
     onMenuSettings,
     onMenuCheckUpdates,
@@ -68,6 +69,8 @@
   import InboxImportDialog from "#lib/InboxImportDialog.svelte";
   import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
+  import QuickOpen, { type QuickCommand } from "#lib/QuickOpen.svelte";
+  import { rememberDocument } from "#lib/recent.ts";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
   import { loadLanguage, locale, m } from "#lib/i18n/index.ts";
 
@@ -401,7 +404,12 @@
       const want = pendingSelect;
       pendingSelect = null;
       const entry = entries.find((e) => e.relPath === want);
-      if (entry) selected = { sourceId: current.sourceId, entry };
+      if (entry) {
+        selected = { sourceId: current.sourceId, entry };
+        tick().then(() =>
+          document.querySelector(`[data-pick="${CSS.escape(keyOf(current.sourceId, want))}"]`)?.scrollIntoView({ block: "nearest" }),
+        );
+      }
     } else if (selected && !searching) {
       const rel = selected.entry.relPath;
       const still = entries.find((e) => e.relPath === rel);
@@ -507,6 +515,9 @@
         openInbox();
         loadInboxCount();
       }),
+      onMenuQuickOpen(() => {
+        if (!viewer && !reader) quickOpen = true;
+      }),
       onMenuImportInbox(() => {
         if (appSettings?.inbox) {
           openInbox();
@@ -531,12 +542,35 @@
       itemMenu = null;
     };
     const shortcuts = (e: KeyboardEvent) => {
-      if (viewer) return; // the page viewer has the keyboard
+      if (viewer || quickOpen || reader) return; // they have the keyboard
       const typing =
         e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
       const cmd = info?.os === "macos" ? e.metaKey : e.ctrlKey;
       if (e.key === "Escape" && itemMenu) {
         itemMenu = null;
+      } else if (cmd && !e.shiftKey && !e.altKey && e.key === "k") {
+        // ⌘K / Ctrl+K: quick open (#105). On the Mac, File ▸ Quick Open…
+        // has the key, and this is for when the menu doesn't see it.
+        e.preventDefault();
+        itemMenu = null;
+        quickOpen = true;
+      } else if (
+        !typing &&
+        selected &&
+        !inboxOpen &&
+        !renamingAt &&
+        e.key === " " &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.shiftKey &&
+        // Other buttons keep Space for pressing them; documents' own
+        // (search results, tiles) don't.
+        !(e.target instanceof Element && e.target.closest("button:not(.result, .tile), a, [role=dialog]"))
+      ) {
+        // Space: the page viewer (#105).
+        e.preventDefault();
+        preview(selected);
       } else if (!typing && !inboxOpen && cmd && !e.shiftKey && !e.altKey && e.key === "a" && shownItems().length) {
         // ⌘A / Ctrl+A selects everything shown (#102).
         e.preventDefault();
@@ -827,6 +861,7 @@
   let reader = $state<{ sourceId: string; relPath: string } | null>(null);
 
   function activate(sourceId: string, e: Entry) {
+    if (!e.isDir) rememberDocument(sourceId, e.relPath);
     if (e.isDir) selectFolder(sourceId, e.relPath);
     else if (isMarkdown(e) && e.cloud !== "cloudOnly") reader = { sourceId, relPath: e.relPath };
     else run(() => api.openEntry(sourceId, e.relPath));
@@ -1055,8 +1090,93 @@
 
   // MARK: - Page viewer (#83)
 
-  /** The document shown large in the page viewer, from the gallery. */
+  /** The document shown large in the page viewer: from the gallery, or
+   * Space on the selected document in any view (#105). */
   let viewer = $state<{ sourceId: string; entry: ListedEntry; page: number } | null>(null);
+
+  /** Space: the selected document in the page viewer (a Markdown file in
+   * the reader). Folders have nothing to show. */
+  function preview(sel: Selected, page = 0) {
+    if (sel.entry.isDir) return;
+    rememberDocument(sel.sourceId, sel.entry.relPath);
+    if (isMarkdown(sel.entry) && sel.entry.cloud !== "cloudOnly") reader = { sourceId: sel.sourceId, relPath: sel.entry.relPath };
+    else viewer = { sourceId: sel.sourceId, entry: sel.entry as ListedEntry, page };
+  }
+
+  /** ↑ ↓ in the page viewer: the neighboring document of the view, which
+   * becomes the selection too. Folders are passed over. */
+  function previewStep(step: 1 | -1) {
+    if (!viewer) return;
+    const list = shownItems().filter((x) => !x.entry.isDir);
+    const at = list.findIndex((x) => x.sourceId === viewer!.sourceId && x.entry.relPath === viewer!.entry.relPath);
+    const next = at < 0 ? undefined : list[at + step];
+    if (!next) return;
+    pick(next);
+    if (isMarkdown(next.entry) && next.entry.cloud !== "cloudOnly") {
+      viewer = null;
+      reader = { sourceId: next.sourceId, relPath: next.entry.relPath };
+    } else {
+      viewer = { sourceId: next.sourceId, entry: next.entry as ListedEntry, page: 0 };
+    }
+    tick().then(() =>
+      document.querySelector(`[data-pick="${CSS.escape(keyOf(next.sourceId, next.entry.relPath))}"]`)?.scrollIntoView({ block: "nearest" }),
+    );
+  }
+
+  // MARK: - Quick open (#105)
+
+  let quickOpen = $state(false);
+
+  /** What quick open offers besides folders, documents and tags. */
+  const quickCommands = $derived.by((): QuickCommand[] => {
+    const mac = info?.os === "macos";
+    const list: QuickCommand[] = [];
+    if (appSettings?.inbox) {
+      list.push({ id: "inbox", label: m.main.inbox });
+      list.push({ id: "import", label: m.common.ellipsis(m.importInbox.title), keys: mac ? "⇧⌘I" : undefined });
+      list.push({ id: "scan", label: m.scanPhone.title });
+    }
+    list.push({ id: "favorites", label: m.quickOpen.starred });
+    list.push({ id: "tags", label: m.main.manageTags });
+    list.push({ id: "ask", label: m.main.askRupert, keys: mac ? "⌘J" : "Ctrl+J" });
+    list.push({ id: "settings", label: m.main.settings, keys: mac ? "⌘," : "Ctrl+," });
+    list.push({ id: "help", label: m.help.title, keys: "F1" });
+    return list;
+  });
+
+  function quickDocument(hit: Hit, open: boolean) {
+    rememberDocument(hit.sourceId, hit.relPath);
+    if (open) {
+      activate(hit.sourceId, hit);
+      return;
+    }
+    const cut = hit.relPath.lastIndexOf("/");
+    pendingSelect = hit.relPath;
+    selectFolder(hit.sourceId, cut < 0 ? "" : hit.relPath.slice(0, cut));
+  }
+
+  function quickTag(tag: string) {
+    inboxOpen = false;
+    query = "";
+    favoritesOnly = false;
+    selectedTags = [tag];
+    tagsBefore = 1;
+    selected = null;
+  }
+
+  function quickCommand(id: string) {
+    if (id === "inbox") openInbox();
+    else if (id === "import") {
+      openInbox();
+      importInboxOpen = true;
+    } else if (id === "scan") scanOpen = true;
+    else if (id === "favorites") {
+      if (!favoritesOnly) filterFavorites();
+    } else if (id === "tags") tagManagerOpen = true;
+    else if (id === "ask") assistant?.show();
+    else if (id === "settings") api.openSettings();
+    else if (id === "help") api.openHelp();
+  }
 
   // MARK: - Renaming (#65)
 
@@ -1856,7 +1976,7 @@
           onrename={(e, name) => finishRenaming(source.id, e.relPath, name)}
           onrenamecancel={() => (renamingAt = null)}
           enterOpens={info?.os !== "macos"}
-          onview={(e, page) => (viewer = { sourceId: source.id, entry: e, page })}
+          onview={(e, page) => preview({ sourceId: source.id, entry: e }, page)}
           paused={!!viewer}
         />
       {:else}
@@ -2013,12 +2133,28 @@
 </div>
 
 {#if viewer}
-  <PageViewer
-    sourceId={viewer.sourceId}
-    entry={viewer.entry}
-    title={viewer.entry.title ?? null}
-    startPage={viewer.page}
-    onclose={() => (viewer = null)}
+  {#key `${viewer.sourceId}/${viewer.entry.relPath}`}
+    <PageViewer
+      sourceId={viewer.sourceId}
+      entry={viewer.entry}
+      title={viewer.entry.title ?? null}
+      startPage={viewer.page}
+      onclose={() => (viewer = null)}
+      onstep={previewStep}
+    />
+  {/key}
+{/if}
+
+{#if quickOpen}
+  <QuickOpen
+    {sources}
+    commands={quickCommands}
+    mac={info?.os === "macos"}
+    onfolder={selectFolder}
+    ondocument={quickDocument}
+    ontag={quickTag}
+    oncommand={quickCommand}
+    onclose={() => (quickOpen = false)}
   />
 {/if}
 

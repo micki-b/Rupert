@@ -134,6 +134,12 @@
     schließt die Ansicht.
   </p>
   <p>
+    Oder wählen Sie ein Dokument in einer beliebigen Ansicht oder in den Suchergebnissen aus und drücken Sie die
+    <kbd>Leertaste</kbd>. Dann wechseln <kbd>↑</kbd> und <kbd>↓</kbd> zum vorherigen oder nächsten Dokument, und die
+    <kbd>Leertaste</kbd> oder Escape schließt die Ansicht. Ein nur online verfügbares Dokument zeigt das kleine Bild, das
+    Rupert davon behalten hat (siehe unten); heruntergeladen wird erst, wenn Sie es öffnen.
+  </p>
+  <p>
     Die Bilder liegen in einem Zwischenspeicher auf diesem Computer und werden neu erstellt, sobald sich ein Dokument
     ändert. Rupert liest eine Datei, die nur online verfügbar ist, nie, um sie anzuzeigen, denn das würde sie
     herunterladen. Solange ein PDF aus einem Ordner in iCloud Drive, OneDrive oder Google Drive auf diesem Computer liegt,
@@ -352,6 +358,15 @@
 <!-- MARK: Finden -->
 <section id="finding">
   <h2>Dokumente finden</h2>
+  <h3 id="quick-open">Schnell öffnen</h3>
+  <p>
+    Drücken Sie <kbd>{cmd}K</kbd>{mac ? " (oder wählen Sie Ablage ▸ Schnell öffnen …)" : ""} und tippen Sie ein paar
+    Buchstaben eines Namens, um direkt zu einem Ordner, einem Dokument (nach Titel oder Dateiname), einem Tag oder einem
+    Befehl wie Eingang, Tags verwalten oder Einstellungen zu gelangen. Bevor Sie tippen, bietet es die zuletzt geöffneten
+    oder angesehenen Dokumente und Ihre favorisierten Ordner an. <kbd>↑</kbd> <kbd>↓</kbd> wählen, die Eingabetaste
+    führt hin: Ein Ordner öffnet sich, ein Dokument erscheint ausgewählt in seinem Ordner, ein Tag zeigt seine Dokumente.
+    <kbd>{mac ? "⌘↩" : "Strg+Eingabe"}</kbd> öffnet ein Dokument stattdessen in seiner App. <kbd>Esc</kbd> schließt es.
+  </p>
   <h3>Suchen</h3>
   <p>
     Tippen Sie in das Suchfeld oben ({cmd}F). Rupert sucht in Titeln, Dateinamen, Tags, Notizen und im Text der
@@ -1111,7 +1126,9 @@
   <h2>Tastenkürzel</h2>
   <table class="keys">
     <tbody>
+      <tr><td><kbd>{cmd}K</kbd></td><td>Schnell öffnen: zu einem Ordner, Dokument, Tag oder Befehl</td></tr>
       <tr><td><kbd>{cmd}F</kbd></td><td>Suchen</td></tr>
+      <tr><td><kbd>Leertaste</kbd></td><td>Das ausgewählte Dokument in der Seitenansicht zeigen; dort wechseln <kbd>↑</kbd> <kbd>↓</kbd> zum vorherigen oder nächsten</td></tr>
       <tr><td><kbd>{deleteKey}</kbd></td><td>Das Ausgewählte in den Papierkorb legen</td></tr>
       <tr><td><kbd>{cmd}A</kbd></td><td>Alles im Ordner oder in den Suchergebnissen auswählen</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Große Symbole und Galerie: vorheriges oder nächstes Dokument</td></tr>

@@ -129,6 +129,12 @@
     outside, closes the viewer.
   </p>
   <p>
+    Or select a document in any view, or in the search results, and press <kbd>Space</kbd>. <kbd>↑</kbd> and
+    <kbd>↓</kbd> then go to the previous or next document, and <kbd>Space</kbd> or Escape closes the viewer. An
+    online-only document shows the small picture Rupert kept of it (see below); nothing is downloaded until you open
+    it.
+  </p>
+  <p>
     Pictures are kept in a cache on this computer and made again whenever a document changes. Rupert never reads an
     online-only file to show it, since that would download it. Instead, while a PDF in an iCloud Drive, OneDrive or
     Google Drive folder is on this computer, Rupert keeps a small picture of its first page, so it still shows one after
@@ -321,6 +327,15 @@
 <!-- MARK: Finding -->
 <section id="finding">
   <h2>Finding documents</h2>
+  <h3 id="quick-open">Quick open</h3>
+  <p>
+    Press <kbd>{cmd}K</kbd>{mac ? " (or choose File ▸ Quick Open…)" : ""} and type a few letters of a name to go
+    straight to a folder, a document (by its title or file name), a tag or a command such as Inbox, Manage tags or
+    Settings. Before you type, it offers the documents you opened or looked at last and your favorite folders.
+    <kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Return</kbd> goes there: a folder opens, a document is shown selected in its
+    folder, a tag shows its documents. <kbd>{mac ? "⌘↩" : "Ctrl+Enter"}</kbd> opens a document in its app instead.
+    <kbd>Esc</kbd> closes it.
+  </p>
   <h3>Search</h3>
   <p>
     Type in the search field at the top ({cmd}F). Rupert looks in titles, file names, tags, notes and the text of the
@@ -1004,7 +1019,9 @@
   <h2>Keyboard shortcuts</h2>
   <table class="keys">
     <tbody>
+      <tr><td><kbd>{cmd}K</kbd></td><td>Quick open: go to a folder, document, tag or command</td></tr>
       <tr><td><kbd>{cmd}F</kbd></td><td>Search</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>See the selected document in the page viewer; there <kbd>↑</kbd> <kbd>↓</kbd> go to the previous or next one</td></tr>
       <tr><td><kbd>{mac ? "⌘⌫" : "Delete"}</kbd></td><td>Move what's selected to the {windows ? "Recycle Bin" : "Trash"}</td></tr>
       <tr><td><kbd>{cmd}A</kbd></td><td>Select everything in the folder or the search results</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Large icons and gallery: previous or next document</td></tr>
