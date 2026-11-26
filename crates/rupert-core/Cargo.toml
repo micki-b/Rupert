@@ -26,14 +26,17 @@ sys-locale = "0.3.2"
 jpeg-encoder = "0.7.1"
 qrcodegen = "1.8"
 unicode-normalization = "0.1.26"
-# Export as a zip (#107); PDFs go stored, lists deflated.
-zip = { version = "9.7.1", default-features = false, features = ["deflate-flate2"] }
+# Export as a zip (#107); PDFs go stored, lists deflated. Desktop only (the
+# `export` feature): zip 9.7 doesn't build for 32-bit Android (armv7).
+zip = { version = "9.7.1", default-features = false, features = ["deflate-flate2"], optional = true }
 
 [features]
 # OneDrive through Microsoft Graph (the phone app).
 onedrive = []
 # Google Drive through the Drive API (the phone app).
 gdrive = []
+# Export… as a zip or a folder (#107, the desktop app).
+export = ["dep:zip"]
 
 [dev-dependencies]
 tempfile = "3.27.0"
