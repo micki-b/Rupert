@@ -38,6 +38,8 @@ TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 
 Rupert es libre, gratis y de código abierto.
 
+<!-- From 0.8.0 on, Google Play's release notes are in release_notes.md, in Play Console's format (all languages in one block). The sections below are the earlier ones. -->
+
 ## Release notes, 0.8.0 [500]
 
 Abrí la pestaña Escanear desde tu computadora: hacé clic en Escanear… en la bandeja de entrada de Rupert y apuntá la cámara del teléfono al código.

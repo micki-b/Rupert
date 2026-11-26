@@ -74,6 +74,8 @@ Rupert is free and open source.
 
   (Google Play counts sending data off the device as "collection" even when it goes to the user's own storage and never to the developer.)
 
+<!-- From 0.8.0 on, Google Play's release notes are in release_notes.md, in Play Console's format (all languages in one block). The sections below are the earlier ones. -->
+
 ## Release notes, 0.8.0 [500]
 
 Open the Scan tab from your computer: click Scan… in Rupert's inbox there and point your phone's camera at the code.

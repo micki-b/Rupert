@@ -38,6 +38,8 @@ IHRE DOKUMENTE BLEIBEN IHRE
 
 Rupert ist kostenlos und quelloffen.
 
+<!-- From 0.8.0 on, Google Play's release notes are in release_notes.md, in Play Console's format (all languages in one block). The sections below are the earlier ones. -->
+
 ## Release notes, 0.8.0 [500]
 
 Den Tab „Scannen“ vom Computer aus öffnen: Klicken Sie dort im Eingang von Rupert auf „Scannen …“ und richten Sie die Kamera des Telefons auf den Code.

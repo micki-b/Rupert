@@ -118,7 +118,7 @@ Google Play app: "Rupert", package `io.github.micki_b.rupert` (Android names can
 
 1. The version comes from `scripts/set-version.py` (`mobile/tauri.conf.json`), as for the other apps.
 2. Build: `scripts/build-android.sh`. It writes `target/android/Rupert-<version>-<code>.aab` (for Google Play) and `.apk` (to install directly: `adb install -r …`), for ARM phones and x86_64. The version code is the build's UTC time, so each build is higher than the last.
-3. Upload the `.aab`: Play Console ▸ Test and release ▸ Testing ▸ Closed testing (or Production) ▸ Create new release, with release notes in English, Spanish and German.
+3. Write the release notes in `docs/app-store/android/release_notes.md`: a new block at the top, in Play Console's format (`<en-US>`, `<es-419>`, `<es-ES>`, `<de-DE>`; at most 500 characters each), covering everything since the last build on Google Play. Upload the `.aab`: Play Console ▸ Test and release ▸ Testing ▸ Closed testing (or Production) ▸ Create new release, and paste the block into Release notes.
 4. The `.apk` goes on the GitHub release too, as `Rupert_<version>_android.apk` (step 5 under "Desktop"); rupertlibrarian.com's Android download links to it. It's signed with the upload key, so Google Drive sign-in in it needs the upload key's Android OAuth client (above).
 
 New personal developer accounts must run a **closed test with at least 12 testers for 14 days in a row** before they can apply for production.
