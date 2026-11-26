@@ -452,7 +452,12 @@ mod tests {
         ];
         assert_eq!(
             bundle_paths(&docs),
-            ["W-2.pdf", "Receipts/a.pdf", "Receipts/A (2).pdf", "index (2).csv"]
+            [
+                "W-2.pdf",
+                "Receipts/a.pdf",
+                "Receipts/A (2).pdf",
+                "index (2).csv"
+            ]
         );
         // From two sources: each under its source's name.
         let mixed = [
@@ -522,18 +527,7 @@ mod tests {
         assert_eq!(fs::read(folder.join("title.pdf")).unwrap(), b"%PDF-title");
         assert!(folder.join(CSV_NAME).is_file() && folder.join(HTML_NAME).is_file());
         // Not over an existing folder.
-        assert!(
-            write(
-                &folder,
-                &docs,
-                &opts(),
-                "Car",
-                |_| {},
-                prepare,
-                || false
-            )
-            .is_err()
-        );
+        assert!(write(&folder, &docs, &opts(), "Car", |_| {}, prepare, || false).is_err());
 
         let zip_path = dir.path().join("Car.zip");
         let o = Options {
