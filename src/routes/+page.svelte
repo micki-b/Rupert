@@ -36,6 +36,7 @@
     type TagMode,
     type FavoriteFolder,
     type AssistantAction,
+    type Citation,
     type RenameOutcome,
     type Renamed,
     type ShareAt,
@@ -1092,7 +1093,16 @@
 
   /** The document shown large in the page viewer: from the gallery, or
    * Space on the selected document in any view (#105). */
-  let viewer = $state<{ sourceId: string; entry: ListedEntry; page: number } | null>(null);
+  let viewer = $state<{
+    sourceId: string;
+    entry: ListedEntry;
+    page: number;
+    /** Words to mark (#106): the search's, or a cited passage. */
+    find?: { text: string; phrase: boolean } | null;
+  } | null>(null);
+
+  /** In search results, the viewer marks the search's words (#106). */
+  const searchWords = () => (searching && query.trim() ? { text: query.trim(), phrase: false } : null);
 
   /** Space: the selected document in the page viewer (a Markdown file in
    * the reader). Folders have nothing to show. */
@@ -1100,7 +1110,25 @@
     if (sel.entry.isDir) return;
     rememberDocument(sel.sourceId, sel.entry.relPath);
     if (isMarkdown(sel.entry) && sel.entry.cloud !== "cloudOnly") reader = { sourceId: sel.sourceId, relPath: sel.entry.relPath };
-    else viewer = { sourceId: sel.sourceId, entry: sel.entry as ListedEntry, page };
+    else viewer = { sourceId: sel.sourceId, entry: sel.entry as ListedEntry, page, find: searchWords() };
+  }
+
+  /** A page an answer cites (#106): the document shown in its folder and
+   * open in the page viewer at that page, the passage marked. */
+  async function openCitation(c: Citation) {
+    const [doc] = await api.documentsInfo([{ sourceId: c.sourceId, relPath: c.relPath }]).catch(() => []);
+    if (!doc) return;
+    const cut = c.relPath.lastIndexOf("/");
+    pendingSelect = c.relPath;
+    selectFolder(c.sourceId, cut < 0 ? "" : c.relPath.slice(0, cut));
+    rememberDocument(c.sourceId, c.relPath);
+    viewer = {
+      sourceId: c.sourceId,
+      entry: doc,
+      // Online-only: only its first page has a kept picture.
+      page: doc.cloud === "cloudOnly" ? 0 : c.page,
+      find: c.passage ? { text: c.passage, phrase: true } : null,
+    };
   }
 
   /** ↑ ↓ in the page viewer: the neighboring document of the view, which
@@ -1116,7 +1144,7 @@
       viewer = null;
       reader = { sourceId: next.sourceId, relPath: next.entry.relPath };
     } else {
-      viewer = { sourceId: next.sourceId, entry: next.entry as ListedEntry, page: 0 };
+      viewer = { sourceId: next.sourceId, entry: next.entry as ListedEntry, page: 0, find: viewer.find };
     }
     tick().then(() =>
       document.querySelector(`[data-pick="${CSS.escape(keyOf(next.sourceId, next.entry.relPath))}"]`)?.scrollIntoView({ block: "nearest" }),
@@ -2139,6 +2167,7 @@
       entry={viewer.entry}
       title={viewer.entry.title ?? null}
       startPage={viewer.page}
+      find={viewer.find ?? null}
       onclose={() => (viewer = null)}
       onstep={previewStep}
     />
@@ -2224,6 +2253,7 @@
 <Assistant
   bind:this={assistant}
   onaction={assistantAction}
+  oncite={openCitation}
   onsettings={() => api.openSettings("assistant")}
 />
 

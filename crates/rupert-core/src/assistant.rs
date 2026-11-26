@@ -29,6 +29,7 @@ use crate::i18n::{Lang, tr, trf};
 use crate::index::{Index, SearchQuery, TagMode};
 use crate::listing::list_dir;
 use crate::source::Source;
+use crate::text::PAGE_BREAK;
 
 /// Tool rounds per message before giving up (a model stuck in a loop).
 const MAX_ROUNDS: usize = 8;
@@ -1549,10 +1550,12 @@ impl<'a> LibraryTools<'a> {
                 let text = self
                     .index
                     .document_text(&source.id, &rel)
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| e.to_string())?
+                    .map(|t| with_page_markers(&t));
                 let total = text.as_ref().map(|t| t.chars().count()).unwrap_or(0);
                 Ok(json!({
                     "title": info.hit.title,
+                    "file": info.hit.name,
                     "date": info.hit.document_date,
                     "tags": info.hit.tags,
                     "notes": info.notes,
@@ -1746,7 +1749,7 @@ impl ToolBox for LibraryTools<'_> {
             },
             ToolSpec {
                 name: "read_document",
-                description: "A document's details and its recognized text (from the index; nothing is downloaded). Use to answer questions about a document's contents.",
+                description: "A document's details and its recognized text (from the index; nothing is downloaded), with [page N] where each page starts. Use to answer questions about a document's contents.",
                 schema: schema(
                     json!({
                         "source": {"type": "string"},
@@ -1788,6 +1791,172 @@ impl ToolBox for LibraryTools<'_> {
     }
 }
 
+// MARK: - Page citations (#106)
+
+/// A document's text with `[page N]` where each page starts, when it has
+/// page breaks (text read before #106 has none and comes as it is).
+fn with_page_markers(text: &str) -> String {
+    if !text.contains(PAGE_BREAK) {
+        return text.to_string();
+    }
+    let mut out = String::new();
+    for (i, page) in text.split(PAGE_BREAK).enumerate() {
+        let page = page.trim();
+        if page.is_empty() {
+            continue;
+        }
+        if !out.is_empty() {
+            out.push_str("\n\n");
+        }
+        out.push_str(&format!("[page {}]\n{page}", i + 1));
+    }
+    out
+}
+
+/// A page cited in an answer ("[Lease 2024, p. 3]"), and the document and
+/// passage it points to, so the window can open the page viewer there.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Citation {
+    /// The citation as written in the answer, brackets included.
+    pub text: String,
+    pub source_id: String,
+    pub rel_path: String,
+    /// 0-based.
+    pub page: usize,
+    /// The line on that page that best matches what the answer says just
+    /// before the citation, to highlight it.
+    pub passage: Option<String>,
+}
+
+/// The citations in `answer`: where each starts and ends, the name as
+/// written, and the page (1-based). "p.", "page" and the forms other
+/// languages use (S., Seite, pág., página) all count.
+fn cited(answer: &str) -> Vec<(usize, usize, String, usize)> {
+    const PAGE_WORDS: [&str; 9] = [
+        "p.", "pp.", "page", "pág.", "pag.", "página", "s.", "seite", "pg.",
+    ];
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(open) = answer[from..].find('[').map(|i| i + from) {
+        let Some(close) = answer[open..].find(']').map(|i| i + open) else {
+            break;
+        };
+        let inner = &answer[open + 1..close];
+        from = open + 1;
+        if inner.contains('[') || inner.len() > 160 {
+            continue;
+        }
+        let Some((name, page)) = inner.rsplit_once(',') else {
+            continue;
+        };
+        let page = page.trim().to_lowercase();
+        let Some(word) = PAGE_WORDS.iter().find(|w| page.starts_with(**w)) else {
+            continue;
+        };
+        let number: String = page[word.len()..]
+            .trim()
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect();
+        let (name, number) = (name.trim(), number.parse::<usize>().unwrap_or(0));
+        if name.is_empty() || number == 0 {
+            continue;
+        }
+        out.push((open, close + 1, name.to_string(), number));
+        from = close + 1;
+    }
+    out
+}
+
+/// The line of `page_text` sharing the most words with `said` (numbers
+/// count double), if any shares at least two (or one number).
+fn best_passage(page_text: &str, said: &str) -> Option<String> {
+    let words = |t: &str| -> Vec<String> {
+        t.split(|c: char| !c.is_alphanumeric())
+            .filter(|w| w.chars().count() > 2 || w.chars().any(|c| c.is_ascii_digit()))
+            .map(str::to_lowercase)
+            .collect()
+    };
+    let wanted = words(said);
+    let mut best: Option<(usize, &str)> = None;
+    for line in page_text.lines().map(str::trim).filter(|l| !l.is_empty()) {
+        let have = words(line);
+        let score: usize = wanted
+            .iter()
+            .filter(|w| have.contains(w))
+            .map(|w| {
+                if w.chars().any(|c| c.is_ascii_digit()) {
+                    2
+                } else {
+                    1
+                }
+            })
+            .sum();
+        if score >= 2 && best.is_none_or(|(b, _)| score > b) {
+            best = Some((score, line));
+        }
+    }
+    best.map(|(_, line)| line.chars().take(200).collect())
+}
+
+impl LibraryTools<'_> {
+    /// The pages `answer` cites, each with the document it names: one read
+    /// this turn whose title or file name fits, or else the best match by
+    /// name in the library. Citations that fit nothing are left out.
+    pub fn citations(&self, answer: &str) -> Vec<Citation> {
+        let read = self.read.borrow().clone();
+        let fold = |s: &str| s.to_lowercase();
+        let mut out: Vec<Citation> = Vec::new();
+        for (start, end, name, page) in cited(answer) {
+            let want = fold(&name);
+            let fits = |title: Option<&str>, file: &str| {
+                let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
+                [title.unwrap_or_default(), file, stem]
+                    .iter()
+                    .filter(|t| !t.is_empty())
+                    .any(|t| fold(t) == want || fold(t).contains(&want) || want.contains(&fold(t)))
+            };
+            let from_read = read.iter().find_map(|(sid, rel)| {
+                let doc = self.index.document(sid, rel).ok().flatten()?;
+                fits(doc.hit.title.as_deref(), &doc.hit.name).then(|| (sid.clone(), rel.clone()))
+            });
+            let found = from_read.or_else(|| {
+                self.index
+                    .quick_find(&name, 1)
+                    .ok()?
+                    .into_iter()
+                    .next()
+                    .map(|h| (h.source_id, h.rel_path))
+            });
+            let Some((source_id, rel_path)) = found else {
+                continue;
+            };
+            // What the answer says just before the citation: its sentence.
+            let before = &answer[..start];
+            let said = before
+                .rfind(['.', '\n', '!', '?', ']'])
+                .map_or(before, |i| &before[i + 1..]);
+            let said = if said.trim().len() < 8 { before } else { said };
+            let passage = self
+                .index
+                .document_text(&source_id, &rel_path)
+                .ok()
+                .flatten()
+                .and_then(|t| t.split(PAGE_BREAK).nth(page - 1).map(str::to_string))
+                .and_then(|t| best_passage(&t, said));
+            out.push(Citation {
+                text: answer[start..end].to_string(),
+                source_id,
+                rel_path,
+                page: page - 1,
+                passage,
+            });
+        }
+        out
+    }
+}
+
 /// The assistant's instructions.
 pub fn system_prompt(today: &str) -> String {
     format!(
@@ -1805,7 +1974,10 @@ pub fn system_prompt(today: &str) -> String {
          When the user asks to open, show or go to something, do it with open_folder, show_document \
          or show_results, and only say something is shown or open after the tool answered \
          \"Shown.\". You can't change, move, rename, tag or delete files; say so if asked.\n\n\
-         Answer briefly in plain text. Name documents by title (or file name) and folder.\n\n\
+         Answer briefly in plain text. Name documents by title (or file name) and folder. When \
+         something comes from a document's text, cite the page right after it in square \
+         brackets: the document's title (or file name) and the page from its [page N] marks, \
+         like [Lease 2024, p. 3].\n\n\
          Answer in the language the user writes in, even when the documents are in another; if \
          that's unclear, in {language}.",
         language = crate::i18n::current().english_name()
@@ -1862,6 +2034,57 @@ mod tests {
             bookmark: None,
         }];
         (dir, idx, sources)
+    }
+
+    #[test]
+    fn read_document_marks_pages_and_answers_cite_them() {
+        let (_dir, idx, sources) = library();
+        let lease = DocRow {
+            source_id: "s1".into(),
+            rel_path: "Home/lease.pdf".into(),
+            name: "lease.pdf".into(),
+            kind: FileKind::Pdf,
+            size: 10,
+            modified_ms: Some(1),
+            cloud: CloudState::Local,
+            meta: DocMeta {
+                title: Some("Lease 2024".into()),
+                ..Default::default()
+            },
+            storage: Storage::Embedded,
+            text_state: TextState::Extracted,
+            sidecar_ms: None,
+        };
+        let body = "Residential lease\n\u{c}\n\u{c}\nThe tenant pays\nA monthly rent of $1,200 on the first\nNo pets";
+        idx.upsert(&lease, Some(body)).unwrap();
+        let tools = LibraryTools::new(&idx, &sources);
+        let read: Value = serde_json::from_str(&tools.call(
+            "read_document",
+            &json!({"source": "Documents", "path": "Home/lease.pdf"}),
+        ))
+        .unwrap();
+        assert_eq!(
+            read["text"],
+            "[page 1]\nResidential lease\n\n[page 3]\nThe tenant pays\nA monthly rent of $1,200 on the first\nNo pets"
+        );
+
+        let answer = "The rent is $1,200 a month [Lease 2024, p. 3]. The impeller cost \
+                      $412.50 [impeller, S. 1]; see also [a note] and [Nothing here, p. 2].";
+        let found = tools.citations(answer);
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert_eq!(found[0].text, "[Lease 2024, p. 3]");
+        assert_eq!(
+            (found[0].rel_path.as_str(), found[0].page),
+            ("Home/lease.pdf", 2)
+        );
+        assert_eq!(
+            found[0].passage.as_deref(),
+            Some("A monthly rent of $1,200 on the first")
+        );
+        // Not read this turn: found by its name in the library.
+        assert_eq!(found[1].rel_path, "Boat/Engine/impeller.pdf");
+        assert_eq!(found[1].page, 0);
+        assert!(found[1].passage.as_deref().unwrap().contains("412.50"));
     }
 
     /// Small models get names slightly wrong; the tools still find what

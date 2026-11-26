@@ -142,6 +142,13 @@
     descarga nada hasta que lo abrís.
   </p>
   <p>
+    Desde los resultados de búsqueda, el visor abre en la primera página con una coincidencia y marca las palabras que
+    buscaste. <b>3 de 7</b> cuenta las coincidencias; las flechas al lado (o {mac ? "⌘G y ⇧⌘G" : "Ctrl+G y Mayúsculas+Ctrl+G"}) pasan a la siguiente o a la anterior. Para buscar otras palabras, apretá {cmd}F en el visor, o
+    hacé clic en la lupa, y escribilas; Return pasa a la siguiente coincidencia. Las palabras se encuentran en los PDF que
+    están en esta computadora, también en escaneos cuyo texto reconoció Rupert. En los documentos solo en línea no se
+    puede buscar así, porque habría que descargarlos.
+  </p>
+  <p>
     Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento. Rupert
     nunca lee un archivo que está solo en línea para mostrarlo, porque eso lo descargaría. En cambio, mientras un PDF de
     una carpeta de iCloud Drive, OneDrive o Google Drive está en esta computadora, Rupert guarda una imagen chica de su
@@ -621,6 +628,11 @@
     el texto que Rupert ya conoce, así que nunca descarga archivos solo en línea.
   </p>
   <p>
+    Cuando una respuesta sale de un documento, Rupert nombra la página, por ejemplo <b>Contrato de alquiler 2024, p. 3</b>.
+    Hacé clic ahí para ver esa página en el visor, con el pasaje marcado. Los documentos indexados antes de Rupert 0.9
+    tienen sus páginas cuando Rupert los vuelve a leer, cosa que hace solo después de la actualización.
+  </p>
+  <p>
     De entrada funciona con la IA local, en esta computadora. En su lugar podés elegir Claude u otro servicio en la nube:
     mirá <a href="#ai-models">Configurar modelos de IA</a>.
   </p>
@@ -1097,7 +1109,7 @@
   <table class="keys">
     <tbody>
       <tr><td><kbd>{cmd}K</kbd></td><td>Apertura rápida: ir a una carpeta, un documento, una etiqueta o un comando</td></tr>
-      <tr><td><kbd>{cmd}F</kbd></td><td>Buscar</td></tr>
+      <tr><td><kbd>{cmd}F</kbd></td><td>Buscar; en el visor de páginas, buscar en el documento ({cmd}G: siguiente coincidencia)</td></tr>
       <tr><td><kbd>Espacio</kbd></td><td>Ver el documento seleccionado en el visor de páginas; ahí <kbd>↑</kbd> <kbd>↓</kbd> pasan al anterior o al siguiente</td></tr>
       <tr>
         <td><kbd>{mac ? "⌘⌫" : "Supr"}</kbd></td>

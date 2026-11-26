@@ -939,7 +939,7 @@ fn favorite_folder_list(state: &AppState) -> CmdResult<Vec<FavoriteFolder>> {
 }
 
 #[tauri::command]
-fn favorite_folders(state: State<AppState>) -> CmdResult<Vec<FavoriteFolder>> {
+async fn favorite_folders(state: State<'_, AppState>) -> CmdResult<Vec<FavoriteFolder>> {
     favorite_folder_list(&state)
 }
 
@@ -977,7 +977,7 @@ fn set_folder_favorite(
 
 /// What a rename, merge or delete would change.
 #[tauri::command]
-fn tag_edit_preview(edit: TagEdit, state: State<AppState>) -> CmdResult<Preview> {
+async fn tag_edit_preview(edit: TagEdit, state: State<'_, AppState>) -> CmdResult<Preview> {
     let sources = state.sources();
     let index = state.index.lock().unwrap();
     tag_edit::plan(&index, &sources, &edit)
@@ -1122,9 +1122,41 @@ async fn search(query: SearchArgs, state: State<'_, AppState>) -> CmdResult<Vec<
     state.index.lock().unwrap().search(&q).map_err(err)
 }
 
+/// Where words (`phrase`: a passage) are on a document's pages (#106),
+/// for the page viewer to mark them. Only local PDFs: an online-only file
+/// is never read (it would download), and other kinds have no pages.
+#[tauri::command]
+async fn find_in_document(
+    source_id: String,
+    rel_path: String,
+    text: String,
+    phrase: bool,
+    app: AppHandle,
+) -> CmdResult<Vec<rupert_core::find::FoundHit>> {
+    let state = app.state::<AppState>();
+    let source = state.source(&source_id)?;
+    let extractor = state.extractor.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
+        if FileKind::from_path(&path) != FileKind::Pdf
+            || rupert_core::cloud_state(&path).map_err(err)? == CloudState::CloudOnly
+        {
+            return Ok(Vec::new());
+        }
+        let query = if phrase {
+            rupert_core::find::FindQuery::phrase(&text)
+        } else {
+            rupert_core::find::FindQuery::words(&text)
+        };
+        extractor.find(&path, query).map_err(err)
+    })
+    .await
+    .map_err(err)?
+}
+
 /// Quick open (#105): documents by title or file name.
 #[tauri::command]
-fn quick_find(text: String, state: State<AppState>) -> CmdResult<Vec<Hit>> {
+async fn quick_find(text: String, state: State<'_, AppState>) -> CmdResult<Vec<Hit>> {
     state
         .index
         .lock()
@@ -1136,7 +1168,7 @@ fn quick_find(text: String, state: State<AppState>) -> CmdResult<Vec<Hit>> {
 /// The indexed details of these documents, in the same order, leaving out
 /// any the index no longer has (quick open's recent documents, #105).
 #[tauri::command]
-fn documents_info(docs: Vec<DocRef>, state: State<AppState>) -> CmdResult<Vec<Hit>> {
+async fn documents_info(docs: Vec<DocRef>, state: State<'_, AppState>) -> CmdResult<Vec<Hit>> {
     let index = state.index.lock().unwrap();
     let mut out = Vec::new();
     for d in docs {
@@ -1149,12 +1181,12 @@ fn documents_info(docs: Vec<DocRef>, state: State<AppState>) -> CmdResult<Vec<Hi
 
 /// Tags for the tag filter (see `Index::tag_suggestions`).
 #[tauri::command]
-fn tag_suggestions(
+async fn tag_suggestions(
     filter: String,
     selected: Vec<String>,
     mode: TagMode,
     limit: usize,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> CmdResult<TagList> {
     state
         .index
@@ -1165,7 +1197,7 @@ fn tag_suggestions(
 }
 
 #[tauri::command]
-fn list_tags(state: State<AppState>) -> CmdResult<Vec<TagCount>> {
+async fn list_tags(state: State<'_, AppState>) -> CmdResult<Vec<TagCount>> {
     state.index.lock().unwrap().tags().map_err(err)
 }
 
@@ -1177,7 +1209,7 @@ struct IndexStatus {
 }
 
 #[tauri::command]
-fn index_status(state: State<AppState>) -> CmdResult<IndexStatus> {
+async fn index_status(state: State<'_, AppState>) -> CmdResult<IndexStatus> {
     Ok(IndexStatus {
         stats: state.index.lock().unwrap().stats().map_err(err)?,
         progress: state.progress.lock().unwrap().clone(),
@@ -1343,7 +1375,7 @@ fn inbox_items(state: State<AppState>) -> Vec<IntakeItem> {
 /// The inbox items whose name or text match what was typed in the inbox's
 /// search field (#59), as relative paths.
 #[tauri::command]
-fn inbox_search(text: String, state: State<AppState>) -> CmdResult<Vec<String>> {
+async fn inbox_search(text: String, state: State<'_, AppState>) -> CmdResult<Vec<String>> {
     let Some(inbox) = state.settings.lock().unwrap().get().inbox.clone() else {
         return Ok(Vec::new());
     };
@@ -1900,6 +1932,7 @@ pub fn run() {
             download_file,
             search,
             quick_find,
+            find_in_document,
             documents_info,
             list_tags,
             tag_suggestions,
