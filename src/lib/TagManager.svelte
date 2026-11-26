@@ -13,6 +13,7 @@
     type TagEditPreview,
     type TagEditReport,
   } from "#lib/api.ts";
+  import { describeTagEdit } from "#lib/tag-edit.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let { onclose, onchanged }: { onclose: () => void; onchanged: () => void } = $props();
@@ -87,15 +88,7 @@
     return () => clearTimeout(t);
   });
 
-  function describe(p: TagEditPreview): string {
-    const parts = [
-      p.inFile && m.tags.inPdfs(p.inFile),
-      p.sidecar && m.tags.inSidecars(p.sidecar),
-      p.pending && m.tags.pending(p.pending),
-      p.download && m.tags.toDownload(p.download),
-    ].filter(Boolean);
-    return m.tags.documents(p.documents, parts.join(", "));
-  }
+  const describe = describeTagEdit;
 
   async function run(edit: TagEdit) {
     working = true;

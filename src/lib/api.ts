@@ -97,7 +97,9 @@ export interface FavoriteFolder {
 /** A tag manager edit: rename (several tags: merge) or delete. */
 export interface TagEdit {
   from: string[];
-  action: { kind: "rename"; to: string } | { kind: "delete" };
+  action: { kind: "rename"; to: string } | { kind: "delete" } | { kind: "add"; tags: string[] };
+  /** Only these documents (#102); every document with the tags otherwise. */
+  only?: { sourceId: string; relPath: string }[];
 }
 
 /** What a tag edit would change, by where each document keeps its details. */
@@ -462,6 +464,10 @@ export const api = {
   /** A new email with the document attached and its title as the subject. */
   emailDocument: (sourceId: string, relPath: string, name: string | null) =>
     invoke<void>("email_document", { sourceId, relPath, name }),
+  /** Share… and Email… for several documents at once (#102): one share, one email. */
+  shareDocuments: (docs: { sourceId: string; relPath: string }[], at: ShareAt) =>
+    invoke<void>("share_documents", { docs, at }),
+  emailDocuments: (docs: { sourceId: string; relPath: string }[]) => invoke<void>("email_documents", { docs }),
   /** Drops a send that's waiting for an online-only document to download. */
   shareCancel: () => invoke<void>("share_cancel"),
   // Rename documents… (#64)

@@ -129,6 +129,36 @@
     the file goes online-only. Online-only documents without one show their icon. Either way the cloud stays on them,
     and opening one downloads it.
   </p>
+  <h3 id="selecting">Selecting several</h3>
+  <p>
+    Click a document, then {mac ? "⌘-click" : "Ctrl-click"} others to add them (or to take one out again), or Shift-click
+    to select everything in between. <kbd>{cmd}A</kbd> selects everything in the folder or the search results, and Shift
+    with <kbd>↑</kbd> <kbd>↓</kbd> (<kbd>←</kbd> <kbd>→</kbd> in large icons) extends the selection from the keyboard. This
+    works in the list, large icons, the gallery's strip and search results.
+  </p>
+  <p>
+    With several selected, <b>Details</b> shows how many, their total size and the tags they have in common, with what
+    you can do to all of them. Right-click one of them for the same in a menu:
+  </p>
+  <ul>
+    <li>
+      <b>Move to…</b> one folder for all of them, or drag them onto a folder. Dragged out of the window, other apps get
+      copies of all of them.
+    </li>
+    <li>
+      <b>Add tags…</b> and <b>Remove tags…</b>, saved where each document keeps its details, as in
+      <a href="#tags">Managing tags</a>. Online-only PDFs that would be left without tags are downloaded, after asking.
+    </li>
+    <li><b>Star</b> or unstar them.</li>
+    <li>
+      {#if !linux}<b>Share…</b> and {/if}<b>Email…</b>: {#if !linux}one share, or {/if}one message with all of them attached.
+    </li>
+    <li><b>Rename documents…</b> with just these ticked (in a folder, not in search results).</li>
+    <li><b>{windows ? "Delete" : "Move to Trash"}</b>, with one question for all of them.</li>
+  </ul>
+  <p>
+    Longer batches show their progress at the bottom of the window, then a summary, with anything that didn't work.
+  </p>
   <h3 id="dragging-out">Dragging documents out</h3>
   <p>
     Drag a document (or a folder, or a scan in the inbox) out of Rupert's window onto Mail, Messages, a website's upload
@@ -952,9 +982,10 @@
   <table class="keys">
     <tbody>
       <tr><td><kbd>{cmd}F</kbd></td><td>Search</td></tr>
-      <tr><td><kbd>{mac ? "⌘⌫" : "Delete"}</kbd></td><td>Move the selected document or folder to the {windows ? "Recycle Bin" : "Trash"}</td></tr>
+      <tr><td><kbd>{mac ? "⌘⌫" : "Delete"}</kbd></td><td>Move what's selected to the {windows ? "Recycle Bin" : "Trash"}</td></tr>
+      <tr><td><kbd>{cmd}A</kbd></td><td>Select everything in the folder or the search results</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Large icons and gallery: previous or next document</td></tr>
-      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Gallery: previous or next page</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Gallery: previous or next page. List and search results: previous or next document (with Shift, also select it)</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Clear the search; in the chat, stop the answer or close the panel</td></tr>
       <tr><td><kbd>{cmd}J</kbd></td><td>Open or close Ask Rupert</td></tr>
       <tr><td><kbd>Return</kbd></td><td>In the chat: send (<kbd>Shift+Return</kbd> starts a new line)</td></tr>
