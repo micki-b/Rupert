@@ -188,6 +188,20 @@
   <p>
     Los lotes largos muestran su avance abajo en la ventana y después un resumen, con lo que no haya funcionado.
   </p>
+  <h3 id="export">Exportar un conjunto de documentos</h3>
+  <p>
+    Para entregar varios documentos juntos (los papeles de impuestos del año para el contador, todo lo de un auto que
+    vendés), elegí <b>Exportar…</b>: para lo seleccionado (en Detalles o en el menú del clic derecho), para una carpeta
+    con todo lo que tiene (clic derecho sobre ella) o para los resultados de búsqueda (el botón arriba de ellos, por
+    ejemplo la etiqueta Impuestos y el año pasado).
+  </p>
+  <p>
+    Rupert copia los documentos en un <b>archivo zip</b> o una <b>carpeta</b>, donde elijas en el diálogo de guardar, y
+    agrega una lista: <b>index.csv</b> para una planilla e <b>index.html</b> para leer en un navegador, con el título, la
+    fecha, las etiquetas y la carpeta original de cada documento. Las copias mantienen sus carpetas y sus nombres, y las
+    notas van si marcás <b>Incluir las notas</b>. Los originales quedan como están. Los documentos solo en línea hay que
+    descargarlos para copiarlos; el diálogo dice cuántos son. Después, <b>{reveal}</b> muestra el resultado y <b>Compartir…</b> envía el zip.
+  </p>
   <h3 id="dragging-out">Arrastrar documentos hacia afuera</h3>
   <p>
     Arrastrá un documento (o una carpeta, o un escaneo de la bandeja de entrada) fuera de la ventana de Rupert hasta

@@ -178,6 +178,19 @@
   <p>
     Longer batches show their progress at the bottom of the window, then a summary, with anything that didn't work.
   </p>
+  <h3 id="export">Exporting a set of documents</h3>
+  <p>
+    To hand several documents over together (a year's tax papers for the accountant, everything about a car you sell),
+    choose <b>Export…</b>: for what's selected (in Details or the right-click menu), for a folder and everything in it
+    (right-click it), or for the search results (the button above them, for example the tag Taxes and last year).
+  </p>
+  <p>
+    Rupert copies the documents into a <b>zip file</b> or a <b>folder</b>, where you choose in the save dialog, and adds
+    a list: <b>index.csv</b> for a spreadsheet and <b>index.html</b> to read in a browser, with each document's title,
+    date, tags and original folder. The copies keep their folders and file names, and notes go along if you check
+    <b>Include notes</b>. The originals stay as they are. Online-only documents have to be downloaded to be copied;
+    the dialog says how many. Afterwards, <b>{reveal}</b> shows the result, and <b>Share…</b> sends the zip.
+  </p>
   <h3 id="dragging-out">Dragging documents out</h3>
   <p>
     Drag a document (or a folder, or a scan in the inbox) out of Rupert's window onto Mail, Messages, a website's upload

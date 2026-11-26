@@ -188,6 +188,17 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "No se pudo guardar el texto reconocido: {0}",
     ),
     ("Text recognized ({0})", "Texto reconocido ({0})"),
+    ("File name", "Nombre de archivo"),
+    ("Title", "Título"),
+    ("Date", "Fecha"),
+    ("Tags", "Etiquetas"),
+    ("Notes", "Notas"),
+    ("Original folder", "Carpeta original"),
+    ("Original name", "Nombre original"),
+    (
+        "There's already something called “{0}” there.",
+        "Ya hay algo que se llama “{0}” ahí.",
+    ),
     ("Quick Open…", "Apertura rápida…"),
     ("Import into Inbox…", "Importar a la bandeja de entrada…"),
     (

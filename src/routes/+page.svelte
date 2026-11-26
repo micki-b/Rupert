@@ -37,6 +37,7 @@
     type FavoriteFolder,
     type AssistantAction,
     type Citation,
+    type DocPlace,
     type RenameOutcome,
     type Renamed,
     type ShareAt,
@@ -69,6 +70,7 @@
   import RenameDialog from "#lib/RenameDialog.svelte";
   import InboxImportDialog from "#lib/InboxImportDialog.svelte";
   import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
+  import ExportDialog from "#lib/ExportDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import QuickOpen, { type QuickCommand } from "#lib/QuickOpen.svelte";
   import { rememberDocument } from "#lib/recent.ts";
@@ -1151,6 +1153,52 @@
     );
   }
 
+  // MARK: - Export (#107)
+
+  /** The documents being exported, and the name for the bundle. */
+  let exporting = $state<{ docs: DocPlace[]; title: string } | null>(null);
+
+  /** Export… for documents and folders (a folder brings everything in it). */
+  async function startExport(items: Selected[], title: string) {
+    itemMenu = null;
+    menuFor = null;
+    const seen = new Set<string>();
+    const docs: DocPlace[] = [];
+    const add = (d: DocPlace) => {
+      const k = keyOf(d.sourceId, d.relPath);
+      if (!seen.has(k)) {
+        seen.add(k);
+        docs.push(d);
+      }
+    };
+    for (const it of items) {
+      if (it.entry.isDir) {
+        const inside = await run(() => api.exportFolderDocs(it.sourceId, it.entry.relPath));
+        for (const d of inside ?? []) add(d);
+      } else {
+        add({ sourceId: it.sourceId, relPath: it.entry.relPath });
+      }
+    }
+    exporting = { docs, title };
+  }
+
+  /** A name for what's selected: the folder they're in, or the one folder. */
+  function exportTitle(items: Selected[]): string {
+    if (items.length === 1) {
+      const e = items[0].entry;
+      if (e.isDir) return e.relPath ? e.name : sourceName(items[0].sourceId);
+      return e.name.replace(/\.[^.]+$/, "");
+    }
+    if (searching) return searchTitle();
+    const here = folder?.relPath ? folder.relPath.slice(folder.relPath.lastIndexOf("/") + 1) : folder ? sourceName(folder.sourceId) : "";
+    return here || m.exportDocs.defaultName;
+  }
+
+  /** The search's words and tags, to name its export ("Taxes 2025"). */
+  function searchTitle(): string {
+    return [query.trim(), ...selectedTags].filter(Boolean).join(" ") || m.exportDocs.defaultName;
+  }
+
   // MARK: - Quick open (#105)
 
   let quickOpen = $state(false);
@@ -1544,6 +1592,7 @@
     <button {role} onclick={emailPicked}>{m.share.email}</button>
     {#if !searching}<button {role} onclick={renamePicked}>{m.renameDocs.menu}</button>{/if}
   {/if}
+  <button {role} onclick={() => startExport(picked.slice(), exportTitle(picked))}>{m.common.ellipsis(m.exportDocs.export)}</button>
   {#if kind === "menu"}<hr />{/if}
   <button {role} class="danger" onclick={trashPicked}>{trashLabel}</button>
 {/snippet}
@@ -1746,6 +1795,16 @@
       <button
         role="menuitem"
         onclick={() =>
+          startExport(
+            [{ sourceId: s.id, entry: { name: s.name, relPath: "", isDir: true, kind: null, size: 0, modifiedMs: null, cloud: "local" } }],
+            s.name,
+          )}
+      >
+        <span class="check"></span>{m.common.ellipsis(m.exportDocs.export)}
+      </button>
+      <button
+        role="menuitem"
+        onclick={() =>
           openRenameDocs({
             sourceId: s.id,
             entry: { name: s.name, relPath: "", isDir: true, kind: null, size: 0, modifiedMs: null, cloud: "local" },
@@ -1896,6 +1955,14 @@
           <button class:on={!resultsByDate} aria-pressed={!resultsByDate} onclick={() => (resultsByDate = false)}>{m.filters.bestMatch}</button>
           <button class:on={resultsByDate} aria-pressed={resultsByDate} onclick={() => (resultsByDate = true)}>{m.filters.newest}</button>
         </span>
+        {#if hits.length}
+          <button
+            class="results-export"
+            title={m.exportDocs.resultsTip}
+            onclick={() => startExport(hits.map((h) => ({ sourceId: h.sourceId, entry: h })), searchTitle())}
+            >{m.common.ellipsis(m.exportDocs.export)}</button
+          >
+        {/if}
       </div>
       <ul class="results">
         {#each hits as h (h.sourceId + "\n" + h.relPath)}
@@ -2174,6 +2241,10 @@
   {/key}
 {/if}
 
+{#if exporting}
+  <ExportDialog docs={exporting.docs} title={exporting.title} os={info?.os} onclose={() => (exporting = null)} />
+{/if}
+
 {#if quickOpen}
   <QuickOpen
     {sources}
@@ -2245,6 +2316,7 @@
         {m.main.indexFolder}
       </button>
     {/if}
+    <button role="menuitem" onclick={() => fromMenu((sel) => startExport([sel], exportTitle([sel])))}>{m.common.ellipsis(m.exportDocs.export)}</button>
     <hr />
     <button role="menuitem" class="danger" onclick={() => trashEntry(mn.sel)}>{trashLabel}</button>
   </div>
@@ -2794,6 +2866,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  .results-export {
+    font: inherit;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    padding: 2px 10px;
   }
   .results-head .result-count {
     flex: 1;
