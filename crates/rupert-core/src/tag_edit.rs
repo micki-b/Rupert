@@ -34,6 +34,22 @@ pub enum TagAction {
     Delete,
     /// Add these tags where they're missing (#102; `from` isn't used).
     Add { tags: Vec<String> },
+    /// Undo (#104): put `before` back, but only where the tags are still
+    /// exactly `after`, as the edit left them (`from` isn't used).
+    Restore {
+        before: Vec<String>,
+        after: Vec<String>,
+    },
+}
+
+/// What an edit did to one document, for Undo (#104).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TagChange {
+    pub source_id: String,
+    pub rel_path: String,
+    pub before: Vec<String>,
+    pub after: Vec<String>,
 }
 
 /// A document, by source and path.
@@ -61,6 +77,7 @@ impl TagEdit {
         let none = |tags: &[String]| tags.iter().all(|t| t.trim().is_empty());
         let empty = match &self.action {
             TagAction::Add { tags } => none(tags),
+            TagAction::Restore { .. } => false,
             _ => none(&self.from),
         };
         if empty {
@@ -78,6 +95,9 @@ impl TagEdit {
     /// The renamed tag takes the place of the first tag it replaces, and
     /// appears only once.
     pub fn apply(&self, tags: &[String]) -> Option<Vec<String>> {
+        if let TagAction::Restore { before, after } = &self.action {
+            return (tags == after.as_slice() && before != after).then(|| before.clone());
+        }
         if let TagAction::Add { tags: add } = &self.action {
             let mut out = tags.to_vec();
             for t in add.iter().map(|t| t.trim()).filter(|t| !t.is_empty()) {
@@ -95,7 +115,7 @@ impl TagEdit {
         let mut out: Vec<String> = Vec::with_capacity(tags.len());
         match &self.action {
             TagAction::Delete => out.extend(tags.iter().filter(|t| !hit(t)).cloned()),
-            TagAction::Add { .. } => unreachable!("handled above"),
+            TagAction::Add { .. } | TagAction::Restore { .. } => unreachable!("handled above"),
             TagAction::Rename { to } => {
                 let to = to.trim();
                 let mut placed = false;
@@ -213,9 +233,9 @@ pub fn plan(index: &Index, sources: &[Source], edit: &TagEdit) -> Result<(Vec<Ta
 
 // MARK: - Apply
 
-/// Changes one document. `Ok(false)` if its tags turned out not to need a
-/// change (e.g. edited meanwhile).
-pub fn apply_one(index: &Index, target: &Target, edit: &TagEdit) -> Result<bool> {
+/// Changes one document: what changed, or `None` if its tags turned out
+/// not to need a change (e.g. edited meanwhile).
+pub fn apply_one(index: &Index, target: &Target, edit: &TagEdit) -> Result<Option<TagChange>> {
     let path = resolve(&target.source.root, &target.rel_path)?;
     // Current details: from the file where that's safe, otherwise as indexed.
     let current: DocMeta = match target.method {
@@ -225,7 +245,13 @@ pub fn apply_one(index: &Index, target: &Target, edit: &TagEdit) -> Result<bool>
         _ => meta::read_meta(&path)?.meta,
     };
     let Some(tags) = edit.apply(&current.tags) else {
-        return Ok(false);
+        return Ok(None);
+    };
+    let change = TagChange {
+        source_id: target.source.id.clone(),
+        rel_path: target.rel_path.clone(),
+        before: current.tags.clone(),
+        after: tags.clone(),
     };
     let updated = DocMeta { tags, ..current };
     match target.method {
@@ -236,7 +262,7 @@ pub fn apply_one(index: &Index, target: &Target, edit: &TagEdit) -> Result<bool>
             meta::write_meta(&path, updated, target.cloud == CloudState::Local)?;
         }
     }
-    Ok(true)
+    Ok(Some(change))
 }
 
 // MARK: - Tests
@@ -355,7 +381,7 @@ mod tests {
             }
         );
         for t in &targets {
-            assert!(apply_one(&index, t, &merge).unwrap());
+            assert!(apply_one(&index, t, &merge).unwrap().is_some());
         }
         let pdf = meta::read_meta(&root.join("hull.pdf")).unwrap();
         assert_eq!(pdf.meta.tags, tags(&["Boat", "Insurance"]));
@@ -409,6 +435,27 @@ mod tests {
     }
 
     #[test]
+    fn restores_only_tags_left_as_the_edit_made_them() {
+        let undo = edit(
+            &[],
+            TagAction::Restore {
+                before: tags(&["Receipt"]),
+                after: tags(&["Receipt", "2026"]),
+            },
+        );
+        assert!(undo.validate().is_ok());
+        assert_eq!(
+            undo.apply(&tags(&["Receipt", "2026"])),
+            Some(tags(&["Receipt"]))
+        );
+        assert_eq!(
+            undo.apply(&tags(&["Receipt", "2026", "Car"])),
+            None,
+            "changed since: left alone"
+        );
+    }
+
+    #[test]
     fn edits_only_the_chosen_documents() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -457,12 +504,12 @@ mod tests {
         assert_eq!(preview.documents, 2);
         assert_eq!(preview.sidecar, 2);
         for t in &targets {
-            assert!(apply_one(&index, t, &add).unwrap());
+            assert!(apply_one(&index, t, &add).unwrap().is_some());
         }
         let mut remove = edit(&["receipts"], TagAction::Delete);
         remove.only = only(&["b.txt"]);
         for t in &plan(&index, sources, &remove).unwrap().0 {
-            assert!(apply_one(&index, t, &remove).unwrap());
+            assert!(apply_one(&index, t, &remove).unwrap().is_some());
         }
         let tags_of = |f: &str| meta::read_meta(&root.join(f)).unwrap().meta.tags;
         assert_eq!(tags_of("a.txt"), tags(&["Receipts", "2026"]));
@@ -511,7 +558,7 @@ mod tests {
                 to: "Insurance".into(),
             },
         );
-        assert!(apply_one(&index, &target, &merge).unwrap());
+        assert!(apply_one(&index, &target, &merge).unwrap().is_some());
         let (side, pending) = meta::read_meta_beside(&root.join("deed.pdf"))
             .unwrap()
             .unwrap();

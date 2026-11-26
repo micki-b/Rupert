@@ -23,6 +23,8 @@
     type Filed,
     type Settings,
     type TagEditReport,
+    type TagChange,
+    type MoveBackItem,
     type Entry,
     type Hit,
     type IndexStats,
@@ -450,7 +452,7 @@
   }
 
   function selectFolder(sourceId: string, relPath: string) {
-    lastRename = null;
+    lastChange = null;
     inboxOpen = false;
     copyProblems = null;
     query = "";
@@ -581,10 +583,10 @@
         // ⌘O or ⌘↓ opens, as in the Finder.
         e.preventDefault();
         activate(selected.sourceId, selected.entry);
-      } else if (!typing && info?.os !== "macos" && e.ctrlKey && !e.shiftKey && e.key === "z" && lastRename) {
+      } else if (!typing && info?.os !== "macos" && e.ctrlKey && !e.shiftKey && e.key === "z" && lastChange) {
         // Ctrl+Z undoes renaming documents (the Mac has Edit ▸ Undo).
         e.preventDefault();
-        undoRename();
+        undoLast();
       } else if (info?.os !== "macos" && e.ctrlKey && e.key === ",") {
         // Ctrl+, opens Settings (the menu's ⌘, on the Mac).
         e.preventDefault();
@@ -597,7 +599,7 @@
       }
     };
     // Edit ▸ Undo, or ⌘Z outside a text field (see +layout.svelte).
-    const undo = () => undoRename();
+    const undo = () => undoLast();
     window.addEventListener("rupert-undo", undo);
     window.addEventListener("click", closeMenu);
     window.addEventListener("scroll", closeMenu, true);
@@ -723,7 +725,7 @@
   }
 
   function openInbox() {
-    lastRename = null;
+    lastChange = null;
     inboxOpen = true;
     selected = null;
   }
@@ -887,7 +889,7 @@
    * Files go right away, as in the Finder; folders ask first. */
   async function trashEntry(sel: Selected) {
     itemMenu = null;
-    lastRename = null;
+    lastChange = null;
     const e = sel.entry;
     if (e.isDir) {
       const ok = await ask(m.main.trashFolderAsk(e.name, binName), {
@@ -936,7 +938,7 @@
     label: (done: number, total: number) => string,
     summary: (ok: number) => string,
   ): Promise<Selected[]> {
-    lastRename = null;
+    lastChange = null;
     batchNote = null;
     error = null;
     const ok: Selected[] = [];
@@ -1002,10 +1004,12 @@
   }
 
   function bulkTagsDone(report: TagEditReport) {
-    lastRename = null;
-    batchNote =
+    lastChange = null;
+    const text =
       m.tags.changed(report.changed) +
       (report.failed.length ? ` · ${m.several.notDone(report.failed.length)}: ${report.failed[0].path}: ${report.failed[0].error}` : "");
+    rememberTags(report, text);
+    if (!lastChange) batchNote = text;
     if (folder) loadEntries();
     loadIndexInfo();
   }
@@ -1016,12 +1020,12 @@
   }
   function sharePicked(at: ShareAt) {
     itemMenu = null;
-    lastRename = null;
+    lastChange = null;
     run(() => api.shareDocuments(pickedDocs(), at));
   }
   function emailPicked() {
     itemMenu = null;
-    lastRename = null;
+    lastChange = null;
     run(() => api.emailDocuments(pickedDocs()));
   }
 
@@ -1029,7 +1033,7 @@
    * the open folder: it isn't offered for search results). */
   function renamePicked() {
     itemMenu = null;
-    lastRename = null;
+    lastChange = null;
     const docs = picked.filter((p) => !p.entry.isDir);
     if (!docs.length || !folder) return;
     renameDocs = { sourceId: folder.sourceId, relDir: folder.relPath, only: docs.map((d) => d.entry.relPath) };
@@ -1064,7 +1068,7 @@
   /** Starts editing a name: in a folder's listing or the sidebar. */
   function startRenaming(sel: Selected) {
     itemMenu = null;
-    lastRename = null;
+    lastChange = null;
     renamingAt = { sourceId: sel.sourceId, relPath: sel.entry.relPath };
   }
 
@@ -1074,6 +1078,16 @@
     renamingAt = null;
     const newRel = await run(() => api.renameEntry(sourceId, relPath, name));
     if (!newRel) return;
+    // Offered for Undo (#104): back under its old name.
+    if (newRel !== relPath) {
+      const shown = newRel.slice(newRel.lastIndexOf("/") + 1);
+      lastChange = {
+        kind: "move",
+        moves: [{ nowSourceId: sourceId, nowRelPath: newRel, wasSourceId: sourceId, wasRelPath: relPath }],
+        text: m.undo.renamedTo(shown),
+        label: m.undo.labelRename(1),
+      };
+    }
     const moved = (p: string) => (p === relPath || p.startsWith(relPath + "/") ? newRel + p.slice(relPath.length) : p);
     if (folder?.sourceId === sourceId && moved(folder.relPath) !== folder.relPath) {
       selectFolder(sourceId, moved(folder.relPath));
@@ -1088,10 +1102,78 @@
 
   /** The folder whose documents are being renamed together. */
   let renameDocs = $state<{ sourceId: string; relDir: string; only: string[] | null } | null>(null);
-  /** The last batch renamed, offered for Undo until something else is done. */
-  let lastRename = $state<{ sourceId: string; relDir: string; renamed: Renamed[]; text: string } | null>(null);
+  // MARK: - Undo (#104)
+
+  /** The last change Rupert made, offered for Undo (the notice at the
+   * bottom, Edit ▸ Undo, ⌘Z / Ctrl+Z) until something else is done. One
+   * level, not kept across restarts. `text` is the notice, `label` the
+   * menu's "Undo …". */
+  type Change = { text: string; label: string } & (
+    | { kind: "rename"; sourceId: string; relDir: string; renamed: Renamed[] }
+    | { kind: "move"; moves: MoveBackItem[] }
+    | { kind: "file"; moves: MoveBackItem[] }
+    | { kind: "tags"; changes: TagChange[] }
+  );
+  let lastChange = $state<Change | null>(null);
   /** A short note after Undo. */
   let renameNote = $state<string | null>(null);
+  /** Counted up when a filing is undone, so the inbox drops its notice. */
+  let filingUndone = $state(0);
+
+  $effect(() => {
+    api.setUndoLabel(lastChange?.label ?? null).catch(() => {});
+  });
+
+  /** Moves made just now (one or several), offered for Undo. */
+  function rememberMoves(moves: MoveBackItem[], destSourceId: string, destDir: string, failed = "") {
+    if (!moves.length) return;
+    const where = destDir ? destDir.slice(destDir.lastIndexOf("/") + 1) : sourceName(destSourceId);
+    lastChange = { kind: "move", moves, text: m.undo.moved(moves.length, where) + failed, label: m.undo.labelMove(moves.length) };
+  }
+
+  /** A tag edit just made (the tag manager, Add/Remove tags…), offered for Undo. */
+  function rememberTags(report: TagEditReport, text: string) {
+    lastChange = report.changes.length
+      ? { kind: "tags", changes: report.changes, text, label: m.undo.labelTags(report.changes.length) }
+      : null;
+  }
+
+  async function undoLast() {
+    const c = lastChange;
+    if (!c) return;
+    lastChange = null;
+    batchNote = null;
+    if (c.kind === "rename") {
+      const outcome = await run(() => api.renameUndo(c.sourceId, c.renamed));
+      if (!outcome) return;
+      renameNote = m.renameDocs.undone(outcome.renamed.length);
+      if (outcome.failed.length) error = `${m.renameDocs.failed(outcome.failed.length)}: ${outcome.failed[0].message}`;
+      followRenamed(c.sourceId, outcome.renamed.map((r) => [r.from, r.to]));
+    } else if (c.kind === "move" || c.kind === "file") {
+      const r = await run(() => api.moveBack(c.moves));
+      if (!r) return;
+      const renaming =
+        c.moves.length === 1 &&
+        c.moves[0].nowSourceId === c.moves[0].wasSourceId &&
+        parentDir(c.moves[0].nowRelPath) === parentDir(c.moves[0].wasRelPath);
+      renameNote = c.kind === "file" ? m.undo.backInInbox : renaming ? m.undo.renamedBack : m.undo.movedBack(r.done);
+      if (r.failed.length) error = `${m.undo.notBack(r.failed.length)}: ${r.failed[0].error}`;
+      if (c.kind === "file") {
+        filingUndone++;
+        loadInboxCount();
+      }
+      if (folder) loadEntries();
+    } else {
+      const r = await run(() => api.tagUndo(c.changes));
+      if (!r) return;
+      const left = c.changes.length - r.changed - r.failed.length;
+      renameNote = m.undo.tagsBack(r.changed) + (left > 0 ? ` · ${m.undo.changedSince(left)}` : "");
+      if (r.failed.length) error = `${m.several.notDone(r.failed.length)}: ${r.failed[0].path}: ${r.failed[0].error}`;
+      if (folder) loadEntries();
+      loadIndexInfo();
+    }
+    setTimeout(() => (renameNote = null), 6000);
+  }
 
   const parentDir = (relPath: string) => (relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "");
 
@@ -1099,7 +1181,7 @@
   function openRenameDocs(sel: Selected) {
     itemMenu = null;
     menuFor = null;
-    lastRename = null;
+    lastChange = null;
     const e = sel.entry;
     renameDocs = e.isDir
       ? { sourceId: sel.sourceId, relDir: e.relPath, only: null }
@@ -1114,7 +1196,9 @@
     const folderName = relDir ? relDir.slice(relDir.lastIndexOf("/") + 1) : sourceName(sourceId);
     let text = m.renameDocs.done(outcome.renamed.length, folderName);
     if (outcome.failed.length) text += ` · ${m.renameDocs.failed(outcome.failed.length)}: ${outcome.failed[0].message}`;
-    lastRename = outcome.renamed.length ? { sourceId, relDir, renamed: outcome.renamed, text } : null;
+    lastChange = outcome.renamed.length
+      ? { kind: "rename", sourceId, relDir, renamed: outcome.renamed, text, label: m.undo.labelRename(outcome.renamed.length) }
+      : null;
     if (!outcome.renamed.length && outcome.failed.length) error = text;
     followRenamed(sourceId, outcome.renamed.map((r) => [r.from, r.to]));
   }
@@ -1128,30 +1212,18 @@
     if (folder?.sourceId === sourceId) loadEntries();
   }
 
-  async function undoRename() {
-    const last = lastRename;
-    if (!last) return;
-    lastRename = null;
-    const outcome = await run(() => api.renameUndo(last.sourceId, last.renamed));
-    if (!outcome) return;
-    renameNote = m.renameDocs.undone(outcome.renamed.length);
-    if (outcome.failed.length) error = `${m.renameDocs.failed(outcome.failed.length)}: ${outcome.failed[0].message}`;
-    followRenamed(last.sourceId, outcome.renamed.map((r) => [r.from, r.to]));
-    setTimeout(() => (renameNote = null), 5000);
-  }
-
   // MARK: - Share… and Email… (#69)
 
   /** The online-only document being downloaded to send it. */
   let sendingName = $state<string | null>(null);
 
   function shareDoc(sel: Selected, at: ShareAt) {
-    lastRename = null;
+    lastChange = null;
     run(() => api.shareDocument(sel.sourceId, sel.entry.relPath, null, at));
   }
 
   function emailDoc(sel: Selected) {
-    lastRename = null;
+    lastChange = null;
     run(() => api.emailDocument(sel.sourceId, sel.entry.relPath, null));
   }
   // MARK: - Moving
@@ -1175,24 +1247,36 @@
   /** Moves several items into a folder, one by one, with progress and a
    * summary (#102). */
   async function movePicked(items: Selected[], destSourceId: string, destDir: string) {
+    const moves: MoveBackItem[] = [];
     const done = await runBatch(
       items,
-      (it) => api.moveEntry(it.sourceId, it.entry.relPath, destSourceId, destDir),
+      async (it) => {
+        const now = await api.moveEntry(it.sourceId, it.entry.relPath, destSourceId, destDir);
+        moves.push({ nowSourceId: destSourceId, nowRelPath: now, wasSourceId: it.sourceId, wasRelPath: it.entry.relPath });
+      },
       m.several.moving,
       m.several.moved,
     );
     done.forEach(forget);
     if (folder?.sourceId === destSourceId && folder.relPath === destDir) loadEntries();
+    // The notice says where they went, with Undo (#104), and any that didn't move.
+    const note = batchNote ?? "";
+    batchNote = null;
+    rememberMoves(moves, destSourceId, destDir, note.includes(" · ") ? note.slice(note.indexOf(" · ")) : "");
   }
 
   async function moveItem(item: MoveItem, destSourceId: string, destDir: string): Promise<boolean> {
-    const done = await run(async () => {
-      await api.moveEntry(item.sourceId, item.entry.relPath, destSourceId, destDir);
-      return true;
-    });
-    if (!done) return false;
+    const now = await run(() => api.moveEntry(item.sourceId, item.entry.relPath, destSourceId, destDir));
+    if (!now) return false;
     forget(item);
     if (folder?.sourceId === destSourceId && folder.relPath === destDir) loadEntries();
+    if (now !== item.entry.relPath || item.sourceId !== destSourceId) {
+      rememberMoves(
+        [{ nowSourceId: destSourceId, nowRelPath: now, wasSourceId: item.sourceId, wasRelPath: item.entry.relPath }],
+        destSourceId,
+        destDir,
+      );
+    }
     return true;
   }
 
@@ -1556,6 +1640,16 @@
         {sources}
         settings={appSettings}
         onfiled={showFiled}
+        onfiling={(sourceId, relPath, filed, label) =>
+          (lastChange = {
+            kind: "file",
+            moves: [{ nowSourceId: filed.sourceId, nowRelPath: filed.relPath, wasSourceId: sourceId, wasRelPath: relPath }],
+            text: m.inbox.filedIn(label),
+            label: m.undo.labelFiling,
+          })}
+        onundo={undoLast}
+        canUndo={lastChange?.kind === "file"}
+        {filingUndone}
         onsettings={() => api.openSettings("inbox")}
         onscan={() => (scanOpen = true)}
         onimport={() => (importInboxOpen = true)}
@@ -2000,10 +2094,12 @@
 {#if tagManagerOpen}
   <TagManager
     onclose={() => (tagManagerOpen = false)}
-    onchanged={() => {
+    onchanged={(report) => {
       selectedTags = [];
       tagsBefore = 0;
       loadIndexInfo();
+      // Offered for Undo (#104) once the tag manager closes.
+      rememberTags(report, m.tags.changed(report.changed));
     }}
   />
 {/if}
@@ -2074,15 +2170,17 @@
     <span>{m.share.downloading(sendingName)}</span>
     <button class="undo-link" onclick={() => api.shareCancel()}>{m.common.cancel}</button>
   </div>
-{:else if lastRename || renameNote || batchNote}
+{:else if (lastChange && lastChange.kind !== "file") || renameNote || batchNote}
+  <!-- Filing has its Undo in the inbox's own notice. -->
+  {@const shown = lastChange && lastChange.kind !== "file" ? lastChange : null}
   <div class="undo-bar" role="status">
-    <span>{lastRename?.text ?? renameNote ?? batchNote}</span>
-    {#if lastRename}
-      <button class="undo-link" onclick={undoRename} title={info?.os === "macos" ? "⌘Z" : "Ctrl+Z"}>{m.renameDocs.undo}</button>
+    <span>{shown?.text ?? renameNote ?? batchNote}</span>
+    {#if shown}
+      <button class="undo-link" onclick={undoLast} title={info?.os === "macos" ? "⌘Z" : "Ctrl+Z"}>{m.renameDocs.undo}</button>
     {/if}
     <button
       class="undo-close"
-      onclick={() => ((lastRename = null), (renameNote = null), (batchNote = null))}
+      onclick={() => ((lastChange = null), (renameNote = null), (batchNote = null))}
       aria-label={m.renameDocs.dismiss}>×</button
     >
   </div>

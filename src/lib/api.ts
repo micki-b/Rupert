@@ -121,6 +121,24 @@ export interface TagEditPreview {
 export interface TagEditReport {
   changed: number;
   failed: { path: string; error: string }[];
+  /** What changed, document by document, for Undo (#104). */
+  changes: TagChange[];
+}
+
+/** A document's tags before and after an edit. */
+export interface TagChange {
+  sourceId: string;
+  relPath: string;
+  before: string[];
+  after: string[];
+}
+
+/** Something to put back where it was: Undo of a move or of File it (#104). */
+export interface MoveBackItem {
+  nowSourceId: string;
+  nowRelPath: string;
+  wasSourceId: string;
+  wasRelPath: string;
 }
 
 /** A page of tags for the tag filter, and how many matched in all. */
@@ -442,6 +460,13 @@ export const api = {
     invoke<void>("set_folder_favorite", { sourceId, relPath, favorite }),
   tagEditPreview: (edit: TagEdit) => invoke<TagEditPreview>("tag_edit_preview", { edit }),
   tagEditApply: (edit: TagEdit) => invoke<TagEditReport>("tag_edit_apply", { edit }),
+  /** Undo (#104): tags back as they were, where they're still as the edit left them. */
+  tagUndo: (changes: TagChange[]) => invoke<TagEditReport>("tag_undo", { changes }),
+  /** Undo (#104): items back to their old place and name, if they're still where Rupert left them. */
+  moveBack: (items: MoveBackItem[]) =>
+    invoke<{ done: number; failed: { path: string; error: string }[] }>("move_back", { items }),
+  /** Edit ▸ Undo's title on the Mac ("Undo Move of 3 Documents"); null for plain "Undo". */
+  setUndoLabel: (label: string | null) => invoke<void>("set_undo_label", { label }),
   indexStatus: () => invoke<{ stats: IndexStats; progress: Progress }>("index_status"),
   stopIndexing: () => invoke<void>("stop_indexing"),
   resumeIndexing: () => invoke<void>("resume_indexing"),

@@ -94,6 +94,21 @@ const de: Messages = {
     inSource: (name: string) => `In ${name}`,
     inFolder: (name: string) => `In „${name}“`,
   },
+  undo: {
+    renamedBack: "Alter Name wiederhergestellt",
+    renamedTo: (name: string) => `Umbenannt in „${name}“`,
+    labelRename: (n: number) => `Umbenennen von ${num(n)} ${plural(n, "Dokument", "Dokumenten")} widerrufen`,
+    labelMove: (n: number) => (n === 1 ? "Bewegen widerrufen" : `Bewegen von ${num(n)} Objekten widerrufen`),
+    labelFiling: "Ablegen widerrufen",
+    labelTags: (n: number) => `Tag-Änderung widerrufen (${num(n)} ${plural(n, "Dokument", "Dokumente")})`,
+    moved: (n: number, where: string) => (n === 1 ? `Nach „${where}“ bewegt` : `${num(n)} Objekte nach „${where}“ bewegt`),
+    movedBack: (n: number) => (n === 1 ? "Zurückgelegt" : `${num(n)} Objekte zurückgelegt`),
+    backInInbox: "Wieder im Eingang",
+    notBack: (n: number) => `${num(n)} ${plural(n, "konnte", "konnten")} nicht zurück`,
+    tagsBack: (n: number) => `Tags bei ${num(n)} ${plural(n, "Dokument", "Dokumenten")} wiederhergestellt`,
+    changedSince: (n: number) =>
+      `${num(n)} ${plural(n, "wurde", "wurden")} inzwischen geändert und ${plural(n, "bleibt", "bleiben")}, wie ${plural(n, "es ist", "sie sind")}`,
+  },
   markdown: {
     onlineOnly: "Nur online. Öffnen Sie es, um es herunterzuladen.",
     couldntShow: (problem: string) => `Konnte nicht angezeigt werden: ${problem}`,

@@ -284,6 +284,17 @@
     Websites auf. Ordner, die Sie als Bibliotheksordner hinzugefügt haben, lassen sich so nicht löschen; verwenden Sie
     <b>Aus Rupert entfernen …</b> im Menü <b>⋯</b> des Ordners (der Ordner bleibt dabei auf dem Laufwerk).
   </p>
+  <h3 id="undo">Widerrufen</h3>
+  <p>
+    Gleich nachdem Rupert etwas geändert hat, nennt ein Hinweis unten im Fenster die Änderung, mit <b>Widerrufen</b>.
+    Dasselbe tut {#if mac}<b>Bearbeiten ▸ Widerrufen</b> (<kbd>⌘Z</kbd>), das die Änderung nennt{:else}<kbd>Ctrl+Z</kbd>{/if}.
+    Widerrufen lässt sich die letzte dieser Änderungen: Dokumente oder Ordner bewegen (durch Ziehen oder mit <b>Bewegen
+    nach …</b>), eines oder viele umbenennen, einen Scan aus dem Eingang ablegen (er kommt mit seinem alten Namen in den
+    Eingang zurück; die Angaben, die er bekam, bleiben darin) und Tags ändern (in der Tag-Verwaltung oder mit <b>Tags
+    hinzufügen …</b> / <b>Tags entfernen …</b>). Rupert widerruft nur, was noch so ist, wie es war: Eine inzwischen bewegte
+    oder geänderte Datei oder ein wieder vergebener Name bleibt, wie er ist, und der Hinweis sagt es. Widerrufen gilt nur
+    für die letzte Änderung, bis Sie Rupert beenden. Was im Papierkorb liegt, holen Sie von dort zurück.
+  </p>
   <h3>Optionen für Bibliotheksordner</h3>
   <p>Klicken Sie neben einem Bibliotheksordner auf <b>⋯</b>:</p>
   <ul>

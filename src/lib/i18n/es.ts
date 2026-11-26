@@ -92,6 +92,21 @@ const es: Messages = {
     inSource: (name: string) => `En ${name}`,
     inFolder: (name: string) => `En «${name}»`,
   },
+  undo: {
+    renamedBack: "Volvió a su nombre anterior",
+    renamedTo: (name: string) => `Ahora se llama «${name}»`,
+    labelRename: (n: number) => `Deshacer el cambio de nombre de ${num(n)} ${plural(n, "documento", "documentos")}`,
+    labelMove: (n: number) => (n === 1 ? "Deshacer el movimiento" : `Deshacer el movimiento de ${num(n)} elementos`),
+    labelFiling: "Deshacer el archivado",
+    labelTags: (n: number) => `Deshacer el cambio de etiquetas (${num(n)} ${plural(n, "documento", "documentos")})`,
+    moved: (n: number, where: string) => (n === 1 ? `Movido a ${where}` : `${num(n)} elementos movidos a ${where}`),
+    movedBack: (n: number) => (n === 1 ? "Volvió a su lugar" : `${num(n)} elementos volvieron a su lugar`),
+    backInInbox: "De vuelta en la bandeja de entrada",
+    notBack: (n: number) => `${num(n)} no ${plural(n, "pudo", "pudieron")} volver`,
+    tagsBack: (n: number) => `Etiquetas restauradas en ${num(n)} ${plural(n, "documento", "documentos")}`,
+    changedSince: (n: number) =>
+      `${num(n)} ${plural(n, "había", "habían")} cambiado desde entonces y ${plural(n, "quedó", "quedaron")} como ${plural(n, "estaba", "estaban")}`,
+  },
   markdown: {
     onlineOnly: "Solo en línea. Abrilo para descargarlo.",
     couldntShow: (problem: string) => `No se pudo mostrar: ${problem}`,

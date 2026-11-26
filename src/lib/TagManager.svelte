@@ -16,7 +16,7 @@
   import { describeTagEdit } from "#lib/tag-edit.ts";
   import { m } from "#lib/i18n/index.ts";
 
-  let { onclose, onchanged }: { onclose: () => void; onchanged: () => void } = $props();
+  let { onclose, onchanged }: { onclose: () => void; onchanged: (report: TagEditReport) => void } = $props();
 
   let all = $state<TagCount[]>([]);
   let filter = $state("");
@@ -100,7 +100,7 @@
       picked = [];
       newName = "";
       await load();
-      onchanged();
+      onchanged(report);
     } catch (e) {
       error = String(e);
     } finally {
