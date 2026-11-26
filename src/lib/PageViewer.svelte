@@ -3,7 +3,9 @@
   // zooming (buttons, ⌘+ ⌘− ⌘0, pinch or ⌘-scroll, double-click), panning
   // (drag or scroll), page flipping and turning the page for viewing. It
   // shows a quick picture at once and a sharper one when zoomed in. Nothing
-  // is changed in the file.
+  // is changed in the file. Space opens it from any view (#105): then Space
+  // closes it too, and ↑ ↓ go to the neighboring documents. An online-only
+  // document shows only the picture Rupert kept of it, never downloading.
   import { onMount, tick } from "svelte";
   import Icon from "#lib/Icon.svelte";
   import { thumbUrl } from "#lib/Thumb.svelte";
@@ -16,6 +18,7 @@
     title = null,
     startPage = 0,
     onclose,
+    onstep,
   }: {
     sourceId: string;
     entry: Entry;
@@ -23,7 +26,14 @@
     title?: string | null;
     startPage?: number;
     onclose: () => void;
+    /** ↑ ↓: the previous or next document of the view (#105). */
+    onstep?: (step: 1 | -1) => void;
   } = $props();
+
+  // svelte-ignore state_referenced_locally
+  const online = entry.cloud === "cloudOnly";
+  /** No picture to show: a kind without one, or online-only with none kept. */
+  let failed = $state(false);
 
   // svelte-ignore state_referenced_locally
   let page = $state(startPage);
@@ -114,7 +124,7 @@
   $effect(() => {
     const need = Math.max(img.w, img.h) * (window.devicePixelRatio || 1);
     const p = page;
-    if (entry.kind !== "pdf" || need <= 1600 * 1.1) return;
+    if (entry.kind !== "pdf" || online || need <= 1600 * 1.1) return;
     const side = Math.min(4000, Math.ceil(need / 800) * 800);
     const key = `${p}:${side}`;
     if (sharp[key]) return;
@@ -204,10 +214,14 @@
   function key(e: KeyboardEvent) {
     const typing = (e.target as HTMLElement)?.tagName === "INPUT";
     const cmd = e.metaKey || e.ctrlKey;
-    if (e.key === "Escape") {
+    const plain = !cmd && !e.altKey && !e.shiftKey;
+    if (e.key === "Escape" || (e.key === " " && !typing && plain)) {
       e.preventDefault();
       e.stopPropagation();
       onclose();
+    } else if (onstep && !typing && plain && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      onstep(e.key === "ArrowDown" ? 1 : -1);
     } else if (cmd && (e.key === "=" || e.key === "+")) {
       e.preventDefault();
       zoomIn();
@@ -278,6 +292,7 @@
         >
       </button>
       <span class="space"></span>
+      {#if online}<span class="note"><Icon name="cloud" size={14} /> {m.pictures.onlineNote}</span>{/if}
       <button class="txt" onclick={() => api.openEntry(sourceId, entry.relPath)}>{m.common.openInDefaultApp}</button>
       <button class="ib" onclick={onclose} title={m.common.closeEsc} aria-label={m.common.close}>
         <Icon name="close" size={16} />
@@ -298,6 +313,9 @@
       onpointerup={up}
       onpointercancel={up}
     >
+      {#if failed}
+        <p class="nothing">{online ? m.pictures.noKeptPicture : m.pictures.noPicture}</p>
+      {:else}
       <div class="sizer" style:width="{box.w + 2 * PAD}px" style:height="{box.h + 2 * PAD}px">
         <div class="box" style:width="{box.w}px" style:height="{box.h}px">
           <img
@@ -311,9 +329,11 @@
               const i = e.currentTarget as HTMLImageElement;
               if (i.naturalWidth && i.src === quick) aspect = i.naturalHeight / i.naturalWidth;
             }}
+            onerror={() => (failed = true)}
           />
         </div>
       </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -410,6 +430,18 @@
   }
   .muted {
     color: var(--muted);
+  }
+  .note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .nothing {
+    color: var(--muted);
+    max-width: 360px;
+    text-align: center;
   }
   .sr {
     position: absolute;

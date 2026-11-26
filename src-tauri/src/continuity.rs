@@ -188,8 +188,9 @@ thread_local! {
         const { std::cell::RefCell::new(None) };
 }
 
-/// Index of the item in File: after Import into Inbox….
-const FILE_INDEX: isize = 1;
+/// Index of the item in File: after Quick Open…, a separator and Import
+/// into Inbox….
+const FILE_INDEX: isize = 3;
 
 /// File (the menu bar's second menu).
 fn file_menu(mtm: MainThreadMarker) -> Option<Retained<NSMenu>> {

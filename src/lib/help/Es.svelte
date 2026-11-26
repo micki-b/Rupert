@@ -136,6 +136,12 @@
     predeterminada</b> lo abre en tu app de siempre. Escape, o un clic afuera, cierra el visor.
   </p>
   <p>
+    También podés seleccionar un documento en cualquier vista, o en los resultados de búsqueda, y apretar
+    <kbd>Espacio</kbd>. Ahí <kbd>↑</kbd> y <kbd>↓</kbd> pasan al documento anterior o siguiente, y <kbd>Espacio</kbd> o
+    Escape cierran el visor. Un documento solo en línea muestra la imagen chica que Rupert guardó (ver abajo); no se
+    descarga nada hasta que lo abrís.
+  </p>
+  <p>
     Las imágenes se guardan en una caché en esta computadora y se vuelven a hacer cuando cambia un documento. Rupert
     nunca lee un archivo que está solo en línea para mostrarlo, porque eso lo descargaría. En cambio, mientras un PDF de
     una carpeta de iCloud Drive, OneDrive o Google Drive está en esta computadora, Rupert guarda una imagen chica de su
@@ -345,6 +351,15 @@
 <!-- MARK: Encontrar -->
 <section id="finding">
   <h2>Encontrar documentos</h2>
+  <h3 id="quick-open">Apertura rápida</h3>
+  <p>
+    Apretá <kbd>{cmd}K</kbd>{mac ? " (o elegí Archivo ▸ Apertura rápida…)" : ""} y escribí algunas letras de un nombre
+    para ir directo a una carpeta, un documento (por su título o nombre de archivo), una etiqueta o un comando como
+    Bandeja de entrada, Administrar etiquetas o Configuración. Antes de que escribas, te ofrece los últimos documentos
+    que abriste o miraste y tus carpetas favoritas. <kbd>↑</kbd> <kbd>↓</kbd> eligen y <kbd>Return</kbd> te lleva: una
+    carpeta se abre, un documento aparece seleccionado en su carpeta, una etiqueta muestra sus documentos.
+    <kbd>{mac ? "⌘↩" : "Ctrl+Enter"}</kbd> abre un documento en su app. <kbd>Esc</kbd> la cierra.
+  </p>
   <h3>Buscar</h3>
   <p>
     Escribí en el campo de búsqueda de arriba ({cmd}F). Rupert busca en los títulos, los nombres de archivo, las
@@ -1081,7 +1096,9 @@
   <h2>Atajos de teclado</h2>
   <table class="keys">
     <tbody>
+      <tr><td><kbd>{cmd}K</kbd></td><td>Apertura rápida: ir a una carpeta, un documento, una etiqueta o un comando</td></tr>
       <tr><td><kbd>{cmd}F</kbd></td><td>Buscar</td></tr>
+      <tr><td><kbd>Espacio</kbd></td><td>Ver el documento seleccionado en el visor de páginas; ahí <kbd>↑</kbd> <kbd>↓</kbd> pasan al anterior o al siguiente</td></tr>
       <tr>
         <td><kbd>{mac ? "⌘⌫" : "Supr"}</kbd></td>
         <td>Mandar lo seleccionado a la {trash}</td>

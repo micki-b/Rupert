@@ -188,6 +188,7 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "No se pudo guardar el texto reconocido: {0}",
     ),
     ("Text recognized ({0})", "Texto reconocido ({0})"),
+    ("Quick Open…", "Apertura rápida…"),
     ("Import into Inbox…", "Importar a la bandeja de entrada…"),
     (
         "Import from iPhone or iPad",

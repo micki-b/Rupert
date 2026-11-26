@@ -432,6 +432,10 @@ export const api = {
   /** Downloads an online-only document; Rupert then reads it. */
   downloadFile: (sourceId: string, relPath: string) => invoke<void>("download_file", { sourceId, relPath }),
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
+  /** Quick open (#105): documents by title or file name, best first. */
+  quickFind: (text: string) => invoke<Hit[]>("quick_find", { text }),
+  /** These documents' indexed details, in order, without any no longer indexed. */
+  documentsInfo: (docs: { sourceId: string; relPath: string }[]) => invoke<Hit[]>("documents_info", { docs }),
   listTags: () => invoke<TagCount[]>("list_tags"),
   /** Tags matching `filter`, best first, without the selected ones (with
    * "all", only those that occur together with the selection). */
@@ -655,6 +659,11 @@ export function onRenameProposalsDone(handler: (d: { job: number; stopped: boole
  * saved (`error`). macOS. */
 export function onContinuityScan(handler: (r: { name: string | null; error: string | null }) => void): Promise<UnlistenFn> {
   return listen<{ name: string | null; error: string | null }>("continuity-scan", (e) => handler(e.payload));
+}
+
+/** File ▸ Quick Open… (macOS menu, #105). */
+export function onMenuQuickOpen(handler: () => void): Promise<UnlistenFn> {
+  return listen("menu-quick-open", () => handler());
 }
 
 /** Edit ▸ Undo (macOS menu). */

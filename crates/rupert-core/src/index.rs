@@ -525,6 +525,38 @@ impl Index {
         rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
+    /// Documents whose title or file name have a word starting with each
+    /// word of `text`, best first. For quick open (#105), which goes by
+    /// name, not by what's written inside.
+    pub fn quick_find(&self, text: &str, limit: usize) -> Result<Vec<Hit>> {
+        let words: Vec<String> = text
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .map(|w| format!("\"{w}\"*"))
+            .collect();
+        if words.is_empty() {
+            return Ok(Vec::new());
+        }
+        let q = format!("{{name title}} : ({})", words.join(" "));
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
+                        d.title, d.tags, d.document_date, d.favorite, NULL
+                 FROM fts JOIN docs d ON d.id = fts.rowid WHERE fts MATCH :q
+                 ORDER BY bm25(fts, 8.0, 10.0, 0.0, 0.0, 0.0), d.name COLLATE NOCASE
+                 LIMIT :limit",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(
+                rusqlite::named_params! {":q": q, ":limit": limit.max(1) as i64},
+                hit,
+            )
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
     /// A folder as the index knows it: its subfolder names (only those
     /// holding documents) and the documents directly in it. For sources
     /// the phone reads through a web API, where nothing is on disk.
@@ -1442,6 +1474,43 @@ mod tests {
         );
         idx.retain_sources(&["s"]).unwrap();
         assert_eq!(idx.favorite_folders().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn quick_find_goes_by_title_and_name_only() {
+        let idx = Index::open_in_memory().unwrap();
+        idx.upsert(
+            &row(
+                "Home/lease.pdf",
+                Some("Apartment lease"),
+                &["Insurance"],
+                false,
+            ),
+            Some("The insurance of the boat"),
+        )
+        .unwrap();
+        idx.upsert(&row("Boat/insurance 2025.pdf", None, &[], false), None)
+            .unwrap();
+        idx.upsert(
+            &row("Boat/engine.pdf", Some("Engine manual"), &[], false),
+            None,
+        )
+        .unwrap();
+        // The text and the tags don't count; the last word is a prefix.
+        assert_eq!(
+            names(&idx.quick_find("insur", 10).unwrap()),
+            ["Boat/insurance 2025.pdf"]
+        );
+        assert_eq!(
+            names(&idx.quick_find("apart lea", 10).unwrap()),
+            ["Home/lease.pdf"]
+        );
+        assert_eq!(
+            names(&idx.quick_find("man", 10).unwrap()),
+            ["Boat/engine.pdf"]
+        );
+        assert!(idx.quick_find("  ", 10).unwrap().is_empty());
+        assert!(idx.quick_find("boat", 10).unwrap().is_empty());
     }
 
     #[test]
