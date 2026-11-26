@@ -2901,8 +2901,10 @@
     overflow: auto;
     padding: 12px 16px;
     min-width: 0;
-    /* The list's columns follow the middle's width (#103). */
-    container: documents / inline-size;
+    /* Not a CSS container: that would make it the box fixed menus and
+       dialogs inside it (the inbox's right-click menu, the column menu,
+       the folder picker, the page viewer) are placed in and clipped by.
+       The list's columns follow its width from `documentsWidth` (#138). */
   }
   .searchbar {
     display: flex;

@@ -432,6 +432,17 @@
     }
   }
 
+  /** A menu command for the menu's scan. The scan is taken before the menu
+   * closes: `mn` follows `menu`, so after `menu = null` it's gone (Open and
+   * Show in Finder did nothing). */
+  function fromMenu(action: (item: IntakeItem) => Promise<unknown>) {
+    const item = menu?.item;
+    menu = null;
+    if (!item) return;
+    error = null;
+    action(item).catch((e) => (error = String(e)));
+  }
+
   function openMenu(item: IntakeItem, e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -888,8 +899,8 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={() => {}}
   >
-    <button role="menuitem" onclick={() => ((menu = null), api.openEntry(mn.item.sourceId, mn.item.relPath))}>{m.inbox.open}</button>
-    <button role="menuitem" onclick={() => ((menu = null), api.revealEntry(mn.item.sourceId, mn.item.relPath))}
+    <button role="menuitem" onclick={() => fromMenu((i) => api.openEntry(i.sourceId, i.relPath))}>{m.inbox.open}</button>
+    <button role="menuitem" onclick={() => fromMenu((i) => api.revealEntry(i.sourceId, i.relPath))}
       >{revealLabel(os)}</button
     >
     <hr />
