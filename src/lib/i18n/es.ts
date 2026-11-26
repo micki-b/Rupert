@@ -122,6 +122,12 @@ const es: Messages = {
     resizeTip: "Arrastrá para cambiar el tamaño, doble clic para el alto de siempre",
     notesResizeTip: "Arrastrá para agrandar o achicar las notas, doble clic para el alto de siempre",
   },
+  listColumns: {
+    favorite: "Favorito",
+    widthOf: (name: string) => `Ancho de ${name}`,
+    resizeTip: "Arrastrá para cambiar el ancho, doble clic para el ancho de siempre",
+    reset: "Restablecer columnas",
+  },
   quickOpen: {
     title: "Apertura rápida",
     placeholder: "Ir a una carpeta, un documento, una etiqueta o un comando",

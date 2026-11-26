@@ -118,6 +118,12 @@
     icons and the gallery, choose the order in <b>Sort</b> beside the view buttons. Folders stay on top, and the order is
     kept for all folders.
   </p>
+  <p id="columns">
+    <b>Columns:</b> the list shows Favorite (★), Name, Kind, Size, Date and Modified. Drag the line between two column
+    titles to make a column wider or narrower (double-click it for the usual width); Name takes the room that's left.
+    Drag a column title sideways to move the column. Right-click the titles to show or hide columns, or choose
+    <b>Reset Columns</b>. Rupert keeps the columns on this computer. In a narrow window, Kind steps aside first.
+  </p>
   <p id="page-preview">
     <b>Page preview:</b> in the list, large icons and search results, the selected PDF or picture's page is at the top of
     <b>Details</b>. Flip through its pages with the arrows on it, and click it to open the
@@ -396,7 +402,7 @@
     Click the ☆ on a document to make it a favorite. It shows when you point at a document in the list, the icons or
     the search results, and always in its details and in the gallery; favorites keep a ★. Click the ★ to remove it.
     Removing the star from an online-only PDF downloads it, because the star is stored inside the file. Mark a folder
-    with the ☆ next to its path above the document list. <b>Favorites</b> in the sidebar lists both. Favorites are saved with the files, so they show up on your other
+    with the ☆ next to its path above the document list, or with its ☆ in the list. <b>Favorites</b> in the sidebar lists both. Favorites are saved with the files, so they show up on your other
     computers and on the iPhone.
   </p>
 </section>
