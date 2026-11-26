@@ -112,6 +112,12 @@
       page) flip through its pages. Click the page to open it in the <a href="#viewer">page viewer</a>.
     </li>
   </ul>
+  <p>
+    <b>Sorting:</b> in the list, click a column title (Name, Size, Date, Modified, and Kind when there's room) to sort
+    by it; click again to reverse it. <b>Date</b> is the date on the document (its file's date if it has none). In large
+    icons and the gallery, choose the order in <b>Sort</b> beside the view buttons. Folders stay on top, and the order is
+    kept for all folders.
+  </p>
   <h3 id="viewer">The page viewer</h3>
   <p>
     Click a page (in the gallery, or the inbox's preview) to see it large. Zoom with <b>+</b> and <b>−</b>,
@@ -310,6 +316,13 @@
     Type in the search field at the top ({cmd}F). Rupert looks in titles, file names, tags, notes and the text of the
     documents, across all sources. Every word you type has to match; the last one may be the start of a word, so
     <kbd>impel</kbd> finds “impeller”. Accents don't matter. Press <kbd>Esc</kbd> to clear the search.
+  </p>
+  <p>
+    Below the search field, narrow the search down by <b>date</b> (this year, last year or dates you choose: the date on
+    the document, else its file's date), by <b>kind</b> (PDF, image, Office, text, email) and by <b>where</b>:
+    everywhere, the open folder's source, or the open folder with its subfolders. They work without words too: choose
+    <b>Last year</b> and <b>PDF</b> for all of last year's PDFs. <b>Best match</b> and <b>Newest</b> above the results
+    change their order. <kbd>Esc</kbd> clears the words and the filters.
   </p>
   <p>
     In the results, <b>Show in Rupert</b> (in the details) takes you to the document's folder.

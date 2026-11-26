@@ -1332,6 +1332,14 @@ impl<'a> LibraryTools<'a> {
     }
 
     fn query(input: &Value) -> SearchQuery {
+        // A day the model gave, if it's one (YYYY-MM-DD).
+        let date = |input: &Value, key: &str| {
+            input
+                .get(key)
+                .and_then(Value::as_str)
+                .filter(|d| crate::meta::is_iso_date(d))
+                .map(String::from)
+        };
         SearchQuery {
             text: input
                 .get("query")
@@ -1362,6 +1370,19 @@ impl<'a> LibraryTools<'a> {
                 .and_then(Value::as_u64)
                 .unwrap_or(15)
                 .clamp(1, 50) as usize,
+            date_from: date(input, "date_from"),
+            date_to: date(input, "date_to"),
+            kinds: input
+                .get("kinds")
+                .and_then(Value::as_array)
+                .map(|k| {
+                    k.iter()
+                        .filter_map(Value::as_str)
+                        .map(String::from)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            ..Default::default()
         }
     }
 
@@ -1681,6 +1702,9 @@ impl ToolBox for LibraryTools<'_> {
             "tags": {"type": "array", "items": {"type": "string"}, "description": "Only documents with these tags (ignoring case)."},
             "tag_mode": {"type": "string", "enum": ["any", "all"], "description": "With several tags: documents with any of them, or all of them. Default any."},
             "favorites_only": {"type": "boolean"},
+            "date_from": {"type": "string", "description": "Only documents dated on or after this day, YYYY-MM-DD (the date on the document, else the file's date)."},
+            "date_to": {"type": "string", "description": "Only documents dated on or before this day, YYYY-MM-DD."},
+            "kinds": {"type": "array", "items": {"type": "string", "enum": ["pdf", "image", "office", "text", "email"]}, "description": "Only these kinds of file."},
             "limit": {"type": "integer", "description": "Most results to return (default 15, at most 50)."}
         });
         let doc_props = json!({

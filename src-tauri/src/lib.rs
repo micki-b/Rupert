@@ -975,6 +975,14 @@ struct SearchArgs {
     tag_mode: TagMode,
     #[serde(default)]
     favorites_only: bool,
+    /// The filters and sort of #103 (see `SearchQuery`).
+    date_from: Option<String>,
+    date_to: Option<String>,
+    #[serde(default)]
+    kinds: Vec<String>,
+    folder: Option<String>,
+    #[serde(default)]
+    by_date: bool,
 }
 
 #[tauri::command]
@@ -986,6 +994,11 @@ async fn search(query: SearchArgs, state: State<'_, AppState>) -> CmdResult<Vec<
         tag_mode: query.tag_mode,
         favorites_only: query.favorites_only,
         limit: 300,
+        date_from: query.date_from,
+        date_to: query.date_to,
+        kinds: query.kinds,
+        folder: query.folder,
+        by_date: query.by_date,
     };
     state.index.lock().unwrap().search(&q).map_err(err)
 }

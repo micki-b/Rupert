@@ -107,7 +107,23 @@ pub struct SearchQuery {
     pub tag_mode: TagMode,
     pub favorites_only: bool,
     pub limit: usize,
+    /// Only documents dated from / to these days (`YYYY-MM-DD`, inclusive):
+    /// the date on the paper, or the file's date where there's none (#103).
+    pub date_from: Option<String>,
+    pub date_to: Option<String>,
+    /// Only these kinds ("pdf", "image", "office", "text", "email").
+    pub kinds: Vec<String>,
+    /// Only in this folder of `source_id` and its subfolders ("" is the
+    /// whole source).
+    pub folder: Option<String>,
+    /// Newest first, by that same date, instead of by relevance.
+    pub by_date: bool,
 }
+
+/// A document's date for filtering and sorting: the date on the paper, or
+/// the file's (local) date where there's none.
+const DOC_DATE: &str =
+    "COALESCE(d.document_date, date(d.mtime_ms / 1000, 'unixepoch', 'localtime'))";
 
 /// How several selected tags combine.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -408,7 +424,31 @@ impl Index {
         if q.favorites_only {
             sql.push_str(" AND d.favorite = 1");
         }
-        if fts.is_some() {
+        if q.date_from.is_some() {
+            sql.push_str(&format!(" AND {DOC_DATE} >= :from"));
+        }
+        if q.date_to.is_some() {
+            sql.push_str(&format!(" AND {DOC_DATE} <= :to"));
+        }
+        let kinds_json = serde_json::to_string(&q.kinds).unwrap_or_else(|_| "[]".into());
+        if !q.kinds.is_empty() {
+            sql.push_str(" AND d.kind IN (SELECT value FROM json_each(:kinds))");
+        }
+        // The folder and everything below it ("" is the whole source).
+        let folder = q
+            .folder
+            .as_deref()
+            .map(|f| f.trim_matches('/').to_string())
+            .filter(|f| !f.is_empty() && q.source_id.is_some());
+        let below = folder.as_ref().map(|f| format!("{f}/"));
+        if folder.is_some() {
+            sql.push_str(" AND (d.dir = :dir OR substr(d.dir, 1, length(:below)) = :below)");
+        }
+        if q.by_date {
+            sql.push_str(&format!(
+                " ORDER BY {DOC_DATE} IS NULL, {DOC_DATE} DESC, d.name COLLATE NOCASE"
+            ));
+        } else if fts.is_some() {
             // Weights: name, title, tags, notes, body.
             sql.push_str(" ORDER BY bm25(fts, 8.0, 10.0, 6.0, 3.0, 1.0)");
         } else {
@@ -431,6 +471,19 @@ impl Index {
             if q.tag_mode == TagMode::All {
                 named.push((":ntags", &tag_count));
             }
+        }
+        if let Some(f) = &q.date_from {
+            named.push((":from", f));
+        }
+        if let Some(t) = &q.date_to {
+            named.push((":to", t));
+        }
+        if !q.kinds.is_empty() {
+            named.push((":kinds", &kinds_json));
+        }
+        if let (Some(f), Some(b)) = (&folder, &below) {
+            named.push((":dir", f));
+            named.push((":below", b));
         }
         let rows = stmt.query_map(named.as_slice(), hit).map_err(db)?;
         rows.collect::<std::result::Result<_, _>>().map_err(db)
@@ -1497,6 +1550,93 @@ mod tests {
                 .map(|t| (t.tag.to_lowercase(), t.count))
                 .collect::<Vec<_>>(),
             [("2025".into(), 1), ("tax".into(), 2)]
+        );
+    }
+
+    #[test]
+    fn filters_by_date_kind_and_folder() {
+        let idx = Index::open_in_memory().unwrap();
+        let put = |path: &str, kind: FileKind, date: Option<&str>, mtime_ms: i64| {
+            let mut r = row(path, None, &[], false);
+            r.kind = kind;
+            r.modified_ms = Some(mtime_ms);
+            r.meta.document_date = date.map(Into::into);
+            idx.upsert(&r, None).unwrap();
+        };
+        // 2024-06-15 and 2025-03-01 as file dates (noon UTC, the same day everywhere near it).
+        let june_2024 = 1_718_452_800_000;
+        let march_2025 = 1_740_830_400_000;
+        put(
+            "Taxes/2024 return.pdf",
+            FileKind::Pdf,
+            Some("2024-04-10"),
+            march_2025,
+        );
+        put("Taxes/2025/receipt.jpg", FileKind::Image, None, march_2025);
+        put(
+            "Taxes/notes.txt",
+            FileKind::Text,
+            Some("2025-01-05"),
+            june_2024,
+        );
+        put("Home/deed.pdf", FileKind::Pdf, None, june_2024);
+        let found = |q: SearchQuery| {
+            let mut n: Vec<String> = idx
+                .search(&q)
+                .unwrap()
+                .into_iter()
+                .map(|h| h.rel_path)
+                .collect();
+            n.sort();
+            n
+        };
+        // The paper's date counts first: the 2024 return is 2024 though its file is from 2025.
+        let year_2025 = SearchQuery {
+            date_from: Some("2025-01-01".into()),
+            date_to: Some("2025-12-31".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            found(year_2025.clone()),
+            ["Taxes/2025/receipt.jpg", "Taxes/notes.txt"]
+        );
+        let pdfs = SearchQuery {
+            kinds: vec!["pdf".into()],
+            ..Default::default()
+        };
+        assert_eq!(found(pdfs), ["Home/deed.pdf", "Taxes/2024 return.pdf"]);
+        let in_taxes = SearchQuery {
+            source_id: Some("s".into()),
+            folder: Some("Taxes".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            found(in_taxes.clone()).len(),
+            3,
+            "the folder and its subfolders"
+        );
+        let in_sub = SearchQuery {
+            folder: Some("Taxes/2025".into()),
+            ..in_taxes
+        };
+        assert_eq!(found(in_sub), ["Taxes/2025/receipt.jpg"]);
+        let newest_first: Vec<String> = idx
+            .search(&SearchQuery {
+                by_date: true,
+                ..Default::default()
+            })
+            .unwrap()
+            .into_iter()
+            .map(|h| h.rel_path)
+            .collect();
+        assert_eq!(
+            newest_first,
+            [
+                "Taxes/2025/receipt.jpg",
+                "Taxes/notes.txt",
+                "Home/deed.pdf",
+                "Taxes/2024 return.pdf"
+            ]
         );
     }
 

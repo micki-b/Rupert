@@ -119,6 +119,12 @@
       la página) pasan sus páginas. Hacé clic en la página para abrirla en el <a href="#viewer">visor de páginas</a>.
     </li>
   </ul>
+  <p>
+    <b>Ordenar:</b> en la lista, hacé clic en el título de una columna (Nombre, Tamaño, Fecha, Modificado, y Tipo cuando
+    hay lugar) para ordenar por ella; otro clic invierte el orden. <b>Fecha</b> es la fecha del documento (la de su
+    archivo si no tiene). En íconos grandes y en la galería, elegí el orden en <b>Ordenar</b>, al lado de los botones de
+    vista. Las carpetas quedan arriba, y el orden vale para todas las carpetas.
+  </p>
   <h3 id="viewer">El visor de páginas</h3>
   <p>
     Hacé clic en una página (en la galería, o en la vista previa de la bandeja de entrada) para verla en grande. Acercá y
@@ -334,6 +340,13 @@
     etiquetas, las notas y el texto de los documentos, en todas las carpetas. Tienen que coincidir todas las palabras que
     escribas; la última puede ser el comienzo de una palabra, así que <kbd>impul</kbd> encuentra “impulsor”. Los acentos
     no importan. Apretá <kbd>Esc</kbd> para borrar la búsqueda.
+  </p>
+  <p>
+    Abajo del campo de búsqueda podés acotar por <b>fecha</b> (este año, el año pasado o las fechas que elijas: la fecha
+    del documento, o la de su archivo), por <b>tipo</b> (PDF, imagen, Office, texto, correo) y por <b>lugar</b>: en todos
+    lados, en la fuente de la carpeta abierta o en la carpeta abierta con sus subcarpetas. Funcionan también sin
+    palabras: elegí <b>El año pasado</b> y <b>PDF</b> para ver todos los PDF del año pasado. <b>Más relevantes</b> y
+    <b>Más nuevos</b>, arriba de los resultados, cambian el orden. <kbd>Esc</kbd> borra las palabras y los filtros.
   </p>
   <p>En los resultados, <b>Mostrar en Rupert</b> (en los detalles) te lleva a la carpeta del documento.</p>
   <h3>Etiquetas</h3>

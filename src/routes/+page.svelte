@@ -40,7 +40,7 @@
     onShareProgress,
   } from "#lib/api.ts";
   import { changes } from "#lib/changes.svelte.ts";
-  import { formatDate, formatSize, kindLabel } from "#lib/format.ts";
+  import { formatDate, formatDay, formatSize, kindLabel } from "#lib/format.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import MoveDialog from "#lib/MoveDialog.svelte";
   import { canMoveInto, dragSource, dropTarget, isDropOver, onMoveMany, type Dropped, type MoveItem } from "#lib/drag.svelte.ts";
@@ -67,7 +67,7 @@
   import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import { clamp, columns, LIMITS, MIDDLE } from "#lib/columns.svelte.ts";
-  import { loadLanguage, m } from "#lib/i18n/index.ts";
+  import { loadLanguage, locale, m } from "#lib/i18n/index.ts";
 
   type Folder = { sourceId: string; relPath: string };
   type Selected = { sourceId: string; entry: Entry };
@@ -123,7 +123,7 @@
   function shownItems(): Selected[] {
     if (inboxOpen) return [];
     if (searching) return hits.map((h) => ({ sourceId: h.sourceId, entry: h }));
-    if (folder && source) return entries.map((e) => ({ sourceId: source.id, entry: e }));
+    if (folder && source) return sortedEntries.map((e) => ({ sourceId: source.id, entry: e }));
     return [];
   }
 
@@ -266,7 +266,97 @@
   let indexTick = $state(0);
   let searchInput: HTMLInputElement | undefined = $state();
 
-  const searching = $derived(query.trim() !== "" || selectedTags.length > 0 || favoritesOnly);
+  // MARK: - Sorting and search filters (#103)
+
+  type SortKey = "name" | "kind" | "size" | "modified" | "date";
+  type Sort = { key: SortKey; desc: boolean };
+  const SORT_KEY = "rupert.sort";
+  /** How folders are sorted (folders stay on top), remembered like the view. */
+  let sort = $state<Sort>(loadSort());
+  function loadSort(): Sort {
+    try {
+      const s = JSON.parse(localStorage.getItem(SORT_KEY) ?? "null");
+      if (s && ["name", "kind", "size", "modified", "date"].includes(s.key)) return { key: s.key, desc: !!s.desc };
+    } catch {
+      /* first time */
+    }
+    return { key: "name", desc: false };
+  }
+  /** A column header: sort by it, or reverse if it already is. Dates and
+   * sizes start with the newest and biggest. */
+  function sortBy(key: SortKey, desc?: boolean) {
+    sort = { key, desc: desc ?? (sort.key === key ? !sort.desc : key === "modified" || key === "date" || key === "size") };
+    try {
+      localStorage.setItem(SORT_KEY, JSON.stringify(sort));
+    } catch {
+      /* not essential */
+    }
+  }
+  /** A document's date: the one on the paper, else the file's day. */
+  const docDate = (e: ListedEntry) => e.documentDate ?? (e.modifiedMs ? formatIsoDay(e.modifiedMs) : "");
+  /** "2026-03-14" as the reader's date (as in Details). */
+  function formatDocDay(iso: string | null | undefined): string {
+    if (!iso) return "";
+    const [y, mo, d] = iso.split("-").map(Number);
+    return new Date(y, mo - 1, d).toLocaleDateString(locale(), { dateStyle: "medium" });
+  }
+  function formatIsoDay(ms: number) {
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  const collator = $derived(new Intl.Collator(locale(), { numeric: true, sensitivity: "base" }));
+  /** The open folder in the chosen order, folders first. */
+  const sortedEntries = $derived.by(() => {
+    const { key, desc } = sort;
+    const byName = (a: ListedEntry, b: ListedEntry) => collator.compare(a.name, b.name);
+    const cmp = (a: ListedEntry, b: ListedEntry): number => {
+      let c = 0;
+      if (key === "kind") c = collator.compare(kindLabel(a.isDir ? "folder" : a.kind), kindLabel(b.isDir ? "folder" : b.kind));
+      else if (key === "size") c = (a.size || 0) - (b.size || 0);
+      else if (key === "modified") c = (a.modifiedMs ?? 0) - (b.modifiedMs ?? 0);
+      else if (key === "date") c = docDate(a).localeCompare(docDate(b));
+      if (c === 0) c = byName(a, b);
+      return desc ? -c : c;
+    };
+    return [...entries].sort((a, b) => (a.isDir !== b.isDir ? (a.isDir ? -1 : 1) : cmp(a, b)));
+  });
+
+  /** Search results: best match first, or newest first. */
+  let resultsByDate = $state(false);
+
+  type DateFilter = { kind: "thisYear" } | { kind: "lastYear" } | { kind: "range"; from: string; to: string };
+  let dateFilter = $state<DateFilter | null>(null);
+  let kindFilter = $state<string | null>(null);
+  /** Where to search: a source, or a folder and its subfolders. */
+  let whereFilter = $state<{ scope: "source" | "folder"; sourceId: string; relPath: string } | null>(null);
+  const filtering = $derived(!!dateFilter || !!kindFilter || !!whereFilter);
+
+  function dateRange(f: DateFilter | null): { dateFrom?: string; dateTo?: string } {
+    if (!f) return {};
+    const y = new Date().getFullYear();
+    if (f.kind === "thisYear") return { dateFrom: `${y}-01-01`, dateTo: `${y}-12-31` };
+    if (f.kind === "lastYear") return { dateFrom: `${y - 1}-01-01`, dateTo: `${y - 1}-12-31` };
+    return { dateFrom: f.from || undefined, dateTo: f.to || undefined };
+  }
+
+  /** "In this folder" / "In this source" start from what's open. */
+  function setWhere(scope: "everywhere" | "source" | "folder") {
+    const at = whereFilter ?? (folder ? { sourceId: folder.sourceId, relPath: folder.relPath } : null);
+    whereFilter = scope === "everywhere" || !at ? null : { scope, sourceId: at.sourceId, relPath: at.relPath };
+  }
+
+  function whereLabelOf(w: NonNullable<typeof whereFilter>) {
+    if (w.scope === "source") return m.filters.inSource(sourceName(w.sourceId));
+    const name = w.relPath ? w.relPath.slice(w.relPath.lastIndexOf("/") + 1) : sourceName(w.sourceId);
+    return m.filters.inFolder(name);
+  }
+
+  /** A date range being chosen in the filter row. */
+  let rangeFrom = $state("");
+  let rangeTo = $state("");
+  const KINDS = ["pdf", "image", "office", "text", "email"] as const;
+
+  const searching = $derived(query.trim() !== "" || selectedTags.length > 0 || favoritesOnly || filtering);
   /** The folder whose contents are on screen, for highlighting in the sidebar
    * (none while searching or in the inbox). */
   const shownFolder = $derived(searching || inboxOpen ? null : folder);
@@ -539,7 +629,17 @@
 
   let searchSeq = 0;
   $effect(() => {
-    const args = { text: query, tags: [...selectedTags], tagMode, favoritesOnly };
+    const args = {
+      text: query,
+      tags: [...selectedTags],
+      tagMode,
+      favoritesOnly,
+      ...dateRange(dateFilter),
+      kinds: kindFilter ? [kindFilter] : [],
+      sourceId: whereFilter?.sourceId ?? null,
+      folder: whereFilter?.scope === "folder" ? whereFilter.relPath : null,
+      byDate: resultsByDate,
+    };
     indexTick; // re-run when the index changes
     if (!searching) {
       hits = [];
@@ -617,6 +717,9 @@
     selectedTags = [];
     tagsBefore = 0;
     favoritesOnly = false;
+    dateFilter = null;
+    kindFilter = null;
+    whereFilter = null;
   }
 
   function openInbox() {
@@ -1507,12 +1610,51 @@
       {/if}
     </div>
 
+    <!-- Search filters (#103): always there, so a date, kind or place
+         alone can search too. -->
+    <div class="filter-row">
+      <select
+        value={dateFilter ? dateFilter.kind : ""}
+        onchange={(e) => {
+          const v = e.currentTarget.value;
+          dateFilter = v === "thisYear" || v === "lastYear" ? { kind: v } : v === "range" ? { kind: "range", from: rangeFrom, to: rangeTo } : null;
+        }}
+      >
+        <option value="">{m.filters.anyDate}</option>
+        <option value="thisYear">{m.filters.thisYear(new Date().getFullYear())}</option>
+        <option value="lastYear">{m.filters.lastYear(new Date().getFullYear() - 1)}</option>
+        <option value="range">{m.filters.chooseDates}</option>
+      </select>
+      {#if dateFilter?.kind === "range"}
+        <input type="date" bind:value={rangeFrom} onchange={() => (dateFilter = { kind: "range", from: rangeFrom, to: rangeTo })} aria-label={m.filters.from} />
+        <span>–</span>
+        <input type="date" bind:value={rangeTo} onchange={() => (dateFilter = { kind: "range", from: rangeFrom, to: rangeTo })} aria-label={m.filters.to} />
+      {/if}
+      <select value={kindFilter ?? ""} onchange={(e) => (kindFilter = e.currentTarget.value || null)}>
+        <option value="">{m.filters.anyKind}</option>
+        {#each KINDS as k (k)}<option value={k}>{m.kinds[k]}</option>{/each}
+      </select>
+      <select value={whereFilter?.scope ?? "everywhere"} onchange={(e) => setWhere(e.currentTarget.value as "everywhere" | "source" | "folder")}>
+        <option value="everywhere">{m.filters.everywhere}</option>
+        {#if folder || whereFilter}
+          <option value="source">{whereFilter && whereFilter.scope === "source" ? whereLabelOf(whereFilter) : m.filters.thisSource}</option>
+          <option value="folder">{whereFilter && whereFilter.scope === "folder" ? whereLabelOf(whereFilter) : m.filters.thisFolder}</option>
+        {/if}
+      </select>
+    </div>
+
     {@render errorBanner()}
 
     {#if searching}
-      <p class="result-count muted">
-        {#if !searchedOnce}{m.main.searching}{:else if hits.length === 0}{m.main.noMatches}{:else}{m.main.hits(hits.length, hits.length >= 300)}{/if}
-      </p>
+      <div class="results-head">
+        <p class="result-count muted">
+          {#if !searchedOnce}{m.main.searching}{:else if hits.length === 0}{m.main.noMatches}{:else}{m.main.hits(hits.length, hits.length >= 300)}{/if}
+        </p>
+        <span class="view-switch order-switch" role="group" aria-label={m.filters.sort}>
+          <button class:on={!resultsByDate} aria-pressed={!resultsByDate} onclick={() => (resultsByDate = false)}>{m.filters.bestMatch}</button>
+          <button class:on={resultsByDate} aria-pressed={resultsByDate} onclick={() => (resultsByDate = true)}>{m.filters.newest}</button>
+        </span>
+      </div>
       <ul class="results">
         {#each hits as h (h.sourceId + "\n" + h.relPath)}
           <li class="doc-host" class:selected={isPicked(h.sourceId, h.relPath)}>
@@ -1527,6 +1669,7 @@
             >
               <div class="r-title">
                 <span class="file-icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={15} /></span>
+                <span class="star-space"></span>
                 <strong>{h.title ?? h.name}</strong>
                 {#if h.title}<span class="muted r-name">{h.name}</span>{/if}
               </div>
@@ -1541,11 +1684,13 @@
                 {@render tagChips(h.tags)}
               </div>
             </button>
-            <!-- Beside the result's button (buttons can't hold buttons). -->
-            <span class="r-marks">
-              {#if h.cloud === "cloudOnly"}<CloudBadge sourceId={h.sourceId} doc={h} size={13} onclick={() => downloadDoc(h.sourceId, h)} />{/if}
-              <DocStar sourceId={h.sourceId} doc={h} onclick={() => starDoc(h.sourceId, h)} />
-            </span>
+            <!-- Beside the result's button (buttons can't hold buttons), placed
+                 as in the folder list: the star before the title, the cloud
+                 at the end. -->
+            <span class="r-star"><DocStar sourceId={h.sourceId} doc={h} onclick={() => starDoc(h.sourceId, h)} /></span>
+            {#if h.cloud === "cloudOnly"}
+              <span class="r-marks"><CloudBadge sourceId={h.sourceId} doc={h} size={13} onclick={() => downloadDoc(h.sourceId, h)} /></span>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -1564,6 +1709,25 @@
           title={folderFav ? m.main.unfavoriteFolder : m.main.favoriteFolder}
           aria-pressed={folderFav}>{folderFav ? "★" : "☆"}</button
         >
+        {#if folderMode !== "list"}
+          <label class="sort-pick" title={m.filters.sort}>
+            <span class="muted">{m.filters.sort}</span>
+            <select
+              value={sort.key + (sort.desc ? ":desc" : ":asc")}
+              onchange={(e) => {
+                const [k, d] = e.currentTarget.value.split(":");
+                sortBy(k as SortKey, d === "desc");
+              }}
+            >
+              <option value="name:asc">{m.main.name}</option>
+              <option value="date:desc">{m.filters.dateNewest}</option>
+              <option value="date:asc">{m.filters.dateOldest}</option>
+              <option value="modified:desc">{m.filters.modifiedNewest}</option>
+              <option value="size:desc">{m.filters.sizeBiggest}</option>
+              <option value="kind:asc">{m.main.kind}</option>
+            </select>
+          </label>
+        {/if}
         <span class="view-switch" role="group" aria-label={m.main.view}>
           {#each [["list", "view-list", m.main.list], ["icons", "view-grid", m.main.largeIcons], ["gallery", "view-gallery", m.main.gallery]] as const as [mode, icon, label] (mode)}
             <button class:on={folderMode === mode} onclick={() => setFolderMode(mode)} title={label} aria-label={label} aria-pressed={folderMode === mode}>
@@ -1583,7 +1747,7 @@
         <PictureView
           mode={folderMode}
           sourceId={source.id}
-          {entries}
+          entries={sortedEntries}
           selectedRelPath={selected?.sourceId === source.id ? selected.entry.relPath : null}
           picked={pickedIn(source.id)}
           dragGroup={(e) => dragGroup(source.id, e.relPath)}
@@ -1605,14 +1769,17 @@
         <table>
           <thead>
             <tr>
-              <th class="name">{m.main.name}</th>
-              <th>{m.main.kind}</th>
-              <th class="num">{m.main.size}</th>
-              <th>{m.main.modified}</th>
+              {#each [["name", m.main.name, "name"], ["kind", m.main.kind, "kind"], ["size", m.main.size, "num size"], ["date", m.filters.date, "date"], ["modified", m.main.modified, "modified"]] as const as [key, label, cls] (key)}
+                <th class={cls} aria-sort={sort.key === key ? (sort.desc ? "descending" : "ascending") : "none"}>
+                  <button class="sort-head" class:on={sort.key === key} onclick={() => sortBy(key)} title={m.filters.sortBy(label)}>
+                    {label}{#if sort.key === key}<span class="sort-arrow">{sort.desc ? "▼" : "▲"}</span>{/if}
+                  </button>
+                </th>
+              {/each}
             </tr>
           </thead>
           <tbody>
-            {#each entries as e (e.relPath)}
+            {#each sortedEntries as e (e.relPath)}
               <tr
                 class="doc-host"
                 class:selected={isPicked(source.id, e.relPath)}
@@ -1649,9 +1816,10 @@
                     <CloudBadge sourceId={source.id} doc={e} onclick={() => downloadDoc(source.id, e)} />
                   {/if}
                 </td>
-                <td class="muted">{kindLabel(e.isDir ? "folder" : e.kind)}</td>
+                <td class="muted kind">{kindLabel(e.isDir ? "folder" : e.kind)}</td>
                 <td class="num muted">{e.isDir || (e.cloud === "cloudOnly" && !e.size) ? "" : formatSize(e.size)}</td>
-                <td class="muted">{formatDate(e.modifiedMs)}</td>
+                <td class="muted">{e.isDir ? "" : formatDocDay(e.documentDate)}</td>
+                <td class="muted" title={formatDate(e.modifiedMs)}>{formatDay(e.modifiedMs)}</td>
               </tr>
             {/each}
           </tbody>
@@ -2308,15 +2476,19 @@
     overflow: auto;
     padding: 12px 16px;
     min-width: 0;
+    /* The list's columns follow the middle's width (#103). */
+    container: documents / inline-size;
   }
   .searchbar {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     align-items: center;
     margin-bottom: 12px;
   }
   .searchbar input {
-    flex: 1;
+    flex: 1 1 200px;
+    min-width: 0;
     font: inherit;
     padding: 6px 10px;
     border: 1px solid var(--border);
@@ -2335,6 +2507,45 @@
     border-radius: 12px;
     padding: 3px 10px;
     white-space: nowrap;
+  }
+  /* Search filters (#103). */
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: -4px 0 12px;
+    font-size: 12px;
+  }
+  .filter-row select,
+  .filter-row input {
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    padding: 3px 6px;
+  }
+  .results-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .results-head .result-count {
+    flex: 1;
+  }
+  .order-switch button {
+    white-space: nowrap;
+    font-size: 12px;
+    padding: 2px 8px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    border-radius: 5px;
+  }
+  .order-switch button.on {
+    background: var(--bg);
+    color: var(--text);
   }
   .error {
     display: flex;
@@ -2385,14 +2596,63 @@
     padding: 4px 8px;
     border-bottom: 1px solid var(--border);
   }
-  th:nth-child(2) {
-    width: 70px;
+  th.kind {
+    width: 62px;
   }
-  th:nth-child(3) {
-    width: 80px;
+  th.size {
+    width: 64px;
   }
-  th:nth-child(4) {
-    width: 170px;
+  th.date,
+  th.modified {
+    width: 100px;
+  }
+  /* A narrow middle keeps room for names: Kind goes first. */
+  @container documents (max-width: 640px) {
+    th.kind,
+    td.kind {
+      display: none;
+    }
+  }
+  /* Column headers sort the folder (#103). */
+  .sort-head {
+    all: unset;
+    cursor: default;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    max-width: 100%;
+  }
+  .sort-head:hover,
+  .sort-head.on {
+    color: var(--text);
+  }
+  .sort-head:focus-visible {
+    outline: 2px solid var(--accent-soft);
+  }
+  th.num .sort-head {
+    justify-content: flex-end;
+    width: 100%;
+  }
+  .sort-arrow {
+    font-size: 8px;
+  }
+  .sort-pick {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    font-size: 12px;
+  }
+  .sort-pick select {
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    padding: 2px 6px;
+  }
+  .sort-pick + .view-switch {
+    margin-left: 8px;
   }
   td {
     padding: 4px 8px;
@@ -2518,9 +2778,17 @@
     position: relative;
   }
   .result {
-    padding-right: 56px;
+    padding-right: 32px;
   }
-  /* The star and cloud, at the end of a result's title line. */
+  /* A result's star, over the space kept for it after the file icon
+     (10px padding + 15px icon + 6px gap), as in the folder list. */
+  .r-star {
+    position: absolute;
+    top: 9px;
+    left: 31px;
+    display: flex;
+  }
+  /* The cloud, at the end of a result's title line. */
   .r-marks {
     position: absolute;
     top: 9px;

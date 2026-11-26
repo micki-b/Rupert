@@ -116,6 +116,12 @@
       <a href="#viewer">Seitenansicht</a>.
     </li>
   </ul>
+  <p>
+    <b>Sortieren:</b> Klicken Sie in der Liste auf einen Spaltentitel (Name, Größe, Datum, Geändert und Art, wenn Platz
+    ist), um danach zu sortieren; ein weiterer Klick kehrt die Reihenfolge um. <b>Datum</b> ist das Datum auf dem Dokument
+    (sonst das Datum seiner Datei). Bei großen Symbolen und in der Galerie wählen Sie die Reihenfolge unter
+    <b>Sortieren</b> neben den Darstellungstasten. Ordner bleiben oben, und die Reihenfolge gilt für alle Ordner.
+  </p>
   <h3 id="viewer">Die Seitenansicht</h3>
   <p>
     Klicken Sie auf eine Seite (in der Galerie oder in der Vorschau des Eingangs), um sie groß zu sehen. Zoomen Sie mit
@@ -341,6 +347,14 @@
     Dokumente, in allen Bibliotheksordnern. Jedes eingegebene Wort muss vorkommen; das letzte darf ein Wortanfang sein,
     sodass <kbd>impel</kbd> „Impeller“ findet. Akzente und Umlaute spielen keine Rolle. Mit <kbd>Esc</kbd> löschen Sie die
     Suche.
+  </p>
+  <p>
+    Unter dem Suchfeld grenzen Sie die Suche ein: nach <b>Datum</b> (dieses Jahr, letztes Jahr oder ein gewählter
+    Zeitraum; das Datum auf dem Dokument, sonst das seiner Datei), nach <b>Art</b> (PDF, Bild, Office, Text, E-Mail) und
+    nach <b>Ort</b>: überall, in der Quelle des geöffneten Ordners oder im geöffneten Ordner mit seinen Unterordnern. Das
+    geht auch ohne Suchwörter: <b>Letztes Jahr</b> und <b>PDF</b> zeigen alle PDFs des letzten Jahres. <b>Beste
+    Treffer</b> und <b>Neueste</b> über den Ergebnissen ändern die Reihenfolge. <kbd>Esc</kbd> löscht Suchwörter und
+    Filter.
   </p>
   <p>In den Ergebnissen führt <b>In Rupert zeigen</b> (bei den Angaben) zum Ordner des Dokuments.</p>
   <h3>Tags</h3>
