@@ -704,9 +704,11 @@ async fn page_count(
     let state = app.state::<AppState>();
     let source = state.source(&source_id)?;
     let (thumbs, extractor) = (state.thumbs.clone(), state.extractor.clone());
+    let in_inbox = in_inbox(&state, &source_id, &rel_path);
     tauri::async_runtime::spawn_blocking(move || {
         let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
-        thumbs.page_count(&extractor, &path).map_err(err)
+        let anyway = in_inbox && intake::readable_anyway(&path);
+        thumbs.page_count(&extractor, &path, anyway).map_err(err)
     })
     .await
     .map_err(err)?
@@ -1558,13 +1560,27 @@ async fn page_image(
     let state = app.state::<AppState>();
     let source = state.source(&source_id)?;
     let extractor = state.extractor.clone();
+    let in_inbox = in_inbox(&state, &source_id, &rel_path);
     tauri::async_runtime::spawn_blocking(move || {
         let path = rupert_core::resolve(&source.root, &rel_path).map_err(err)?;
-        let image = rupert_core::thumbs::large_page(&extractor, &path, page, side).map_err(err)?;
+        let anyway = in_inbox && intake::readable_anyway(&path);
+        let image =
+            rupert_core::thumbs::large_page(&extractor, &path, page, side, anyway).map_err(err)?;
         Ok(image.map(|(bytes, mime)| format!("data:{mime};base64,{}", base64(&bytes))))
     })
     .await
     .map_err(err)?
+}
+
+/// Whether a document is a scan waiting in the inbox folder (which Rupert
+/// reads even where it can't tell whether it's on this computer).
+fn in_inbox(state: &AppState, source_id: &str, rel_path: &str) -> bool {
+    let inbox = state.settings.lock().unwrap().get().inbox.clone();
+    inbox.is_some_and(|i| {
+        i.source_id == source_id
+            && rel_path.rsplit_once('/').map(|(dir, _)| dir).unwrap_or("")
+                == i.rel_path.trim_matches('/')
+    })
 }
 
 fn base64(bytes: &[u8]) -> String {
