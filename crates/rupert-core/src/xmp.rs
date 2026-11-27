@@ -36,6 +36,9 @@ enum Prop {
     RupertAmount,
     RupertCurrency,
     RupertDue,
+    RupertRemind,
+    RupertDone,
+    RupertSnoozed,
     /// Any other `rupert:` property (written by a newer Rupert). Managed, so
     /// it is replaced rather than duplicated.
     RupertOther,
@@ -55,6 +58,9 @@ fn prop(ns: &str, local: &str) -> Option<Prop> {
         (NS_RUPERT, "amount") => Prop::RupertAmount,
         (NS_RUPERT, "currency") => Prop::RupertCurrency,
         (NS_RUPERT, "dueDate") => Prop::RupertDue,
+        (NS_RUPERT, "remind") => Prop::RupertRemind,
+        (NS_RUPERT, "done") => Prop::RupertDone,
+        (NS_RUPERT, "snoozedUntil") => Prop::RupertSnoozed,
         (NS_RUPERT, _) => Prop::RupertOther,
         _ => return None,
     })
@@ -207,6 +213,9 @@ fn read_description_attributes(reader: &NsReader<&[u8]>, e: &BytesStart, out: &m
             Prop::RupertAmount => out.amount = Some(value).filter(|s| !s.is_empty()),
             Prop::RupertCurrency => out.currency = Some(value).filter(|s| !s.is_empty()),
             Prop::RupertDue => out.due_date = Some(value).filter(|s| !s.is_empty()),
+            Prop::RupertRemind => out.remind = Some(value).filter(|s| !s.is_empty()),
+            Prop::RupertDone => out.done = Some(value).filter(|s| !s.is_empty()),
+            Prop::RupertSnoozed => out.snoozed = Some(value).filter(|s| !s.is_empty()),
             _ => {}
         }
     }
@@ -274,6 +283,9 @@ fn finish(out: &mut PartialMeta, c: Collecting) {
         Some(Prop::RupertAmount) => out.amount = Some(single()).filter(|s| !s.is_empty()),
         Some(Prop::RupertCurrency) => out.currency = Some(single()).filter(|s| !s.is_empty()),
         Some(Prop::RupertDue) => out.due_date = Some(single()).filter(|s| !s.is_empty()),
+        Some(Prop::RupertRemind) => out.remind = Some(single()).filter(|s| !s.is_empty()),
+        Some(Prop::RupertDone) => out.done = Some(single()).filter(|s| !s.is_empty()),
+        Some(Prop::RupertSnoozed) => out.snoozed = Some(single()).filter(|s| !s.is_empty()),
         _ => {}
     }
 }
@@ -329,6 +341,10 @@ fn description(meta: &DocMeta, now: &str) -> String {
         ("amount", &meta.amount),
         ("currency", &meta.currency),
         ("dueDate", &meta.due_date),
+        // #109: how early to remind, done, and "remind me later".
+        ("remind", &meta.remind),
+        ("done", &meta.done),
+        ("snoozedUntil", &meta.snoozed),
     ] {
         if let Some(v) = value {
             s.push_str(&format!(
@@ -475,6 +491,9 @@ mod tests {
             amount: Some("1240.50".into()),
             currency: Some("USD".into()),
             due_date: Some("2026-11-24".into()),
+            remind: Some("2w".into()),
+            done: Some("2026-11-20".into()),
+            snoozed: Some("2026-11-21".into()),
         }
     }
 

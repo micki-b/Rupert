@@ -701,4 +701,26 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Minimize", "Minimizar"),
     ("Zoom", "Zoom"),
     ("Help", "Ayuda"),
+    // Reminders (#109).
+    (
+        "This document has no due date.",
+        "Este documento no tiene fecha de vencimiento.",
+    ),
+    ("Not available here.", "No está disponible acá."),
+    ("Mark done", "Resuelto"),
+    ("Show", "Mostrar"),
+    ("Tomorrow", "Mañana"),
+    ("Overdue by {0} days", "Vencido hace {0} días"),
+    ("Overdue since yesterday", "Vencido desde ayer"),
+    ("Due today", "Vence hoy"),
+    ("Due tomorrow", "Vence mañana"),
+    ("Due in {0} days", "Vence en {0} días"),
+    ("Overdue: {0}", "Vencidos: {0}"),
+    ("Due within a week: {0}", "Vencen esta semana: {0}"),
+    ("{0} more", "{0} más"),
+    ("Coming up", "Próximos vencimientos"),
+    (
+        "\"{0}\" isn't a reminder time",
+        "«{0}» no es un plazo de aviso",
+    ),
 ];

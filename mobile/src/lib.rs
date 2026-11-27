@@ -717,6 +717,7 @@ fn list_remote(source_id: &str, rel_path: &str, state: &AppState) -> CmdResult<V
             amount: h.amount,
             currency: h.currency,
             due_date: h.due_date,
+            done: h.done,
         }),
         entry: Entry {
             name: h.name,

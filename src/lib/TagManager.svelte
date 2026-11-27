@@ -2,6 +2,7 @@
   // The tag manager: pick tags, then rename (one tag), merge (several) or
   // delete them in every document that has them. Shows what will change,
   // including online-only files that would have to be downloaded.
+  import { shortCount } from "#lib/format.ts";
   import { onMount } from "svelte";
   import { ask } from "@tauri-apps/plugin-dialog";
   import {
@@ -163,7 +164,7 @@
               <label class:on={isPicked(t.tag)}>
                 <input type="checkbox" checked={isPicked(t.tag)} onchange={() => toggle(t.tag)} disabled={working} />
                 <span class="name"># {t.tag}</span>
-                <span class="count">{t.count}</span>
+                <span class="count">{shortCount(t.count)}</span>
               </label>
             </li>
           {:else}
@@ -179,7 +180,7 @@
           <h2>{m.tags.selected(picked.length)}</h2>
           <ul class="picked">
             {#each picked as t (t)}
-              <li><span># {t}</span><span class="count">{countOf(t)}</span></li>
+              <li><span># {t}</span><span class="count">{shortCount(countOf(t))}</span></li>
             {/each}
           </ul>
           <label class="field">

@@ -11,12 +11,13 @@
   import TextRecognition from "#lib/settings/TextRecognition.svelte";
   import LocalAi from "#lib/settings/LocalAi.svelte";
   import Assistant from "#lib/settings/Assistant.svelte";
+  import Reminders from "#lib/settings/Reminders.svelte";
   import { api, onSettingsChanged, onSettingsShow, onSourcesChanged, type Settings, type Source } from "#lib/api.ts";
   import { updates } from "#lib/updates.svelte.ts";
   import { loadLanguage, m } from "#lib/i18n/index.ts";
 
-  type TabId = "general" | "library" | "inbox" | "text" | "local-ai" | "assistant";
-  type IconName = "gear" | "library" | "inbox" | "text-scan" | "chip" | "chat";
+  type TabId = "general" | "library" | "inbox" | "reminders" | "text" | "local-ai" | "assistant";
+  type IconName = "gear" | "library" | "inbox" | "calendar" | "text-scan" | "chip" | "chat";
   const TAB_KEY = "rupert.settingsTab";
 
   let settings = $state<Settings | null>(null);
@@ -36,6 +37,7 @@
       { id: "general", label: s.general, icon: "gear", words: [s.language, s.languageNote, ...(appStore ? [] : [s.updates, s.checkAutomatically, s.checkNow])] },
       { id: "library", label: m.main.library, icon: "library", words: [s.libraryNote, s.sending, s.sendNotes, s.sendNotesNote, m.main.showAllTypes, m.main.downloadToIndex, m.main.indexFolder, m.main.rename, m.main.removeFromRupert, m.health.keptTitle, m.health.duplicates, ...sources.map((x) => x.name)] },
       { id: "inbox", label: s.inbox, icon: "inbox", words: [s.inboxIntro, s.inboxFolder, s.suggestions, s.suggest, s.fileNames, s.pattern, s.printEntry, s.printEntryMac, s.printEntryWindows, "PDF"] },
+      { id: "reminders", label: s.reminders, icon: "calendar", words: [m.reminders.title, m.reminders.enable, m.reminders.notifications, m.reminders.summary, m.reminders.each, m.reminders.dockBadge, m.reminders.bills, m.reminders.others, m.details.dueDate, "Dock"] },
       { id: "text", label: s.textRecognition, icon: "text-scan", words: [s.recognize, s.ocrNote, "OCR", "Tesseract"] },
       { id: "local-ai", label: s.localAi, icon: "chip", words: [s.server, s.address, s.model, "Apple Intelligence", "LM Studio", "Ollama"] },
       { id: "assistant", label: s.assistant, icon: "chat", words: [s.model, s.providerAnthropic, s.providerOpenai, s.providerChatgpt, s.apiKey, "Claude", "ChatGPT", m.main.askRupert] },
@@ -229,6 +231,8 @@
         <Library bind:settings {sources} {os} onchanged={loadSources} {onerror} />
       {:else if tab === "inbox"}
         <Inbox bind:settings {sources} {os} {appStore} {onerror} />
+      {:else if tab === "reminders"}
+        <Reminders bind:settings {os} />
       {:else if tab === "text"}
         <TextRecognition bind:settings />
       {:else if tab === "local-ai"}

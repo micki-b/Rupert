@@ -388,6 +388,9 @@ pub(crate) mod tests {
             amount: Some("84.20".into()),
             currency: Some("EUR".into()),
             due_date: Some("2026-11-15".into()),
+            remind: Some("1w".into()),
+            done: None,
+            snoozed: None,
         }
     }
 

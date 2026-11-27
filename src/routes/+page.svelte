@@ -17,11 +17,13 @@
     onMenuCheckUpdates,
     onSettingsChanged,
     onSourcesChanged,
+    onRemindersShow,
     providerLabel,
     revealLabel,
     editionLabel,
     snippetParts,
     type AppInfo,
+    type ReminderCounts,
     type Filed,
     type Settings,
     type TagEditReport,
@@ -47,7 +49,7 @@
     onShareProgress,
   } from "#lib/api.ts";
   import { changes } from "#lib/changes.svelte.ts";
-  import { addUp, formatDate, formatDay, formatMoney, formatSize, formatTotals, kindLabel } from "#lib/format.ts";
+  import { addUp, formatDate, formatDay, formatMoney, formatSize, formatTotals, kindLabel, shortCount } from "#lib/format.ts";
   import { senderList } from "#lib/details.svelte.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import MoveDialog from "#lib/MoveDialog.svelte";
@@ -76,6 +78,7 @@
   import ExportDialog from "#lib/ExportDialog.svelte";
   import ReadDetailsDialog from "#lib/ReadDetailsDialog.svelte";
   import Health from "#lib/Health.svelte";
+  import ComingUp from "#lib/ComingUp.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import DocPreview from "#lib/DocPreview.svelte";
   import ListHeader from "#lib/ListHeader.svelte";
@@ -501,6 +504,7 @@
     lastChange = null;
     inboxOpen = false;
     healthOpen = false;
+    comingUpOpen = false;
     copyProblems = null;
     query = "";
     selectedTags = [];
@@ -529,8 +533,11 @@
     loadInboxCount();
     senderList.ensure();
     loadHealthBadge();
+    loadComingCounts(true);
+    api.remindersTakeShown().then(showReminder).catch(() => {});
 
     const unlisten = [
+      onRemindersShow(showReminder),
       onDirChanged((batch) => changes.push(batch)),
       onMenuImport(() => (importing = true)),
       onMenuSettings(() => api.openSettings()),
@@ -541,6 +548,7 @@
       // Settings live in their own window (#80): follow what changes there.
       onSettingsChanged(async (s) => {
         appSettings = s;
+        loadComingCounts(true);
         await loadLanguage();
         // The menu is built again in the new language.
         api.setPreviewMenu(!pagePreview.hidden).catch(() => {});
@@ -578,6 +586,7 @@
         loadIndexInfo();
         senderList.refresh();
         loadHealthBadge();
+        loadComingCounts();
       }),
       getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (focused) loadSources(true);
@@ -803,6 +812,7 @@
   function openHealth() {
     lastChange = null;
     inboxOpen = false;
+    comingUpOpen = false;
     query = "";
     selectedTags = [];
     favoritesOnly = false;
@@ -810,8 +820,52 @@
     healthOpen = true;
   }
 
+  // MARK: - Coming up (#109)
+
+  let comingUpOpen = $state(false);
+  /** For the sidebar: overdue or due within 7 days. */
+  let comingCounts = $state<ReminderCounts | null>(null);
+  /** A document a notification asked to show, selected once listed. */
+  let comingFocus = $state<string | null>(null);
+  const remindersOn = $derived(appSettings?.reminders?.enabled !== false);
+
+  function openComingUp() {
+    lastChange = null;
+    inboxOpen = false;
+    healthOpen = false;
+    query = "";
+    selectedTags = [];
+    favoritesOnly = false;
+    selected = null;
+    comingUpOpen = true;
+  }
+
+  /** A notification was clicked: Coming up, with its document selected. */
+  function showReminder(t: { sourceId: string | null; relPath: string | null } | null) {
+    if (!t || !remindersOn) return;
+    openComingUp();
+    comingFocus = t.sourceId && t.relPath ? keyOf(t.sourceId, t.relPath) : null;
+  }
+
+  let comingTimer: ReturnType<typeof setTimeout> | undefined;
+  function loadComingCounts(soon = false) {
+    clearTimeout(comingTimer);
+    comingTimer = setTimeout(
+      async () => {
+        comingCounts = await api.remindersCounts().catch(() => comingCounts);
+      },
+      soon ? 0 : 1500,
+    );
+  }
+
+  // Turned off in Settings: leave Coming up.
+  $effect(() => {
+    if (!remindersOn && comingUpOpen) comingUpOpen = false;
+  });
+
   function filterFavorites() {
     healthOpen = false;
+    comingUpOpen = false;
     inboxOpen = false;
     query = "";
     favoritesOnly = !favoritesOnly;
@@ -835,6 +889,7 @@
   function openInbox() {
     lastChange = null;
     healthOpen = false;
+    comingUpOpen = false;
     inboxOpen = true;
     selected = null;
   }
@@ -1849,18 +1904,26 @@
     <button class="lib-item" class:active={inboxOpen} class:drop={inboxDropOver} onclick={openInbox} {...inboxDrop}>
       <span class="lib-icon inbox-icon"><Icon name="inbox" size={14} /></span>
       <span class="label">{m.main.inbox}</span>
-      {#if !appSettings?.inbox}<span class="count">{m.main.setUp}</span>{:else if inboxCount}<span class="count">{inboxCount}</span>{/if}
+      {#if !appSettings?.inbox}<span class="count">{m.main.setUp}</span>{:else if inboxCount}<span class="count">{shortCount(inboxCount)}</span>{/if}
     </button>
+    <!-- Coming up (#109): documents with a due date soon. -->
+    {#if remindersOn}
+      <button class="lib-item" class:active={comingUpOpen} onclick={openComingUp}>
+        <span class="lib-icon coming-icon"><Icon name="calendar" size={14} /></span>
+        <span class="label">{m.reminders.title}</span>
+        {#if comingCounts?.soon}<span class="count" class:alert={comingCounts.overdue > 0}>{shortCount(comingCounts.soon)}</span>{/if}
+      </button>
+    {/if}
     <!-- Library health (#113): what could be better, and the fixes. -->
     <button class="lib-item" class:active={healthOpen} onclick={openHealth}>
       <span class="lib-icon health-icon">♥</span>
       <span class="label">{m.health.title}</span>
-      {#if healthBadge}<span class="count">{healthBadge}</span>{/if}
+      {#if healthBadge}<span class="count">{shortCount(healthBadge)}</span>{/if}
     </button>
     <button class="lib-item" class:active={favoritesOnly} onclick={filterFavorites}>
       <span class="lib-icon star">★</span>
       <span class="label">{m.main.favorites}</span>
-      {#if stats?.favorites}<span class="count">{stats.favorites}</span>{/if}
+      {#if stats?.favorites}<span class="count">{shortCount(stats.favorites)}</span>{/if}
     </button>
     {#each favoriteFolders as f (f.sourceId + "/" + f.relPath)}
       <button
@@ -1893,7 +1956,7 @@
         onclick={() => setSidebarView("tags")}
       >
         <Icon name="tag" size={16} />
-        {#if selectedTags.length}<span class="badge">{selectedTags.length}</span>{/if}
+        {#if selectedTags.length}<span class="badge">{shortCount(selectedTags.length)}</span>{/if}
       </button>
     </div>
 
@@ -2186,7 +2249,7 @@
         {#if fromFilter && !senderList.names.some((n) => n.toLowerCase() === fromFilter!.toLowerCase())}
           <option value={fromFilter}>{fromFilter}</option>
         {/if}
-        {#each senderList.list as s (s.tag)}<option value={s.tag}>{s.tag} ({s.count})</option>{/each}
+        {#each senderList.list as s (s.tag)}<option value={s.tag}>{s.tag} ({shortCount(s.count)})</option>{/each}
       </select>
       <select value={dueFilter ?? ""} onchange={(e) => (dueFilter = (e.currentTarget.value || null) as typeof dueFilter)}>
         <option value="">{m.filters.anyDue}</option>
@@ -2253,7 +2316,7 @@
                 {#if h.documentDate}<span>· {h.documentDate}</span>{/if}
                 {#if h.sender}<span>· {h.sender}</span>{/if}
                 {#if h.amount}<span>· {formatMoney(h.amount, h.currency)}</span>{/if}
-                {#if h.dueDate}<span class:overdue={h.dueDate < todayIso()}>· {m.details.dueOn(formatDocDay(h.dueDate))}</span>{/if}
+                {#if h.dueDate}<span class:overdue={!h.done && h.dueDate < todayIso()}>· {m.details.dueOn(formatDocDay(h.dueDate))}</span>{/if}
                 {@render tagChips(h.tags)}
               </div>
             </button>
@@ -2267,6 +2330,17 @@
           </li>
         {/each}
       </ul>
+    {:else if comingUpOpen}
+      <ComingUp
+        tick={indexTick}
+        selectedKey={selected ? keyOf(selected.sourceId, selected.entry.relPath) : null}
+        focus={comingFocus}
+        onfocused={() => (comingFocus = null)}
+        onselect={(h) => (selected = { sourceId: h.sourceId, entry: h })}
+        onopen={(h) => activate(h.sourceId, h)}
+        onshowinfolder={(h) => showInFolder({ sourceId: h.sourceId, entry: h })}
+        oncounts={(c) => (comingCounts = c)}
+      />
     {:else if healthOpen}
       <Health
         {sources}
@@ -2424,7 +2498,7 @@
                   {:else if c === "amount"}
                     <td class="num muted">{formatMoney(e.amount, e.currency)}</td>
                   {:else if c === "due"}
-                    <td class="muted" class:overdue={!!e.dueDate && e.dueDate < todayIso()}>{formatDocDay(e.dueDate)}</td>
+                    <td class="muted" class:overdue={!!e.dueDate && !e.done && e.dueDate < todayIso()}>{formatDocDay(e.dueDate)}</td>
                   {:else}
                     <td class="muted" title={formatDate(e.modifiedMs)}>{formatDay(e.modifiedMs)}</td>
                   {/if}
@@ -2910,8 +2984,22 @@
     color: var(--text);
     text-decoration: underline;
   }
-  .health-icon {
+  .health-icon,
+  .coming-icon {
     color: var(--accent-strong);
+  }
+  .coming-icon {
+    display: inline-flex;
+  }
+  /* Something in Coming up is overdue. */
+  .count.alert {
+    color: white;
+    background: var(--danger);
+    border-radius: 8px;
+    padding: 0 6px;
+    /* The digit lines up with the plain counts above and below; the pill
+       reaches into the row's padding. */
+    margin-right: -6px;
   }
   .lib-item.active {
     background: var(--accent-soft);

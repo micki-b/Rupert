@@ -7,6 +7,7 @@
     { id: "library", title: "Your library" },
     { id: "finding", title: "Finding documents" },
     { id: "details", title: "Titles, tags and dates" },
+    { id: "reminders", title: "Coming up and reminders" },
     { id: "tags", title: "Managing tags" },
     { id: "inbox", title: "The inbox" },
     { id: "scanning", title: "Scanning" },
@@ -491,6 +492,40 @@
     (<b>Stop</b> ends it). Check the table, change anything, then save the ticked rows. Online-only documents get the
     details the next time they're on this computer. ScanSnap Home receipts bring their vendor and amount along when
     imported.
+  </p>
+</section>
+
+<!-- MARK: Coming up -->
+<section id="reminders">
+  <h2>Coming up and reminders</h2>
+  <p>
+    <b>Coming up</b> in the sidebar lists documents with a <b>Due date</b> once their reminder time has started: bills
+    a week ahead, passports, contracts and warranties three months ahead (change both in <b>Settings ▸ Reminders</b>).
+    Overdue ones come first, then the next 7 days, the next 30 days and later ones. The number beside it counts what
+    is overdue or due within 7 days, and turns red when something is overdue. <b>Show</b> switches to everything with a
+    date, or to the documents marked done.
+  </p>
+  <p>
+    <b>Done</b> (paid, renewed or dealt with) takes a document off the list; it stays in its folder. <b>⋯</b> has
+    <b>Remind me later</b> (tomorrow, in 3 days, next week), <b>Add to Calendar…</b> (an event on the due date with an
+    alarm when the reminder starts, for whichever calendar app you use) and <b>Show in folder</b>. In <b>Details</b>,
+    <b>Remind me</b> sets how early one document shows up, and the <b>Done</b> box marks it done or not. All of this is
+    saved in the document, so your other computers show the same list.
+  </p>
+  {#if mac || windows}
+    <p>
+      To be reminded outside Rupert, turn on <b>Settings ▸ Reminders ▸ Notify me</b>: <b>One summary a day</b> (on days
+      something is due, at the time you choose) or <b>One for each document</b>{#if mac}, with <b>Mark done</b>,
+      <b>Show</b> and <b>Tomorrow</b> buttons{/if}. Rupert hands them to {mac ? "macOS" : "Windows"} ahead of time, so
+      they arrive even when Rupert is closed.
+      {#if mac}macOS asks once whether Rupert may notify you; banners, sounds and Focus are in System Settings ▸
+        Notifications ▸ Rupert. <b>Show the count on Rupert's Dock icon</b> puts the number from the sidebar on the
+        Dock.{/if}
+    </p>
+  {/if}
+  <p>
+    Don't need any of it? Turn off <b>Reminders and Coming up</b> at the top of <b>Settings ▸ Reminders</b>: Coming up
+    leaves the sidebar and Details no longer shows <b>Remind me</b> or <b>Done</b>. Due dates stay.
   </p>
 </section>
 

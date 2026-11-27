@@ -116,3 +116,13 @@ export function tidyAmountInput(text: string): string {
   const a = parseAmount(text);
   return a === null ? text : formatAmountInput(a);
 }
+
+/** A count beside a sidebar item, a tag or on the Dock icon: in full up to
+ * 999, then 1.2K … 9.9K, 12K … 999K, 1.2M (one decimal below ten, rounded
+ * down so it never says more than there is; the language's decimal mark). */
+export function shortCount(n: number): string {
+  if (n < 1000) return String(n);
+  const [value, unit] = n < 1_000_000 ? [n / 1000, "K"] : [n / 1_000_000, "M"];
+  const shown = value < 10 ? Math.floor(value * 10) / 10 : Math.floor(value);
+  return shown.toLocaleString(locale(), { maximumFractionDigits: 1 }) + unit;
+}
