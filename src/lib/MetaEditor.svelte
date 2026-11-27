@@ -6,10 +6,22 @@
   import Icon from "./Icon.svelte";
   import NotesBox from "#lib/NotesBox.svelte";
   import { m } from "#lib/i18n/index.ts";
+  import { formatAmountInput, formatIsoDay, formatMoney, parseAmount, tidyAmountInput } from "#lib/format.ts";
+  import { CURRENCIES, senderList } from "#lib/details.svelte.ts";
 
   let { sourceId, entry }: { sourceId: string; entry: Entry } = $props();
 
-  type Form = { title: string; documentDate: string; tags: string[]; notes: string; favorite: boolean };
+  type Form = {
+    title: string;
+    documentDate: string;
+    tags: string[];
+    notes: string;
+    favorite: boolean;
+    sender: string;
+    amount: string;
+    currency: string;
+    dueDate: string;
+  };
 
   let record = $state<MetaRecord | null>(null);
   let available = $state(true);
@@ -23,7 +35,17 @@
   const dirty = $derived(JSON.stringify(form) !== JSON.stringify(saved) || tagDraft.trim() !== "");
 
   function empty(): Form {
-    return { title: "", documentDate: "", tags: [], notes: "", favorite: false };
+    return {
+      title: "",
+      documentDate: "",
+      tags: [],
+      notes: "",
+      favorite: false,
+      sender: "",
+      amount: "",
+      currency: "",
+      dueDate: "",
+    };
   }
 
   function toForm(d: DocMeta): Form {
@@ -33,6 +55,10 @@
       tags: [...d.tags],
       notes: d.notes ?? "",
       favorite: d.favorite,
+      sender: d.sender ?? "",
+      amount: formatAmountInput(d.amount),
+      currency: d.currency ?? "",
+      dueDate: d.dueDate ?? "",
     };
   }
 
@@ -63,6 +89,8 @@
       loading = false;
     }
   }
+
+  senderList.ensure();
 
   // Reload only when a different file is selected, not when the folder
   // listing refreshes (which replaces the `entry` object).
@@ -142,8 +170,13 @@
         notes: form.notes || null,
         documentDate: form.documentDate || null,
         favorite: form.favorite,
+        sender: form.sender.trim() || null,
+        amount: form.amount.trim() ? (parseAmount(form.amount) ?? form.amount.trim()) : null,
+        currency: form.amount.trim() ? form.currency.trim() || null : null,
+        dueDate: form.dueDate || null,
       };
       apply(await api.writeMeta(sourceId, entry.relPath, meta));
+      senderList.refresh();
       available = true;
     } catch (e) {
       error = String(e);
@@ -186,6 +219,9 @@
           known.documentDate && m.details.dated(known.documentDate),
           known.favorite && m.details.favorite,
           known.tags.length && known.tags.map((t) => `#${t}`).join(" "),
+          known.sender && m.details.fromWho(known.sender),
+          known.amount && formatMoney(known.amount, known.currency),
+          known.dueDate && m.details.dueOn(formatIsoDay(known.dueDate)),
           known.notes,
         ]
           .filter(Boolean)
@@ -224,6 +260,45 @@
         disabled={loading}
       />
     </label>
+
+    <!-- #108: who it's from, the amount on it, and when it's due. -->
+    <label class="field">
+      <span>{m.details.sender}</span>
+      <input bind:value={form.sender} list="rupert-senders" placeholder={m.details.senderHint} disabled={loading} />
+    </label>
+    <div class="money">
+      <label class="field grow">
+        <span>{m.details.amount}</span>
+        <input
+          bind:value={form.amount}
+          inputmode="decimal"
+          placeholder={formatAmountInput("0.00")}
+          disabled={loading}
+          onblur={() => (form.amount = tidyAmountInput(form.amount))}
+        />
+      </label>
+      <label class="field currency">
+        <span>{m.details.currency}</span>
+        <input
+          bind:value={form.currency}
+          list="rupert-currencies"
+          maxlength="3"
+          placeholder="EUR"
+          disabled={loading || !form.amount.trim()}
+          oninput={() => (form.currency = form.currency.toUpperCase())}
+        />
+      </label>
+    </div>
+    <label class="field">
+      <span>{m.details.dueDate}</span>
+      <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} disabled={loading} />
+    </label>
+    <datalist id="rupert-senders">
+      {#each senderList.names as name (name)}<option value={name}></option>{/each}
+    </datalist>
+    <datalist id="rupert-currencies">
+      {#each CURRENCIES as c (c)}<option value={c}></option>{/each}
+    </datalist>
 
     <div class="field">
       <span id="tags-label">{m.details.tags}</span>
@@ -307,6 +382,15 @@
   .tags:focus-within {
     outline: 2px solid var(--accent-soft);
     border-color: var(--accent);
+  }
+  .money {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+  .currency {
+    width: 64px;
+    flex: none;
   }
   .title-row {
     display: flex;

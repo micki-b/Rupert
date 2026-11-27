@@ -713,6 +713,10 @@ fn list_remote(source_id: &str, rel_path: &str, state: &AppState) -> CmdResult<V
             tags: h.tags,
             favorite: h.favorite,
             document_date: h.document_date,
+            sender: h.sender,
+            amount: h.amount,
+            currency: h.currency,
+            due_date: h.due_date,
         }),
         entry: Entry {
             name: h.name,

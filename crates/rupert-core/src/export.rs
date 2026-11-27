@@ -138,11 +138,15 @@ pub fn bundle_paths(docs: &[ExportDoc]) -> Vec<String> {
 // MARK: - The list
 
 /// The list's column names, in the app's language.
-fn headers() -> [&'static str; 7] {
+fn headers() -> [&'static str; COLUMNS] {
     [
         tr("File name"),
         tr("Title"),
         tr("Date"),
+        tr("From"),
+        tr("Amount"),
+        tr("Currency"),
+        tr("Due date"),
         tr("Tags"),
         tr("Notes"),
         tr("Original folder"),
@@ -150,8 +154,13 @@ fn headers() -> [&'static str; 7] {
     ]
 }
 
+/// How many columns the list has, and which one holds the notes (left out
+/// unless notes go along).
+const COLUMNS: usize = 11;
+const NOTES: usize = 8;
+
 /// One row of the list for each document.
-fn rows(docs: &[ExportDoc], paths: &[String], include_notes: bool) -> Vec<[String; 7]> {
+fn rows(docs: &[ExportDoc], paths: &[String], include_notes: bool) -> Vec<[String; COLUMNS]> {
     docs.iter()
         .zip(paths)
         .map(|(d, p)| {
@@ -165,6 +174,10 @@ fn rows(docs: &[ExportDoc], paths: &[String], include_notes: bool) -> Vec<[Strin
                 p.clone(),
                 d.meta.title.clone().unwrap_or_default(),
                 d.meta.document_date.clone().unwrap_or_default(),
+                d.meta.sender.clone().unwrap_or_default(),
+                d.meta.amount.clone().unwrap_or_default(),
+                d.meta.currency.clone().unwrap_or_default(),
+                d.meta.due_date.clone().unwrap_or_default(),
                 d.meta.tags.join(", "),
                 if include_notes {
                     d.meta.notes.clone().unwrap_or_default()
@@ -188,7 +201,7 @@ pub fn index_csv(docs: &[ExportDoc], paths: &[String], include_notes: bool) -> S
             s.to_string()
         }
     };
-    let keep = |i: usize| include_notes || i != 4;
+    let keep = |i: usize| include_notes || i != NOTES;
     let line = |cells: &[String]| {
         cells
             .iter()
@@ -236,7 +249,7 @@ pub fn index_html(
             .collect::<Vec<_>>()
             .join("/")
     };
-    let keep = |i: usize| include_notes || i != 4;
+    let keep = |i: usize| include_notes || i != NOTES;
     let mut out = format!(
         "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>{t}</title>\n<style>\
          body{{font:14px -apple-system,system-ui,sans-serif;margin:24px;color:#222}}\
@@ -263,7 +276,7 @@ pub fn index_html(
                     href(cell),
                     esc(cell)
                 )),
-                4 => out.push_str(&format!("<td class=\"notes\">{}</td>", esc(cell))),
+                NOTES => out.push_str(&format!("<td class=\"notes\">{}</td>", esc(cell))),
                 _ => out.push_str(&format!("<td>{}</td>", esc(cell))),
             }
         }
@@ -481,11 +494,11 @@ mod tests {
         let lines: Vec<&str> = csv.trim_start_matches('\u{feff}').lines().collect();
         assert_eq!(
             lines[0],
-            "File name,Title,Date,Tags,Notes,Original folder,Original name"
+            "File name,Title,Date,From,Amount,Currency,Due date,Tags,Notes,Original folder,Original name"
         );
         assert_eq!(
             lines[1],
-            "W-2.pdf,\"W-2, 2025\",2026-01-30,\"Taxes, 2025\",\"Paid, \"\"see\"\" bank\",Docs/Taxes,W-2.pdf"
+            "W-2.pdf,\"W-2, 2025\",2026-01-30,,,,,\"Taxes, 2025\",\"Paid, \"\"see\"\" bank\",Docs/Taxes,W-2.pdf"
         );
         let without = index_csv(&docs, &paths, false);
         assert!(!without.contains("Notes") && !without.contains("bank"));

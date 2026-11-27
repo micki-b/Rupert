@@ -32,6 +32,10 @@ enum Prop {
     RupertId,
     RupertDate,
     RupertFavorite,
+    RupertSender,
+    RupertAmount,
+    RupertCurrency,
+    RupertDue,
     /// Any other `rupert:` property (written by a newer Rupert). Managed, so
     /// it is replaced rather than duplicated.
     RupertOther,
@@ -47,6 +51,10 @@ fn prop(ns: &str, local: &str) -> Option<Prop> {
         (NS_RUPERT, "id") => Prop::RupertId,
         (NS_RUPERT, "documentDate") => Prop::RupertDate,
         (NS_RUPERT, "favorite") => Prop::RupertFavorite,
+        (NS_RUPERT, "sender") => Prop::RupertSender,
+        (NS_RUPERT, "amount") => Prop::RupertAmount,
+        (NS_RUPERT, "currency") => Prop::RupertCurrency,
+        (NS_RUPERT, "dueDate") => Prop::RupertDue,
         (NS_RUPERT, _) => Prop::RupertOther,
         _ => return None,
     })
@@ -195,6 +203,10 @@ fn read_description_attributes(reader: &NsReader<&[u8]>, e: &BytesStart, out: &m
             Prop::RupertId => out.id = Some(value),
             Prop::RupertDate => out.document_date = Some(value),
             Prop::RupertFavorite => out.favorite = Some(value.eq_ignore_ascii_case("true")),
+            Prop::RupertSender => out.sender = Some(value).filter(|s| !s.is_empty()),
+            Prop::RupertAmount => out.amount = Some(value).filter(|s| !s.is_empty()),
+            Prop::RupertCurrency => out.currency = Some(value).filter(|s| !s.is_empty()),
+            Prop::RupertDue => out.due_date = Some(value).filter(|s| !s.is_empty()),
             _ => {}
         }
     }
@@ -258,6 +270,10 @@ fn finish(out: &mut PartialMeta, c: Collecting) {
         Some(Prop::RupertId) => out.id = Some(single()).filter(|s| !s.is_empty()),
         Some(Prop::RupertDate) => out.document_date = Some(single()).filter(|s| !s.is_empty()),
         Some(Prop::RupertFavorite) => out.favorite = Some(single().eq_ignore_ascii_case("true")),
+        Some(Prop::RupertSender) => out.sender = Some(single()).filter(|s| !s.is_empty()),
+        Some(Prop::RupertAmount) => out.amount = Some(single()).filter(|s| !s.is_empty()),
+        Some(Prop::RupertCurrency) => out.currency = Some(single()).filter(|s| !s.is_empty()),
+        Some(Prop::RupertDue) => out.due_date = Some(single()).filter(|s| !s.is_empty()),
         _ => {}
     }
 }
@@ -306,6 +322,20 @@ fn description(meta: &DocMeta, now: &str) -> String {
     }
     if meta.favorite {
         s.push_str("   <rupert:favorite>True</rupert:favorite>\n");
+    }
+    // #108: who it's from, the amount on it and when it's due.
+    for (name, value) in [
+        ("sender", &meta.sender),
+        ("amount", &meta.amount),
+        ("currency", &meta.currency),
+        ("dueDate", &meta.due_date),
+    ] {
+        if let Some(v) = value {
+            s.push_str(&format!(
+                "   <rupert:{name}>{}</rupert:{name}>\n",
+                escape(v)
+            ));
+        }
     }
     s.push_str("  </rdf:Description>\n ");
     s
@@ -441,6 +471,10 @@ mod tests {
             notes: Some("Paid online".into()),
             document_date: Some("2026-11-03".into()),
             favorite: true,
+            sender: Some("Pacific Gas & Electric".into()),
+            amount: Some("1240.50".into()),
+            currency: Some("USD".into()),
+            due_date: Some("2026-11-24".into()),
         }
     }
 

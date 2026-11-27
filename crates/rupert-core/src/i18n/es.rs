@@ -72,6 +72,15 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "document date must be YYYY-MM-DD, got \"{0}\"",
         "la fecha del documento tiene que ser AAAA-MM-DD, no «{0}»",
     ),
+    (
+        "due date must be YYYY-MM-DD, got \"{0}\"",
+        "la fecha de vencimiento tiene que ser AAAA-MM-DD, no «{0}»",
+    ),
+    ("\"{0}\" isn't an amount", "«{0}» no es un importe"),
+    (
+        "\"{0}\" isn't a currency code like EUR or USD",
+        "«{0}» no es un código de moneda como EUR o USD",
+    ),
     ("choose at least one tag", "elegí al menos una etiqueta"),
     (
         "the new tag name is empty",
@@ -192,6 +201,10 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Title", "Título"),
     ("Date", "Fecha"),
     ("Tags", "Etiquetas"),
+    ("From", "De"),
+    ("Amount", "Importe"),
+    ("Currency", "Moneda"),
+    ("Due date", "Vencimiento"),
     ("Notes", "Notas"),
     ("Original folder", "Carpeta original"),
     ("Original name", "Nombre original"),
@@ -399,6 +412,11 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Buscando «{0}» con la etiqueta {1}",
     ),
     ("Looking at tags", "Mirando las etiquetas"),
+    ("Adding up amounts", "Sumando los importes"),
+    (
+        "Looking at who documents are from",
+        "Mirando de quién son los documentos",
+    ),
     ("Looking at the library", "Mirando la biblioteca"),
     ("Opening {0}", "Abriendo {0}"),
     ("Reading {0}", "Leyendo {0}"),

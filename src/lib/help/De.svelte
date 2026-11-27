@@ -127,7 +127,8 @@
     zwei Spaltentiteln, um eine Spalte breiter oder schmaler zu machen (Doppelklick für die übliche Breite); Name nimmt
     den restlichen Platz. Ziehen Sie einen Spaltentitel zur Seite, um die Spalte zu verschieben. Mit einem Rechtsklick
     auf die Titel blenden Sie Spalten ein oder aus oder wählen <b>Spalten zurücksetzen</b>. Rupert behält die Spalten
-    auf diesem Computer. In einem schmalen Fenster weicht zuerst Art.
+    auf diesem Computer. In einem schmalen Fenster weicht zuerst Art. <b>Von</b>, <b>Betrag</b> und <b>Fällig am</b> sind
+    zunächst ausgeblendet; blenden Sie sie in diesem Menü ein.
   </p>
   <p id="page-preview">
     <b>Seitenvorschau:</b> In der Liste, bei großen Symbolen und in Suchergebnissen steht die Seite des ausgewählten PDFs
@@ -181,7 +182,10 @@
   </p>
   <p>
     Sind mehrere ausgewählt, zeigt <b>Details</b>, wie viele es sind, ihre Gesamtgröße und die gemeinsamen Tags, dazu,
-    was Sie mit allen tun können. Ein Rechtsklick auf eines davon zeigt dasselbe als Menü:
+    was Sie mit allen tun können: Symbole zum Markieren mit Stern, Teilen, Senden per E-Mail und Exportieren, <b>⋯</b>
+    für Dokumente umbenennen … und Angaben lesen …, und der Papierkorb (zeigen Sie auf ein Symbol, um zu sehen, was es
+    tut), darunter <b>Bewegen nach …</b> und <b>Tags …</b> (zum Hinzufügen oder Entfernen). Ein Rechtsklick auf eines davon
+    zeigt dasselbe als Menü:
   </p>
   <ul>
     <li>
@@ -418,8 +422,9 @@
     Zeitraum; das Datum auf dem Dokument, sonst das seiner Datei), nach <b>Art</b> (PDF, Bild, Office, Text, E-Mail) und
     nach <b>Ort</b>: überall, in der Quelle des geöffneten Ordners oder im geöffneten Ordner mit seinen Unterordnern. Das
     geht auch ohne Suchwörter: <b>Letztes Jahr</b> und <b>PDF</b> zeigen alle PDFs des letzten Jahres. <b>Beste
-    Treffer</b> und <b>Neueste</b> über den Ergebnissen ändern die Reihenfolge. <kbd>Esc</kbd> löscht Suchwörter und
-    Filter.
+    Treffer</b> und <b>Neueste</b> über den Ergebnissen ändern die Reihenfolge. <b>Von</b> und <b>Fälligkeit</b> (ab
+    heute oder vor heute) grenzen sie auf den Absender und das Fälligkeitsdatum ein; haben die Ergebnisse Beträge, steht
+    ihre Summe darüber (aller Treffer, je Währung). <kbd>Esc</kbd> löscht Suchwörter und Filter.
   </p>
   <p>In den Ergebnissen führt <b>In Rupert zeigen</b> (bei den Angaben) zum Ordner des Dokuments.</p>
   <h3>Tags</h3>
@@ -461,6 +466,9 @@
     </li>
     <li><b>Tags</b>: so viele Sie möchten. Tippen und mit Return oder einem Komma hinzufügen.</li>
     <li><b>Notizen</b>: alles, was Sie sich dazu merken möchten.</li>
+    <li><b>Von</b>: wer es geschickt oder ausgestellt hat (eine Firma, ein Amt, eine Person).</li>
+    <li><b>Betrag</b> und <b>Währung</b>: die Summe, die zu zahlen ist oder bezahlt wurde.</li>
+    <li><b>Fällig am</b>: bis wann es zu zahlen ist oder bis wann es gilt (ein Pass, eine Garantie).</li>
   </ul>
   <p>
     Klicken Sie auf <b>Speichern</b>, um die Änderungen zu behalten, oder auf <b>Zurücksetzen</b>, um sie zu verwerfen.
@@ -472,6 +480,22 @@
     Bei einem PDF, das nur online verfügbar ist, klicken Sie auf <b>Laden und Angaben anzeigen</b>, um zu lesen, was darin
     gespeichert ist. Beim Speichern von Änderungen an einer Datei, die nur online verfügbar ist, wird sie zuerst
     heruntergeladen.
+  </p>
+  <h3 id="from-amount-due">Von wem, wie viel und bis wann</h3>
+  <p>
+    Im Eingang schlägt die lokale KI <b>Von</b>, <b>Betrag</b> und <b>Fällig am</b> zusammen mit den anderen Feldern
+    vor, aber nur, wenn der Text des Dokuments sie zeigt; so erfindet sie keine Beträge oder Daten. Sind mehrere Dokumente
+    ausgewählt, zählt <b>Details</b> ihre Beträge zusammen (je Währung). Die Spalten <b>Von</b>, <b>Betrag</b> und
+    <b>Fällig am</b> blenden Sie mit einem Rechtsklick auf die Spaltentitel ein. „Rupert fragen“ findet Dokumente
+    danach und zählt Beträge zusammen: „Wie viel habe ich dieses Jahr beim Zahnarzt bezahlt?“, „Was muss ich noch
+    zahlen?“.
+  </p>
+  <p>
+    Für Dokumente, die Sie schon haben: Rechtsklick auf einen Ordner (oder das <b>⋯</b> einer Quelle, oder eine
+    Auswahl) ▸ <b>Angaben lesen …</b>. Die lokale KI liest sie aus dem Text, den Rupert schon hat, ohne etwas
+    herunterzuladen, ein Dokument nach dem anderen (<b>Stoppen</b> beendet es). Prüfen Sie die Tabelle, ändern Sie,
+    was Sie möchten, und sichern Sie die angekreuzten Zeilen. Nur online verfügbare Dokumente erhalten die Angaben, wenn
+    sie das nächste Mal auf diesem Computer sind. Belege aus ScanSnap Home bringen beim Import Händler und Betrag mit.
   </p>
 </section>
 

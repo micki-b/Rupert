@@ -122,7 +122,8 @@
     <b>Columns:</b> the list shows Favorite (★), Name, Kind, Size, Date and Modified. Drag the line between two column
     titles to make a column wider or narrower (double-click it for the usual width); Name takes the room that's left.
     Drag a column title sideways to move the column. Right-click the titles to show or hide columns, or choose
-    <b>Reset Columns</b>. Rupert keeps the columns on this computer. In a narrow window, Kind steps aside first.
+    <b>Reset Columns</b>. Rupert keeps the columns on this computer. In a narrow window, Kind steps aside first. <b>From</b>, <b>Amount</b> and
+    <b>Due date</b> are hidden at first; turn them on in that menu.
   </p>
   <p id="page-preview">
     <b>Page preview:</b> in the list, large icons and search results, the selected PDF or picture's page is at the top of
@@ -172,7 +173,9 @@
   </p>
   <p>
     With several selected, <b>Details</b> shows how many, their total size and the tags they have in common, with what
-    you can do to all of them. Right-click one of them for the same in a menu:
+    you can do to all of them: icons to star, share, email and export them, <b>⋯</b> for Rename documents… and Read
+    details…, and the trash can (point at an icon to see what it does), then <b>Move to…</b> and <b>Tags…</b> (to add
+    or remove tags). Right-click one of them for the same in a menu:
   </p>
   <ul>
     <li>
@@ -382,7 +385,9 @@
     the document, else its file's date), by <b>kind</b> (PDF, image, Office, text, email) and by <b>where</b>:
     everywhere, the open folder's source, or the open folder with its subfolders. They work without words too: choose
     <b>Last year</b> and <b>PDF</b> for all of last year's PDFs. <b>Best match</b> and <b>Newest</b> above the results
-    change their order. <kbd>Esc</kbd> clears the words and the filters.
+    change their order. <b>From</b> and <b>due date</b> (from today on, or before today) narrow it to who sent a
+    document and when it's due; when the results have amounts, their total is above them (of every match, per
+    currency). <kbd>Esc</kbd> clears the words and the filters.
   </p>
   <p>
     In the results, <b>Show in Rupert</b> (in the details) takes you to the document's folder.
@@ -416,6 +421,9 @@
     <li><b>Document date</b>: the date on the paper (an invoice date, a letter's date), not when it was scanned.</li>
     <li><b>Tags</b>: as many as you like. Type and press Return or a comma to add one.</li>
     <li><b>Notes</b>: anything you want to remember about it.</li>
+    <li><b>From</b>: who sent or issued it (a company, an office, a person).</li>
+    <li><b>Amount</b> and its <b>currency</b>: the total to pay, or that was paid.</li>
+    <li><b>Due date</b>: the date to pay by, or until when it's valid (a passport, a warranty).</li>
   </ul>
   <p>
     Click <b>Save</b> to keep your changes, or <b>Revert</b> to undo them. They're saved inside the PDF itself, in the
@@ -425,6 +433,21 @@
   <p>
     For an online-only PDF, click <b>Download and show details</b> to read what's stored inside it. Saving changes to an
     online-only file downloads it first.
+  </p>
+  <h3 id="from-amount-due">Who, how much and when</h3>
+  <p>
+    In the inbox, Local AI suggests <b>From</b>, <b>Amount</b> and <b>Due date</b> along with the other fields, only when
+    the document's text shows them, so it doesn't make up amounts or dates. With several documents selected,
+    <b>Details</b> adds up their amounts (per currency). Turn on the <b>From</b>, <b>Amount</b> and <b>Due date</b>
+    columns in the list by right-clicking the column titles. Ask Rupert can find documents by them and add up amounts:
+    “how much did I pay the dentist this year?”, “what do I still have to pay?”.
+  </p>
+  <p>
+    For documents you already have, right-click a folder (or a source's <b>⋯</b>, or a selection) ▸ <b>Read details…</b>.
+    Local AI reads them from the text Rupert already has, without downloading anything, one document at a time
+    (<b>Stop</b> ends it). Check the table, change anything, then save the ticked rows. Online-only documents get the
+    details the next time they're on this computer. ScanSnap Home receipts bring their vendor and amount along when
+    imported.
   </p>
 </section>
 
@@ -465,7 +488,7 @@
     <li>Waits for you. Nothing moves until you say so.</li>
   </ol>
   <p>
-    Click <b>Inbox</b> in the sidebar to review. Check the suggestion, change anything, and click <b>File</b>
+    Click <b>Inbox</b> in the sidebar to review. Check the suggestion, change anything, and click <b>File it</b>
     ({cmd}{mac ? "↩" : "Enter"}). Rupert writes the details into the file, renames it and moves it to the folder.
     The two circling arrows next to the red trash can (<b>Suggest again</b>) ask Local AI for a new suggestion; they
     turn while it's working.

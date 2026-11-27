@@ -16,6 +16,7 @@ mod continuity {
         Ok(())
     }
 }
+mod details;
 mod drag_out;
 mod export;
 mod help;
@@ -1106,24 +1107,64 @@ struct SearchArgs {
     folder: Option<String>,
     #[serde(default)]
     by_date: bool,
+    /// From and due date (#108).
+    #[serde(default)]
+    senders: Vec<String>,
+    due_from: Option<String>,
+    due_to: Option<String>,
+}
+
+impl SearchArgs {
+    fn query(self, limit: usize) -> SearchQuery {
+        SearchQuery {
+            text: self.text,
+            source_id: self.source_id,
+            tags: self.tags,
+            tag_mode: self.tag_mode,
+            favorites_only: self.favorites_only,
+            limit,
+            date_from: self.date_from,
+            date_to: self.date_to,
+            kinds: self.kinds,
+            folder: self.folder,
+            by_date: self.by_date,
+            senders: self.senders,
+            due_from: self.due_from,
+            due_to: self.due_to,
+            skip_excerpts: false,
+        }
+    }
 }
 
 #[tauri::command]
 async fn search(query: SearchArgs, state: State<'_, AppState>) -> CmdResult<Vec<Hit>> {
-    let q = SearchQuery {
-        text: query.text,
-        source_id: query.source_id,
-        tags: query.tags,
-        tag_mode: query.tag_mode,
-        favorites_only: query.favorites_only,
-        limit: 300,
-        date_from: query.date_from,
-        date_to: query.date_to,
-        kinds: query.kinds,
-        folder: query.folder,
-        by_date: query.by_date,
-    };
+    let q = query.query(300);
     state.index.lock().unwrap().search(&q).map_err(err)
+}
+
+/// The amounts of everything a search finds (not only the shown 300),
+/// added up per currency (#108).
+#[tauri::command]
+async fn search_totals(
+    query: SearchArgs,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<rupert_core::index::Total>> {
+    let q = query.query(0);
+    state.index.lock().unwrap().totals(&q).map_err(err)
+}
+
+/// Senders for the From filter (#108), matching `filter`.
+#[tauri::command]
+async fn list_senders(
+    filter: String,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<rupert_core::index::TagCount>> {
+    state
+        .index
+        .lock()
+        .unwrap()
+        .senders(&filter, 200)
+        .map_err(err)
 }
 
 /// Where words (`phrase`: a passage) are on a document's pages (#106),
@@ -1996,6 +2037,10 @@ pub fn run() {
             move_back,
             set_undo_label,
             set_preview_menu,
+            search_totals,
+            list_senders,
+            details::details_propose,
+            details::details_apply,
             index_status,
             stop_indexing,
             resume_indexing,

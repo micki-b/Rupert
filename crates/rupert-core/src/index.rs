@@ -15,7 +15,7 @@ use crate::meta::{DocMeta, Storage};
 
 /// Bump to throw away and rebuild every user's index on schema changes
 /// (or add a step to `upgrade` when the tables can stay).
-const SCHEMA_VERSION: i32 = 6;
+const SCHEMA_VERSION: i32 = 7;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
@@ -121,6 +121,26 @@ pub struct SearchQuery {
     pub folder: Option<String>,
     /// Newest first, by that same date, instead of by relevance.
     pub by_date: bool,
+    /// Only documents from one of these senders (ignoring case; #108).
+    pub senders: Vec<String>,
+    /// Only documents due from / to these days (`YYYY-MM-DD`, inclusive;
+    /// #108). Documents without a due date are left out then.
+    pub due_from: Option<String>,
+    pub due_to: Option<String>,
+    /// No excerpts: for adding up amounts, where only the details matter.
+    pub skip_excerpts: bool,
+}
+
+/// The amounts of some documents added up, for one currency (#108).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Total {
+    /// None for amounts without a currency.
+    pub currency: Option<String>,
+    /// Like the documents' amounts: "1240.50".
+    pub amount: String,
+    /// How many documents had an amount in this currency.
+    pub count: usize,
 }
 
 /// A document's date for filtering and sorting: the date on the paper, or
@@ -163,6 +183,11 @@ pub struct Hit {
     pub favorite: bool,
     /// Body excerpt with matches wrapped in HIGHLIGHT_START/END.
     pub snippet: Option<String>,
+    /// Who it's from, its amount and currency, and when it's due (#108).
+    pub sender: Option<String>,
+    pub amount: Option<String>,
+    pub currency: Option<String>,
+    pub due_date: Option<String>,
 }
 
 /// Everything the index knows about one document.
@@ -190,6 +215,10 @@ pub struct FolderMeta {
     pub tags: Vec<String>,
     pub favorite: bool,
     pub document_date: Option<String>,
+    pub sender: Option<String>,
+    pub amount: Option<String>,
+    pub currency: Option<String>,
+    pub due_date: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -273,8 +302,9 @@ impl Index {
         tx.execute(
             "INSERT INTO docs (source_id, rel_path, dir, name, kind, size, mtime_ms, cloud,
                 doc_id, title, tags, notes, document_date, favorite, storage, text_state,
-                sidecar_ms)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+                sidecar_ms, sender, amount, currency, due_date)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
+                ?18, ?19, ?20, ?21)",
             params![
                 row.source_id,
                 row.rel_path,
@@ -293,6 +323,10 @@ impl Index {
                 storage_str(row.storage),
                 row.text_state.as_str(),
                 row.sidecar_ms,
+                row.meta.sender,
+                row.meta.amount,
+                row.meta.currency,
+                row.meta.due_date,
             ],
         )
         .map_err(db)?;
@@ -303,7 +337,15 @@ impl Index {
                 id,
                 searchable_name(&row.name),
                 row.meta.title,
-                row.meta.tags.join(" "),
+                // The sender is searched with the tags (#108): no column of
+                // its own, so the full-text table didn't need rebuilding.
+                row.meta
+                    .tags
+                    .iter()
+                    .chain(row.meta.sender.as_ref())
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(" "),
                 row.meta.notes,
                 body
             ],
@@ -424,6 +466,22 @@ impl Index {
         if q.date_to.is_some() {
             sql.push_str(&format!(" AND {DOC_DATE} <= :to"));
         }
+        let senders_json = serde_json::to_string(
+            &q.senders
+                .iter()
+                .map(|s| s.to_lowercase())
+                .collect::<Vec<_>>(),
+        )
+        .unwrap_or_else(|_| "[]".into());
+        if !q.senders.is_empty() {
+            sql.push_str(" AND lower(d.sender) IN (SELECT value FROM json_each(:senders))");
+        }
+        if q.due_from.is_some() {
+            sql.push_str(" AND d.due_date >= :due_from");
+        }
+        if q.due_to.is_some() {
+            sql.push_str(" AND d.due_date <= :due_to");
+        }
         let kinds_json = serde_json::to_string(&q.kinds).unwrap_or_else(|_| "[]".into());
         if !q.kinds.is_empty() {
             sql.push_str(" AND d.kind IN (SELECT value FROM json_each(:kinds))");
@@ -452,11 +510,16 @@ impl Index {
         }
         const COLUMNS: &str = "d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, \
                                d.cloud, d.title, d.tags, d.document_date, d.favorite";
+        let body = if q.skip_excerpts {
+            "NULL".to_string()
+        } else {
+            format!("substr(fts.body, 1, {EXCERPT_FROM})")
+        };
         let sql = if fts.is_some() {
             // The text (its start) only for the documents shown, for their
             // excerpts (see below).
             format!(
-                "SELECT {COLUMNS}, substr(fts.body, 1, {EXCERPT_FROM})
+                "SELECT {COLUMNS}, {body}, {DETAILS}
                  FROM fts JOIN docs d ON d.id = fts.rowid WHERE fts MATCH :q AND d.id IN (
                      SELECT d.id FROM fts JOIN docs d ON d.id = fts.rowid
                      WHERE fts MATCH :q{sql} LIMIT :limit
@@ -464,7 +527,7 @@ impl Index {
                 order = &sql[sql.find(" ORDER BY").unwrap_or(sql.len())..],
             )
         } else {
-            format!("SELECT {COLUMNS}, NULL FROM docs d WHERE 1{sql} LIMIT :limit")
+            format!("SELECT {COLUMNS}, NULL, {DETAILS} FROM docs d WHERE 1{sql} LIMIT :limit")
         };
 
         let mut stmt = self.conn.prepare(&sql).map_err(db)?;
@@ -490,6 +553,15 @@ impl Index {
         if !q.kinds.is_empty() {
             named.push((":kinds", &kinds_json));
         }
+        if !q.senders.is_empty() {
+            named.push((":senders", &senders_json));
+        }
+        if let Some(f) = &q.due_from {
+            named.push((":due_from", f));
+        }
+        if let Some(t) = &q.due_to {
+            named.push((":due_to", t));
+        }
         if let (Some(f), Some(b)) = (&folder, &below) {
             named.push((":dir", f));
             named.push((":below", b));
@@ -499,7 +571,7 @@ impl Index {
         // Excerpts made here, not by SQLite's `snippet()`: that reads each
         // document's whole text to choose one, and over long documents a
         // one-letter search took seconds (long enough to hold up the window).
-        if fts.is_some() {
+        if fts.is_some() && !q.skip_excerpts {
             let words = FindQuery::words(&q.text);
             for h in &mut hits {
                 h.snippet = h
@@ -509,6 +581,47 @@ impl Index {
             }
         }
         Ok(hits)
+    }
+
+    /// The amounts of the documents `q` finds, added up per currency
+    /// (#108): every match, not just a page of them. Most-used currency
+    /// first.
+    pub fn totals(&self, q: &SearchQuery) -> Result<Vec<Total>> {
+        let q = SearchQuery {
+            limit: 1_000_000,
+            skip_excerpts: true,
+            by_date: false,
+            ..q.clone()
+        };
+        Ok(add_up(
+            self.search(&q)?
+                .iter()
+                .map(|h| (h.amount.as_deref(), h.currency.as_deref())),
+        ))
+    }
+
+    /// Senders for the From filter (#108): those matching `filter` (any
+    /// part of the name, ignoring case), most documents first, at most
+    /// `limit`.
+    pub fn senders(&self, filter: &str, limit: usize) -> Result<Vec<TagCount>> {
+        let like = format!("%{}%", filter.trim().to_lowercase().replace(['%', '_'], ""));
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT sender, COUNT(*) AS n FROM docs
+                 WHERE sender IS NOT NULL AND lower(sender) LIKE ?1
+                 GROUP BY lower(sender) ORDER BY n DESC, sender COLLATE NOCASE LIMIT ?2",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map(params![like, limit.max(1) as i64], |r| {
+                Ok(TagCount {
+                    tag: r.get(0)?,
+                    count: r.get(1)?,
+                })
+            })
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
     }
 
     /// The documents directly in `dir` of a source that match `text` (every
@@ -564,7 +677,8 @@ impl Index {
             .conn
             .prepare(
                 "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
-                        d.title, d.tags, d.document_date, d.favorite, NULL
+                        d.title, d.tags, d.document_date, d.favorite, NULL,
+                        d.sender, d.amount, d.currency, d.due_date
                  FROM fts JOIN docs d ON d.id = fts.rowid WHERE fts MATCH :q
                  ORDER BY bm25(fts, 8.0, 10.0, 0.0, 0.0, 0.0), d.name COLLATE NOCASE
                  LIMIT :limit",
@@ -588,7 +702,8 @@ impl Index {
             .conn
             .prepare(
                 "SELECT source_id, rel_path, name, kind, size, mtime_ms, cloud,
-                        title, tags, document_date, favorite, NULL
+                        title, tags, document_date, favorite, NULL,
+                        sender, amount, currency, due_date
                  FROM docs WHERE source_id = ?1 AND dir = ?2 ORDER BY name COLLATE NOCASE",
             )
             .map_err(db)?;
@@ -631,7 +746,7 @@ impl Index {
         self.conn
             .query_row(
                 "SELECT name, kind, size, mtime_ms, cloud, title, tags, document_date, favorite,
-                        notes, text_state
+                        notes, text_state, sender, amount, currency, due_date
                  FROM docs WHERE source_id = ?1 AND rel_path = ?2",
                 params![source_id, rel_path],
                 |r| {
@@ -650,10 +765,14 @@ impl Index {
                                 CloudState::Local
                             },
                             title: r.get(5)?,
-                            tags: serde_json::from_str(&tags).unwrap_or_default(),
+                            tags: tags_from_json(&tags),
                             document_date: r.get(7)?,
                             favorite: r.get::<_, i64>(8)? != 0,
                             snippet: None,
+                            sender: r.get(11)?,
+                            amount: r.get(12)?,
+                            currency: r.get(13)?,
+                            due_date: r.get(14)?,
                         },
                         notes: r.get(9)?,
                         text_state: TextState::parse(&r.get::<_, String>(10)?),
@@ -851,7 +970,8 @@ impl Index {
     pub fn doc_meta(&self, source_id: &str, rel_path: &str) -> Result<Option<DocMeta>> {
         self.conn
             .query_row(
-                "SELECT doc_id, title, tags, notes, document_date, favorite FROM docs
+                "SELECT doc_id, title, tags, notes, document_date, favorite,
+                        sender, amount, currency, due_date FROM docs
                  WHERE source_id = ?1 AND rel_path = ?2",
                 params![source_id, rel_path],
                 |r| {
@@ -859,10 +979,14 @@ impl Index {
                     Ok(DocMeta {
                         id: r.get(0)?,
                         title: r.get(1)?,
-                        tags: serde_json::from_str(&tags).unwrap_or_default(),
+                        tags: tags_from_json(&tags),
                         notes: r.get(3)?,
                         document_date: r.get(4)?,
                         favorite: r.get::<_, i64>(5)? != 0,
+                        sender: r.get(6)?,
+                        amount: r.get(7)?,
+                        currency: r.get(8)?,
+                        due_date: r.get(9)?,
                     })
                 },
             )
@@ -1098,7 +1222,8 @@ impl Index {
         let mut stmt = self
             .conn
             .prepare(
-                "SELECT rel_path, title, tags, favorite, document_date FROM docs
+                "SELECT rel_path, title, tags, favorite, document_date,
+                        sender, amount, currency, due_date FROM docs
                  WHERE source_id = ?1 AND dir = ?2",
             )
             .map_err(db)?;
@@ -1109,9 +1234,13 @@ impl Index {
                     r.get::<_, String>(0)?,
                     FolderMeta {
                         title: r.get(1)?,
-                        tags: serde_json::from_str(&tags).unwrap_or_default(),
+                        tags: tags_from_json(&tags),
                         favorite: r.get::<_, i64>(3)? != 0,
                         document_date: r.get(4)?,
+                        sender: r.get(5)?,
+                        amount: r.get(6)?,
+                        currency: r.get(7)?,
+                        due_date: r.get(8)?,
                     },
                 ))
             })
@@ -1130,12 +1259,29 @@ fn upgrade(conn: &Connection, version: i32) -> Result<bool> {
         // again (and refresh their catalog entries); search keeps working
         // meanwhile. Online-only PDFs can't be read; theirs stays as the
         // catalog has it.
-        4 | 5 => {
-            conn.execute(
-                "UPDATE docs SET mtime_ms = -1 WHERE kind = 'pdf' AND cloud = 0",
-                [],
-            )
-            .map_err(db)?;
+        // 6 → 7: who it's from, amount and due date (#108). No document has
+        // them yet, so empty columns are all it takes.
+        4..=6 => {
+            if version < 6 {
+                conn.execute(
+                    "UPDATE docs SET mtime_ms = -1 WHERE kind = 'pdf' AND cloud = 0",
+                    [],
+                )
+                .map_err(db)?;
+            }
+            let have: Vec<String> = conn
+                .prepare("SELECT name FROM pragma_table_info('docs')")
+                .and_then(|mut st| {
+                    st.query_map([], |r| r.get::<_, String>(0))?
+                        .collect::<std::result::Result<_, _>>()
+                })
+                .map_err(db)?;
+            for col in ["sender", "amount", "currency", "due_date"] {
+                if !have.iter().any(|c| c == col) {
+                    conn.execute_batch(&format!("ALTER TABLE docs ADD COLUMN {col} TEXT;"))
+                        .map_err(db)?;
+                }
+            }
             conn.pragma_update(None, "user_version", SCHEMA_VERSION)
                 .map_err(db)?;
             Ok(true)
@@ -1164,6 +1310,10 @@ CREATE TABLE IF NOT EXISTS docs (
     storage TEXT NOT NULL,
     text_state TEXT NOT NULL,
     sidecar_ms INTEGER,
+    sender TEXT,
+    amount TEXT,
+    currency TEXT,
+    due_date TEXT,
     UNIQUE (source_id, rel_path)
 );
 CREATE INDEX IF NOT EXISTS docs_dir ON docs (source_id, dir);
@@ -1378,8 +1528,18 @@ fn tag_rank(tag: &str, needle: &str) -> Option<u8> {
     }
 }
 
+/// A document's tags as the index keeps them (JSON), each once: an entry
+/// written before tags were made unique on reading may hold one twice.
+fn tags_from_json(json: &str) -> Vec<String> {
+    crate::meta::unique_tags(serde_json::from_str::<Vec<String>>(json).unwrap_or_default())
+}
+
+/// The details from #108, after a search-style row's snippet.
+const DETAILS: &str = "d.sender, d.amount, d.currency, d.due_date";
+
 /// A search-style row: source_id, rel_path, name, kind, size, mtime_ms,
-/// cloud, title, tags, document_date, favorite, snippet.
+/// cloud, title, tags, document_date, favorite, snippet, then sender,
+/// amount, currency, due_date.
 fn hit(r: &rusqlite::Row) -> rusqlite::Result<Hit> {
     let tags: String = r.get(8)?;
     Ok(Hit {
@@ -1395,11 +1555,66 @@ fn hit(r: &rusqlite::Row) -> rusqlite::Result<Hit> {
             CloudState::Local
         },
         title: r.get(7)?,
-        tags: serde_json::from_str(&tags).unwrap_or_default(),
+        tags: tags_from_json(&tags),
         document_date: r.get(9)?,
         favorite: r.get::<_, i64>(10)? != 0,
         snippet: r.get(11)?,
+        sender: r.get(12)?,
+        amount: r.get(13)?,
+        currency: r.get(14)?,
+        due_date: r.get(15)?,
     })
+}
+
+/// Adds up amounts ("1240.50") per currency, exactly (in cents; Rupert
+/// keeps at most two decimals). Amounts that don't read as one are skipped.
+pub fn add_up<'a>(
+    amounts: impl IntoIterator<Item = (Option<&'a str>, Option<&'a str>)>,
+) -> Vec<Total> {
+    let mut sums: Vec<(Option<String>, i128, usize)> = Vec::new();
+    for (amount, currency) in amounts {
+        let Some(cents) = amount.and_then(cents) else {
+            continue;
+        };
+        let currency = currency.map(str::to_string);
+        match sums.iter_mut().find(|(c, _, _)| *c == currency) {
+            Some(e) => {
+                e.1 += cents;
+                e.2 += 1;
+            }
+            None => sums.push((currency, cents, 1)),
+        }
+    }
+    sums.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0)));
+    sums.into_iter()
+        .map(|(currency, cents, count)| Total {
+            currency,
+            amount: format!(
+                "{}{}.{:02}",
+                if cents < 0 { "-" } else { "" },
+                cents.abs() / 100,
+                cents.abs() % 100
+            ),
+            count,
+        })
+        .collect()
+}
+
+/// "1240.5" → 124050 cents.
+fn cents(amount: &str) -> Option<i128> {
+    let (neg, digits) = match amount.strip_prefix('-') {
+        Some(rest) => (true, rest),
+        None => (false, amount),
+    };
+    let (int, dec) = digits.split_once('.').unwrap_or((digits, ""));
+    if int.is_empty()
+        || dec.len() > 2
+        || !(int.chars().chain(dec.chars()).all(|c| c.is_ascii_digit()))
+    {
+        return None;
+    }
+    let value = int.parse::<i128>().ok()? * 100 + format!("{dec:0<2}").parse::<i128>().ok()?;
+    Some(if neg { -value } else { value })
 }
 
 fn storage_str(s: Storage) -> &'static str {
@@ -1435,6 +1650,93 @@ mod tests {
             text_state: TextState::Extracted,
             sidecar_ms: None,
         }
+    }
+
+    #[test]
+    fn sender_amount_and_due_date_filter_search_and_add_up() {
+        let idx = Index::open_in_memory().unwrap();
+        let bill = |path: &str,
+                    sender: &str,
+                    amount: Option<&str>,
+                    cur: Option<&str>,
+                    due: Option<&str>| {
+            let mut r = row(path, None, &[], false);
+            r.meta.sender = Some(sender.into());
+            r.meta.amount = amount.map(Into::into);
+            r.meta.currency = cur.map(Into::into);
+            r.meta.due_date = due.map(Into::into);
+            r
+        };
+        for r in [
+            bill(
+                "a.pdf",
+                "City Electric",
+                Some("120.50"),
+                Some("EUR"),
+                Some("2026-12-01"),
+            ),
+            bill(
+                "b.pdf",
+                "city electric",
+                Some("79.5"),
+                Some("EUR"),
+                Some("2026-11-01"),
+            ),
+            bill("c.pdf", "Allianz", Some("1200"), Some("USD"), None),
+            bill("d.pdf", "Allianz", None, None, Some("2027-01-15")),
+        ] {
+            idx.upsert(&r, Some("text")).unwrap();
+        }
+        let q = |senders: &[&str], from: Option<&str>| SearchQuery {
+            senders: senders.iter().map(|s| s.to_string()).collect(),
+            due_from: from.map(Into::into),
+            ..Default::default()
+        };
+        let hits = idx.search(&q(&["CITY ELECTRIC"], None)).unwrap();
+        let mut found = names(&hits);
+        found.sort();
+        assert_eq!(found, ["a.pdf", "b.pdf"]);
+        let hits = idx.search(&q(&[], Some("2026-11-15"))).unwrap();
+        let mut due = names(&hits);
+        due.sort();
+        assert_eq!(due, ["a.pdf", "d.pdf"]);
+        // The sender is found by text too, and the hit carries the details.
+        let hits = idx.search(&query("allianz")).unwrap();
+        assert_eq!(hits.len(), 2);
+        assert!(
+            hits.iter().any(
+                |h| h.amount.as_deref() == Some("1200") && h.currency.as_deref() == Some("USD")
+            )
+        );
+        // Totals per currency, exactly.
+        let totals = idx.totals(&SearchQuery::default()).unwrap();
+        assert_eq!(
+            totals,
+            [
+                Total {
+                    currency: Some("EUR".into()),
+                    amount: "200.00".into(),
+                    count: 2
+                },
+                Total {
+                    currency: Some("USD".into()),
+                    amount: "1200.00".into(),
+                    count: 1
+                },
+            ]
+        );
+        let senders = idx.senders("", 10).unwrap();
+        assert_eq!(senders.iter().map(|s| s.count).collect::<Vec<_>>(), [2, 2]);
+        assert_eq!(idx.senders("alli", 10).unwrap()[0].tag, "Allianz");
+        assert_eq!(
+            add_up([
+                (Some("-1.5"), None),
+                (Some("0.25"), None),
+                (Some("x"), None)
+            ])[0]
+                .amount,
+            "-1.25"
+        );
     }
 
     fn names(hits: &[Hit]) -> Vec<&str> {

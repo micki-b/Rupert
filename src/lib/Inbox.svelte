@@ -27,9 +27,10 @@
   import PagePicture from "#lib/PagePicture.svelte";
   import PreviewPane from "#lib/PreviewPane.svelte";
   import NotesBox from "#lib/NotesBox.svelte";
+  import { CURRENCIES, senderList } from "#lib/details.svelte.ts";
   import { crumbs, shortestEndings } from "#lib/folders.ts";
   import { dragOutSource } from "#lib/drag.svelte.ts";
-  import { formatDate, formatDay } from "#lib/format.ts";
+  import { formatAmountInput, formatDate, formatDay, parseAmount, tidyAmountInput } from "#lib/format.ts";
   import { m, num } from "#lib/i18n/index.ts";
   import { dismissImport, importing, stopImport } from "#lib/inbox-import.svelte.ts";
 
@@ -84,6 +85,11 @@
     tags: string[];
     notes: string;
     favorite: boolean;
+    /** #108 */
+    sender: string;
+    amount: string;
+    currency: string;
+    dueDate: string;
     folder: string; // label
     fileName: string;
   };
@@ -233,7 +239,19 @@
   const ext = $derived(selected?.name.includes(".") ? selected.name.slice(selected.name.lastIndexOf(".")) : "");
 
   function blank(): Form {
-    return { title: "", documentDate: "", tags: [], notes: "", favorite: false, folder: "", fileName: "" };
+    return {
+      title: "",
+      documentDate: "",
+      tags: [],
+      notes: "",
+      favorite: false,
+      sender: "",
+      amount: "",
+      currency: "",
+      dueDate: "",
+      folder: "",
+      fileName: "",
+    };
   }
 
   async function load() {
@@ -245,6 +263,7 @@
 
   onMount(() => {
     load();
+    senderList.ensure();
     api.appInfo().then((i) => (os = i.os));
     api.allFolders().then((f) => (allFolders = f));
     const unlisten = onIntakeChanged(load);
@@ -264,6 +283,8 @@
   let sideH = $state(0);
   let sideW = $state(0);
   let formH = $state(0);
+  /** `.fab-room`'s height: the preview leaves it below the form. */
+  const FAB_ROOM = 52;
 
   $effect(() => {
     const item = selected;
@@ -330,6 +351,12 @@
       form.title ||= s?.title ?? "";
       form.documentDate ||= s?.documentDate ?? "";
       if (!form.tags.length) form.tags = [...(s?.tags ?? [])];
+      form.sender ||= s?.sender ?? "";
+      if (!form.amount) {
+        form.amount = formatAmountInput(s?.amount);
+        form.currency = s?.currency ?? "";
+      }
+      form.dueDate ||= s?.dueDate ?? "";
       form.folder ||= item.suggestedFolder?.label ?? "";
       if (!nameEdited) form.fileName = defaultName();
     });
@@ -363,6 +390,10 @@
         tags: form.tags,
         notes: form.notes.trim() || null,
         favorite: form.favorite,
+        sender: form.sender.trim() || null,
+        amount: form.amount.trim() ? (parseAmount(form.amount) ?? form.amount.trim()) : null,
+        currency: form.amount.trim() ? form.currency.trim() || null : null,
+        dueDate: form.dueDate || null,
         destSourceId: destination.sourceId,
         destDir: destination.dir,
         fileName: form.fileName.trim(),
@@ -689,7 +720,7 @@
         <!-- The page gets what File it leaves (#127). -->
         <PreviewPane
           pane="inbox"
-          room={sideH - formH}
+          room={sideH - formH - FAB_ROOM}
           natural={(sideW - 24) * aspect + 18 + (pages && pages > 1 ? 20 : 0)}
           onopen={previewUrl ? () => (viewing = true) : undefined}
         >
@@ -760,6 +791,43 @@
             />
           </div>
         </div>
+        <!-- #108: who it's from, the amount on it, and when it's due. -->
+        <label class="field">
+          <span>{m.details.sender}</span>
+          <input bind:value={form.sender} list="inbox-senders" placeholder={m.details.senderHint} title={form.sender.trim() || undefined} />
+        </label>
+        <div class="money">
+          <label class="field">
+            <span>{m.details.amount}</span>
+            <input
+              bind:value={form.amount}
+              inputmode="decimal"
+              placeholder={formatAmountInput("0.00")}
+              onblur={() => (form.amount = tidyAmountInput(form.amount))}
+            />
+          </label>
+          <label class="field">
+            <span>{m.details.currency}</span>
+            <input
+              bind:value={form.currency}
+              list="inbox-currencies"
+              maxlength="3"
+              placeholder="EUR"
+              disabled={!form.amount.trim()}
+              oninput={() => (form.currency = form.currency.toUpperCase())}
+            />
+          </label>
+          <label class="field">
+            <span>{m.details.dueDate}</span>
+            <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} />
+          </label>
+        </div>
+        <datalist id="inbox-senders">
+          {#each senderList.names as name (name)}<option value={name}></option>{/each}
+        </datalist>
+        <datalist id="inbox-currencies">
+          {#each CURRENCIES as c (c)}<option value={c}></option>{/each}
+        </datalist>
         <div class="field">
           <span>{m.inbox.folder}</span>
           <FolderPicker
@@ -802,7 +870,12 @@
 
         {#if error}<p class="error small">{error}</p>{/if}
         <div class="actions">
-          <button class="primary" disabled={!folderChoice || filing} onclick={file} title="⌘↩">
+          <button
+            class="primary"
+            disabled={!folderChoice || filing}
+            onclick={file}
+            title={`${m.inbox.whatFilingDoes} (${os === "macos" ? "⌘↩" : "Ctrl+Enter"})`}
+          >
             {filing ? m.inbox.filing : m.inbox.file}
           </button>
           <button onclick={() => api.openEntry(selected!.sourceId, selected!.relPath)}>{m.inbox.open}</button>
@@ -863,10 +936,8 @@
         </div>
       {/if}
       </div>
+      <div class="fab-room" aria-hidden="true"></div>
       </div>
-      <!-- The bottom row, shared with the Ask Rupert button: the form scrolls
-           above it, so the button never covers a field or a button. -->
-      <p class="filing-note muted small">{#if selected}{m.inbox.whatFilingDoes}{/if}</p>
     </section>
   </div>
 {/if}
@@ -1229,11 +1300,12 @@
   }
   /* Beside the Ask Rupert button (46px, 18px from the window's right edge,
      2px past this column's): the text wraps 20px before it. */
-  .filing-note {
+  /* Room for the Ask Rupert button (46px, 34px from the window's bottom)
+     at the end of what scrolls: the form can always be scrolled clear of
+     it, and nothing else of the column is given up to it. */
+  .fab-room {
     flex: none;
-    margin: 0;
-    min-height: 46px;
-    padding: 4px 68px 0 14px;
+    height: 52px;
   }
   .preview {
     flex: 1 1 auto;
@@ -1266,6 +1338,16 @@
   .field > span {
     font-size: 12px;
     color: var(--muted);
+  }
+  /* Amount, currency and due date on one line (#108). */
+  .money {
+    display: grid;
+    grid-template-columns: 1fr 58px 1.3fr;
+    gap: 6px;
+  }
+  .money input {
+    width: 100%;
+    box-sizing: border-box;
   }
   .two {
     display: grid;

@@ -17,7 +17,7 @@ use serde_json::json;
 use crate::apple_ai;
 use crate::error::{Error, Result};
 use crate::i18n::{Lang, tr, trf};
-use crate::meta::is_iso_date;
+use crate::meta::{is_iso_date, parse_amount, parse_currency};
 
 /// LM Studio's server, the default.
 pub const DEFAULT_URL: &str = "http://localhost:1234";
@@ -50,6 +50,13 @@ pub struct Suggestion {
     pub folder: Option<String>,
     /// The model's one-line reason, shown in the review.
     pub reason: Option<String>,
+    /// Who sent or issued it, the amount on it with its currency, and the
+    /// date to pay by or valid until (#108). Each one only if it can be
+    /// found in the document's text.
+    pub sender: Option<String>,
+    pub amount: Option<String>,
+    pub currency: Option<String>,
+    pub due_date: Option<String>,
     /// The model that made it.
     pub model: String,
 }
@@ -358,6 +365,12 @@ impl AppleAi {
         schema["properties"]["document_date"]["description"] = json!(
             "A date printed in the document text, as YYYY-MM-DD. \"\" if the text shows none. Never the file name's date."
         );
+        schema["properties"]["amount"]["description"] = json!(
+            "The total to pay or paid, copied from the document text, e.g. \"1,240.50\". \"\" if the text shows none."
+        );
+        schema["properties"]["due_date"]["description"] = json!(
+            "The date to pay by, or valid until, printed in the document text, as YYYY-MM-DD. \"\" if none."
+        );
         let content = apple_ai::generate(&apple_ai::Ask {
             instructions: SYSTEM_PROMPT,
             prompt: &user_prompt(req, max_text, crate::i18n::current()),
@@ -412,6 +425,13 @@ fn user_prompt(req: &Request, max_text: usize, lang: Lang) -> String {
          - tags: 0 to 3 short tags for the kind of document or its subject (e.g. \"Insurance\", \
            \"Tax\", \"Medical\"). Reuse a tag in use only if it clearly fits; never add one just \
            because it exists.\n\
+         - sender: who sent or issued it (a company, office or person), a short name as printed, \
+           e.g. \"City Electric\", or \"\" if unclear.\n\
+         - amount: the total to pay or that was paid (invoice or receipt total, balance due), \
+           copied as printed, e.g. \"1,240.50\", or \"\" if there's none. Never computed or guessed.\n\
+         - currency: the amount's currency as a code like \"EUR\" or \"USD\", or \"\".\n\
+         - due_date: the date to pay by, or the date it's valid until (expiry), as YYYY-MM-DD, \
+           or \"\" if the document shows none.\n\
          - folder: the folder it belongs in, copied exactly from the list, or \"\" if none fits.\n\
          - reason: one short sentence on why that folder, written in {language}. Only the \
            reason is in {language}.\n\n\
@@ -435,10 +455,17 @@ fn schema() -> serde_json::Value {
             "title": {"type": "string"},
             "document_date": {"type": "string"},
             "tags": {"type": "array", "items": {"type": "string"}},
+            "sender": {"type": "string"},
+            "amount": {"type": "string"},
+            "currency": {"type": "string"},
+            "due_date": {"type": "string"},
             "folder": {"type": "string"},
             "reason": {"type": "string"},
         },
-        "required": ["document_language", "title", "document_date", "tags", "folder", "reason"],
+        "required": [
+            "document_language", "title", "document_date", "tags", "sender", "amount",
+            "currency", "due_date", "folder", "reason"
+        ],
         "additionalProperties": false,
     })
 }
@@ -458,6 +485,14 @@ fn parse(content: &str, req: &Request, model: String) -> Result<Suggestion> {
         folder: String,
         #[serde(default)]
         reason: String,
+        #[serde(default)]
+        sender: String,
+        #[serde(default)]
+        amount: String,
+        #[serde(default)]
+        currency: String,
+        #[serde(default)]
+        due_date: String,
     }
     // Some models wrap JSON in prose or code fences; take the object.
     let start = content.find('{');
@@ -491,6 +526,15 @@ fn parse(content: &str, req: &Request, model: String) -> Result<Suggestion> {
             }
         }
     }
+    let details = checked(
+        Details {
+            sender: clean(raw.sender, 80),
+            amount: clean(raw.amount, 40),
+            currency: clean(raw.currency, 10),
+            due_date: clean(raw.due_date, 10),
+        },
+        req.text,
+    );
     Ok(Suggestion {
         title: clean(raw.title, 80),
         document_date: clean(raw.document_date, 10).filter(|d| is_iso_date(d)),
@@ -498,7 +542,239 @@ fn parse(content: &str, req: &Request, model: String) -> Result<Suggestion> {
         folder: clean(raw.folder, 400).filter(|f| req.folders.contains(f)),
         reason: clean(raw.reason, 300),
         model,
+        sender: details.sender,
+        amount: details.amount,
+        currency: details.currency,
+        due_date: details.due_date,
     })
+}
+
+// MARK: - From, amount and due date (#108)
+
+/// Who a document is from, its amount and its due date: suggested with the
+/// inbox's other fields, or read for documents already in the library.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Details {
+    pub sender: Option<String>,
+    pub amount: Option<String>,
+    pub currency: Option<String>,
+    pub due_date: Option<String>,
+}
+
+/// Keeps only what `text` shows. Small models invent amounts and dates
+/// (#57), so each is looked for in the document before it's kept; the
+/// currency only goes with a kept amount.
+fn checked(d: Details, text: &str) -> Details {
+    let amount = d
+        .amount
+        .and_then(|a| parse_amount(&a))
+        .filter(|a| amount_in_text(a, text));
+    Details {
+        sender: d.sender.filter(|s| sender_in_text(s, text)),
+        currency: amount
+            .is_some()
+            .then(|| d.currency.and_then(|c| parse_currency(&c)))
+            .flatten(),
+        amount,
+        due_date: d
+            .due_date
+            .filter(|x| is_iso_date(x) && date_in_text(x, text)),
+    }
+}
+
+/// Reads who a document is from, its amount and due date from its text
+/// (#108: for documents already in the library). One request; nothing but
+/// what the text shows is kept.
+pub fn read_details(engine: &Engine, text: &str, file_name: &str) -> Result<Details> {
+    let text: String = text.chars().take(engine.max_text(MAX_TEXT)).collect();
+    let user = format!(
+        "File name: {file_name}\n\n\
+         Read these details from the document:\n\
+         - sender: who sent or issued it (a company, office or person), a short name as printed, \
+           e.g. \"City Electric\", or \"\" if unclear.\n\
+         - amount: the total to pay or that was paid (invoice or receipt total, balance due), \
+           copied as printed, e.g. \"1,240.50\", or \"\" if there's none. Never computed or guessed.\n\
+         - currency: the amount's currency as a code like \"EUR\" or \"USD\", or \"\".\n\
+         - due_date: the date to pay by, or the date it's valid until (expiry), as YYYY-MM-DD, \
+           or \"\" if the document shows none.\n\n\
+         Document text:\n\"\"\"\n{text}\n\"\"\""
+    );
+    let schema = json!({
+        "type": "object",
+        "properties": {
+            "sender": {"type": "string"},
+            "amount": {"type": "string"},
+            "currency": {"type": "string"},
+            "due_date": {"type": "string"},
+        },
+        "required": ["sender", "amount", "currency", "due_date"],
+        "additionalProperties": false,
+    });
+    let content = engine.json(SYSTEM_PROMPT, &user, "details", &schema, 300)?;
+    let json = match (content.find('{'), content.rfind('}')) {
+        (Some(s), Some(e)) if e > s => &content[s..=e],
+        _ => {
+            return Err(Error::InvalidValue(
+                tr("the model didn't answer with JSON").into(),
+            ));
+        }
+    };
+    #[derive(Deserialize)]
+    struct Raw {
+        #[serde(default)]
+        sender: String,
+        #[serde(default)]
+        amount: String,
+        #[serde(default)]
+        currency: String,
+        #[serde(default)]
+        due_date: String,
+    }
+    let raw: Raw = serde_json::from_str(json)
+        .map_err(|e| Error::InvalidValue(trf("the model's answer didn't parse: {0}", &[&e])))?;
+    let clean = |s: String, max: usize| {
+        let s = s.trim().trim_matches('"').trim().to_string();
+        (!s.is_empty()).then(|| s.chars().take(max).collect::<String>())
+    };
+    Ok(checked(
+        Details {
+            sender: clean(raw.sender, 80),
+            amount: clean(raw.amount, 40),
+            currency: clean(raw.currency, 10),
+            due_date: clean(raw.due_date, 10),
+        },
+        &text,
+    ))
+}
+
+// MARK: - Checking against the text (#108)
+
+/// Whether `amount` ("1240.50") is one of the numbers in `text`, written
+/// any common way ("1,240.50", "1.240,50", "1240,5").
+pub fn amount_in_text(amount: &str, text: &str) -> bool {
+    let want = amount.trim_start_matches('-');
+    let same = |found: &str| {
+        let found = found.trim_start_matches('-');
+        found == want
+            || match (found.split_once('.'), want.split_once('.')) {
+                // "1240.5" and "1240.50" are the same amount.
+                (Some((a, x)), Some((b, y))) => {
+                    a == b && x.trim_end_matches('0') == y.trim_end_matches('0')
+                }
+                (Some((a, x)), None) | (None, Some((a, x))) => {
+                    x.trim_end_matches('0').is_empty() && (a == want || a == found)
+                }
+                _ => false,
+            }
+    };
+    // Numbers in the text: digits with the separators between them.
+    let mut current = String::new();
+    let check = |run: &mut String| {
+        let t = run.trim_end_matches(['.', ',', ' ']).to_string();
+        run.clear();
+        !t.is_empty() && crate::meta::parse_amount(&t).is_some_and(|a| same(&a))
+    };
+    let chars: Vec<char> = text.chars().collect();
+    for (i, &c) in chars.iter().enumerate() {
+        let joins = matches!(c, '.' | ',' | '\'' | '\u{a0}' | '\u{202f}')
+            || (c == ' '
+                && i > 0
+                && chars[i - 1].is_ascii_digit()
+                && chars
+                    .get(i + 1..i + 4)
+                    .is_some_and(|n| n.iter().all(char::is_ascii_digit))
+                && chars.get(i + 4).is_none_or(|n| !n.is_ascii_digit()));
+        if c.is_ascii_digit() || (joins && !current.is_empty()) {
+            current.push(c);
+        } else if check(&mut current) {
+            return true;
+        }
+    }
+    check(&mut current)
+}
+
+/// Whether the date `iso` ("2026-12-01") is printed in `text`: its year,
+/// day and month close together, the month as a number or a name (English,
+/// Spanish or German, also abbreviated).
+pub fn date_in_text(iso: &str, text: &str) -> bool {
+    let (Ok(year), Ok(month), Ok(day)) = (
+        iso[..4].parse::<u32>(),
+        iso[5..7].parse::<u32>(),
+        iso[8..10].parse::<u32>(),
+    ) else {
+        return false;
+    };
+    const MONTHS: [&[&str]; 12] = [
+        &["jan", "ene", "jän"],
+        &["feb"],
+        &["mar", "mär"],
+        &["apr", "abr"],
+        &["may", "mai"],
+        &["jun"],
+        &["jul"],
+        &["aug", "ago"],
+        &["sep", "set"],
+        &["oct", "okt"],
+        &["nov"],
+        &["dec", "dic", "dez"],
+    ];
+    let lower = text.to_lowercase();
+    // Tokens: numbers and words, with their positions.
+    let mut tokens: Vec<(usize, String)> = Vec::new();
+    let mut start = None;
+    for (i, c) in lower
+        .char_indices()
+        .chain(std::iter::once((lower.len(), ' ')))
+    {
+        let part = c.is_alphanumeric();
+        match (start, part) {
+            (None, true) => start = Some(i),
+            (Some(s), false) => {
+                tokens.push((s, lower[s..i].to_string()));
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    let is_num =
+        |t: &str, n: u32| t.chars().all(|c| c.is_ascii_digit()) && t.parse::<u32>() == Ok(n);
+    let is_month = |t: &str| {
+        is_num(t, month)
+            || (t.len() >= 3 && MONTHS[month as usize - 1].iter().any(|m| t.starts_with(m)))
+    };
+    for (k, (_, t)) in tokens.iter().enumerate() {
+        let year_here = is_num(t, year) || (t.len() == 2 && is_num(t, year % 100));
+        if !year_here {
+            continue;
+        }
+        // The day and month within three tokens of the year, either side.
+        let near = &tokens[k.saturating_sub(3)..(k + 4).min(tokens.len())];
+        let has_day = near.iter().any(|(_, x)| {
+            is_num(x, day)
+                || x == &format!("{day}st")
+                || x == &format!("{day}nd")
+                || x == &format!("{day}rd")
+                || x == &format!("{day}th")
+        });
+        let has_month = near.iter().any(|(_, x)| is_month(x));
+        // Day and month are both numbers below 13: either order counts.
+        if has_day && has_month {
+            return true;
+        }
+    }
+    false
+}
+
+/// Whether the sender's name shows in `text`: one of its words of three or
+/// more letters (ignoring case), so "Allianz Versicherungs-AG" counts for
+/// "Allianz".
+pub fn sender_in_text(sender: &str, text: &str) -> bool {
+    let text = text.to_lowercase();
+    sender
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| w.chars().count() >= 3)
+        .any(|w| text.contains(&w.to_lowercase()))
 }
 
 // MARK: - Tests
@@ -506,6 +782,25 @@ fn parse(content: &str, req: &Request, model: String) -> Result<Suggestion> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn amounts_dates_and_senders_must_be_in_the_text() {
+        let text = "Allianz Versicherungs-AG\nRechnung vom 03.11.2026\nGesamtbetrag 1.240,50 EUR\n\
+                    Zahlbar bis 1. Dezember 2026. Invoice total $ 89.00, due Dec 15, 2026. \
+                    Card 4 500 012";
+        assert!(amount_in_text("1240.50", text));
+        assert!(amount_in_text("1240.5", text));
+        assert!(amount_in_text("89", text));
+        assert!(!amount_in_text("1240", text));
+        assert!(!amount_in_text("999.99", text));
+        assert!(date_in_text("2026-12-01", text));
+        assert!(date_in_text("2026-12-15", text));
+        assert!(date_in_text("2026-11-03", text));
+        assert!(!date_in_text("2026-12-02", text));
+        assert!(!date_in_text("2027-12-01", text));
+        assert!(sender_in_text("Allianz", text));
+        assert!(!sender_in_text("Acme Insurance", text));
+    }
 
     #[test]
     fn parses_and_cleans_answers() {
@@ -563,6 +858,10 @@ mod tests {
                 "title",
                 "document_date",
                 "tags",
+                "sender",
+                "amount",
+                "currency",
+                "due_date",
                 "folder",
                 "reason"
             ]
