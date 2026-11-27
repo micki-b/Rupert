@@ -10,6 +10,7 @@ pub mod camera;
 pub mod catalog;
 pub mod chatgpt;
 pub mod cloud;
+pub mod details;
 pub mod error;
 #[cfg(feature = "export")]
 pub mod export;

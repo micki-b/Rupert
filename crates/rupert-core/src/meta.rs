@@ -37,6 +37,19 @@ pub struct DocMeta {
     pub document_date: Option<String>,
     #[serde(default)]
     pub favorite: bool,
+    /// Who sent or issued it (#108): "Allianz", "City Electric".
+    #[serde(default)]
+    pub sender: Option<String>,
+    /// The amount on it (#108), as a plain decimal with a dot ("1240.00",
+    /// "-12.5"), whatever the document's own format was.
+    #[serde(default)]
+    pub amount: Option<String>,
+    /// The amount's currency (#108), an ISO 4217 code ("EUR", "USD").
+    #[serde(default)]
+    pub currency: Option<String>,
+    /// The date to pay by, or valid until (#108), `YYYY-MM-DD`.
+    #[serde(default)]
+    pub due_date: Option<String>,
 }
 
 impl DocMeta {
@@ -44,13 +57,7 @@ impl DocMeta {
     /// keeping the first spelling and the user's order) and validates the date.
     pub fn normalized(self) -> Result<Self> {
         let clean = |s: Option<String>| s.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
-        let mut tags: Vec<String> = Vec::new();
-        for tag in self.tags {
-            let tag = tag.split_whitespace().collect::<Vec<_>>().join(" ");
-            if !tag.is_empty() && !tags.iter().any(|t| t.eq_ignore_ascii_case(&tag)) {
-                tags.push(tag);
-            }
-        }
+        let tags = unique_tags(self.tags);
         let document_date = clean(self.document_date);
         if let Some(date) = &document_date
             && !is_iso_date(date)
@@ -60,6 +67,28 @@ impl DocMeta {
                 &[date],
             )));
         }
+        let due_date = clean(self.due_date);
+        if let Some(date) = &due_date
+            && !is_iso_date(date)
+        {
+            return Err(Error::InvalidValue(trf(
+                "due date must be YYYY-MM-DD, got \"{0}\"",
+                &[date],
+            )));
+        }
+        let amount = match clean(self.amount) {
+            Some(a) => Some(
+                parse_amount(&a)
+                    .ok_or_else(|| Error::InvalidValue(trf("\"{0}\" isn't an amount", &[&a])))?,
+            ),
+            None => None,
+        };
+        let currency = match clean(self.currency) {
+            Some(c) => Some(parse_currency(&c).ok_or_else(|| {
+                Error::InvalidValue(trf("\"{0}\" isn't a currency code like EUR or USD", &[&c]))
+            })?),
+            None => None,
+        };
         Ok(Self {
             id: clean(self.id),
             title: clean(self.title),
@@ -67,6 +96,10 @@ impl DocMeta {
             notes: clean(self.notes),
             document_date,
             favorite: self.favorite,
+            sender: clean(self.sender).map(|s| s.split_whitespace().collect::<Vec<_>>().join(" ")),
+            amount,
+            currency,
+            due_date,
         })
     }
 
@@ -76,6 +109,10 @@ impl DocMeta {
             && self.notes.is_none()
             && self.document_date.is_none()
             && !self.favorite
+            && self.sender.is_none()
+            && self.amount.is_none()
+            && self.currency.is_none()
+            && self.due_date.is_none()
     }
 }
 
@@ -89,6 +126,10 @@ pub struct PartialMeta {
     pub notes: Option<String>,
     pub document_date: Option<String>,
     pub favorite: Option<bool>,
+    pub sender: Option<String>,
+    pub amount: Option<String>,
+    pub currency: Option<String>,
+    pub due_date: Option<String>,
 }
 
 impl PartialMeta {
@@ -101,6 +142,10 @@ impl PartialMeta {
             notes: self.notes.or(other.notes),
             document_date: self.document_date.or(other.document_date),
             favorite: self.favorite.or(other.favorite),
+            sender: self.sender.or(other.sender),
+            amount: self.amount.or(other.amount),
+            currency: self.currency.or(other.currency),
+            due_date: self.due_date.or(other.due_date),
         }
     }
 
@@ -116,10 +161,16 @@ impl PartialMeta {
         DocMeta {
             id: self.id,
             title: self.title,
-            tags: self.tags.unwrap_or_default(),
+            // Files written by other apps can hold a tag twice; lists key
+            // tags by name, so they're made unique here.
+            tags: unique_tags(self.tags.unwrap_or_default()),
             notes: self.notes,
             document_date: self.document_date.filter(|d| is_iso_date(d)),
             favorite: self.favorite.unwrap_or(false),
+            sender: self.sender,
+            amount: self.amount.and_then(|a| parse_amount(&a)),
+            currency: self.currency.and_then(|c| parse_currency(&c)),
+            due_date: self.due_date.filter(|d| is_iso_date(d)),
         }
     }
 }
@@ -134,6 +185,10 @@ impl From<DocMeta> for PartialMeta {
             notes: m.notes,
             document_date: m.document_date,
             favorite: m.favorite.then_some(true),
+            sender: m.sender,
+            amount: m.amount,
+            currency: m.currency,
+            due_date: m.due_date,
         }
     }
 }
@@ -148,6 +203,84 @@ pub fn is_iso_date(s: &str) -> bool {
             .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit())
         && (1..=12).contains(&s[5..7].parse::<u8>().unwrap_or(0))
         && (1..=31).contains(&s[8..10].parse::<u8>().unwrap_or(0))
+}
+
+/// An amount as Rupert keeps it: digits with a dot before the decimals
+/// ("1240.00", "-12.5"), from what people and documents write ("1,240.00",
+/// "1.240,00", "1 240,5", "$12.50"). A separator followed by one or two
+/// digits at the end is the decimal one; the others group thousands.
+pub fn parse_amount(s: &str) -> Option<String> {
+    let s = s.trim();
+    let negative =
+        s.starts_with('-') || s.starts_with('−') || (s.starts_with('(') && s.ends_with(')'));
+    // Around the number only a currency sign or code may stand ("$12",
+    // "12,50 EUR"); "12 apples" isn't an amount.
+    let start = s.find(|c: char| c.is_ascii_digit())?;
+    let end = s.rfind(|c: char| c.is_ascii_digit())? + 1;
+    for outer in [&s[..start], &s[end..]] {
+        let letters = outer.chars().filter(|c| c.is_alphabetic()).count();
+        let allowed = outer
+            .chars()
+            .all(|c| c.is_alphabetic() || c.is_whitespace() || "€$£¥₹-−().+".contains(c));
+        if !allowed || letters > 3 {
+            return None;
+        }
+    }
+    // Inside the number only separators; anything else isn't an amount.
+    let body: String = s[start..end]
+        .chars()
+        .filter(|c| !c.is_whitespace() && *c != '\u{a0}' && *c != '\u{202f}' && *c != '\'')
+        .collect();
+    if body.is_empty()
+        || !body
+            .chars()
+            .all(|c| c.is_ascii_digit() || c == '.' || c == ',')
+    {
+        return None;
+    }
+    let (int, dec) = match body.rfind(['.', ',']) {
+        Some(i) if (1..=2).contains(&(body.len() - i - 1)) => (&body[..i], &body[i + 1..]),
+        _ => (body.as_str(), ""),
+    };
+    let int: String = int.chars().filter(char::is_ascii_digit).collect();
+    let int = int.trim_start_matches('0');
+    let int = if int.is_empty() { "0" } else { int };
+    if int.len() > 15 {
+        return None;
+    }
+    let sign = if negative { "-" } else { "" };
+    Some(if dec.is_empty() {
+        format!("{sign}{int}")
+    } else {
+        format!("{sign}{int}.{dec}")
+    })
+}
+
+/// A currency code: three letters, upper case ("eur" → "EUR"); the common
+/// signs too ("€" → "EUR", "$" → "USD", "£" → "GBP").
+pub fn parse_currency(s: &str) -> Option<String> {
+    let s = s.trim();
+    let code = match s {
+        "€" => "EUR".to_string(),
+        "$" | "US$" => "USD".to_string(),
+        "£" => "GBP".to_string(),
+        "CHF" | "Fr." | "SFr." => "CHF".to_string(),
+        _ => s.to_ascii_uppercase(),
+    };
+    (code.len() == 3 && code.chars().all(|c| c.is_ascii_uppercase())).then_some(code)
+}
+
+/// Tags trimmed (inner spaces collapsed), without empty ones, and each only
+/// once, ignoring case: the first spelling and the order are kept.
+pub fn unique_tags(tags: impl IntoIterator<Item = String>) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for tag in tags {
+        let tag = tag.split_whitespace().collect::<Vec<_>>().join(" ");
+        if !tag.is_empty() && !out.iter().any(|t| t.to_lowercase() == tag.to_lowercase()) {
+            out.push(tag);
+        }
+    }
+    out
 }
 
 /// Splits a keywords string (`"a, b; c"`) into tags.
@@ -345,6 +478,83 @@ fn record(meta: DocMeta, storage: Storage, note: Option<String>) -> MetaRecord {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn amounts_and_currencies_read_as_people_write_them() {
+        for (text, want) in [
+            ("1,240.00", Some("1240.00")),
+            ("1.240,00", Some("1240.00")),
+            ("1 240,5", Some("1240.5")),
+            ("$12.50", Some("12.50")),
+            ("12,50 €", Some("12.50")),
+            ("-7.25", Some("-7.25")),
+            ("(15.00)", Some("-15.00")),
+            ("1.240", Some("1240")),
+            ("0042", Some("42")),
+            ("12 apples", None),
+            ("", None),
+            ("abc", None),
+        ] {
+            assert_eq!(parse_amount(text).as_deref(), want, "{text}");
+        }
+        assert_eq!(parse_currency("eur").as_deref(), Some("EUR"));
+        assert_eq!(parse_currency("€").as_deref(), Some("EUR"));
+        assert_eq!(parse_currency("Euro"), None);
+    }
+
+    #[test]
+    fn tags_read_from_a_file_come_once() {
+        // Another app wrote "Steuer" twice (and once in other case).
+        let read = PartialMeta {
+            tags: Some(vec![
+                "Steuer".into(),
+                " Bank ".into(),
+                "Steuer".into(),
+                "STEUER".into(),
+                "".into(),
+            ]),
+            ..Default::default()
+        }
+        .into_meta();
+        assert_eq!(read.tags, ["Steuer", "Bank"]);
+        assert_eq!(
+            unique_tags(["Ärzte".to_string(), "ärzte".to_string()]),
+            ["Ärzte"]
+        );
+    }
+
+    #[test]
+    fn new_details_are_validated() {
+        let m = DocMeta {
+            sender: Some("  City   Electric ".into()),
+            amount: Some("1.234,56".into()),
+            currency: Some("eur".into()),
+            due_date: Some("2026-12-01".into()),
+            ..Default::default()
+        }
+        .normalized()
+        .unwrap();
+        assert_eq!(m.sender.as_deref(), Some("City Electric"));
+        assert_eq!(m.amount.as_deref(), Some("1234.56"));
+        assert_eq!(m.currency.as_deref(), Some("EUR"));
+        assert!(!m.is_empty());
+        for bad in [
+            DocMeta {
+                due_date: Some("12/01/2026".into()),
+                ..Default::default()
+            },
+            DocMeta {
+                amount: Some("lots".into()),
+                ..Default::default()
+            },
+            DocMeta {
+                currency: Some("Euro".into()),
+                ..Default::default()
+            },
+        ] {
+            assert!(bad.normalized().is_err());
+        }
+    }
+
     use super::*;
 
     #[test]
@@ -361,6 +571,7 @@ mod tests {
             notes: Some("\n".into()),
             document_date: Some("2026-11-03".into()),
             favorite: true,
+            ..Default::default()
         }
         .normalized()
         .unwrap();

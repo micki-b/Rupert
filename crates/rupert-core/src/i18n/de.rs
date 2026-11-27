@@ -74,6 +74,15 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Das Dokumentdatum muss JJJJ-MM-TT lauten, nicht „{0}“",
     ),
     (
+        "due date must be YYYY-MM-DD, got \"{0}\"",
+        "das Fälligkeitsdatum muss JJJJ-MM-TT sein, nicht „{0}“",
+    ),
+    ("\"{0}\" isn't an amount", "„{0}“ ist kein Betrag"),
+    (
+        "\"{0}\" isn't a currency code like EUR or USD",
+        "„{0}“ ist kein Währungscode wie EUR oder USD",
+    ),
+    (
         "choose at least one tag",
         "Wählen Sie mindestens ein Tag aus",
     ),
@@ -205,6 +214,10 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Title", "Titel"),
     ("Date", "Datum"),
     ("Tags", "Tags"),
+    ("From", "Von"),
+    ("Amount", "Betrag"),
+    ("Currency", "Währung"),
+    ("Due date", "Fällig am"),
     ("Notes", "Notizen"),
     ("Original folder", "Ursprünglicher Ordner"),
     ("Original name", "Ursprünglicher Name"),
@@ -412,6 +425,11 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Suche nach „{0}“ mit dem Tag {1}",
     ),
     ("Looking at tags", "Tags werden angesehen"),
+    ("Adding up amounts", "Beträge werden addiert"),
+    (
+        "Looking at who documents are from",
+        "Absender der Dokumente werden angesehen",
+    ),
     ("Looking at the library", "Die Bibliothek wird angesehen"),
     ("Opening {0}", "{0} wird geöffnet"),
     ("Reading {0}", "{0} wird gelesen"),

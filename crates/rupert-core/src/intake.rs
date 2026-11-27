@@ -562,6 +562,15 @@ pub struct Filing {
     pub tags: Vec<String>,
     pub notes: Option<String>,
     pub favorite: bool,
+    /// From, amount, currency and due date (#108), as reviewed.
+    #[serde(default)]
+    pub sender: Option<String>,
+    #[serde(default)]
+    pub amount: Option<String>,
+    #[serde(default)]
+    pub currency: Option<String>,
+    #[serde(default)]
+    pub due_date: Option<String>,
     pub dest_source_id: String,
     pub dest_dir: String,
     /// Without extension.
@@ -609,6 +618,10 @@ pub fn file_document(
         tags: filing.tags.clone(),
         notes: filing.notes.clone(),
         favorite: filing.favorite,
+        sender: filing.sender.clone(),
+        amount: filing.amount.clone(),
+        currency: filing.currency.clone(),
+        due_date: filing.due_date.clone(),
         ..existing
     };
     if local {

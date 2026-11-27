@@ -35,6 +35,13 @@ export interface ListedEntry extends Entry {
   tags?: string[];
   favorite?: boolean;
   documentDate?: string | null;
+  /** Who sent or issued it (#108). */
+  sender?: string | null;
+  /** The amount on it as a plain decimal ("1240.50"), and its currency code. */
+  amount?: string | null;
+  currency?: string | null;
+  /** YYYY-MM-DD: to pay by, or valid until. */
+  dueDate?: string | null;
 }
 
 export interface Hit extends Entry {
@@ -45,6 +52,13 @@ export interface Hit extends Entry {
   favorite: boolean;
   /** Body excerpt; matches wrapped in U+E000 … U+E001. */
   snippet: string | null;
+  /** Who sent or issued it (#108). */
+  sender?: string | null;
+  /** The amount on it as a plain decimal ("1240.50"), and its currency code. */
+  amount?: string | null;
+  currency?: string | null;
+  /** YYYY-MM-DD: to pay by, or valid until. */
+  dueDate?: string | null;
 }
 
 export interface TagCount {
@@ -91,6 +105,32 @@ export interface SearchArgs {
   kinds?: string[];
   folder?: string | null;
   byDate?: boolean;
+  /** #108: only from these senders, and due from / to (YYYY-MM-DD). */
+  senders?: string[];
+  dueFrom?: string;
+  dueTo?: string;
+}
+
+/** Amounts added up for one currency (#108). */
+export interface Total {
+  currency: string | null;
+  /** "1240.50" */
+  amount: string;
+  count: number;
+}
+
+/** A document's From, amount and due date (#108). */
+export interface Details {
+  sender: string | null;
+  amount: string | null;
+  currency: string | null;
+  dueDate: string | null;
+}
+
+/** Read details… (#108): what a document has, and what its text shows. */
+export interface DetailsProposal {
+  current: Details;
+  proposed: Details | null;
 }
 
 /** A folder marked as a favorite (kept in the folder's own `.rupert`). */
@@ -160,6 +200,13 @@ export interface DocMeta {
   /** YYYY-MM-DD, the date on the paper. */
   documentDate: string | null;
   favorite: boolean;
+  /** Who sent or issued it (#108). */
+  sender?: string | null;
+  /** The amount on it as a plain decimal ("1240.50"), and its currency code. */
+  amount?: string | null;
+  currency?: string | null;
+  /** YYYY-MM-DD: to pay by, or valid until. */
+  dueDate?: string | null;
 }
 
 export type Storage = "embedded" | "sidecar" | "none";
@@ -378,6 +425,13 @@ export interface Suggestion {
   folder: string | null;
   reason: string | null;
   model: string;
+  /** Who sent or issued it (#108). */
+  sender?: string | null;
+  /** The amount on it as a plain decimal ("1240.50"), and its currency code. */
+  amount?: string | null;
+  currency?: string | null;
+  /** YYYY-MM-DD: to pay by, or valid until. */
+  dueDate?: string | null;
 }
 
 export type Stage = "waiting" | "recognizing" | "suggesting" | "ready";
@@ -404,6 +458,13 @@ export interface Filing {
   tags: string[];
   notes: string | null;
   favorite: boolean;
+  /** Who sent or issued it (#108). */
+  sender?: string | null;
+  /** The amount on it as a plain decimal ("1240.50"), and its currency code. */
+  amount?: string | null;
+  currency?: string | null;
+  /** YYYY-MM-DD: to pay by, or valid until. */
+  dueDate?: string | null;
   destSourceId: string;
   destDir: string;
   fileName: string;
@@ -486,6 +547,15 @@ export const api = {
   /** Downloads an online-only document; Rupert then reads it. */
   downloadFile: (sourceId: string, relPath: string) => invoke<void>("download_file", { sourceId, relPath }),
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
+  /** Every match's amount added up per currency (#108), not just the 300 shown. */
+  searchTotals: (query: SearchArgs) => invoke<Total[]>("search_totals", { query }),
+  /** Senders for the From filter (#108). */
+  listSenders: (filter = "") => invoke<TagCount[]>("list_senders", { filter }),
+  /** Read details… (#108): one document's details from its indexed text. */
+  detailsPropose: (sourceId: string, relPath: string) =>
+    invoke<DetailsProposal>("details_propose", { sourceId, relPath }),
+  detailsApply: (items: (DocPlace & { details: Details })[]) =>
+    invoke<{ done: number; failed: [string, string][] }>("details_apply", { items }),
   /** Where words (or, with `phrase`, a passage) are on a local PDF's pages (#106). */
   findInDocument: (sourceId: string, relPath: string, text: string, phrase = false) =>
     invoke<FoundHit[]>("find_in_document", { sourceId, relPath, text, phrase }),

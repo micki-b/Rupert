@@ -29,6 +29,7 @@
     type MoveBackItem,
     type Entry,
     type Hit,
+    type Total,
     type IndexStats,
     type ListedEntry,
     type Progress,
@@ -46,7 +47,8 @@
     onShareProgress,
   } from "#lib/api.ts";
   import { changes } from "#lib/changes.svelte.ts";
-  import { formatDate, formatDay, formatSize, kindLabel } from "#lib/format.ts";
+  import { addUp, formatDate, formatDay, formatMoney, formatSize, formatTotals, kindLabel } from "#lib/format.ts";
+  import { senderList } from "#lib/details.svelte.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import MoveDialog from "#lib/MoveDialog.svelte";
   import { canMoveInto, dragSource, dropTarget, isDropOver, onMoveMany, type Dropped, type MoveItem } from "#lib/drag.svelte.ts";
@@ -72,6 +74,7 @@
   import InboxImportDialog from "#lib/InboxImportDialog.svelte";
   import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
   import ExportDialog from "#lib/ExportDialog.svelte";
+  import ReadDetailsDialog from "#lib/ReadDetailsDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import DocPreview from "#lib/DocPreview.svelte";
   import ListHeader from "#lib/ListHeader.svelte";
@@ -281,7 +284,7 @@
 
   // MARK: - Sorting and search filters (#103)
 
-  type SortKey = "name" | "kind" | "size" | "modified" | "date";
+  type SortKey = "name" | "kind" | "size" | "modified" | "date" | "sender" | "amount" | "due";
   type Sort = { key: SortKey; desc: boolean };
   const SORT_KEY = "rupert.sort";
   /** How folders are sorted (folders stay on top), remembered like the view. */
@@ -289,7 +292,7 @@
   function loadSort(): Sort {
     try {
       const s = JSON.parse(localStorage.getItem(SORT_KEY) ?? "null");
-      if (s && ["name", "kind", "size", "modified", "date"].includes(s.key)) return { key: s.key, desc: !!s.desc };
+      if (s && ["name", "kind", "size", "modified", "date", "sender", "amount", "due"].includes(s.key)) return { key: s.key, desc: !!s.desc };
     } catch {
       /* first time */
     }
@@ -298,7 +301,10 @@
   /** A column header: sort by it, or reverse if it already is. Dates and
    * sizes start with the newest and biggest. */
   function sortBy(key: SortKey, desc?: boolean) {
-    sort = { key, desc: desc ?? (sort.key === key ? !sort.desc : key === "modified" || key === "date" || key === "size") };
+    sort = {
+      key,
+      desc: desc ?? (sort.key === key ? !sort.desc : key === "modified" || key === "date" || key === "size" || key === "amount"),
+    };
     try {
       localStorage.setItem(SORT_KEY, JSON.stringify(sort));
     } catch {
@@ -322,7 +328,16 @@
   const sortedEntries = $derived.by(() => {
     const { key, desc } = sort;
     const byName = (a: ListedEntry, b: ListedEntry) => collator.compare(a.name, b.name);
+    // #108's columns: documents without the detail go last either way.
+    const detail = (e: ListedEntry): string | number | null =>
+      key === "sender" ? (e.sender ?? null) : key === "amount" ? (e.amount ? Number(e.amount) : null) : key === "due" ? (e.dueDate ?? null) : null;
     const cmp = (a: ListedEntry, b: ListedEntry): number => {
+      if (key === "sender" || key === "amount" || key === "due") {
+        const [x, y] = [detail(a), detail(b)];
+        if (x === null || y === null) return x === y ? byName(a, b) : x === null ? 1 : -1;
+        const c = typeof x === "number" && typeof y === "number" ? x - y : collator.compare(String(x), String(y));
+        return (desc ? -c : c) || byName(a, b);
+      }
       let c = 0;
       if (key === "kind") c = collator.compare(kindLabel(a.isDir ? "folder" : a.kind), kindLabel(b.isDir ? "folder" : b.kind));
       else if (key === "size") c = (a.size || 0) - (b.size || 0);
@@ -340,9 +355,23 @@
   type DateFilter = { kind: "thisYear" } | { kind: "lastYear" } | { kind: "range"; from: string; to: string };
   let dateFilter = $state<DateFilter | null>(null);
   let kindFilter = $state<string | null>(null);
+  /** #108: documents from this sender, and due from today on / before today. */
+  let fromFilter = $state<string | null>(null);
+  let dueFilter = $state<"upcoming" | "past" | null>(null);
   /** Where to search: a source, or a folder and its subfolders. */
   let whereFilter = $state<{ scope: "source" | "folder"; sourceId: string; relPath: string } | null>(null);
-  const filtering = $derived(!!dateFilter || !!kindFilter || !!whereFilter);
+  const filtering = $derived(!!dateFilter || !!kindFilter || !!whereFilter || !!fromFilter || !!dueFilter);
+  /** Today as YYYY-MM-DD (local), for due dates. */
+  function todayIso(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  /** The day before `iso`. */
+  function dayBefore(iso: string): string {
+    const [y, mo, d] = iso.split("-").map(Number);
+    const t = new Date(y, mo - 1, d - 1);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  }
 
   function dateRange(f: DateFilter | null): { dateFrom?: string; dateTo?: string } {
     if (!f) return {};
@@ -496,6 +525,7 @@
       6 * 60 * 60 * 1000,
     );
     loadInboxCount();
+    senderList.ensure();
 
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
@@ -543,6 +573,7 @@
       onIndexChanged(() => {
         indexTick++;
         loadIndexInfo();
+        senderList.refresh();
       }),
       getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (focused) loadSources(true);
@@ -551,14 +582,16 @@
     const closeMenu = () => {
       menuFor = null;
       itemMenu = null;
+      bulkMenu = null;
     };
     const shortcuts = (e: KeyboardEvent) => {
       if (viewer || quickOpen || reader) return; // they have the keyboard
       const typing =
         e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]");
       const cmd = info?.os === "macos" ? e.metaKey : e.ctrlKey;
-      if (e.key === "Escape" && itemMenu) {
+      if (e.key === "Escape" && (itemMenu || bulkMenu)) {
         itemMenu = null;
+        bulkMenu = null;
       } else if (cmd && !e.shiftKey && !e.altKey && e.key === "k") {
         // ⌘K / Ctrl+K: quick open (#105). On the Mac, File ▸ Quick Open…
         // has the key, and this is for when the menu doesn't see it.
@@ -675,6 +708,8 @@
   // MARK: - Search
 
   let searchSeq = 0;
+  /** What the search's matches add up to, per currency (#108). */
+  let searchTotals = $state<Total[]>([]);
   $effect(() => {
     const args = {
       text: query,
@@ -686,6 +721,8 @@
       sourceId: whereFilter?.sourceId ?? null,
       folder: whereFilter?.scope === "folder" ? whereFilter.relPath : null,
       byDate: resultsByDate,
+      senders: fromFilter ? [fromFilter] : [],
+      ...(dueFilter === "upcoming" ? { dueFrom: todayIso() } : dueFilter === "past" ? { dueTo: dayBefore(todayIso()) } : {}),
     };
     indexTick; // re-run when the index changes
     if (!searching) {
@@ -700,6 +737,9 @@
       hits = result ?? [];
       refreshPicked(hits.map((h) => ({ sourceId: h.sourceId, entry: h })));
       searchedOnce = true;
+      // The amounts of every match, not only the 300 shown (#108).
+      searchTotals = hits.some((h) => h.amount) || hits.length >= 300 ? ((await api.searchTotals(args).catch(() => [])) ?? []) : [];
+      if (seq !== searchSeq) searchTotals = [];
     }, 150);
     return () => clearTimeout(timer);
   });
@@ -767,6 +807,8 @@
     dateFilter = null;
     kindFilter = null;
     whereFilter = null;
+    fromFilter = null;
+    dueFilter = null;
   }
 
   function openInbox() {
@@ -883,6 +925,9 @@
   }
 
   // MARK: - Right-click menu and Trash
+
+  /** The Tags… or ⋯ menu under the selection's buttons in Details. */
+  let bulkMenu = $state<"tags" | "more" | null>(null);
 
   /** The right-click menu: where, for what, and whether it's a search result. */
   let itemMenu = $state<{ x: number; y: number; sel: Selected; inSearch: boolean } | null>(null);
@@ -1096,6 +1141,7 @@
       size: docs.reduce((n, d) => n + (d.entry.size || 0), 0),
       common,
       allStarred: docs.length > 0 && docs.every((d) => (d.entry as ListedEntry).favorite),
+      totals: addUp(docs.map((d) => d.entry as ListedEntry)),
     };
   });
 
@@ -1211,6 +1257,11 @@
 
   /** Export… for documents and folders (a folder brings everything in it). */
   async function startExport(items: Selected[], title: string) {
+    exporting = { docs: await collectDocs(items), title };
+  }
+
+  /** The documents of a selection, a folder's all below it, once each. */
+  async function collectDocs(items: Selected[]): Promise<DocPlace[]> {
     itemMenu = null;
     menuFor = null;
     const seen = new Set<string>();
@@ -1230,7 +1281,16 @@
         add({ sourceId: it.sourceId, relPath: it.entry.relPath });
       }
     }
-    exporting = { docs, title };
+    return docs;
+  }
+
+  // MARK: - Read details (#108)
+
+  /** The documents whose From, amount and due date are being read. */
+  let readingDetails = $state<{ docs: DocPlace[]; title: string } | null>(null);
+
+  async function startReadDetails(items: Selected[], title: string) {
+    readingDetails = { docs: await collectDocs(items), title };
   }
 
   /** A name for what's selected: the folder they're in, or the one folder. */
@@ -1630,27 +1690,100 @@
 <!-- What can be done to several at once (#102): in Details and the
      right-click menu. -->
 {#snippet bulkActions(kind: "buttons" | "menu")}
-  {@const role = kind === "menu" ? "menuitem" : undefined}
   {@const sm = pickedSummary}
-  <button {role} class:primary={kind === "buttons"} onclick={() => ((itemMenu = null), (moving = picked.slice()))}>{m.main.moveTo}</button>
-  {#if sm.docs}
-    <button {role} onclick={() => openBulkTags("add")}>{m.several.addTags}</button>
-    <button {role} onclick={() => openBulkTags("remove")}>{m.several.removeTags}</button>
-    <button {role} onclick={starPicked}>{sm.allStarred ? "☆ " + m.several.unstar : "★ " + m.several.star}</button>
-    {#if kind === "menu"}<hr />{/if}
-    {#if info?.os !== "linux"}
-      <button
-        {role}
-        onclick={(ev) => sharePicked(kind === "menu" && itemMenu ? { x: itemMenu.x, y: itemMenu.y } : atElement(ev.currentTarget))}
-        >{m.share.share}</button
-      >
+  {#if kind === "menu"}
+    <!-- The right-click menu: every action as text. -->
+    <button role="menuitem" onclick={() => ((itemMenu = null), (moving = picked.slice()))}>{m.main.moveTo}</button>
+    {#if sm.docs}
+      <button role="menuitem" onclick={() => openBulkTags("add")}>{m.several.addTags}</button>
+      <button role="menuitem" onclick={() => openBulkTags("remove")}>{m.several.removeTags}</button>
+      <button role="menuitem" onclick={starPicked}>{sm.allStarred ? "☆ " + m.several.unstar : "★ " + m.several.star}</button>
+      <hr />
+      {#if info?.os !== "linux"}
+        <button role="menuitem" onclick={() => sharePicked(itemMenu ? { x: itemMenu.x, y: itemMenu.y } : { x: 0, y: 0 })}>{m.share.share}</button>
+      {/if}
+      <button role="menuitem" onclick={emailPicked}>{m.share.email}</button>
+      {#if !searching}<button role="menuitem" onclick={renamePicked}>{m.renameDocs.menu}</button>{/if}
     {/if}
-    <button {role} onclick={emailPicked}>{m.share.email}</button>
-    {#if !searching}<button {role} onclick={renamePicked}>{m.renameDocs.menu}</button>{/if}
+    <button role="menuitem" onclick={() => startExport(picked.slice(), exportTitle(picked))}>{m.common.ellipsis(m.exportDocs.export)}</button>
+    <button role="menuitem" onclick={() => startReadDetails(picked.slice(), exportTitle(picked))}>{m.common.ellipsis(m.readDetails.menu)}</button>
+    <hr />
+    <button role="menuitem" class="danger" onclick={trashPicked}>{trashLabel}</button>
+  {:else}
+    <!-- Details: icons with tooltips on top (the trash can on its own at
+         the end, the rarer actions under ⋯), then the two main actions as
+         words. -->
+    <div class="bulk-row icons">
+      {#if sm.docs}
+        <button
+          class="icon-action star-action"
+          class:on={sm.allStarred}
+          onclick={starPicked}
+          title={sm.allStarred ? m.several.unstar : m.several.star}
+          aria-label={sm.allStarred ? m.several.unstar : m.several.star}>{sm.allStarred ? "★" : "☆"}</button
+        >
+        {#if info?.os !== "linux"}
+          <button
+            class="icon-action"
+            onclick={(ev) => sharePicked(atElement(ev.currentTarget))}
+            title={m.common.ellipsis(m.share.share)}
+            aria-label={m.share.share}><Icon name="share" size={16} /></button
+          >
+        {/if}
+        <button class="icon-action" onclick={emailPicked} title={m.common.ellipsis(m.share.email)} aria-label={m.share.email}
+          ><Icon name="mail" size={16} /></button
+        >
+      {/if}
+      <button
+        class="icon-action"
+        onclick={() => startExport(picked.slice(), exportTitle(picked))}
+        title={m.common.ellipsis(m.exportDocs.export)}
+        aria-label={m.exportDocs.export}><Icon name="export" size={16} /></button
+      >
+      <span class="drop">
+        <button
+          class="icon-action"
+          onclick={(e) => (e.stopPropagation(), (bulkMenu = bulkMenu === "more" ? null : "more"))}
+          title={m.several.more}
+          aria-label={m.several.more}
+          aria-haspopup="menu"
+          aria-expanded={bulkMenu === "more"}><Icon name="more" size={16} /></button
+        >
+        {#if bulkMenu === "more"}
+          <div class="drop-menu" role="menu">
+            {#if sm.docs && !searching}
+              <button role="menuitem" onclick={() => ((bulkMenu = null), renamePicked())}>{m.renameDocs.menu}</button>
+            {/if}
+            <button role="menuitem" onclick={() => ((bulkMenu = null), startReadDetails(picked.slice(), exportTitle(picked)))}
+              >{m.common.ellipsis(m.readDetails.menu)}</button
+            >
+          </div>
+        {/if}
+      </span>
+      <span class="grow"></span>
+      <button class="icon-action danger" onclick={trashPicked} title={m.common.ellipsis(trashLabel)} aria-label={trashLabel}
+        ><Icon name="trash" size={16} /></button
+      >
+    </div>
+    <div class="bulk-row">
+      <button class="primary" onclick={() => (moving = picked.slice())}>{m.main.moveTo}</button>
+      {#if sm.docs}
+        <span class="drop">
+          <button
+            onclick={(e) => (e.stopPropagation(), (bulkMenu = bulkMenu === "tags" ? null : "tags"))}
+            aria-haspopup="menu"
+            aria-expanded={bulkMenu === "tags"}>{m.common.ellipsis(m.several.tags)} ▾</button
+          >
+          {#if bulkMenu === "tags"}
+            <div class="drop-menu" role="menu">
+              <button role="menuitem" onclick={() => ((bulkMenu = null), openBulkTags("add"))}>{m.several.addTags}</button>
+              <button role="menuitem" onclick={() => ((bulkMenu = null), openBulkTags("remove"))}>{m.several.removeTags}</button>
+            </div>
+          {/if}
+        </span>
+      {/if}
+    </div>
   {/if}
-  <button {role} onclick={() => startExport(picked.slice(), exportTitle(picked))}>{m.common.ellipsis(m.exportDocs.export)}</button>
-  {#if kind === "menu"}<hr />{/if}
-  <button {role} class="danger" onclick={trashPicked}>{trashLabel}</button>
 {/snippet}
 
 <div
@@ -1861,6 +1994,16 @@
       <button
         role="menuitem"
         onclick={() =>
+          startReadDetails(
+            [{ sourceId: s.id, entry: { name: s.name, relPath: "", isDir: true, kind: null, size: 0, modifiedMs: null, cloud: "local" } }],
+            s.name,
+          )}
+      >
+        <span class="check"></span>{m.common.ellipsis(m.readDetails.menu)}
+      </button>
+      <button
+        role="menuitem"
+        onclick={() =>
           openRenameDocs({
             sourceId: s.id,
             entry: { name: s.name, relPath: "", isDir: true, kind: null, size: 0, modifiedMs: null, cloud: "local" },
@@ -1893,7 +2036,8 @@
 
 
   {#snippet tagChips(list: string[] | undefined)}
-    {#each list ?? [] as t (t)}<span class="chip">{t}</span>{/each}
+    <!-- Each tag once: a key twice would stop the whole window. -->
+    {#each [...new Set(list ?? [])] as t (t)}<span class="chip">{t}</span>{/each}
   {/snippet}
 
   {#if inboxOpen && appSettings}
@@ -1992,6 +2136,18 @@
         <option value="">{m.filters.anyKind}</option>
         {#each KINDS as k (k)}<option value={k}>{m.kinds[k]}</option>{/each}
       </select>
+      <select value={fromFilter ?? ""} onchange={(e) => (fromFilter = e.currentTarget.value || null)} title={m.filters.fromTip}>
+        <option value="">{m.filters.anySender}</option>
+        {#if fromFilter && !senderList.names.some((n) => n.toLowerCase() === fromFilter!.toLowerCase())}
+          <option value={fromFilter}>{fromFilter}</option>
+        {/if}
+        {#each senderList.list as s (s.tag)}<option value={s.tag}>{s.tag} ({s.count})</option>{/each}
+      </select>
+      <select value={dueFilter ?? ""} onchange={(e) => (dueFilter = (e.currentTarget.value || null) as typeof dueFilter)}>
+        <option value="">{m.filters.anyDue}</option>
+        <option value="upcoming">{m.filters.dueUpcoming}</option>
+        <option value="past">{m.filters.duePast}</option>
+      </select>
       <select value={whereFilter?.scope ?? "everywhere"} onchange={(e) => setWhere(e.currentTarget.value as "everywhere" | "source" | "folder")}>
         <option value="everywhere">{m.filters.everywhere}</option>
         {#if folder || whereFilter}
@@ -2007,6 +2163,9 @@
       <div class="results-head">
         <p class="result-count muted">
           {#if !searchedOnce}{m.main.searching}{:else if hits.length === 0}{m.main.noMatches}{:else}{m.main.hits(hits.length, hits.length >= 300)}{/if}
+          {#if searchedOnce && hits.length && searchTotals.length}
+            <span class="totals" title={m.several.totalTip}>· {m.several.total}: {formatTotals(searchTotals)}</span>
+          {/if}
         </p>
         <span class="view-switch order-switch" role="group" aria-label={m.filters.sort}>
           <button class:on={!resultsByDate} aria-pressed={!resultsByDate} onclick={() => (resultsByDate = false)}>{m.filters.bestMatch}</button>
@@ -2047,6 +2206,9 @@
               <div class="r-meta muted">
                 <span>{sourceName(h.sourceId)}{dirOf(h.relPath) ? " / " + dirOf(h.relPath) : ""}</span>
                 {#if h.documentDate}<span>· {h.documentDate}</span>{/if}
+                {#if h.sender}<span>· {h.sender}</span>{/if}
+                {#if h.amount}<span>· {formatMoney(h.amount, h.currency)}</span>{/if}
+                {#if h.dueDate}<span class:overdue={h.dueDate < todayIso()}>· {m.details.dueOn(formatDocDay(h.dueDate))}</span>{/if}
                 {@render tagChips(h.tags)}
               </div>
             </button>
@@ -2200,6 +2362,12 @@
                     <td class="num muted">{e.isDir || (e.cloud === "cloudOnly" && !e.size) ? "" : formatSize(e.size)}</td>
                   {:else if c === "date"}
                     <td class="muted">{e.isDir ? "" : formatDocDay(e.documentDate)}</td>
+                  {:else if c === "sender"}
+                    <td class="muted" title={e.sender ?? undefined}>{e.sender ?? ""}</td>
+                  {:else if c === "amount"}
+                    <td class="num muted">{formatMoney(e.amount, e.currency)}</td>
+                  {:else if c === "due"}
+                    <td class="muted" class:overdue={!!e.dueDate && e.dueDate < todayIso()}>{formatDocDay(e.dueDate)}</td>
                   {:else}
                     <td class="muted" title={formatDate(e.modifiedMs)}>{formatDay(e.modifiedMs)}</td>
                   {/if}
@@ -2261,6 +2429,13 @@
             {#if sm.common.length}{@render tagChips(sm.common)}{:else}<span class="muted">{m.several.noCommonTags}</span>{/if}
           </dd>
         {/if}
+        {#if sm.totals.length}
+          <dt>{m.several.total}</dt>
+          <dd>
+            {formatTotals(sm.totals)}
+            {#if sm.totals.reduce((n, t) => n + t.count, 0) < sm.docs}<span class="muted small">{m.several.withAmount(sm.totals.reduce((n, t) => n + t.count, 0))}</span>{/if}
+          </dd>
+        {/if}
       </dl>
       <div class="actions several-actions">
         {@render bulkActions("buttons")}
@@ -2311,6 +2486,8 @@
     {:else}
       <p class="empty">{m.main.selectDocument}</p>
     {/if}
+    <!-- Room for the Ask Rupert button at the end of what scrolls. -->
+    <div class="fab-room" aria-hidden="true"></div>
     </div>
   </section>
   {/if}
@@ -2332,6 +2509,15 @@
 
 {#if exporting}
   <ExportDialog docs={exporting.docs} title={exporting.title} os={info?.os} onclose={() => (exporting = null)} />
+{/if}
+
+{#if readingDetails}
+  <ReadDetailsDialog
+    docs={readingDetails.docs}
+    title={readingDetails.title}
+    onclose={() => (readingDetails = null)}
+    onsettings={() => api.openSettings("local-ai")}
+  />
 {/if}
 
 {#if quickOpen}
@@ -2406,6 +2592,7 @@
       </button>
     {/if}
     <button role="menuitem" onclick={() => fromMenu((sel) => startExport([sel], exportTitle([sel])))}>{m.common.ellipsis(m.exportDocs.export)}</button>
+    <button role="menuitem" onclick={() => fromMenu((sel) => startReadDetails([sel], exportTitle([sel])))}>{m.common.ellipsis(m.readDetails.menu)}</button>
     <hr />
     <button role="menuitem" class="danger" onclick={() => trashEntry(mn.sel)}>{trashLabel}</button>
   </div>
@@ -2857,6 +3044,59 @@
   .several-actions button.danger {
     color: var(--danger);
   }
+  /* The selection's actions (#102): Move to… and Tags… as words, then a
+     row of icons with the trash can on its own at the end. */
+  .several-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .bulk-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .bulk-row .grow {
+    flex: 1;
+  }
+  .star-action {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .star-action.on {
+    color: #d9a520;
+  }
+  .drop {
+    position: relative;
+  }
+  .drop-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 15;
+    min-width: 180px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+  .drop-menu button {
+    border: 0;
+    background: none;
+    text-align: left;
+    padding: 5px 8px;
+    border-radius: 5px;
+  }
+  .drop-menu button:hover {
+    background: var(--hover);
+  }
+  .fab-room {
+    height: 52px;
+  }
   .common-tags {
     display: flex;
     flex-wrap: wrap;
@@ -2936,6 +3176,14 @@
     white-space: nowrap;
   }
   /* Search filters (#103). */
+  /* #108: a due date that's passed, and a search's totals. */
+  .overdue {
+    color: var(--danger, #c0392b);
+  }
+  .totals {
+    white-space: nowrap;
+    color: var(--text);
+  }
   .filter-row {
     display: flex;
     flex-wrap: wrap;
@@ -3317,8 +3565,11 @@
     gap: 6px;
     flex-wrap: wrap;
   }
+  /* As tall as the text buttons beside them (one control size per group,
+     as Apple's guidelines ask): 13px text + 2 × 4px padding + border. */
   .actions .icon-action {
     width: 32px;
+    min-height: 26px;
     padding: 0;
     display: grid;
     place-items: center;

@@ -19,7 +19,7 @@
     type ColumnId,
   } from "#lib/listColumns.svelte.ts";
 
-  type SortKey = "name" | "kind" | "size" | "date" | "modified";
+  type SortKey = "name" | "kind" | "size" | "date" | "modified" | "sender" | "amount" | "due";
 
   let {
     columns,
@@ -40,6 +40,9 @@
       size: m.main.size,
       date: m.filters.date,
       modified: m.main.modified,
+      sender: m.details.sender,
+      amount: m.details.amount,
+      due: m.details.dueDate,
     })[c];
 
   // MARK: Resizing
@@ -178,7 +181,7 @@
       <th
         bind:this={heads[c]}
         class={c}
-        class:num={c === "size"}
+        class:num={c === "size" || c === "amount"}
         class:moving={moving === c}
         aria-sort={sortable && sort.key === c ? (sort.desc ? "descending" : "ascending") : undefined}
         onpointerdown={(ev) => moveDown(ev, c)}

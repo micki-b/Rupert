@@ -3,9 +3,13 @@
 // not in the library. Name has no width of its own: it takes what the others
 // leave, and never less than NAME_MIN (the list scrolls sideways then).
 
-export type ColumnId = "star" | "name" | "kind" | "size" | "date" | "modified";
+export type ColumnId = "star" | "name" | "kind" | "size" | "date" | "modified" | "sender" | "amount" | "due";
 
-export const ALL_COLUMNS: ColumnId[] = ["star", "name", "kind", "size", "date", "modified"];
+export const ALL_COLUMNS: ColumnId[] = ["star", "name", "kind", "size", "date", "modified", "sender", "amount", "due"];
+
+/** Columns that start hidden (#108's From, Amount and Due date): shown
+ * from the column menu. Also hidden for a layout saved before they existed. */
+const HIDDEN_AT_FIRST: ColumnId[] = ["sender", "amount", "due"];
 
 /** Default and smallest width of each column, in pixels. The star's is
  * fixed. */
@@ -15,6 +19,9 @@ export const COLUMN_WIDTHS: Record<Exclude<ColumnId, "name">, { def: number; min
   size: { def: 70, min: 48 },
   date: { def: 104, min: 64 },
   modified: { def: 104, min: 64 },
+  sender: { def: 140, min: 70 },
+  amount: { def: 96, min: 60 },
+  due: { def: 104, min: 64 },
 };
 
 export const NAME_MIN = 140;
@@ -28,7 +35,7 @@ type Layout = {
 const KEY = "rupert.listColumns";
 
 function defaults(): Layout {
-  return { order: [...ALL_COLUMNS], widths: {}, hidden: [] };
+  return { order: [...ALL_COLUMNS], widths: {}, hidden: [...HIDDEN_AT_FIRST] };
 }
 
 function load(): Layout {
@@ -40,7 +47,8 @@ function load(): Layout {
     const order = (Array.isArray(saved.order) ? saved.order : []).filter(
       (c: unknown, i: number, a: unknown[]) => ALL_COLUMNS.includes(c as ColumnId) && a.indexOf(c) === i,
     ) as ColumnId[];
-    out.order = [...order, ...ALL_COLUMNS.filter((c) => !order.includes(c))];
+    const added = ALL_COLUMNS.filter((c) => !order.includes(c));
+    out.order = [...order, ...added];
     for (const c of ALL_COLUMNS) {
       const w = saved.widths?.[c];
       if (c !== "name" && c !== "star" && typeof w === "number" && Number.isFinite(w)) {
@@ -50,6 +58,8 @@ function load(): Layout {
     out.hidden = (Array.isArray(saved.hidden) ? saved.hidden : []).filter(
       (c: unknown) => ALL_COLUMNS.includes(c as ColumnId) && c !== "name",
     );
+    // Columns newer than the saved layout start as they would for anyone.
+    for (const c of added) if (HIDDEN_AT_FIRST.includes(c) && !out.hidden.includes(c)) out.hidden.push(c);
   } catch {
     // Unreadable or missing: the defaults.
   }
@@ -106,7 +116,8 @@ export function resetColumns() {
 /** Whether the layout differs from the usual one. */
 export function columnsChanged(): boolean {
   return (
-    listColumns.hidden.length > 0 ||
+    listColumns.hidden.length !== HIDDEN_AT_FIRST.length ||
+    listColumns.hidden.some((c) => !HIDDEN_AT_FIRST.includes(c)) ||
     Object.keys(listColumns.widths).length > 0 ||
     listColumns.order.some((c, i) => c !== ALL_COLUMNS[i])
   );

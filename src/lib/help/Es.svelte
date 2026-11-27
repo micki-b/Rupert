@@ -130,7 +130,8 @@
     dos títulos para hacer una columna más ancha o más angosta (doble clic para el ancho de siempre); Nombre ocupa el
     lugar que queda. Arrastrá el título de una columna hacia un costado para moverla. Hacé clic derecho en los títulos
     para mostrar u ocultar columnas, o elegí <b>Restablecer columnas</b>. Rupert guarda las columnas en esta
-    computadora. En una ventana angosta, Tipo se oculta primero.
+    computadora. En una ventana angosta, Tipo se oculta primero. <b>De</b>, <b>Importe</b> y <b>Vencimiento</b> empiezan
+    ocultas; activalas en ese menú.
   </p>
   <p id="page-preview">
     <b>Vista previa:</b> en la lista, en íconos grandes y en los resultados de búsqueda, la página del PDF o la imagen
@@ -181,7 +182,10 @@
   </p>
   <p>
     Con varios seleccionados, <b>Detalles</b> muestra cuántos son, el tamaño total y las etiquetas que tienen en común,
-    con lo que podés hacer con todos. Hacé clic derecho en uno de ellos para lo mismo en un menú:
+    con lo que podés hacer con todos: íconos para marcarlos con estrella, compartirlos, enviarlos por correo y
+    exportarlos, <b>⋯</b> para Cambiar el nombre de documentos… y Leer datos…, y el tacho (apuntá a un ícono para ver qué
+    hace), y debajo <b>Mover a…</b> y <b>Etiquetas…</b> (para agregar o quitar etiquetas). Hacé clic derecho en uno de ellos
+    para lo mismo en un menú:
   </p>
   <ul>
     <li>
@@ -409,7 +413,9 @@
     del documento, o la de su archivo), por <b>tipo</b> (PDF, imagen, Office, texto, correo) y por <b>lugar</b>: en todos
     lados, en la fuente de la carpeta abierta o en la carpeta abierta con sus subcarpetas. Funcionan también sin
     palabras: elegí <b>El año pasado</b> y <b>PDF</b> para ver todos los PDF del año pasado. <b>Más relevantes</b> y
-    <b>Más nuevos</b>, arriba de los resultados, cambian el orden. <kbd>Esc</kbd> borra las palabras y los filtros.
+    <b>Más nuevos</b>, arriba de los resultados, cambian el orden. <b>De</b> y <b>vencimiento</b> (desde hoy, o antes de
+    hoy) la acotan a quién envió un documento y cuándo vence; si los resultados tienen importes, su total aparece arriba
+    de ellos (de todas las coincidencias, por moneda). <kbd>Esc</kbd> borra las palabras y los filtros.
   </p>
   <p>En los resultados, <b>Mostrar en Rupert</b> (en los detalles) te lleva a la carpeta del documento.</p>
   <h3>Etiquetas</h3>
@@ -452,6 +458,9 @@
     </li>
     <li><b>Etiquetas</b>: todas las que quieras. Escribí y apretá Enter o una coma para agregar una.</li>
     <li><b>Notas</b>: lo que quieras recordar sobre el documento.</li>
+    <li><b>De</b>: quién lo envió o lo emitió (una empresa, una oficina, una persona).</li>
+    <li><b>Importe</b> y su <b>moneda</b>: el total a pagar, o el que se pagó.</li>
+    <li><b>Vencimiento</b>: la fecha para pagarlo, o hasta cuándo vale (un pasaporte, una garantía).</li>
   </ul>
   <p>
     Hacé clic en <b>Guardar</b> para conservar los cambios, o en <b>Deshacer cambios</b> para descartarlos. Se guardan
@@ -462,6 +471,21 @@
   <p>
     En un PDF solo en línea, hacé clic en <b>Descargar y mostrar los detalles</b> para leer lo que tiene guardado adentro.
     Guardar cambios en un archivo solo en línea lo descarga primero.
+  </p>
+  <h3 id="from-amount-due">Quién, cuánto y cuándo</h3>
+  <p>
+    En la bandeja de entrada, la IA local sugiere <b>De</b>, <b>Importe</b> y <b>Vencimiento</b> junto con los demás
+    campos, solo cuando el texto del documento los muestra, así no inventa importes ni fechas. Con varios documentos
+    seleccionados, <b>Detalles</b> suma sus importes (por moneda). Activá las columnas <b>De</b>, <b>Importe</b> y
+    <b>Vencimiento</b> de la lista con un clic derecho en los títulos de las columnas. Preguntale a Rupert puede buscar
+    documentos por estos datos y sumar importes: “¿cuánto le pagué al dentista este año?”, “¿qué me queda por pagar?”.
+  </p>
+  <p>
+    Para los documentos que ya tenés, hacé clic derecho en una carpeta (o en el <b>⋯</b> de una fuente, o en una
+    selección) ▸ <b>Leer datos…</b>. La IA local los lee del texto que Rupert ya tiene, sin descargar nada, de a un
+    documento (<b>Detener</b> lo termina). Revisá la tabla, cambiá lo que quieras y guardá las filas marcadas. Los
+    documentos solo en línea reciben los datos la próxima vez que estén en esta computadora. Los recibos de ScanSnap
+    Home traen su comercio y su importe al importarlos.
   </p>
 </section>
 
@@ -506,7 +530,7 @@
   </ol>
   <p>
     Hacé clic en <b>Bandeja de entrada</b> en la barra lateral para revisar. Mirá la sugerencia, cambiá lo que quieras y
-    hacé clic en <b>Archivar</b> ({cmd}{mac ? "↩" : "Enter"}). Rupert escribe los detalles en el archivo, le cambia el
+    hacé clic en <b>Archivarlo</b> ({cmd}{mac ? "↩" : "Enter"}). Rupert escribe los detalles en el archivo, le cambia el
     nombre y lo mueve a la carpeta. Las dos flechas en círculo junto al tacho rojo (<b>Sugerir de nuevo</b>) le piden a la IA local una sugerencia
     nueva; giran mientras trabaja.
   </p>

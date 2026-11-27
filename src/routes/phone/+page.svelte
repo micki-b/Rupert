@@ -10,7 +10,7 @@
   import Ask from "#lib/phone/Ask.svelte";
   import FolderPictures from "#lib/phone/FolderPictures.svelte";
   import { snippetParts, type TagMode } from "#lib/api.ts";
-  import { formatSize } from "#lib/format.ts";
+  import { formatMoney, formatSize } from "#lib/format.ts";
   import {
     formatDocDate,
     onFoldersReady,
@@ -1191,6 +1191,9 @@
           <dt>{m.phone.tags}</dt>
           <dd class="tags">{#each sheet.info.tags as t (t)}<span class="chip on">{t}</span>{/each}</dd>
         {/if}
+        {#if sheet.info?.sender}<dt>{m.details.sender}</dt><dd>{sheet.info.sender}</dd>{/if}
+        {#if sheet.info?.amount}<dt>{m.details.amount}</dt><dd>{formatMoney(sheet.info.amount, sheet.info.currency)}</dd>{/if}
+        {#if sheet.info?.dueDate}<dt>{m.details.dueDate}</dt><dd>{formatDocDate(sheet.info.dueDate)}</dd>{/if}
         {#if sheet.info?.notes}<dt>{m.phone.notes}</dt><dd class="notes">{sheet.info.notes}</dd>{/if}
         <dt>{m.phone.folder}</dt>
         <dd>{[sourceName(sheet.sourceId), folderOf(sheet.relPath)].filter(Boolean).join(" / ")}</dd>

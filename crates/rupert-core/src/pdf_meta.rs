@@ -384,6 +384,10 @@ pub(crate) mod tests {
             notes: Some("Paid".into()),
             document_date: Some("2026-10-31".into()),
             favorite: true,
+            sender: Some("Électricité de France".into()),
+            amount: Some("84.20".into()),
+            currency: Some("EUR".into()),
+            due_date: Some("2026-11-15".into()),
         }
     }
 

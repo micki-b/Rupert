@@ -1119,6 +1119,8 @@ fn describe_call(name: &str, input: &Value) -> String {
             (q, t) => trf("Searching for “{0}” tagged {1}", &[&q, &t]),
         },
         "list_tags" => tr("Looking at tags").into(),
+        "total_amounts" => tr("Adding up amounts").into(),
+        "list_senders" => tr("Looking at who documents are from").into(),
         "list_sources" => tr("Looking at the library").into(),
         "list_folder" => trf("Opening {0}", &[&s("path").trim_matches('/')]),
         "read_document" => trf("Reading {0}", &[&s("path")]),
@@ -1383,8 +1385,29 @@ impl<'a> LibraryTools<'a> {
                         .collect()
                 })
                 .unwrap_or_default(),
+            // #108: who it's from (one name or several) and when it's due.
+            senders: match input.get("from") {
+                Some(Value::String(s)) if !s.trim().is_empty() => vec![s.trim().to_string()],
+                Some(Value::Array(a)) => a
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect(),
+                _ => Vec::new(),
+            },
+            due_from: date(input, "due_from"),
+            due_to: date(input, "due_to"),
             ..Default::default()
         }
+    }
+
+    /// An amount with its currency, as the tools show it ("1240.50 EUR").
+    fn money(amount: &Option<String>, currency: &Option<String>) -> Option<String> {
+        amount.as_ref().map(|a| match currency {
+            Some(c) => format!("{a} {c}"),
+            None => a.clone(),
+        })
     }
 
     /// Searches; when nothing has every word, searches again leaving words
@@ -1454,6 +1477,9 @@ impl<'a> LibraryTools<'a> {
                     "date": h.document_date,
                     "tags": h.tags,
                     "favorite": h.favorite,
+                    "from": h.sender,
+                    "amount": Self::money(&h.amount, &h.currency),
+                    "due": h.due_date,
                     "snippet": h.snippet.as_deref().map(|s| s.replace(['\u{E000}', '\u{E001}'], "")),
                 })).collect::<Vec<_>>());
                 // Small models search once with every word of the question
@@ -1483,6 +1509,42 @@ impl<'a> LibraryTools<'a> {
                         .into()
                 };
                 Ok(json!({"results": results, "note": next}))
+            }
+            "total_amounts" => {
+                // Every match, added up per currency (#108): no reading
+                // each document, no limit of 50.
+                let q = Self::query(input);
+                let totals = self.index.totals(&q).map_err(|e| e.to_string())?;
+                let matching = self
+                    .index
+                    .search(&SearchQuery {
+                        limit: 1_000_000,
+                        skip_excerpts: true,
+                        ..q
+                    })
+                    .map_err(|e| e.to_string())?
+                    .len();
+                let with_amount: usize = totals.iter().map(|t| t.count).sum();
+                Ok(json!({
+                    "totals": totals.iter().map(|t| json!({
+                        "currency": t.currency,
+                        "total": t.amount,
+                        "documents": t.count,
+                    })).collect::<Vec<_>>(),
+                    "documents_matching": matching,
+                    "documents_without_amount": matching - with_amount,
+                    "note": "Totals of the amounts recorded with each document. Documents without one aren't counted; their amounts, if any, are only in their text.",
+                }))
+            }
+            "list_senders" => {
+                let filter = input
+                    .get("filter")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let list = self.index.senders(filter, 100).map_err(|e| e.to_string())?;
+                Ok(
+                    json!({"senders": list.iter().map(|s| json!({"from": s.tag, "documents": s.count})).collect::<Vec<_>>()}),
+                )
             }
             "list_tags" => {
                 let filter = input
@@ -1525,6 +1587,9 @@ impl<'a> LibraryTools<'a> {
                             "title": m.and_then(|m| m.title.clone()),
                             "date": m.and_then(|m| m.document_date.clone()),
                             "tags": m.map(|m| m.tags.clone()).unwrap_or_default(),
+                            "from": m.and_then(|m| m.sender.clone()),
+                            "amount": m.and_then(|m| Self::money(&m.amount, &m.currency)),
+                            "due": m.and_then(|m| m.due_date.clone()),
                         }));
                     }
                 }
@@ -1558,6 +1623,9 @@ impl<'a> LibraryTools<'a> {
                     "file": info.hit.name,
                     "date": info.hit.document_date,
                     "tags": info.hit.tags,
+                    "from": info.hit.sender,
+                    "amount": Self::money(&info.hit.amount, &info.hit.currency),
+                    "due": info.hit.due_date,
                     "notes": info.notes,
                     "text": text.map(|t| t.chars().take(max).collect::<String>()),
                     "text_chars_total": total,
@@ -1708,6 +1776,9 @@ impl ToolBox for LibraryTools<'_> {
             "date_from": {"type": "string", "description": "Only documents dated on or after this day, YYYY-MM-DD (the date on the document, else the file's date)."},
             "date_to": {"type": "string", "description": "Only documents dated on or before this day, YYYY-MM-DD."},
             "kinds": {"type": "array", "items": {"type": "string", "enum": ["pdf", "image", "office", "text", "email"]}, "description": "Only these kinds of file."},
+            "from": {"type": "string", "description": "Only documents from this sender (as list_senders names them, ignoring case)."},
+            "due_from": {"type": "string", "description": "Only documents due on or after this day, YYYY-MM-DD (bills to pay, things expiring)."},
+            "due_to": {"type": "string", "description": "Only documents due on or before this day, YYYY-MM-DD."},
             "limit": {"type": "integer", "description": "Most results to return (default 15, at most 50)."}
         });
         let doc_props = json!({
@@ -1717,8 +1788,18 @@ impl ToolBox for LibraryTools<'_> {
         vec![
             ToolSpec {
                 name: "search_documents",
-                description: "Full-text search of the user's documents. Returns source, path, title, document date, tags and a text snippet for each match, best first.",
+                description: "Full-text search of the user's documents. Returns source, path, title, document date, tags, who it's from, its amount, its due date and a text snippet for each match, best first.",
                 schema: schema(search_props.clone(), &[]),
+            },
+            ToolSpec {
+                name: "total_amounts",
+                description: "Adds up the amounts recorded with every document a search finds (same options as search_documents, no limit), per currency. Use for \"how much did I pay…\" or \"what do I still owe…\" instead of reading documents one by one.",
+                schema: schema(search_props.clone(), &[]),
+            },
+            ToolSpec {
+                name: "list_senders",
+                description: "Who documents are from (companies, offices, people), with how many documents each, most first. Optionally only those matching a filter text.",
+                schema: schema(json!({"filter": {"type": "string"}}), &[]),
             },
             ToolSpec {
                 name: "list_tags",
@@ -1971,6 +2052,10 @@ pub fn system_prompt(today: &str) -> String {
          tags or other words. If nothing is found, search again with fewer words, or with the key \
          words in English or the documents' language: documents are often in another language \
          than the question.\n\n\
+         Documents may record who they're from, an amount and a due date. For questions about \
+         money (\"how much did I pay the dentist this year\", \"what do I still have to pay\"), \
+         use total_amounts and the from and due filters (due_from today for what's still to pay) \
+         rather than reading each document; say how many documents had no amount.\n\n\
          When the user asks to open, show or go to something, do it with open_folder, show_document \
          or show_results, and only say something is shown or open after the tool answered \
          \"Shown.\". You can't change, move, rename, tag or delete files; say so if asked.\n\n\
@@ -2015,6 +2100,10 @@ mod tests {
                     title: Some("Impeller invoice".into()),
                     tags: vec!["Boat".into()],
                     document_date: Some("2025-03-14".into()),
+                    sender: Some("Harbor Marine Supply".into()),
+                    amount: Some("412.50".into()),
+                    currency: Some("USD".into()),
+                    due_date: Some("2025-04-13".into()),
                     ..Default::default()
                 },
                 storage: Storage::Embedded,
@@ -2152,6 +2241,26 @@ mod tests {
         );
         assert_eq!(tools.take_suggestions(), [doc]);
         assert!(tools.take_suggestions().is_empty());
+    }
+
+    #[test]
+    fn tools_find_and_add_up_by_sender_amount_and_due_date() {
+        let (_dir, idx, sources) = library();
+        let tools = LibraryTools::new(&idx, &sources);
+        let call = |name: &str, input: Value| -> Value {
+            serde_json::from_str(&tools.call(name, &input)).unwrap()
+        };
+        let found = call("search_documents", json!({"from": "harbor marine supply"}));
+        assert_eq!(found["results"][0]["amount"], "412.50 USD");
+        assert_eq!(found["results"][0]["due"], "2025-04-13");
+        let none = call("search_documents", json!({"due_from": "2025-05-01"}));
+        assert!(none.as_array().is_some_and(Vec::is_empty), "{none}");
+        let totals = call("total_amounts", json!({"tags": ["Boat"]}));
+        assert_eq!(totals["totals"][0]["total"], "412.50");
+        assert_eq!(totals["totals"][0]["currency"], "USD");
+        assert_eq!(totals["documents_without_amount"], 0);
+        let senders = call("list_senders", json!({"filter": "harb"}));
+        assert_eq!(senders["senders"][0]["from"], "Harbor Marine Supply");
     }
 
     #[test]
@@ -2391,7 +2500,7 @@ mod tests {
             head.contains("server-side-fallback-2026-07-01") && head.contains("oauth-2025-04-20")
         );
         assert_eq!(first["fallbacks"], "default");
-        assert_eq!(first["tools"].as_array().unwrap().len(), 8);
+        assert_eq!(first["tools"].as_array().unwrap().len(), 10);
         // Second request: the assistant turn echoed unchanged (thinking
         // included) and all tool results in one user message.
         let second = &seen[1].1["messages"];

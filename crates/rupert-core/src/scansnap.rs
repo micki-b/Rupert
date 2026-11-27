@@ -9,8 +9,8 @@
 //! - the **document date**, when it differs from the date the file was made
 //!   (otherwise it's just the scan date and adds nothing);
 //! - the **favorite** flag;
-//! - **receipt** details (vendor, amount, tax), as a "Receipt" tag and a
-//!   line in the notes;
+//! - **receipt** details (vendor, amount, tax), as a "Receipt" tag, a line
+//!   in the notes, and From and Amount where the document has none (#108);
 //! - the **OCR text**, into the file's sidecar, unless the file's own text
 //!   is already indexed.
 //!
@@ -762,6 +762,25 @@ fn merge(mut meta: DocMeta, item: &ImportItem) -> DocMeta {
         {
             meta.tags.push(RECEIPT_TAG.into());
         }
+        // From and amount as details of their own (#108), where none are
+        // set; the note keeps the tax, which has no field.
+        if meta.sender.is_none() {
+            meta.sender = receipt
+                .vendor
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(String::from);
+        }
+        if meta.amount.is_none()
+            && let Some(a) = receipt.amount.filter(|a| a.is_finite())
+        {
+            meta.amount = Some(format!("{a:.2}"));
+            meta.currency = receipt
+                .currency
+                .as_deref()
+                .and_then(crate::meta::parse_currency);
+        }
         let line = receipt.note();
         meta.notes = match meta.notes.take() {
             Some(n) if n.contains(&line) => Some(n),
@@ -1018,6 +1037,22 @@ mod tests {
             Some("Paid cash\nReceipt: CVS, 3.00")
         );
         assert!(merged.favorite);
+        // The receipt's vendor and amount become From and Amount (#108),
+        // unless the document has its own.
+        assert_eq!(merged.sender.as_deref(), Some("CVS"));
+        assert_eq!(merged.amount.as_deref(), Some("3.00"));
+        let kept = merge(
+            DocMeta {
+                sender: Some("CVS Pharmacy".into()),
+                amount: Some("3.10".into()),
+                ..Default::default()
+            },
+            &item,
+        );
+        assert_eq!(
+            (kept.sender.as_deref(), kept.amount.as_deref()),
+            (Some("CVS Pharmacy"), Some("3.10"))
+        );
     }
 
     #[test]

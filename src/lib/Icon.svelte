@@ -27,7 +27,9 @@
     | "text-scan"
     | "chip"
     | "share"
-    | "mail";
+    | "mail"
+    | "trash"
+    | "export";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
@@ -59,6 +61,9 @@
     "text-scan": "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9.5h8M8 12.5h8M8 15.5h5",
     chip: "M7.5 6.5h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM10 3.5v3M14 3.5v3M10 17.5v3M14 17.5v3M3.5 10h3M3.5 14h3M17.5 10h3M17.5 14h3M10 10h4v4h-4z",
     tag: "M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8a1.4 1.4 0 0 1 0 2l-7.1 7.1a1.4 1.4 0 0 1-2 0zM8 8h.01",
+    trash: "M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A.5.5 0 0 1 9.5 4h5a.5.5 0 0 1 .5.5V7",
+    /* A box with an arrow into it: copies packed up (Export…). */
+    export: "M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM3 5h18v4H3zM12 11.5v5.5M9.5 14.5 12 17l2.5-2.5",
   };
 </script>
 
