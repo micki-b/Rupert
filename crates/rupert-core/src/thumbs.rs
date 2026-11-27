@@ -178,9 +178,16 @@ impl Thumbnails {
     }
 
     /// How many pages the document at `path` has: a PDF's page count, 1 for
-    /// other files. `None` for online-only files (it would download them).
-    pub fn page_count(&self, extractor: &TextExtractor, path: &Path) -> Result<Option<usize>> {
-        if cloud_state(path)? == CloudState::CloudOnly {
+    /// other files. `None` for online-only files (it would download them),
+    /// unless `anyway` (a scan in the inbox, see
+    /// [`crate::intake::readable_anyway`]).
+    pub fn page_count(
+        &self,
+        extractor: &TextExtractor,
+        path: &Path,
+        anyway: bool,
+    ) -> Result<Option<usize>> {
+        if !anyway && cloud_state(path)? == CloudState::CloudOnly {
             return Ok(None);
         }
         match FileKind::from_path(path) {
@@ -234,14 +241,16 @@ fn prune_dir(dir: &Path, max_bytes: u64, keep_bytes: u64) {
 /// A sharp picture of a page for the page viewer's zoom (#83): a PDF's
 /// `page` at most `side` pixels on its longest side, as a JPEG; images as
 /// they are. Not cached (only shown while zoomed), and `None` for
-/// online-only files and kinds without pages.
+/// online-only files (unless `anyway`, as for [`Thumbnails::page_count`])
+/// and kinds without pages.
 pub fn large_page(
     extractor: &TextExtractor,
     path: &Path,
     page: usize,
     side: u32,
+    anyway: bool,
 ) -> Result<Option<Picture>> {
-    if cloud_state(path)? == CloudState::CloudOnly {
+    if !anyway && cloud_state(path)? == CloudState::CloudOnly {
         return Ok(None);
     }
     match FileKind::from_path(path) {

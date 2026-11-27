@@ -281,7 +281,9 @@ impl Worker {
                 name: e.name.clone(),
                 size: e.size,
                 modified_ms: e.modified_ms,
-                cloud: e.cloud,
+                // Read anyway on such a drive, so shown and previewed as a
+                // file on this computer ("Available offline" or not).
+                cloud: if streamed { CloudState::Local } else { e.cloud },
                 stage: Stage::Waiting,
                 progress: None,
                 ocr: None,
@@ -608,7 +610,7 @@ fn parent_of(rel: &str) -> &str {
 /// online-only: on a drive that streams files without saying which are
 /// local (Google Drive on Windows), Rupert can't tell, and a new scan in the
 /// inbox is meant to be read.
-fn readable_anyway(path: &Path) -> bool {
+pub fn readable_anyway(path: &Path) -> bool {
     crate::cloud::streams_on_demand(path)
 }
 

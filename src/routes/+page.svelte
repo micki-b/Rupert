@@ -3917,6 +3917,10 @@
     background: var(--panel);
     border-left: 1px solid var(--border);
     overflow: auto;
+    /* Room for the scroll bar always: where it takes space (Windows,
+       Linux) it would otherwise narrow the column, shrink the page preview
+       (sized by width), no longer be needed, and come back: a flicker. */
+    scrollbar-gutter: stable;
     display: flex;
     flex-direction: column;
   }
