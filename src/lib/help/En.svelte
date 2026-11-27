@@ -250,7 +250,8 @@
   <p>
     Right-click a folder and choose <b>Rename documents…</b> to give its documents new names together; from a document,
     the same command lists its folder with only that document ticked. A table shows each current name and its new name,
-    with what changes highlighted, and next to it the selected document's first page, title, date and tags. Untick the
+    with what changes highlighted, and next to it the selected document's first page, title, date and tags (double-click
+    a row or the page to open the document). Untick the
     ones to leave alone. Nothing changes until you click <b>Rename</b>.
   </p>
   <p>
@@ -320,7 +321,7 @@
   <ul>
     <li>
       <b>Show all file types</b>: by default Rupert shows documents only (PDFs, images, Office files, text). Turn this
-      on to see every file.
+      on to see every file. Finder aliases never show: they point to a document rather than being one.
     </li>
     <li>
       <b>Download online-only files to index them</b> (iCloud Drive, OneDrive and Google Drive sources): see
@@ -360,6 +361,48 @@
     While Rupert indexes or downloads, the bottom right of the window shows how far it is, with <b>Stop</b>. Stop lets
     the file in hand finish and then halts; what's done is kept. <b>Resume</b>, or the next start of Rupert, carries on.
   </p>
+</section>
+
+<!-- MARK: Library health -->
+<section id="health">
+  <h2>Library health</h2>
+  <p>
+    <b>Library health</b> in the sidebar (or a click on the counts in the status line) shows what could be better in
+    your library, with the fix for each. <b>Show</b> lists a row's documents; select one to see its details on the
+    right. <b>Show for</b> narrows it to one source.
+  </p>
+  <ul>
+    <li>
+      <b>Duplicate copies</b>: <b>Look for duplicates…</b> compares your documents. <i>The same file</i> means the same
+      bytes; <i>the same text</i> also catches a copy Rupert wrote details into, or a paper scanned twice. Rupert marks
+      the copy to keep (the one with the most details, in the more specific folder, with the cleaner name); change it
+      if you like. <b>Compare…</b> (or a click on a copy's page) shows up to three copies side by side, the same page
+      in each (<kbd>←</kbd> <kbd>→</kbd> turn them together), with <b>Keep this one</b>, <b>Open</b> and
+      <b>{reveal}</b>. A copy marked for the Trash has a trash can there and in the list, to move just that one now. When copies are fine
+      as they are, <b>Keep all</b> sets the group aside: Rupert remembers it with the library (in the source's hidden
+      <code>.rupert</code> folder, so your other computers honor it too) and shows it again only if another copy turns
+      up. <b>Settings ▸ Library</b> has <b>Reset</b> for each source. The others go to the Trash, never deleted outright, after the one kept takes their tags and notes.
+      Online-only copies with the same size and name are only <i>probably the same</i>: Rupert shows them and leaves
+      them alone.
+    </li>
+    <li>
+      <b>No text</b>: <b>Recognize text…</b> reads scans without text, as the inbox does. PDFs get an invisible text
+      layer (the rest of the file stays as it is); pictures keep the text in Rupert's hidden sidecar.
+    </li>
+    <li>
+      <b>Online-only, text unknown</b>: <b>Download to index…</b> downloads them to read their text, then frees the
+      space again (as <a href="#online-only">Index this folder</a> does).
+    </li>
+    <li>
+      <b>No document date</b> and <b>No tags</b>: <b>Suggest details…</b> has Local AI suggest a title, date and tags
+      from the text Rupert already has, without downloading anything, in a table you check before saving.
+    </li>
+    <li>
+      <b>Scanner-style names</b> (“Scan 2026-11-12 08.31.pdf”): the list goes by folder, with <b>Rename documents in
+      this folder…</b> for each.
+    </li>
+    <li><b>Couldn't be read</b>: encrypted or damaged PDFs.</li>
+  </ul>
 </section>
 
 <!-- MARK: Finding -->

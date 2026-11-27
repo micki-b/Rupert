@@ -421,6 +421,14 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Buscando «{0}» con la etiqueta {1}",
     ),
     ("Looking at tags", "Mirando las etiquetas"),
+    (
+        "It's online-only: download it first.",
+        "Está solo en línea: descargalo primero.",
+    ),
+    (
+        "Text recognition isn't available on this computer.",
+        "El reconocimiento de texto no está disponible en esta computadora.",
+    ),
     ("Adding up amounts", "Sumando los importes"),
     (
         "Looking at who documents are from",

@@ -19,6 +19,7 @@ mod continuity {
 mod details;
 mod drag_out;
 mod export;
+mod health;
 mod help;
 mod inbox_import;
 mod print_entry;
@@ -2059,6 +2060,17 @@ pub fn run() {
             list_senders,
             inbox_kept_downloaded,
             keep_inbox_downloaded,
+            health::health_counts,
+            health::health_docs,
+            health::health_stop,
+            health::duplicates_find,
+            health::duplicates_clear,
+            health::duplicates_keep,
+            health::duplicates_kept_count,
+            health::duplicates_reset,
+            health::health_recognize,
+            health::suggest_propose,
+            health::suggest_apply,
             details::details_propose,
             details::details_apply,
             index_status,

@@ -266,7 +266,8 @@
     Hacé clic derecho en una carpeta y elegí <b>Cambiar el nombre de documentos…</b> para darles nombres nuevos a sus
     documentos de una vez; desde un documento, el mismo comando muestra su carpeta con solo ese documento marcado. Una
     tabla muestra cada nombre actual y su nombre nuevo, con lo que cambia resaltado, y al lado la primera página, el
-    título, la fecha y las etiquetas del documento seleccionado. Desmarcá los que no quieras cambiar. No cambia nada hasta
+    título, la fecha y las etiquetas del documento seleccionado (doble clic en una fila o en la página abre el
+    documento). Desmarcá los que no quieras cambiar. No cambia nada hasta
     que hagas clic en <b>Cambiar</b>.
   </p>
   <p>
@@ -342,7 +343,8 @@
   <ul>
     <li>
       <b>Mostrar todos los tipos de archivo</b>: de entrada Rupert muestra solo documentos (PDF, imágenes, archivos de
-      Office, texto). Activalo para ver todos los archivos.
+      Office, texto). Activalo para ver todos los archivos. Los alias del Finder no aparecen nunca: apuntan a un
+      documento, no son uno.
     </li>
     <li>
       <b>Descargar los archivos solo en línea para indexarlos</b> (carpetas de iCloud Drive, OneDrive y Google Drive):
@@ -387,6 +389,51 @@
     Detener deja terminar el archivo en curso y frena; lo hecho se conserva. <b>Reanudar</b>, o el próximo inicio de
     Rupert, sigue desde ahí.
   </p>
+</section>
+
+<!-- MARK: Estado de la biblioteca -->
+<section id="health">
+  <h2>Estado de la biblioteca</h2>
+  <p>
+    <b>Estado de la biblioteca</b>, en la barra lateral (o con un clic en los números de la barra de estado), muestra
+    lo que se puede mejorar en tu biblioteca, con cómo arreglar cada cosa. <b>Mostrar</b> lista los documentos de una
+    fila; elegí uno para ver sus detalles a la derecha. <b>Mostrar para</b> lo limita a una fuente.
+  </p>
+  <ul>
+    <li>
+      <b>Copias duplicadas</b>: <b>Buscar duplicados…</b> compara tus documentos. <i>El mismo archivo</i> quiere decir
+      los mismos bytes; <i>el mismo texto</i> también encuentra una copia en la que Rupert escribió datos, o un papel
+      escaneado dos veces. Rupert marca la copia que se queda (la que tiene más datos, en la carpeta más específica, con
+      el nombre más prolijo); cambiala si querés. <b>Comparar…</b> (o un clic en la página de una copia) muestra hasta
+      tres copias lado a lado, la misma página en cada una (<kbd>←</kbd> <kbd>→</kbd> las pasan juntas), con
+      <b>Quedarse con esta</b>, <b>Abrir</b> y <b>{reveal}</b>. Una copia marcada para la papelera tiene ahí y en la
+      lista un tacho, para mover solo esa ahora. Si las copias están bien así, <b>Conservar todas</b> deja el grupo de
+      lado: Rupert lo recuerda con la biblioteca (en la carpeta oculta <code>.rupert</code> de la fuente, así tus otras
+      computadoras también lo respetan) y lo vuelve a mostrar solo si aparece otra copia. <b>Configuración ▸
+      Biblioteca</b> tiene <b>Restablecer</b> para cada fuente. Las otras van a la papelera, nunca se borran del todo, después de que
+      la que se queda toma sus etiquetas y notas. Las copias solo en línea con el mismo tamaño y nombre son solo
+      <i>probablemente iguales</i>: Rupert las muestra y no las toca.
+    </li>
+    <li>
+      <b>Sin texto</b>: <b>Reconocer el texto…</b> lee los escaneos sin texto, como la bandeja de entrada. Los PDF
+      reciben una capa de texto invisible (el resto del archivo queda igual); las imágenes guardan el texto en el
+      archivo oculto de Rupert.
+    </li>
+    <li>
+      <b>Solo en línea, texto desconocido</b>: <b>Descargar para indexar…</b> los descarga para leer su texto y después
+      libera el espacio (como <a href="#online-only">Indexar esta carpeta</a>).
+    </li>
+    <li>
+      <b>Sin fecha del documento</b> y <b>Sin etiquetas</b>: <b>Sugerir datos…</b> hace que la IA local sugiera un
+      título, una fecha y etiquetas a partir del texto que Rupert ya tiene, sin descargar nada, en una tabla que revisás
+      antes de guardar.
+    </li>
+    <li>
+      <b>Nombres de escáner</b> (“Scan 2026-11-12 08.31.pdf”): la lista va por carpeta, con <b>Cambiar el nombre de
+      documentos en esta carpeta…</b> para cada una.
+    </li>
+    <li><b>No se pudieron leer</b>: PDF cifrados o dañados.</li>
+  </ul>
 </section>
 
 <!-- MARK: Encontrar -->

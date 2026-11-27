@@ -20,6 +20,7 @@ pub mod find;
 pub mod folder_info;
 #[cfg(feature = "gdrive")]
 pub mod gdrive;
+pub mod health;
 pub mod i18n;
 pub mod import;
 pub mod index;

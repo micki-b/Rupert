@@ -301,6 +301,15 @@ impl Engine {
         }
     }
 
+    /// A filing suggestion from whichever Local AI this is (#113's
+    /// Suggest details… asks it with no folders to choose from).
+    pub fn suggest(&self, req: &Request) -> Result<Suggestion> {
+        match self {
+            Self::Apple => AppleAi.suggest(req),
+            Self::Server(ai) => ai.suggest(req),
+        }
+    }
+
     /// Characters of document text that fit in a request.
     pub fn max_text(&self, server: usize) -> usize {
         match self {
