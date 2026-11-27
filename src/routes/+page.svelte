@@ -24,6 +24,7 @@
     snippetParts,
     type AppInfo,
     type ReminderCounts,
+    type SavedSearch,
     type Filed,
     type Settings,
     type TagEditReport,
@@ -79,6 +80,7 @@
   import ReadDetailsDialog from "#lib/ReadDetailsDialog.svelte";
   import Health from "#lib/Health.svelte";
   import ComingUp from "#lib/ComingUp.svelte";
+  import SaveSearchDialog from "#lib/SaveSearchDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import DocPreview from "#lib/DocPreview.svelte";
   import ListHeader from "#lib/ListHeader.svelte";
@@ -481,6 +483,10 @@
       const cut = a.relPath.lastIndexOf("/");
       pendingSelect = a.relPath;
       selectFolder(a.sourceId, cut < 0 ? "" : a.relPath.slice(0, cut));
+    } else if (a.kind === "savedSearch") {
+      const s = savedSearches.find((x) => x.id === a.id && x.sourceId === a.sourceId);
+      if (s) applySaved(s);
+      else assistantAction({ kind: "search", text: a.text, tags: a.tags, tagMode: a.tagMode, favoritesOnly: a.favoritesOnly });
     } else {
       inboxOpen = false;
       selected = null;
@@ -534,6 +540,7 @@
     senderList.ensure();
     loadHealthBadge();
     loadComingCounts(true);
+    loadSavedSearches();
     api.remindersTakeShown().then(showReminder).catch(() => {});
 
     const unlisten = [
@@ -555,7 +562,10 @@
         loadInboxCount();
         assistant?.refreshInfo();
       }),
-      onSourcesChanged(() => loadSources()),
+      onSourcesChanged(() => {
+        loadSources();
+        loadSavedSearches();
+      }),
       // A Continuity Camera scan (#124) arrived: show it in the inbox.
       onContinuityScan((r) => {
         if (r.error) {
@@ -589,11 +599,16 @@
         loadComingCounts();
       }),
       getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-        if (focused) loadSources(true);
+        if (focused) {
+          loadSources(true);
+          // Another computer may have saved one (synced with the source).
+          loadSavedSearches();
+        }
       }),
     ];
     const closeMenu = () => {
       menuFor = null;
+      savedMenu = null;
       itemMenu = null;
       bulkMenu = null;
     };
@@ -818,6 +833,144 @@
     favoritesOnly = false;
     selected = null;
     healthOpen = true;
+  }
+
+  // MARK: - Saved searches (#110)
+
+  let savedSearches = $state<SavedSearch[]>([]);
+  let saveDialog = $state<{ mode: "save" | "rename"; search: SavedSearch } | null>(null);
+  let savedMenu = $state<{ x: number; y: number; s: SavedSearch } | null>(null);
+
+  async function loadSavedSearches() {
+    savedSearches = await api.savedSearches().catch(() => savedSearches);
+  }
+
+  /** The search on screen as a saved search keeps it, with the source it
+   * belongs with: the one it looks in, or else the first. */
+  function currentSearch(): SavedSearch {
+    return {
+      sourceId: whereFilter?.sourceId ?? sources[0]?.id ?? "",
+      id: "",
+      name: "",
+      text: query.trim(),
+      tags: [...selectedTags],
+      tagMode,
+      favorites: favoritesOnly,
+      date: dateFilter ? { ...dateFilter } : null,
+      kind: kindFilter,
+      from: fromFilter,
+      due: dueFilter,
+      scope: whereFilter?.scope ?? null,
+      folder: whereFilter?.scope === "folder" ? whereFilter.relPath : null,
+      newest: resultsByDate,
+    };
+  }
+
+  /** What makes two searches find the same documents (not their order). */
+  const findsKey = (s: SavedSearch) =>
+    JSON.stringify([
+      s.text.trim().toLowerCase(),
+      s.tags.map((t) => t.toLowerCase()),
+      s.tags.length > 1 ? s.tagMode : "any",
+      s.favorites,
+      s.date ?? null,
+      s.kind ?? null,
+      s.from ?? null,
+      s.due ?? null,
+      s.scope ?? null,
+      s.scope ? s.sourceId : null,
+      s.scope === "folder" ? (s.folder ?? "") : null,
+    ]);
+
+  /** The saved search on screen, if the search is one. */
+  const activeSaved = $derived.by(() => {
+    if (!searching) return null;
+    const key = findsKey(currentSearch());
+    return savedSearches.find((s) => findsKey(s) === key) ?? null;
+  });
+
+  /** Runs a saved search: the search bar and filters take its parts. */
+  function applySaved(s: SavedSearch) {
+    lastChange = null;
+    inboxOpen = false;
+    healthOpen = false;
+    comingUpOpen = false;
+    selected = null;
+    query = s.text;
+    selectedTags = [...s.tags];
+    tagsBefore = selectedTags.length;
+    tagMode = s.tagMode;
+    favoritesOnly = s.favorites;
+    dateFilter = s.date ? { ...s.date } : null;
+    if (s.date?.kind === "range") {
+      rangeFrom = s.date.from;
+      rangeTo = s.date.to;
+    }
+    kindFilter = s.kind ?? null;
+    fromFilter = s.from ?? null;
+    dueFilter = s.due ?? null;
+    whereFilter = s.scope ? { scope: s.scope, sourceId: s.sourceId, relPath: s.scope === "folder" ? (s.folder ?? "") : "" } : null;
+    resultsByDate = s.newest;
+  }
+
+  /** What a search finds, in words ("“boat”, tagged Taxes and 2025, dated this year"). */
+  function findsText(s: SavedSearch): string {
+    const t = m.savedSearches;
+    const parts: string[] = [];
+    if (s.text.trim()) parts.push(`“${s.text.trim()}”`);
+    if (s.tags.length) parts.push(s.tags.length > 1 && s.tagMode === "all" ? t.taggedAll(s.tags) : t.taggedAny(s.tags));
+    if (s.favorites) parts.push(t.favorites);
+    if (s.date?.kind === "thisYear") parts.push(t.thisYear);
+    else if (s.date?.kind === "lastYear") parts.push(t.lastYear);
+    else if (s.date?.kind === "range") parts.push(t.between(formatDocDay(s.date.from) || "…", formatDocDay(s.date.to) || "…"));
+    if (s.kind && s.kind in m.kinds) parts.push(m.kinds[s.kind as keyof typeof m.kinds]);
+    if (s.from) parts.push(t.from(s.from));
+    if (s.due === "upcoming") parts.push(m.filters.dueUpcoming.toLowerCase());
+    else if (s.due === "past") parts.push(m.filters.duePast.toLowerCase());
+    if (s.scope) {
+      parts.push(
+        s.scope === "folder" && s.folder
+          ? m.filters.inFolder(s.folder.slice(s.folder.lastIndexOf("/") + 1))
+          : m.filters.inSource(sourceName(s.sourceId)),
+      );
+    }
+    return parts.length ? parts.join(", ") : t.everything;
+  }
+
+  function openSaveSearch() {
+    const s = currentSearch();
+    const name = [s.text, ...s.tags, s.from].filter(Boolean).join(" · ") || m.savedSearches.untitled;
+    saveDialog = { mode: "save", search: { ...s, name } };
+  }
+
+  async function saveFromDialog(name: string) {
+    if (!saveDialog) return;
+    await api.saveSearch({ ...saveDialog.search, name });
+    await loadSavedSearches();
+  }
+
+  /** Right-click ▸ Update to the current search: keeps its name and place
+   * in the list; it moves to another source if it now looks there. */
+  async function updateSaved(s: SavedSearch) {
+    savedMenu = null;
+    try {
+      await api.saveSearch({ ...currentSearch(), id: s.id, name: s.name }, s.sourceId);
+      await loadSavedSearches();
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  async function removeSaved(s: SavedSearch) {
+    savedMenu = null;
+    const sure = await ask(m.savedSearches.removeAsk(s.name), { kind: "warning", okLabel: m.savedSearches.removeOk, cancelLabel: m.common.cancel });
+    if (!sure) return;
+    try {
+      await api.removeSavedSearch(s.sourceId, s.id);
+      await loadSavedSearches();
+    } catch (e) {
+      error = String(e);
+    }
   }
 
   // MARK: - Coming up (#109)
@@ -1936,6 +2089,26 @@
         <span class="label">{f.name}</span>
       </button>
     {/each}
+    <!-- Saved searches (#110): a section of their own. -->
+    {#if savedSearches.length}
+      <h2 class="side-section">{m.savedSearches.title}</h2>
+      {#each savedSearches as s (s.sourceId + "\n" + s.id)}
+        <button
+          class="lib-item"
+          class:active={activeSaved?.id === s.id && activeSaved?.sourceId === s.sourceId}
+          title={findsText(s)}
+          onclick={() => applySaved(s)}
+          oncontextmenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            savedMenu = { x: e.clientX, y: e.clientY, s };
+          }}
+        >
+          <span class="lib-icon saved-icon"><Icon name="search" size={14} /></span>
+          <span class="label">{s.name}</span>
+        </button>
+      {/each}
+    {/if}
     <div class="view-switch" role="tablist" aria-label={m.main.showInSidebar}>
       <button
         role="tab"
@@ -2279,6 +2452,11 @@
           <button class:on={!resultsByDate} aria-pressed={!resultsByDate} onclick={() => (resultsByDate = false)}>{m.filters.bestMatch}</button>
           <button class:on={resultsByDate} aria-pressed={resultsByDate} onclick={() => (resultsByDate = true)}>{m.filters.newest}</button>
         </span>
+        {#if activeSaved}
+          <span class="saved-as" title={m.savedSearches.savedAsTip}><Icon name="search" size={13} />{activeSaved.name}</span>
+        {:else}
+          <button class="results-export" title={m.savedSearches.saveTip} onclick={openSaveSearch}>{m.savedSearches.save}</button>
+        {/if}
         {#if hits.length}
           <button
             class="results-export"
@@ -2668,6 +2846,44 @@
   <MarkdownReader sourceId={reader.sourceId} relPath={reader.relPath} onclose={() => (reader = null)} />
 {/if}
 
+{#if savedMenu}
+  {@const sm = savedMenu}
+  <div
+    class="menu item-menu"
+    role="menu"
+    tabindex="-1"
+    style:left="{sm.x}px"
+    style:top="{sm.y}px"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={() => {}}
+  >
+    <button
+      role="menuitem"
+      onclick={() => {
+        savedMenu = null;
+        saveDialog = { mode: "rename", search: sm.s };
+      }}>{m.savedSearches.renameMenu}</button
+    >
+    <button role="menuitem" disabled={!searching || activeSaved === sm.s} title={m.savedSearches.updateTip} onclick={() => updateSaved(sm.s)}
+      >{m.savedSearches.update}</button
+    >
+    <hr />
+    <button role="menuitem" class="danger" onclick={() => removeSaved(sm.s)}>{m.savedSearches.remove}</button>
+  </div>
+{/if}
+
+{#if saveDialog}
+  {@const sd = saveDialog}
+  <SaveSearchDialog
+    mode={sd.mode}
+    name={sd.search.name}
+    finds={findsText(sd.search)}
+    keptWith={sourceName(sd.search.sourceId)}
+    onsave={saveFromDialog}
+    onclose={() => (saveDialog = null)}
+  />
+{/if}
+
 {#if itemMenu && several && isPicked(itemMenu.sel.sourceId, itemMenu.sel.entry.relPath)}
   {@const mn = itemMenu}
   <div
@@ -2985,11 +3201,25 @@
     text-decoration: underline;
   }
   .health-icon,
-  .coming-icon {
+  .coming-icon,
+  .saved-icon {
     color: var(--accent-strong);
   }
-  .coming-icon {
+  .coming-icon,
+  .saved-icon {
     display: inline-flex;
+  }
+  /* Saved searches (#110): a sidebar section under Favorites. */
+  .side-section {
+    padding: 14px 8px 6px;
+  }
+  .saved-as {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--accent-strong);
+    font-weight: 600;
+    font-size: 12px;
   }
   /* Something in Coming up is overdue. */
   .count.alert {
@@ -3185,6 +3415,9 @@
   }
   .menu .danger {
     color: var(--danger);
+  }
+  .menu button:disabled {
+    opacity: 0.45;
   }
   .menu .check {
     width: 18px;

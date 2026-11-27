@@ -492,6 +492,17 @@
     <b>Favoritos</b> en la barra lateral muestra los dos. Los favoritos se guardan con los archivos, así que
     aparecen en tus otras computadoras y en el iPhone.
   </p>
+  <h3 id="saved-searches">Búsquedas guardadas</h3>
+  <p>
+    Una búsqueda que repetís puede quedar en la barra lateral: mientras buscás, <b>Guardar búsqueda…</b> (al lado del
+    número de resultados) guarda las palabras, las etiquetas con cualquiera/todas, Favoritos y los filtros con un
+    nombre, en una sección <b>Búsquedas guardadas</b> debajo de Favoritos. Un clic la vuelve a hacer, así que aparecen
+    los documentos nuevos; las fechas son relativas («este año» es el año en curso). Con clic derecho podés
+    <b>Renombrar…</b>, <b>Actualizar con la búsqueda actual</b> (después de cambiar la búsqueda en pantalla) o
+    <b>Eliminar…</b> (solo se olvida la búsqueda). Una búsqueda guardada se guarda con la fuente en la que busca (una
+    en todas las fuentes, con la primera), en su carpeta oculta <code>.rupert</code>, así que tus otras computadoras
+    también la ven. Preguntale a Rupert puede listarlas y mostrar una: «mostrame mi búsqueda de impuestos».
+  </p>
 </section>
 
 <!-- MARK: Detalles -->

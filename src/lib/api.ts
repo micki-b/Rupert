@@ -436,7 +436,40 @@ export interface AssistantStep {
 export type AssistantAction =
   | { kind: "openFolder"; sourceId: string; relPath: string }
   | { kind: "showDocument"; sourceId: string; relPath: string }
-  | { kind: "search"; text: string; tags: string[]; tagMode: TagMode; favoritesOnly: boolean };
+  | { kind: "search"; text: string; tags: string[]; tagMode: TagMode; favoritesOnly: boolean }
+  /** A saved search (#110); its words and tags for a window without saved searches. */
+  | {
+      kind: "savedSearch";
+      sourceId: string;
+      id: string;
+      name: string;
+      text: string;
+      tags: string[];
+      tagMode: TagMode;
+      favoritesOnly: boolean;
+    };
+
+// MARK: Saved searches (#110)
+
+/** A search kept under a name, with the source it's kept with (in its .rupert/searches.json). */
+export interface SavedSearch {
+  sourceId: string;
+  /** Empty for a new one. */
+  id: string;
+  name: string;
+  text: string;
+  tags: string[];
+  tagMode: TagMode;
+  favorites: boolean;
+  date?: { kind: "thisYear" } | { kind: "lastYear" } | { kind: "range"; from: string; to: string } | null;
+  kind?: string | null;
+  from?: string | null;
+  due?: "upcoming" | "past" | null;
+  /** Only its source, or a folder in it (`folder`); none: every source. */
+  scope?: "source" | "folder" | null;
+  folder?: string | null;
+  newest: boolean;
+}
 
 // Export… (#107)
 export type DocPlace = { sourceId: string; relPath: string };
@@ -647,6 +680,13 @@ export const api = {
   /** Library health (#113): counts per row, in one source or all. */
   healthCounts: (sourceId: string | null) => invoke<HealthCounts>("health_counts", { sourceId }),
   healthDocs: (row: HealthRow, sourceId: string | null) => invoke<Hit[]>("health_docs", { row, sourceId }),
+  savedSearches: () => invoke<SavedSearch[]>("saved_searches"),
+  /** Saves with `sourceId`; `wasIn` is the source it was kept with before, if another. */
+  saveSearch: (s: SavedSearch, wasIn: string | null = null) => {
+    const { sourceId, ...search } = s;
+    return invoke<SavedSearch>("save_search", { sourceId, search, wasIn });
+  },
+  removeSavedSearch: (sourceId: string, id: string) => invoke<void>("remove_saved_search", { sourceId, id }),
   /** Coming up (#109): documents with a due date, and the counts for the badge. */
   remindersList: (show: ReminderShow) =>
     invoke<{ items: ReminderItem[]; counts: ReminderCounts }>("reminders_list", { show }),

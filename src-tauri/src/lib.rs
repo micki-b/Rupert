@@ -26,6 +26,7 @@ mod notify;
 mod print_entry;
 mod reminders;
 mod rename;
+mod saved_searches;
 mod settings_window;
 mod share;
 mod thumbs;
@@ -2069,6 +2070,9 @@ pub fn run() {
             inbox_kept_downloaded,
             keep_inbox_downloaded,
             health::health_counts,
+            saved_searches::saved_searches,
+            saved_searches::save_search,
+            saved_searches::remove_saved_search,
             reminders::reminders_list,
             reminders::reminders_counts,
             reminders::reminders_set_done,

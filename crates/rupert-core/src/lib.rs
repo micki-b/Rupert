@@ -40,6 +40,7 @@ pub mod qr;
 pub mod reminders;
 pub mod remote;
 pub mod rename;
+pub mod saved_search;
 pub mod scansnap;
 pub mod settings;
 pub mod share;

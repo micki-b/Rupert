@@ -502,6 +502,18 @@
     beides. Favoriten werden mit den Dateien gespeichert und
     erscheinen deshalb auch auf Ihren anderen Computern und auf dem iPhone.
   </p>
+  <h3 id="saved-searches">Gespeicherte Suchen</h3>
+  <p>
+    Eine Suche, die Sie öfter brauchen, kann in der Seitenleiste bleiben: Während Sie suchen, speichert
+    <b>Suche speichern …</b> (neben der Anzahl der Ergebnisse) die Wörter, die Tags mit „eines/alle“, Favoriten und die
+    Filter unter einem Namen, im Abschnitt <b>Gespeicherte Suchen</b> unter den Favoriten. Ein Klick führt sie erneut
+    aus, daher erscheinen auch neue Dokumente; Daten bleiben relativ („dieses Jahr“ ist das aktuelle Jahr). Mit einem
+    Rechtsklick können Sie <b>Umbenennen …</b>, <b>Durch aktuelle Suche ersetzen</b> (nachdem Sie die Suche auf dem
+    Bildschirm geändert haben) oder <b>Entfernen …</b> (nur die Suche wird vergessen). Eine gespeicherte Suche wird bei
+    der Quelle gespeichert, in der sie sucht (eine Suche über alle Quellen bei der ersten), in deren verborgenem
+    Ordner <code>.rupert</code>, daher sehen Ihre anderen Computer sie auch. Rupert fragen kann sie auflisten und eine
+    zeigen: „zeig meine Steuersuche“.
+  </p>
 </section>
 
 <!-- MARK: Angaben -->

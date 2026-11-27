@@ -739,4 +739,13 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "\"{0}\" isn't a reminder time",
         "„{0}“ ist keine Erinnerungszeit",
     ),
+    // Saved searches (#110).
+    (
+        "Showing saved search {0}",
+        "Gespeicherte Suche {0} wird gezeigt",
+    ),
+    (
+        "A saved search needs a name.",
+        "Eine gespeicherte Suche braucht einen Namen.",
+    ),
 ];

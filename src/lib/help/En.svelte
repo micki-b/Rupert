@@ -454,6 +454,16 @@
     with the ☆ next to its path above the document list, or with its ☆ in the list. <b>Favorites</b> in the sidebar lists both. Favorites are saved with the files, so they show up on your other
     computers and on the iPhone.
   </p>
+  <h3 id="saved-searches">Saved searches</h3>
+  <p>
+    A search you come back to can stay in the sidebar: while searching, <b>Save Search…</b> (beside the number of
+    results) keeps the words, the tags with any/all, Favorites and the filters under a name, in a section
+    <b>Saved searches</b> below Favorites. One click runs it again, so new documents show up; dates stay relative
+    (“this year” means the current year). Right-click one to <b>Rename…</b>, <b>Update to the Current Search</b>
+    (after changing the search on screen) or <b>Remove…</b> (only the search is forgotten). A saved search is kept with
+    the source it searches (one over all sources with the first), in its hidden <code>.rupert</code> folder, so your
+    other computers see it too. Ask Rupert can list them and show one: “show my tax search”.
+  </p>
 </section>
 
 <!-- MARK: Details -->

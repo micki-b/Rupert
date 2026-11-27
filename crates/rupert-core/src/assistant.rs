@@ -1127,6 +1127,7 @@ fn describe_call(name: &str, input: &Value) -> String {
         "open_folder" => trf("Showing folder {0}", &[&s("path")]),
         "show_document" => trf("Showing {0}", &[&s("path")]),
         "show_results" => tr("Showing results").into(),
+        "show_saved_search" => trf("Showing saved search {0}", &[&s("name")]),
         other => other.to_string(),
     }
 }
@@ -1150,6 +1151,17 @@ pub enum UiAction {
         rel_path: String,
     },
     Search {
+        text: String,
+        tags: Vec<String>,
+        tag_mode: TagMode,
+        favorites_only: bool,
+    },
+    /// A saved search (#110), by its id in its source; the words and tags
+    /// come along for a window that only runs plain searches (the phone).
+    SavedSearch {
+        source_id: String,
+        id: String,
+        name: String,
         text: String,
         tags: Vec<String>,
         tag_mode: TagMode,
@@ -1567,6 +1579,21 @@ impl<'a> LibraryTools<'a> {
                 Ok(json!({
                     "sources": self.sources.iter().map(|s| json!({"name": s.name, "provider": s.provider})).collect::<Vec<_>>(),
                     "favorite_folders": favs.iter().map(|(id, p)| json!({"source": self.source_name(id), "path": p})).collect::<Vec<_>>(),
+                    "saved_searches": self.saved_searches().iter().map(|(source, s)| json!({
+                        "name": s.name,
+                        "words": s.text,
+                        "tags": s.tags,
+                        "tag_mode": s.tag_mode,
+                        "favorites_only": s.favorites,
+                        "date": s.date,
+                        "kind": s.kind,
+                        "from": s.from,
+                        "due": s.due,
+                        "in": s.in_one_source().then(|| match &s.folder {
+                            Some(f) if s.scope.as_deref() == Some("folder") => format!("{}/{f}", source.name),
+                            _ => source.name.clone(),
+                        }),
+                    })).collect::<Vec<_>>(),
                 }))
             }
             "list_folder" => {
@@ -1645,6 +1672,44 @@ impl<'a> LibraryTools<'a> {
                 self.actions.borrow_mut().push(UiAction::ShowDocument {
                     source_id: source.id.clone(),
                     rel_path: rel,
+                });
+                Ok(json!("Shown."))
+            }
+            "show_saved_search" => {
+                let name = input
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .trim()
+                    .to_lowercase();
+                let all = self.saved_searches();
+                let found = all
+                    .iter()
+                    .find(|(_, s)| s.name.to_lowercase() == name)
+                    .or_else(|| {
+                        all.iter().find(|(_, s)| {
+                            !name.is_empty() && s.name.to_lowercase().contains(&name)
+                        })
+                    });
+                let Some((source, s)) = found else {
+                    let names: Vec<&str> = all.iter().map(|(_, s)| s.name.as_str()).collect();
+                    return Err(format!(
+                        "No saved search is called \"{name}\". Saved searches: {}",
+                        if names.is_empty() {
+                            "none".into()
+                        } else {
+                            names.join(", ")
+                        }
+                    ));
+                };
+                self.actions.borrow_mut().push(UiAction::SavedSearch {
+                    source_id: source.id.clone(),
+                    id: s.id.clone(),
+                    name: s.name.clone(),
+                    text: s.text.clone(),
+                    tags: s.tags.clone(),
+                    tag_mode: s.tag_mode,
+                    favorites_only: s.favorites,
                 });
                 Ok(json!("Shown."))
             }
@@ -1758,6 +1823,23 @@ fn fewer(n: usize, keep: usize) -> Vec<Vec<usize>> {
         .collect()
 }
 
+impl LibraryTools<'_> {
+    /// The saved searches (#110) kept with each source, by name.
+    fn saved_searches(&self) -> Vec<(&Source, crate::saved_search::SavedSearch)> {
+        let mut all: Vec<_> = self
+            .sources
+            .iter()
+            .flat_map(|source| {
+                crate::saved_search::list(&source.root)
+                    .into_iter()
+                    .map(move |s| (source, s))
+            })
+            .collect();
+        all.sort_by_key(|(_, s)| s.name.to_lowercase());
+        all
+    }
+}
+
 fn rupert_dir_exists(root: &std::path::Path, rel: &str) -> bool {
     crate::listing::resolve(root, rel).is_ok_and(|p| p.is_dir())
 }
@@ -1855,6 +1937,11 @@ impl ToolBox for LibraryTools<'_> {
                 name: "show_document",
                 description: "Select a document in the app's main window (its folder opens and its details show).",
                 schema: schema(doc_props, &["source", "path"]),
+            },
+            ToolSpec {
+                name: "show_saved_search",
+                description: "Show one of the user's saved searches (list_sources names them) in the app's main window, by its name.",
+                schema: schema(json!({"name": {"type": "string"}}), &["name"]),
             },
             ToolSpec {
                 name: "show_results",
@@ -2244,6 +2331,41 @@ mod tests {
     }
 
     #[test]
+    fn tools_list_and_show_saved_searches() {
+        let (_dir, idx, sources) = library();
+        let saved = crate::saved_search::save(
+            &sources[0].root,
+            serde_json::from_value(json!({"name": "Boat costs", "tags": ["Boat"]})).unwrap(),
+        )
+        .unwrap();
+        let tools = LibraryTools::new(&idx, &sources);
+        let call = |name: &str, input: Value| -> Value {
+            serde_json::from_str(&tools.call(name, &input)).unwrap_or(Value::Null)
+        };
+        let listed = call("list_sources", json!({}));
+        assert_eq!(listed["saved_searches"][0]["name"], "Boat costs");
+        assert_eq!(listed["saved_searches"][0]["tags"][0], "Boat");
+        call("show_saved_search", json!({"name": "boat"}));
+        assert_eq!(
+            tools.take_actions(),
+            vec![UiAction::SavedSearch {
+                source_id: sources[0].id.clone(),
+                id: saved.id,
+                name: "Boat costs".into(),
+                text: String::new(),
+                tags: vec!["Boat".into()],
+                tag_mode: TagMode::Any,
+                favorites_only: false,
+            }]
+        );
+        assert!(
+            tools
+                .call("show_saved_search", &json!({"name": "taxes"}))
+                .contains("Boat costs")
+        );
+    }
+
+    #[test]
     fn tools_find_and_add_up_by_sender_amount_and_due_date() {
         let (_dir, idx, sources) = library();
         let tools = LibraryTools::new(&idx, &sources);
@@ -2500,7 +2622,7 @@ mod tests {
             head.contains("server-side-fallback-2026-07-01") && head.contains("oauth-2025-04-20")
         );
         assert_eq!(first["fallbacks"], "default");
-        assert_eq!(first["tools"].as_array().unwrap().len(), 10);
+        assert_eq!(first["tools"].as_array().unwrap().len(), 11);
         // Second request: the assistant turn echoed unchanged (thinking
         // included) and all tool results in one user message.
         let second = &seen[1].1["messages"];

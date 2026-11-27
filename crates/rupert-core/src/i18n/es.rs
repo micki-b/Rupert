@@ -723,4 +723,13 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "\"{0}\" isn't a reminder time",
         "«{0}» no es un plazo de aviso",
     ),
+    // Saved searches (#110).
+    (
+        "Showing saved search {0}",
+        "Mostrando la búsqueda guardada {0}",
+    ),
+    (
+        "A saved search needs a name.",
+        "Una búsqueda guardada necesita un nombre.",
+    ),
 ];

@@ -134,6 +134,8 @@
         return m.assistant.showedDocument(a.relPath.split("/").pop() ?? "");
       case "search":
         return m.assistant.showedResults;
+      case "savedSearch":
+        return m.assistant.showedSaved(a.name);
     }
   }
 
