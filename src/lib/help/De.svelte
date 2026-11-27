@@ -555,6 +555,13 @@
     in einem kleinen Fenster wird sie kleiner oder verschwindet, damit das Formular nie gescrollt werden muss (siehe
     <a href="#page-preview">Seitenvorschau</a>).
   </p>
+  <p id="inbox-cloud">
+    Liegt der Eingangsordner in iCloud Drive, OneDrive, Google Drive oder Dropbox, kann das System Scans nur online
+    behalten, um Platz zu sparen. Rupert lädt sie dann von selbst wieder herunter, um sie zu zeigen, zu lesen und
+    abzulegen, und zeigt bis dahin das Bild der Seite, das es behalten hat. Damit sie von Anfang an auf diesem Computer
+    bleiben, behalten Sie den Ordner geladen: <b>Einstellungen ▸ Eingang</b> zeigt den Schritt für Ihren
+    Dienst{windows ? ", und bei OneDrive oder Dropbox eine Taste, die das erledigt" : ""}.
+  </p>
   <p>
     <b>Ordner</b> zeigt den ganzen Pfad dorthin, wo das Dokument abgelegt wird, den Ordner selbst fett (der Name der Quelle
     entfällt, wenn Sie nur eine haben). Um einen anderen zu wählen, klicken Sie darauf und tippen einen Teil eines

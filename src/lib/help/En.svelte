@@ -503,6 +503,12 @@
     a small window it shrinks or gives way so the form never has to be scrolled (see
     <a href="#page-preview">Page preview</a>).
   </p>
+  <p id="inbox-cloud">
+    When the inbox folder is in iCloud Drive, OneDrive, Google Drive or Dropbox, the system may make scans
+    online-only to save space. Rupert then downloads them again by itself to show, read and file them, and shows the
+    picture it kept of the page meanwhile. To keep them on this computer from the start, keep the folder downloaded:
+    <b>Settings ▸ Inbox</b> shows the step for your service{windows ? ", and with OneDrive or Dropbox a button that does it" : ""}.
+  </p>
   <p>
     <b>Folder</b> shows the whole path to where the document goes, with the folder itself in bold (the source's name is
     left out when you have only one). To choose another, click it and type any part of a folder's name: the suggested

@@ -544,6 +544,13 @@
     borde entre los dos para elegir su alto, y en una ventana chica se achica o desaparece para que el formulario nunca
     haya que desplazarlo (mirá <a href="#page-preview">Vista previa</a>).
   </p>
+  <p id="inbox-cloud">
+    Si la carpeta de la bandeja de entrada está en iCloud Drive, OneDrive, Google Drive o Dropbox, el sistema puede
+    dejar escaneos solo en línea para ahorrar espacio. Rupert los vuelve a descargar solo para mostrarlos, leerlos y
+    archivarlos, y mientras tanto muestra la imagen de la página que guardó. Para que queden en esta computadora desde
+    el principio, mantené la carpeta descargada: <b>Configuración ▸ Bandeja de entrada</b> muestra el paso para tu
+    servicio{windows ? ", y con OneDrive o Dropbox un botón que lo hace" : ""}.
+  </p>
   <p>
     <b>Carpeta</b> muestra la ruta completa adonde va el documento, con la carpeta misma en negrita (el nombre de la fuente
     no aparece si tenés una sola). Para elegir otra, hacé clic y escribí cualquier parte del nombre de una carpeta: primero

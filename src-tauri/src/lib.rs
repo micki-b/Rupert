@@ -1417,6 +1417,24 @@ fn inbox_items(state: State<AppState>) -> Vec<IntakeItem> {
     state.intake.items()
 }
 
+/// Whether the inbox folder is set to stay on this computer (#144):
+/// `None` where Rupert can't tell (macOS, Linux, drives without it).
+#[tauri::command]
+async fn inbox_kept_downloaded(state: State<'_, AppState>) -> CmdResult<Option<bool>> {
+    let settings = state.settings.lock().unwrap().get().clone();
+    let dir = print_entry::inbox_dir(&state, &settings)?;
+    Ok(rupert_core::cloud::kept_downloaded(&dir))
+}
+
+/// Sets the inbox folder to stay on this computer ("Always keep on this
+/// device"; Windows with OneDrive or Dropbox, #144).
+#[tauri::command]
+async fn keep_inbox_downloaded(state: State<'_, AppState>) -> CmdResult<bool> {
+    let settings = state.settings.lock().unwrap().get().clone();
+    let dir = print_entry::inbox_dir(&state, &settings)?;
+    rupert_core::cloud::keep_downloaded(&dir).map_err(err)
+}
+
 /// The inbox items whose name or text match what was typed in the inbox's
 /// search field (#59), as relative paths.
 #[tauri::command]
@@ -2039,6 +2057,8 @@ pub fn run() {
             set_preview_menu,
             search_totals,
             list_senders,
+            inbox_kept_downloaded,
+            keep_inbox_downloaded,
             details::details_propose,
             details::details_apply,
             index_status,

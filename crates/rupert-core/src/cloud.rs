@@ -203,6 +203,59 @@ pub fn evict(_path: &Path) -> Result<bool> {
     Ok(false)
 }
 
+// MARK: - Keep downloaded (#144)
+
+/// Whether a folder of a Cloud Files provider (OneDrive, Dropbox) is set to
+/// stay on this computer ("Always keep on this device"): `None` where that
+/// can't be told or set by Rupert (macOS, Linux, other drives).
+#[cfg(windows)]
+pub fn kept_downloaded(path: &Path) -> Option<bool> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_PINNED, GetFileAttributesW, INVALID_FILE_ATTRIBUTES,
+    };
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain([0]).collect();
+    // SAFETY: NUL-terminated wide string.
+    let attrs = unsafe { GetFileAttributesW(wide.as_ptr()) };
+    (attrs != INVALID_FILE_ATTRIBUTES).then_some(attrs & FILE_ATTRIBUTE_PINNED != 0)
+}
+
+#[cfg(not(windows))]
+pub fn kept_downloaded(_path: &Path) -> Option<bool> {
+    None
+}
+
+/// Sets a folder to stay on this computer, as Explorer's "Always keep on
+/// this device" does: the documented pinned attribute, which the provider
+/// applies to what's in the folder and to files added later. Windows only;
+/// `false` elsewhere (macOS has no public way for an app to do this).
+#[cfg(windows)]
+pub fn keep_downloaded(path: &Path) -> Result<bool> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_PINNED, FILE_ATTRIBUTE_UNPINNED, GetFileAttributesW,
+        INVALID_FILE_ATTRIBUTES, SetFileAttributesW,
+    };
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain([0]).collect();
+    // SAFETY: NUL-terminated wide string.
+    unsafe {
+        let attrs = GetFileAttributesW(wide.as_ptr());
+        if attrs == INVALID_FILE_ATTRIBUTES {
+            return Err(io::Error::last_os_error().into());
+        }
+        let new = (attrs & !FILE_ATTRIBUTE_UNPINNED) | FILE_ATTRIBUTE_PINNED;
+        if SetFileAttributesW(wide.as_ptr(), new) == 0 {
+            return Err(io::Error::last_os_error().into());
+        }
+    }
+    Ok(true)
+}
+
+#[cfg(not(windows))]
+pub fn keep_downloaded(_path: &Path) -> Result<bool> {
+    Ok(false)
+}
+
 // MARK: - Tests
 
 #[cfg(test)]

@@ -20,7 +20,7 @@
     type Source,
   } from "#lib/api.ts";
   import Icon from "#lib/Icon.svelte";
-  import Thumb from "#lib/Thumb.svelte";
+  import Thumb, { thumbUrl } from "#lib/Thumb.svelte";
   import FolderPicker from "#lib/FolderPicker.svelte";
   import FolderPickerDialog from "#lib/FolderPickerDialog.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
@@ -317,8 +317,14 @@
   async function loadPreview(item: IntakeItem | null, key: string | null, p: number) {
     if (key === previewKey) return;
     previewKey = key;
-    if (!item || item.cloud === "cloudOnly") {
+    if (!item) {
       previewUrl = null;
+      return;
+    }
+    // Online-only (#144): the picture Rupert kept of it, if any, while the
+    // inbox downloads it again; nothing is read from the file.
+    if (item.cloud === "cloudOnly") {
+      previewUrl = thumbUrl(item.sourceId, entryOf(item), p, 1200);
       return;
     }
     previewLoading = true;

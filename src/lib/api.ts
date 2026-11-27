@@ -549,6 +549,10 @@ export const api = {
   search: (query: SearchArgs) => invoke<Hit[]>("search", { query }),
   /** Every match's amount added up per currency (#108), not just the 300 shown. */
   searchTotals: (query: SearchArgs) => invoke<Total[]>("search_totals", { query }),
+  /** Whether the inbox folder stays on this computer (#144); null where Rupert can't tell. */
+  inboxKeptDownloaded: () => invoke<boolean | null>("inbox_kept_downloaded"),
+  /** Sets the inbox folder to stay on this computer (Windows, OneDrive or Dropbox). */
+  keepInboxDownloaded: () => invoke<boolean>("keep_inbox_downloaded"),
   /** Senders for the From filter (#108). */
   listSenders: (filter = "") => invoke<TagCount[]>("list_senders", { filter }),
   /** Read details… (#108): one document's details from its indexed text. */

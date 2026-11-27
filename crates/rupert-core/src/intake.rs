@@ -167,6 +167,7 @@ pub fn spawn(
                 sources: Vec::new(),
                 shared: worker_shared,
                 on_change: Box::new(on_change),
+                tried: HashMap::new(),
             };
             worker.run(rx);
         })?;
@@ -187,6 +188,10 @@ struct Worker {
     sources: Vec<Source>,
     shared: Arc<Mutex<Shared>>,
     on_change: Box<dyn Fn() + Send>,
+    /// Online-only scans already downloaded once (or tried), and why one
+    /// couldn't be (#144). A scan seen on this computer again is forgotten
+    /// here, so it's downloaded again if the system frees it later.
+    tried: HashMap<String, Option<String>>,
 }
 
 impl Worker {
@@ -197,8 +202,14 @@ impl Worker {
                 self.apply(msg);
             }
             // Process one item at a time, checking for news in between.
+            // Scans the system made online-only are downloaded first (#144):
+            // the inbox works with the files present.
             loop {
                 self.scan();
+                if let Some(index) = self.next_download() {
+                    self.download(index);
+                    continue;
+                }
                 let Some(index) = self.next_todo() else { break };
                 self.process(index);
                 match rx.try_recv() {
@@ -217,6 +228,7 @@ impl Worker {
                 // first configuration after startup keeps the saved cache.)
                 if self.configured && settings.inbox != self.settings.inbox {
                     self.cache.clear();
+                    self.tried.clear();
                 }
                 self.configured = true;
                 self.settings = *settings;
@@ -224,6 +236,7 @@ impl Worker {
             }
             Msg::Refresh => {}
             Msg::Redo(rel) => {
+                self.tried.remove(&rel);
                 self.cache.remove(&rel);
             }
         }
@@ -285,11 +298,21 @@ impl Worker {
                 item.note = d.note.clone();
                 item.suggested_folder = suggested_folder(&item);
             } else if e.cloud == CloudState::CloudOnly && !streamed {
+                // Waiting for its download (below), or it couldn't be had.
                 item.stage = Stage::Ready;
-                item.note = Some(
-                    tr("Online-only: open it once to download it, then Rupert will read it.")
-                        .into(),
-                );
+                item.note = Some(match self.tried.get(&e.rel_path) {
+                    Some(Some(why)) => {
+                        trf("Online-only, and it couldn't be downloaded: {0}", &[why])
+                    }
+                    Some(None) => {
+                        tr("Online-only: open it once to download it, then Rupert will read it.")
+                            .into()
+                    }
+                    None => tr("Online-only: downloading it…").into(),
+                });
+            }
+            if e.cloud != CloudState::CloudOnly {
+                self.tried.remove(&e.rel_path);
             }
             items.push(item);
         }
@@ -309,6 +332,42 @@ impl Worker {
 
     fn items_snapshot(&self) -> Vec<IntakeItem> {
         self.shared.lock().unwrap().items.clone()
+    }
+
+    /// An online-only scan to download (#144): one not tried yet. On a
+    /// drive that reads files on demand, processing reads it anyway.
+    fn next_download(&self) -> Option<usize> {
+        let streamed = self
+            .inbox()
+            .and_then(|(source, rel)| resolve(&source.root, rel).ok())
+            .is_some_and(|dir| readable_anyway(&dir));
+        if streamed {
+            return None;
+        }
+        self.shared
+            .lock()
+            .unwrap()
+            .items
+            .iter()
+            .position(|i| i.cloud == CloudState::CloudOnly && !self.tried.contains_key(&i.rel_path))
+    }
+
+    /// Downloads one online-only scan by reading it through, which the
+    /// system answers by fetching it. Tried once per time it's online-only.
+    fn download(&mut self, index: usize) {
+        let Some(item) = self.items_snapshot().into_iter().nth(index) else {
+            return;
+        };
+        let Some(path) = self
+            .inbox()
+            .and_then(|(source, _)| resolve(&source.root, &item.rel_path).ok())
+        else {
+            return;
+        };
+        self.update(index, |i| i.note = Some(tr("Downloading…").into()));
+        let result = crate::cloud::download(&path);
+        self.tried
+            .insert(item.rel_path, result.err().map(|e| e.to_string()));
     }
 
     fn next_todo(&self) -> Option<usize> {
