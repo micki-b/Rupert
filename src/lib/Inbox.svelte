@@ -1301,6 +1301,9 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
+    /* As in Details: a scroll bar that takes space (Windows, Linux) would
+       otherwise come and go as the preview resizes with the column. */
+    scrollbar-gutter: stable;
     display: flex;
     flex-direction: column;
   }
