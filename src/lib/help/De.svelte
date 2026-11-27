@@ -271,7 +271,8 @@
     Klicken Sie mit der rechten Maustaste auf einen Ordner und wählen Sie <b>Dokumente umbenennen …</b>, um seinen
     Dokumenten gemeinsam neue Namen zu geben; von einem Dokument aus zeigt derselbe Befehl seinen Ordner, nur mit diesem
     Dokument markiert. Eine Tabelle zeigt jeden aktuellen Namen und den neuen Namen, Änderungen hervorgehoben, daneben
-    die erste Seite, Titel, Datum und Tags des ausgewählten Dokuments. Entfernen Sie die Markierung bei Dokumenten, die
+    die erste Seite, Titel, Datum und Tags des ausgewählten Dokuments (ein Doppelklick auf eine Zeile oder die Seite
+    öffnet das Dokument). Entfernen Sie die Markierung bei Dokumenten, die
     bleiben sollen, wie sie sind. Nichts ändert sich, bevor Sie auf <b>Umbenennen</b> klicken.
   </p>
   <p>
@@ -349,7 +350,8 @@
   <ul>
     <li>
       <b>Alle Dateitypen zeigen</b>: Standardmäßig zeigt Rupert nur Dokumente (PDFs, Bilder, Office-Dateien, Text).
-      Schalten Sie dies ein, um alle Dateien zu sehen.
+      Schalten Sie dies ein, um alle Dateien zu sehen. Finder-Aliasse erscheinen nie: Sie verweisen auf ein Dokument
+      und sind selbst keines.
     </li>
     <li>
       <b>Nur-online-Dateien zum Indexieren laden</b> (Ordner in iCloud Drive, OneDrive und Google Drive): siehe
@@ -396,6 +398,52 @@
     <b>Anhalten</b>. Anhalten lässt die aktuelle Datei noch fertig werden und hält dann an; Erledigtes bleibt erhalten.
     <b>Fortsetzen</b> oder der nächste Start von Rupert macht weiter.
   </p>
+</section>
+
+<!-- MARK: Zustand der Bibliothek -->
+<section id="health">
+  <h2>Zustand der Bibliothek</h2>
+  <p>
+    <b>Zustand der Bibliothek</b> in der Seitenleiste (oder ein Klick auf die Zahlen in der Statuszeile) zeigt, was in
+    Ihrer Bibliothek besser sein könnte, und wie es sich beheben lässt. <b>Zeigen</b> listet die Dokumente einer Zeile;
+    wählen Sie eines, um rechts seine Angaben zu sehen. <b>Zeigen für</b> beschränkt es auf eine Quelle.
+  </p>
+  <ul>
+    <li>
+      <b>Doppelte Kopien</b>: <b>Nach Duplikaten suchen …</b> vergleicht Ihre Dokumente. <i>Dieselbe Datei</i> heißt
+      dieselben Bytes; <i>derselbe Text</i> findet auch eine Kopie, in die Rupert Angaben geschrieben hat, oder ein
+      zweimal gescanntes Papier. Rupert markiert die Kopie, die bleibt (die mit den meisten Angaben, im genaueren Ordner,
+      mit dem saubereren Namen); ändern Sie das nach Belieben. <b>Vergleichen …</b> (oder ein Klick auf die Seite einer
+      Kopie) zeigt bis zu drei Kopien nebeneinander, jeweils dieselbe Seite (<kbd>←</kbd> <kbd>→</kbd> blättern sie
+      gemeinsam), mit <b>Diese behalten</b>, <b>Öffnen</b> und <b>{reveal}</b>. Eine Kopie für den Papierkorb hat dort und
+      in der Liste einen Papierkorb, um nur sie sofort zu verschieben. Sind Kopien so in Ordnung, legt <b>Alle
+      behalten</b> die Gruppe beiseite: Rupert merkt sie sich bei der Bibliothek (im verborgenen Ordner
+      <code>.rupert</code> der Quelle, sodass Ihre anderen Computer sie ebenfalls beachten) und zeigt sie nur wieder,
+      wenn eine weitere Kopie hinzukommt. <b>Einstellungen ▸ Bibliothek</b> bietet für jede Quelle
+      <b>Zurücksetzen</b>. Die anderen kommen in den Papierkorb, nie endgültig
+      gelöscht, nachdem die behaltene ihre Tags und Notizen übernommen hat. Nur online verfügbare Kopien mit gleicher
+      Größe und gleichem Namen sind nur <i>wahrscheinlich gleich</i>: Rupert zeigt sie und lässt sie in Ruhe.
+    </li>
+    <li>
+      <b>Kein Text</b>: <b>Text erkennen …</b> liest Scans ohne Text, wie der Eingang. PDFs erhalten eine unsichtbare
+      Textebene (der Rest der Datei bleibt, wie er ist); bei Bildern bleibt der Text in Ruperts verborgener
+      Begleitdatei.
+    </li>
+    <li>
+      <b>Nur online, Text unbekannt</b>: <b>Zum Indexieren laden …</b> lädt sie herunter, um ihren Text zu lesen, und
+      gibt den Platz danach wieder frei (wie <a href="#online-only">Diesen Ordner indexieren</a>).
+    </li>
+    <li>
+      <b>Kein Dokumentdatum</b> und <b>Keine Tags</b>: <b>Angaben vorschlagen …</b> lässt die lokale KI aus dem Text,
+      den Rupert schon hat, einen Titel, ein Datum und Tags vorschlagen, ohne etwas herunterzuladen, in einer Tabelle,
+      die Sie vor dem Sichern prüfen.
+    </li>
+    <li>
+      <b>Scanner-Namen</b> („Scan 2026-11-12 08.31.pdf“): Die Liste ist nach Ordnern geordnet, mit <b>Dokumente in
+      diesem Ordner umbenennen …</b> für jeden.
+    </li>
+    <li><b>Nicht lesbar</b>: verschlüsselte oder beschädigte PDFs.</li>
+  </ul>
 </section>
 
 <!-- MARK: Finden -->

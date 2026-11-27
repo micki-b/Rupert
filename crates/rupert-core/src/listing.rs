@@ -141,6 +141,11 @@ pub fn list_dir(root: &Path, rel: &str, show_all_types: bool) -> Result<Vec<Entr
         }
 
         let is_dir = meta.is_dir();
+        // A Finder alias is a pointer, not a document (its "PDF" is bookmark
+        // data). Told from its Finder flags, without reading the file.
+        if !is_dir && is_alias(&item.path()) {
+            continue;
+        }
         let kind = (!is_dir).then(|| FileKind::from_path(&name));
         if let Some(kind) = kind
             && !show_all_types
@@ -288,6 +293,37 @@ fn is_hidden(_meta: &fs::Metadata) -> bool {
     false
 }
 
+/// Whether a file is a Finder alias: the "is alias" Finder flag (0x8000 in
+/// `com.apple.FinderInfo`). An extended attribute, so an online-only file
+/// isn't downloaded to tell.
+#[cfg(target_os = "macos")]
+pub fn is_alias(path: &Path) -> bool {
+    use std::os::unix::ffi::OsStrExt;
+    let Ok(c_path) = std::ffi::CString::new(path.as_os_str().as_bytes()) else {
+        return false;
+    };
+    let mut info = [0u8; 32];
+    // SAFETY: NUL-terminated path and name, a buffer of the size given.
+    let n = unsafe {
+        libc::getxattr(
+            c_path.as_ptr(),
+            c"com.apple.FinderInfo".as_ptr(),
+            info.as_mut_ptr().cast(),
+            info.len(),
+            0,
+            libc::XATTR_NOFOLLOW,
+        )
+    };
+    n >= 10 && u16::from_be_bytes([info[8], info[9]]) & 0x8000 != 0
+}
+
+/// Elsewhere aliases are other files (Windows shortcuts are `.lnk`, not a
+/// document kind).
+#[cfg(not(target_os = "macos"))]
+pub fn is_alias(_path: &Path) -> bool {
+    false
+}
+
 fn icloud_placeholder_name(name: &str) -> Option<String> {
     let inner = name.strip_prefix('.')?.strip_suffix(".icloud")?;
     (!inner.is_empty()).then(|| inner.to_string())
@@ -298,6 +334,38 @@ fn icloud_placeholder_name(name: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn finder_aliases_are_left_out() {
+        use std::os::unix::ffi::OsStrExt;
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("bill.pdf"), b"%PDF-1.4").unwrap();
+        let alias = dir.path().join("bill alias.pdf");
+        fs::write(&alias, b"book\0\0\0\0mark\0\0\0\0").unwrap();
+        // As Finder marks an alias: flag 0x8000 at bytes 8–9 of FinderInfo.
+        let mut info = [0u8; 32];
+        info[8] = 0x80;
+        let c_path = std::ffi::CString::new(alias.as_os_str().as_bytes()).unwrap();
+        // SAFETY: NUL-terminated path and name, a buffer of the size given.
+        let set = unsafe {
+            libc::setxattr(
+                c_path.as_ptr(),
+                c"com.apple.FinderInfo".as_ptr(),
+                info.as_ptr().cast(),
+                info.len(),
+                0,
+                0,
+            )
+        };
+        assert_eq!(set, 0);
+        assert!(is_alias(&alias));
+        assert!(!is_alias(&dir.path().join("bill.pdf")));
+        assert_eq!(
+            names(&list_dir(dir.path(), "", false).unwrap()),
+            ["bill.pdf"]
+        );
+    }
 
     fn names(entries: &[Entry]) -> Vec<&str> {
         entries.iter().map(|e| e.name.as_str()).collect()

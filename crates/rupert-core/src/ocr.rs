@@ -372,6 +372,74 @@ fn parse_tsv(tsv: &str) -> Vec<OcrWord> {
         .collect()
 }
 
+// MARK: - In place (#113)
+
+/// The sidecar's name for text Rupert recognized (as the inbox writes it).
+pub const RUPERT_OCR: &str = "Rupert OCR";
+
+/// What recognizing one library document did.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InPlace {
+    /// Pages (or pictures) that got text.
+    pub recognized: usize,
+    /// The text went beside the file, not into it (a picture, or a PDF
+    /// that couldn't take a text layer), with why for a PDF.
+    pub beside: Option<String>,
+}
+
+/// Recognizes the text of a document already in the library, as the inbox
+/// does: a PDF gets a text layer on the pages without text (an incremental
+/// update, checked before writing), or keeps the text in its sidecar when
+/// it can't take one; a picture's text goes in its sidecar. Only for files
+/// on this computer (an online-only one would download).
+pub fn recognize_in_place(
+    path: &Path,
+    pdf: &TextExtractor,
+    engine: &Engine,
+    on_page: impl FnMut(usize, usize),
+) -> Result<InPlace> {
+    use crate::file_kind::FileKind;
+    if crate::cloud_state(path)? == crate::listing::CloudState::CloudOnly
+        && !crate::cloud::streams_on_demand(path)
+    {
+        return Err(Error::InvalidValue(
+            crate::i18n::tr("It's online-only: download it first.").into(),
+        ));
+    }
+    match FileKind::from_path(path) {
+        FileKind::Pdf => {
+            let r = ocr_pdf(path, pdf, engine, on_page)?;
+            let mut out = InPlace {
+                recognized: r.pages_recognized,
+                beside: None,
+            };
+            if let Some(e) = r.layer_error.filter(|_| r.pages_recognized > 0) {
+                crate::sidecar::write_text(path, &r.text, RUPERT_OCR, true)?;
+                out.beside = Some(e);
+            }
+            Ok(out)
+        }
+        FileKind::Image => {
+            let words = engine.recognize(&std::fs::read(path)?, 1, 1)?;
+            if words.is_empty() {
+                return Ok(InPlace::default());
+            }
+            let text = words
+                .iter()
+                .map(|w| w.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            crate::sidecar::write_text(path, &text, RUPERT_OCR, true)?;
+            Ok(InPlace {
+                recognized: 1,
+                beside: Some(String::new()),
+            })
+        }
+        _ => Ok(InPlace::default()),
+    }
+}
+
 // MARK: - Tests
 
 #[cfg(test)]

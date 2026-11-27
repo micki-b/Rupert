@@ -75,6 +75,7 @@
   import BulkTagsDialog from "#lib/BulkTagsDialog.svelte";
   import ExportDialog from "#lib/ExportDialog.svelte";
   import ReadDetailsDialog from "#lib/ReadDetailsDialog.svelte";
+  import Health from "#lib/Health.svelte";
   import PageViewer from "#lib/PageViewer.svelte";
   import DocPreview from "#lib/DocPreview.svelte";
   import ListHeader from "#lib/ListHeader.svelte";
@@ -499,6 +500,7 @@
   function selectFolder(sourceId: string, relPath: string) {
     lastChange = null;
     inboxOpen = false;
+    healthOpen = false;
     copyProblems = null;
     query = "";
     selectedTags = [];
@@ -526,6 +528,7 @@
     );
     loadInboxCount();
     senderList.ensure();
+    loadHealthBadge();
 
     const unlisten = [
       onDirChanged((batch) => changes.push(batch)),
@@ -574,6 +577,7 @@
         indexTick++;
         loadIndexInfo();
         senderList.refresh();
+        loadHealthBadge();
       }),
       getCurrentWindow().onFocusChanged(({ payload: focused }) => {
         if (focused) loadSources(true);
@@ -790,7 +794,24 @@
     tagsBefore = selectedTags.length;
   }
 
+  // MARK: - Library health (#113)
+
+  let healthOpen = $state(false);
+  /** Rows with something to fix, for the sidebar. */
+  let healthBadge = $state(0);
+
+  function openHealth() {
+    lastChange = null;
+    inboxOpen = false;
+    query = "";
+    selectedTags = [];
+    favoritesOnly = false;
+    selected = null;
+    healthOpen = true;
+  }
+
   function filterFavorites() {
+    healthOpen = false;
     inboxOpen = false;
     query = "";
     favoritesOnly = !favoritesOnly;
@@ -813,6 +834,7 @@
 
   function openInbox() {
     lastChange = null;
+    healthOpen = false;
     inboxOpen = true;
     selected = null;
   }
@@ -1664,11 +1686,28 @@
     if (progress && progress.pictureTotal > 0) {
       return m.main.keepingPictures(progress.pictureDone, progress.pictureTotal);
     }
+    return countsText();
+  }
+
+  /** The library's counts, when the status line has nothing else to say:
+   * a click opens Library health (#113). */
+  function countsText(): string {
     if (!stats || stats.documents === 0) return "";
     const parts = [m.main.documents(stats.documents)];
     parts.push(m.main.searchable(stats.withText));
     if (stats.cloudOnlyUnindexed) parts.push(m.main.onlineOnlyCount(stats.cloudOnlyUnindexed));
     return parts.join(" · ");
+  }
+
+  /** The sidebar's Library health badge: rows with something to fix. Read
+   * at most every few seconds while the index changes. */
+  let healthTimer: ReturnType<typeof setTimeout> | undefined;
+  function loadHealthBadge() {
+    clearTimeout(healthTimer);
+    healthTimer = setTimeout(async () => {
+      const c = await api.healthCounts(null).catch(() => null);
+      if (c) healthBadge = Object.values(c).filter((n) => n > 0).length;
+    }, 3000);
   }
 </script>
 
@@ -1811,6 +1850,12 @@
       <span class="lib-icon inbox-icon"><Icon name="inbox" size={14} /></span>
       <span class="label">{m.main.inbox}</span>
       {#if !appSettings?.inbox}<span class="count">{m.main.setUp}</span>{:else if inboxCount}<span class="count">{inboxCount}</span>{/if}
+    </button>
+    <!-- Library health (#113): what could be better, and the fixes. -->
+    <button class="lib-item" class:active={healthOpen} onclick={openHealth}>
+      <span class="lib-icon health-icon">♥</span>
+      <span class="label">{m.health.title}</span>
+      {#if healthBadge}<span class="count">{healthBadge}</span>{/if}
     </button>
     <button class="lib-item" class:active={favoritesOnly} onclick={filterFavorites}>
       <span class="lib-icon star">★</span>
@@ -2222,6 +2267,18 @@
           </li>
         {/each}
       </ul>
+    {:else if healthOpen}
+      <Health
+        {sources}
+        os={info?.os}
+        tick={indexTick}
+        selectedKey={selected ? keyOf(selected.sourceId, selected.entry.relPath) : null}
+        onselect={(h) => (selected = { sourceId: h.sourceId, entry: h })}
+        onopen={(h) => activate(h.sourceId, h)}
+        onrename={(sourceId, relDir, only) => (renameDocs = { sourceId, relDir, only })}
+        onindex={(sourceId) => indexFolder(sourceId, "")}
+        oncounts={(n) => (healthBadge = n)}
+      />
     {:else if folder && source}
       <nav class="crumbs" aria-label={m.main.folderPath}>
         {#each crumbs as c, i (c.relPath)}
@@ -2718,7 +2775,11 @@
     {:else if updates.status === "restarting"}
       {m.main.restarting} ·
     {/if}
-    {statusText()}
+    {#if countsText() && statusText() === countsText()}
+      <button class="footer-link" onclick={openHealth} title={m.health.title}>{countsText()}</button>
+    {:else}
+      {statusText()}
+    {/if}
     {#if stoppable}
       <button class="footer-btn" onclick={() => api.stopIndexing()} title={m.main.stopIndexingTip}>{m.main.stopIndexing}</button>
     {:else if progress?.stopped}
@@ -2836,6 +2897,21 @@
   }
   .lib-item:hover {
     background: var(--hover);
+  }
+  .footer-link {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .footer-link:hover {
+    color: var(--text);
+    text-decoration: underline;
+  }
+  .health-icon {
+    color: var(--accent-strong);
   }
   .lib-item.active {
     background: var(--accent-soft);

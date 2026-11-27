@@ -454,7 +454,13 @@
             <tbody>
               {#each rows as r (r.relPath)}
                 {@const b = badge(r)}
-                <tr class:off={!r.on} class:selected={selected === r.relPath} onclick={() => (selected = r.relPath)}>
+                <tr
+                  class:off={!r.on}
+                  class:selected={selected === r.relPath}
+                  onclick={() => (selected = r.relPath)}
+                  ondblclick={() => api.openEntry(sourceId, r.relPath)}
+                  title={m.renameDocs.openTip}
+                >
                   <td class="cb">
                     <input type="checkbox" bind:checked={r.on} aria-label={r.name} onclick={(e) => e.stopPropagation()} />
                   </td>
@@ -475,6 +481,7 @@
                             }
                           }}
                           onblur={() => commitEdit(r)}
+                          ondblclick={(e) => e.stopPropagation()}
                         />
                       {:else if r.state === "proposing"}
                         <span class="wait"><span class="spinner"></span>{m.renameDocs.proposing}</span>
@@ -484,7 +491,7 @@
                         <button
                           class="name"
                           title={`${shown(r)}${r.ext}\n${m.renameDocs.editTip}`}
-                          ondblclick={() => startEdit(r)}
+                          ondblclick={(e) => (e.stopPropagation(), startEdit(r))}
                           onclick={(e) => {
                             e.stopPropagation();
                             if (selected === r.relPath) startEdit(r);
@@ -511,7 +518,8 @@
 
       <aside class="preview">
         {#if current}
-          <div class="page">
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="page" ondblclick={() => api.openEntry(sourceId, current!.relPath)} title={m.renameDocs.openTip}>
             {#key current.relPath}
               <Thumb {sourceId} entry={entryOf(current)} side={480} iconSize={48} eager />
             {/key}

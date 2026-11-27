@@ -159,6 +159,34 @@ pub enum TagMode {
     All,
 }
 
+/// A row of Library health (#113): documents that could be better.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum HealthRow {
+    /// PDFs and pictures on this computer with no text.
+    NoText,
+    /// Online-only, and their text isn't known.
+    OnlineUnknown,
+    NoDate,
+    NoTags,
+    /// Names like "Scan 2026-11-12 08.31.pdf" or "IMG_2034.jpg".
+    ScannerNames,
+    /// Rupert couldn't read them (encrypted, damaged).
+    Unreadable,
+}
+
+/// How many documents each health row has.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HealthCounts {
+    pub no_text: usize,
+    pub online_unknown: usize,
+    pub no_date: usize,
+    pub no_tags: usize,
+    pub scanner_names: usize,
+    pub unreadable: usize,
+}
+
 /// A page of tags for the tag filter, and how many matched in all.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -691,6 +719,105 @@ impl Index {
             )
             .map_err(db)?;
         rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    // MARK: Library health (#113) and duplicates (#111)
+
+    /// The documents a Library health row stands for, in one source or
+    /// all, every one (no limit), by name.
+    pub fn health_hits(&self, row: HealthRow, source_id: Option<&str>) -> Result<Vec<Hit>> {
+        let cond = match row {
+            HealthRow::NoText => {
+                "d.text_state = 'empty' AND d.cloud = 0 AND d.kind IN ('pdf', 'image')"
+            }
+            HealthRow::OnlineUnknown => "d.text_state = 'cloudOnly'",
+            HealthRow::NoDate => "d.document_date IS NULL",
+            HealthRow::NoTags => "d.tags = '[]'",
+            HealthRow::ScannerNames => "1",
+            HealthRow::Unreadable => "d.text_state = 'failed'",
+        };
+        let sql = format!(
+            "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
+                    d.title, d.tags, d.document_date, d.favorite, NULL, {DETAILS}
+             FROM docs d WHERE {cond} AND (?1 IS NULL OR d.source_id = ?1)
+             ORDER BY d.name COLLATE NOCASE"
+        );
+        let mut stmt = self.conn.prepare(&sql).map_err(db)?;
+        let hits = stmt
+            .query_map(params![source_id], hit)
+            .map_err(db)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(db)?;
+        Ok(match row {
+            HealthRow::ScannerNames => hits
+                .into_iter()
+                .filter(|h| crate::health::scanner_name(&h.name))
+                .collect(),
+            _ => hits,
+        })
+    }
+
+    /// How many documents each Library health row has.
+    pub fn health_counts(&self, source_id: Option<&str>) -> Result<HealthCounts> {
+        let count = |row| self.health_hits(row, source_id).map(|h| h.len());
+        Ok(HealthCounts {
+            no_text: count(HealthRow::NoText)?,
+            online_unknown: count(HealthRow::OnlineUnknown)?,
+            no_date: count(HealthRow::NoDate)?,
+            no_tags: count(HealthRow::NoTags)?,
+            scanner_names: count(HealthRow::ScannerNames)?,
+            unreadable: count(HealthRow::Unreadable)?,
+        })
+    }
+
+    /// Documents that share their size with another one (the only ones that
+    /// can be exact copies), grouped by size.
+    pub fn same_size_groups(&self, source_id: Option<&str>) -> Result<Vec<Vec<Hit>>> {
+        let sql = format!(
+            "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
+                    d.title, d.tags, d.document_date, d.favorite, NULL, {DETAILS}
+             FROM docs d
+             WHERE d.size > 0 AND (?1 IS NULL OR d.source_id = ?1) AND d.size IN (
+                 SELECT size FROM docs WHERE size > 0 AND (?1 IS NULL OR source_id = ?1)
+                 GROUP BY size HAVING COUNT(*) > 1)
+             ORDER BY d.size, d.rel_path"
+        );
+        let mut stmt = self.conn.prepare(&sql).map_err(db)?;
+        let hits = stmt
+            .query_map(params![source_id], hit)
+            .map_err(db)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(db)?;
+        let mut groups: Vec<Vec<Hit>> = Vec::new();
+        for h in hits {
+            match groups.last_mut() {
+                Some(g) if g[0].size == h.size => g.push(h),
+                _ => groups.push(vec![h]),
+            }
+        }
+        Ok(groups)
+    }
+
+    /// Calls `f` with each document that has known text, and the text.
+    pub fn for_each_text(
+        &self,
+        source_id: Option<&str>,
+        mut f: impl FnMut(Hit, &str),
+    ) -> Result<()> {
+        let sql = format!(
+            "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
+                    d.title, d.tags, d.document_date, d.favorite, NULL, {DETAILS}, f.body
+             FROM docs d JOIN fts f ON f.rowid = d.id
+             WHERE f.body IS NOT NULL AND (?1 IS NULL OR d.source_id = ?1)"
+        );
+        let mut stmt = self.conn.prepare(&sql).map_err(db)?;
+        let mut rows = stmt.query(params![source_id]).map_err(db)?;
+        while let Some(r) = rows.next().map_err(db)? {
+            let h = hit(r).map_err(db)?;
+            let body: String = r.get(16).map_err(db)?;
+            f(h, &body);
+        }
+        Ok(())
     }
 
     /// A folder as the index knows it: its subfolder names (only those

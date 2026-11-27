@@ -111,6 +111,30 @@ export interface SearchArgs {
   dueTo?: string;
 }
 
+/** Library health (#113): its rows, and how many documents each has. */
+export type HealthRow = "noText" | "onlineUnknown" | "noDate" | "noTags" | "scannerNames" | "unreadable";
+export type HealthCounts = Record<"noText" | "onlineUnknown" | "noDate" | "noTags" | "scannerNames" | "unreadable", number>;
+
+/** Duplicates (#111): the same bytes, the same text, or probably the same. */
+export type DupKind = "sameFile" | "sameText" | "probably";
+export interface DupGroup {
+  kind: DupKind;
+  docs: Hit[];
+  /** Index into `docs` of the copy Rupert would keep. */
+  keep: number;
+  /** What makes them the same, whatever their names (Keep all remembers it). */
+  key: string;
+  /** Kept as they are (Keep all), with no copy added since. */
+  kept: boolean;
+}
+
+/** Title, date and tags for Suggest details… (#113); null leaves one as it is. */
+export interface Suggested {
+  title: string | null;
+  documentDate: string | null;
+  tags: string[] | null;
+}
+
 /** Amounts added up for one currency (#108). */
 export interface Total {
   currency: string | null;
@@ -553,6 +577,27 @@ export const api = {
   inboxKeptDownloaded: () => invoke<boolean | null>("inbox_kept_downloaded"),
   /** Sets the inbox folder to stay on this computer (Windows, OneDrive or Dropbox). */
   keepInboxDownloaded: () => invoke<boolean>("keep_inbox_downloaded"),
+  /** Library health (#113): counts per row, in one source or all. */
+  healthCounts: (sourceId: string | null) => invoke<HealthCounts>("health_counts", { sourceId }),
+  healthDocs: (row: HealthRow, sourceId: string | null) => invoke<Hit[]>("health_docs", { row, sourceId }),
+  /** Stops the duplicate search or text recognition after the current file. */
+  healthStop: () => invoke<void>("health_stop"),
+  duplicatesFind: (sourceId: string | null) => invoke<DupGroup[]>("duplicates_find", { sourceId }),
+  /** Keep all: remembers a group of acceptable duplicates (in its source's .rupert); false undoes it. */
+  duplicatesKeep: (sourceId: string, key: string, copies: number, keep: boolean) =>
+    invoke<void>("duplicates_keep", { sourceId, key, copies, keep }),
+  duplicatesKeptCount: (sourceId: string) => invoke<number>("duplicates_kept_count", { sourceId }),
+  duplicatesReset: (sourceId: string) => invoke<void>("duplicates_reset", { sourceId }),
+  /** The copies to keep and the ones to move to the Trash (after taking their tags and notes). */
+  duplicatesClear: (groups: { keep: DocPlace; others: DocPlace[] }[]) =>
+    invoke<{ trashed: number; failed: [string, string][] }>("duplicates_clear", { groups }),
+  /** Recognizes text in place (a text layer in PDFs). */
+  healthRecognize: (docs: DocPlace[]) =>
+    invoke<{ done: number; nothing: number; failed: [string, string][] }>("health_recognize", { docs }),
+  suggestPropose: (sourceId: string, relPath: string) =>
+    invoke<{ current: Suggested; proposed: Suggested | null }>("suggest_propose", { sourceId, relPath }),
+  suggestApply: (items: (DocPlace & { suggested: Suggested })[]) =>
+    invoke<{ done: number; failed: [string, string][] }>("suggest_apply", { items }),
   /** Senders for the From filter (#108). */
   listSenders: (filter = "") => invoke<TagCount[]>("list_senders", { filter }),
   /** Read details… (#108): one document's details from its indexed text. */
@@ -809,6 +854,11 @@ export function onContinuityScan(handler: (r: { name: string | null; error: stri
 /** File ▸ Quick Open… (macOS menu, #105). */
 export function onMenuQuickOpen(handler: () => void): Promise<UnlistenFn> {
   return listen("menu-quick-open", () => handler());
+}
+
+/** Library health's long fixes (#113): `{ done, total, name }`. */
+export function onHealthProgress(handler: (p: { done: number; total: number; name: string }) => void): Promise<UnlistenFn> {
+  return listen<{ done: number; total: number; name: string }>("health-progress", (e) => handler(e.payload));
 }
 
 /** View ▸ Hide/Show Page Preview (#127). */

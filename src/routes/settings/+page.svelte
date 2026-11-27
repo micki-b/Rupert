@@ -34,7 +34,7 @@
     const s = m.settings;
     const all: { id: TabId; label: string; icon: IconName; words: string[] }[] = [
       { id: "general", label: s.general, icon: "gear", words: [s.language, s.languageNote, ...(appStore ? [] : [s.updates, s.checkAutomatically, s.checkNow])] },
-      { id: "library", label: m.main.library, icon: "library", words: [s.libraryNote, s.sending, s.sendNotes, s.sendNotesNote, m.main.showAllTypes, m.main.downloadToIndex, m.main.indexFolder, m.main.rename, m.main.removeFromRupert, ...sources.map((x) => x.name)] },
+      { id: "library", label: m.main.library, icon: "library", words: [s.libraryNote, s.sending, s.sendNotes, s.sendNotesNote, m.main.showAllTypes, m.main.downloadToIndex, m.main.indexFolder, m.main.rename, m.main.removeFromRupert, m.health.keptTitle, m.health.duplicates, ...sources.map((x) => x.name)] },
       { id: "inbox", label: s.inbox, icon: "inbox", words: [s.inboxIntro, s.inboxFolder, s.suggestions, s.suggest, s.fileNames, s.pattern, s.printEntry, s.printEntryMac, s.printEntryWindows, "PDF"] },
       { id: "text", label: s.textRecognition, icon: "text-scan", words: [s.recognize, s.ocrNote, "OCR", "Tesseract"] },
       { id: "local-ai", label: s.localAi, icon: "chip", words: [s.server, s.address, s.model, "Apple Intelligence", "LM Studio", "Ollama"] },

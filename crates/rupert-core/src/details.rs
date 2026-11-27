@@ -18,15 +18,41 @@ use crate::meta::{self, DocMeta};
 /// detail cleared in the review can't be cleared that way (the waiting
 /// details only add); it stays as the file has it.
 pub fn apply(path: &Path, d: &Details) -> Result<DocMeta> {
-    let local =
-        crate::cloud_state(path)? == CloudState::Local || crate::cloud::streams_on_demand(path);
-    let with = |m: DocMeta| DocMeta {
+    apply_with(path, |m| DocMeta {
         sender: d.sender.clone(),
         amount: d.amount.clone(),
         currency: d.currency.clone(),
         due_date: d.due_date.clone(),
         ..m
-    };
+    })
+}
+
+/// Title, document date and tags reviewed in Suggest details… (#113):
+/// each one given replaces the document's; `None` leaves it as it is.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Suggested {
+    pub title: Option<String>,
+    pub document_date: Option<String>,
+    pub tags: Option<Vec<String>>,
+}
+
+/// Writes reviewed suggestions, keeping everything else (as [`apply`]).
+pub fn apply_suggested(path: &Path, s: &Suggested) -> Result<DocMeta> {
+    apply_with(path, |m| DocMeta {
+        title: s.title.clone().or(m.title),
+        document_date: s.document_date.clone().or(m.document_date),
+        tags: s.tags.clone().unwrap_or(m.tags),
+        ..m
+    })
+}
+
+/// Changes a document's details with `with`, where they live: inside a
+/// local file (or its sidecar), or waiting in the sidecar of an online-only
+/// one, which isn't read.
+fn apply_with(path: &Path, with: impl Fn(DocMeta) -> DocMeta) -> Result<DocMeta> {
+    let local =
+        crate::cloud_state(path)? == CloudState::Local || crate::cloud::streams_on_demand(path);
     if local {
         let existing = meta::read_meta(path)?.meta;
         Ok(meta::write_meta(path, with(existing), true)?.meta)

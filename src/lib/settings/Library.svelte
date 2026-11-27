@@ -27,6 +27,21 @@
   let renaming = $state(false);
   let renameValue = $state("");
 
+  /** Duplicate groups each source keeps as they are (#111), for Reset. */
+  let keptDuplicates = $state<Record<string, number>>({});
+  $effect(() => {
+    const ids = sources.map((s) => s.id);
+    Promise.all(ids.map((id) => api.duplicatesKeptCount(id).catch(() => 0))).then((counts) => {
+      keptDuplicates = Object.fromEntries(ids.map((id, i) => [id, counts[i]]));
+    });
+  });
+  const keptSources = $derived(sources.filter((s) => (keptDuplicates[s.id] ?? 0) > 0));
+
+  async function resetKept(id: string) {
+    await run(() => api.duplicatesReset(id));
+    keptDuplicates = { ...keptDuplicates, [id]: 0 };
+  }
+
   async function run(action: () => Promise<unknown>) {
     try {
       onerror(null);
@@ -169,6 +184,7 @@
         <button onclick={() => startRename(s)}>{m.main.rename}</button>
         <button onclick={() => run(() => api.revealEntry(s.id, ""))} disabled={!s.available}>{revealLabel(os)}</button>
       </div>
+
     </div>
   </div>
 {/if}
@@ -184,9 +200,28 @@
   <p class="note">{m.settings.sendNotesNote}</p>
 </div>
 
+<!-- MARK: Duplicates kept as they are (#111) -->
+<div class="sending">
+  <span class="lab">{m.health.keptTitle}</span>
+  {#each keptSources as s (s.id)}
+    <div class="kept">
+      <span>{s.name}: {m.health.keptGroups(keptDuplicates[s.id])}</span>
+      <button onclick={() => resetKept(s.id)} title={m.health.resetKeptTip}>{m.health.resetKept}</button>
+    </div>
+  {:else}
+    <p class="note">{m.health.noneKept}</p>
+  {/each}
+  <p class="note">{m.health.keptExplain}</p>
+</div>
+
 <style>
   .sending .lab {
     font-weight: 600;
+  }
+  .kept {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .sending {
     margin-top: 18px;
