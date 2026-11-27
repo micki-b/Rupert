@@ -77,6 +77,7 @@
       case "showDocument":
         return m.phone.askShowDocument(last(a.relPath));
       case "search":
+      case "savedSearch":
         return m.phone.askShowResults;
     }
   }

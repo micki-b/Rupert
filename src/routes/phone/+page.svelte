@@ -463,7 +463,9 @@
         showDoc(a.sourceId, a.relPath, last(a.relPath), info?.cloud === "cloudOnly", info?.size ?? 0);
         break;
       }
+      // The phone runs a saved search (#110) by its words and tags.
       case "search":
+      case "savedSearch":
         query = a.text;
         selectedTags = [...a.tags];
         tagMode = a.tagMode;
