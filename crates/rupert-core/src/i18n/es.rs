@@ -177,6 +177,15 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "Solo en línea: abrilo una vez para descargarlo y Rupert lo va a leer.",
     ),
     (
+        "Online-only, and it couldn't be downloaded: {0}",
+        "Solo en línea, y no se pudo descargar: {0}",
+    ),
+    (
+        "Online-only: downloading it…",
+        "Solo en línea: descargándolo…",
+    ),
+    ("Downloading…", "Descargando…"),
+    (
         "Text recognized on {0} of {1} pages ({2})",
         "Texto reconocido en {0} de {1} páginas ({2})",
     ),

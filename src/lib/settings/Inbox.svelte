@@ -2,7 +2,7 @@
   // Settings ▸ Inbox: where new scans arrive, filing suggestions, how
   // filed documents are named, and Print to Rupert (#101).
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
-  import { api, fileNameFor, type Settings, type Source } from "#lib/api.ts";
+  import { api, fileNameFor, revealLabel, type Settings, type Source } from "#lib/api.ts";
   import { m } from "#lib/i18n/index.ts";
 
   let {
@@ -39,6 +39,49 @@
   const inboxSource = $derived(sources.find((s) => s.id === settings.inbox?.sourceId) ?? null);
   const example = $derived(fileNameFor(settings.namePattern, "2026-04-29", m.settings.exampleTitle) + ".pdf");
 
+  // MARK: Keep downloaded (#144)
+
+  const SERVICE: Record<string, string> = {
+    icloud: "iCloud Drive",
+    onedrive: "OneDrive",
+    googledrive: "Google Drive",
+    dropbox: "Dropbox",
+  };
+  /** The cloud service the inbox folder is in, if any. */
+  const service = $derived(inboxSource && inboxSource.provider !== "local" ? inboxSource.provider : null);
+  /** Whether it stays on this computer (Windows can tell); null otherwise. */
+  let kept = $state<boolean | null>(null);
+  let keeping = $state(false);
+  $effect(() => {
+    void settings.inbox?.relPath;
+    if (!service || os !== "windows") {
+      kept = null;
+      return;
+    }
+    api.inboxKeptDownloaded().then((k) => (kept = k)).catch(() => (kept = null));
+  });
+
+  async function keep() {
+    keeping = true;
+    onerror(null);
+    try {
+      if (await api.keepInboxDownloaded()) kept = true;
+    } catch (e) {
+      onerror(String(e));
+    } finally {
+      keeping = false;
+    }
+  }
+
+  /** The step for this service on this system, where Rupert can't do it. */
+  const step = $derived.by(() => {
+    if (!service) return "";
+    if (service === "googledrive") return m.settings.keepGoogleDrive;
+    if (os === "macos") return service === "icloud" ? m.settings.keepMacICloud : service === "onedrive" ? m.settings.keepMacOneDrive : m.settings.keepMacDropbox;
+    if (os === "windows") return m.settings.keepWindows;
+    return m.settings.keepOther;
+  });
+
   /** Picks a folder; it must be inside one of the sources. */
   async function chooseInbox() {
     const picked = await openDialog({ directory: true, title: m.settings.chooseInbox });
@@ -71,6 +114,22 @@
     <button onclick={chooseInbox}>{m.settings.choose}</button>
     {#if settings.inbox}<button onclick={() => (settings.inbox = null)}>{m.settings.clear}</button>{/if}
   </div>
+  {#if service && settings.inbox && inboxSource}
+    <span></span>
+    <div class="keep">
+      <p class="note">{m.settings.keepNote(SERVICE[service] ?? service)}</p>
+      {#if kept === true}
+        <p class="note ok">✓ {m.settings.keptOnComputer}</p>
+      {:else if kept === false}
+        <button onclick={keep} disabled={keeping}>{m.settings.keepButton}</button>
+      {:else}
+        <p class="note">{step}</p>
+      {/if}
+      {#if kept !== true}
+        <button class="link" onclick={() => api.revealEntry(inboxSource.id, settings.inbox!.relPath)}>{revealLabel(os)}</button>
+      {/if}
+    </div>
+  {/if}
 
   <span class="lab">{m.settings.suggestions}</span>
   <div>
@@ -116,3 +175,32 @@
     {/if}
   </div>
 </div>
+
+<style>
+  /* The inbox in a cloud folder (#144). */
+  .keep {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: -4px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  .keep .note {
+    margin: 0;
+  }
+  .ok {
+    color: var(--accent-strong);
+  }
+  .link {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--accent-strong);
+    text-decoration: underline;
+    font: inherit;
+    font-size: 12px;
+  }
+</style>
