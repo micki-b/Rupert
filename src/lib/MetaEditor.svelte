@@ -8,6 +8,8 @@
   import { m } from "#lib/i18n/index.ts";
   import { formatAmountInput, formatIsoDay, formatMoney, parseAmount, tidyAmountInput } from "#lib/format.ts";
   import { CURRENCIES, senderList } from "#lib/details.svelte.ts";
+  import { reminderSettings, todayIso } from "#lib/reminders.svelte.ts";
+  import { LEADS, type Lead } from "#lib/api.ts";
 
   let { sourceId, entry }: { sourceId: string; entry: Entry } = $props();
 
@@ -21,6 +23,9 @@
     amount: string;
     currency: string;
     dueDate: string;
+    /** #109: "" = the default from Settings. */
+    remind: Lead | "";
+    done: boolean;
   };
 
   let record = $state<MetaRecord | null>(null);
@@ -45,6 +50,8 @@
       amount: "",
       currency: "",
       dueDate: "",
+      remind: "",
+      done: false,
     };
   }
 
@@ -59,6 +66,8 @@
       amount: formatAmountInput(d.amount),
       currency: d.currency ?? "",
       dueDate: d.dueDate ?? "",
+      remind: d.remind ?? "",
+      done: !!d.done,
     };
   }
 
@@ -174,6 +183,10 @@
         amount: form.amount.trim() ? (parseAmount(form.amount) ?? form.amount.trim()) : null,
         currency: form.amount.trim() ? form.currency.trim() || null : null,
         dueDate: form.dueDate || null,
+        // #109: kept as they are unless changed here.
+        remind: form.remind || null,
+        done: form.done ? (record?.meta.done ?? todayIso()) : null,
+        snoozed: form.done ? null : (record?.meta.snoozed ?? null),
       };
       apply(await api.writeMeta(sourceId, entry.relPath, meta));
       senderList.refresh();
@@ -293,6 +306,22 @@
       <span>{m.details.dueDate}</span>
       <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} disabled={loading} />
     </label>
+    <!-- #109: how early it shows in Coming up, and done. -->
+    {#if form.dueDate && reminderSettings.value?.enabled !== false}
+      {@const rs = reminderSettings.value}
+      {@const fallback = rs ? (form.amount.trim() ? rs.bills : rs.other) : null}
+      <label class="field">
+        <span>{m.reminders.remindMe}</span>
+        <select bind:value={form.remind} disabled={loading}>
+          <option value="">{fallback ? m.reminders.leadDefault(m.reminders.leads[fallback]) : "—"}</option>
+          {#each LEADS as l (l)}<option value={l}>{m.reminders.leads[l]}</option>{/each}
+        </select>
+      </label>
+      <label class="done-row">
+        <input type="checkbox" bind:checked={form.done} disabled={loading} />
+        <span>{m.reminders.doneCheck}</span>
+      </label>
+    {/if}
     <datalist id="rupert-senders">
       {#each senderList.names as name (name)}<option value={name}></option>{/each}
     </datalist>
@@ -382,6 +411,17 @@
   .tags:focus-within {
     outline: 2px solid var(--accent-soft);
     border-color: var(--accent);
+  }
+  .done-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .done-row input {
+    width: auto;
+    flex: none;
+    margin: 0;
   }
   .money {
     display: flex;

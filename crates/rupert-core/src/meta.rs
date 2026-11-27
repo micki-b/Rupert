@@ -50,6 +50,18 @@ pub struct DocMeta {
     /// The date to pay by, or valid until (#108), `YYYY-MM-DD`.
     #[serde(default)]
     pub due_date: Option<String>,
+    /// How early it shows in Coming up (#109): a [`crate::reminders::Lead`]
+    /// code ("1w", "3m", "never"). `None`: the default from Settings.
+    #[serde(default)]
+    pub remind: Option<String>,
+    /// When it was marked done (#109: paid, renewed, dealt with),
+    /// `YYYY-MM-DD`. Done documents leave Coming up.
+    #[serde(default)]
+    pub done: Option<String>,
+    /// "Remind me later" (#109): hidden from Coming up until this day,
+    /// `YYYY-MM-DD`.
+    #[serde(default)]
+    pub snoozed: Option<String>,
 }
 
 impl DocMeta {
@@ -76,6 +88,19 @@ impl DocMeta {
                 &[date],
             )));
         }
+        let remind = match clean(self.remind) {
+            Some(r) => Some(
+                crate::reminders::Lead::parse(&r)
+                    .ok_or_else(|| {
+                        Error::InvalidValue(trf("\"{0}\" isn't a reminder time", &[&r]))
+                    })?
+                    .code()
+                    .to_string(),
+            ),
+            None => None,
+        };
+        let done = clean(self.done).filter(|d| is_iso_date(d));
+        let snoozed = clean(self.snoozed).filter(|d| is_iso_date(d));
         let amount = match clean(self.amount) {
             Some(a) => Some(
                 parse_amount(&a)
@@ -100,6 +125,9 @@ impl DocMeta {
             amount,
             currency,
             due_date,
+            remind,
+            done,
+            snoozed,
         })
     }
 
@@ -113,6 +141,9 @@ impl DocMeta {
             && self.amount.is_none()
             && self.currency.is_none()
             && self.due_date.is_none()
+            && self.remind.is_none()
+            && self.done.is_none()
+            && self.snoozed.is_none()
     }
 }
 
@@ -130,6 +161,9 @@ pub struct PartialMeta {
     pub amount: Option<String>,
     pub currency: Option<String>,
     pub due_date: Option<String>,
+    pub remind: Option<String>,
+    pub done: Option<String>,
+    pub snoozed: Option<String>,
 }
 
 impl PartialMeta {
@@ -146,6 +180,9 @@ impl PartialMeta {
             amount: self.amount.or(other.amount),
             currency: self.currency.or(other.currency),
             due_date: self.due_date.or(other.due_date),
+            remind: self.remind.or(other.remind),
+            done: self.done.or(other.done),
+            snoozed: self.snoozed.or(other.snoozed),
         }
     }
 
@@ -171,6 +208,12 @@ impl PartialMeta {
             amount: self.amount.and_then(|a| parse_amount(&a)),
             currency: self.currency.and_then(|c| parse_currency(&c)),
             due_date: self.due_date.filter(|d| is_iso_date(d)),
+            remind: self
+                .remind
+                .and_then(|r| crate::reminders::Lead::parse(&r))
+                .map(|l| l.code().to_string()),
+            done: self.done.filter(|d| is_iso_date(d)),
+            snoozed: self.snoozed.filter(|d| is_iso_date(d)),
         }
     }
 }
@@ -189,6 +232,9 @@ impl From<DocMeta> for PartialMeta {
             amount: m.amount,
             currency: m.currency,
             due_date: m.due_date,
+            remind: m.remind,
+            done: m.done,
+            snoozed: m.snoozed,
         }
     }
 }
@@ -456,6 +502,51 @@ pub fn set_favorite(
         file_is_local,
     )?
     .meta)
+}
+
+/// Marks a document done or not, or hides it until a day ("remind me
+/// later"), from Coming up or a notification (#109). `done` and `snoozed`
+/// are `None` to leave them as they are; `Some(None)` clears. Like the star,
+/// an online-only PDF is only downloaded to clear a value.
+pub fn set_reminder(
+    path: &Path,
+    done: Option<Option<String>>,
+    snoozed: Option<Option<String>>,
+    file_is_local: bool,
+    indexed: Option<DocMeta>,
+) -> Result<DocMeta> {
+    let apply = |mut m: DocMeta| {
+        if let Some(d) = done.clone() {
+            m.done = d;
+            // Done ends any "remind me later".
+            if m.done.is_some() {
+                m.snoozed = None;
+            }
+        }
+        if let Some(s) = snoozed.clone() {
+            m.snoozed = s;
+        }
+        m
+    };
+    let clears = matches!(done, Some(None)) || matches!(snoozed, Some(None));
+    let pdf = FileKind::from_path(path) == FileKind::Pdf;
+    if pdf
+        && !file_is_local
+        && !clears
+        && let Some(current) = indexed
+    {
+        let next = apply(current.clone());
+        if next == current {
+            return Ok(current);
+        }
+        return write_meta_beside(path, next);
+    }
+    let current = read_meta(path)?.meta;
+    let next = apply(current.clone());
+    if next == current {
+        return Ok(current);
+    }
+    Ok(write_meta(path, next, file_is_local)?.meta)
 }
 
 fn prepare(meta: DocMeta) -> Result<DocMeta> {

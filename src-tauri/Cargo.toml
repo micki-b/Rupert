@@ -47,10 +47,14 @@ drag = "2.1.1"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSEvent", "NSMenu", "NSMenuItem", "NSPasteboard", "NSWindow", "NSResponder", "NSSharingService", "NSUserInterfaceItemIdentification", "NSView", "NSSavePanel", "NSPanel"] }
-objc2-foundation = { version = "0.3", features = ["NSArray", "NSData", "NSString", "NSURL", "NSGeometry", "objc2-core-foundation"] }
+objc2-foundation = { version = "0.3", features = ["NSArray", "NSBundle", "NSCalendar", "NSData", "NSError", "NSSet", "NSString", "NSURL", "NSGeometry", "objc2-core-foundation"] }
 libc = "0.2"
+# Reminders (#109): notifications scheduled with macOS, delivered even when
+# Rupert is closed.
+objc2-user-notifications = { version = "0.3", features = ["block2", "bitflags", "UNNotification", "UNNotificationAction", "UNNotificationCategory", "UNNotificationContent", "UNNotificationRequest", "UNNotificationResponse", "UNNotificationSettings", "UNNotificationSound", "UNNotificationTrigger", "UNUserNotificationCenter"] }
+block2 = "0.6"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Mapi", "Win32_System_LibraryLoader"] }
-windows = { version = "0.62", features = ["ApplicationModel_DataTransfer", "Storage", "Storage_Streams", "Foundation", "Win32_Foundation", "Win32_UI_Shell", "Win32_System_WinRT"] }
+windows = { version = "0.62", features = ["ApplicationModel_DataTransfer", "Data_Xml_Dom", "Storage", "Storage_Streams", "Foundation", "Foundation_Collections", "UI_Notifications", "Win32_Foundation", "Win32_UI_Shell", "Win32_System_WinRT"] }
 windows-collections = "0.3"

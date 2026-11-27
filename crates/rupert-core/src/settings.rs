@@ -53,6 +53,8 @@ pub struct Settings {
     /// Mac App Store edition: a bookmark to that entry, which the user
     /// placed with a save panel.
     pub print_entry_bookmark: Option<String>,
+    /// Reminders (#109): Coming up, notifications and the Dock badge.
+    pub reminders: crate::reminders::ReminderSettings,
 }
 
 /// Where Local AI runs.
@@ -111,6 +113,7 @@ impl Default for Settings {
             send_notes: false,
             print_entry: false,
             print_entry_bookmark: None,
+            reminders: Default::default(),
         }
     }
 }

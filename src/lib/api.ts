@@ -42,6 +42,8 @@ export interface ListedEntry extends Entry {
   currency?: string | null;
   /** YYYY-MM-DD: to pay by, or valid until. */
   dueDate?: string | null;
+  /** When it was marked done (#109): its due date is no longer overdue. */
+  done?: string | null;
 }
 
 export interface Hit extends Entry {
@@ -59,6 +61,7 @@ export interface Hit extends Entry {
   currency?: string | null;
   /** YYYY-MM-DD: to pay by, or valid until. */
   dueDate?: string | null;
+  done?: string | null;
 }
 
 export interface TagCount {
@@ -231,6 +234,12 @@ export interface DocMeta {
   currency?: string | null;
   /** YYYY-MM-DD: to pay by, or valid until. */
   dueDate?: string | null;
+  /** How early it shows in Coming up (#109): a Lead code; null = the default from Settings. */
+  remind?: Lead | null;
+  /** YYYY-MM-DD it was marked done (paid, renewed, dealt with). */
+  done?: string | null;
+  /** "Remind me later": hidden from Coming up until this day. */
+  snoozed?: string | null;
 }
 
 export type Storage = "embedded" | "sidecar" | "none";
@@ -313,7 +322,65 @@ export interface Settings {
   checkUpdates: boolean;
   /** Rupert's language ("en", "es"); null follows the system. */
   language: string | null;
+  /** Reminders (#109): Coming up, notifications and the Dock badge. */
+  reminders: ReminderSettings;
 }
+
+// MARK: Reminders (#109)
+
+/** How early a document shows in Coming up before its due date. */
+export type Lead = "0d" | "3d" | "1w" | "2w" | "1m" | "3m" | "6m" | "never";
+export const LEADS: Lead[] = ["0d", "3d", "1w", "2w", "1m", "3m", "6m", "never"];
+
+export interface ReminderSettings {
+  /** The whole feature: off hides Coming up, Remind me / Done, notifications and the badge. */
+  enabled: boolean;
+  /** How early documents with an amount (bills) show up. */
+  bills: Lead;
+  /** How early everything else (passports, contracts, warranties) does. */
+  other: Lead;
+  notify: boolean;
+  notifyKind: "summary" | "each";
+  /** HH:MM, local time. */
+  notifyTime: string;
+  /** The count on the Dock icon (macOS). */
+  dockBadge: boolean;
+}
+
+export type ReminderShow = "reminding" | "all" | "done";
+export type ReminderGroup = "overdue" | "week" | "month" | "later" | "done";
+
+export interface ReminderItem {
+  sourceId: string;
+  relPath: string;
+  name: string;
+  kind: FileKind;
+  size: number;
+  modifiedMs: number | null;
+  cloud: CloudState;
+  title: string | null;
+  sender: string | null;
+  amount: string | null;
+  currency: string | null;
+  dueDate: string;
+  remind: Lead | null;
+  done: string | null;
+  snoozed: string | null;
+  /** The lead in effect (its own or the default). */
+  lead: Lead;
+  /** Days from today to the due date (negative: overdue). */
+  days: number;
+  group: ReminderGroup;
+}
+
+export interface ReminderCounts {
+  /** Overdue or due within 7 days: the sidebar and Dock badge. */
+  soon: number;
+  overdue: number;
+  reminding: number;
+}
+
+export type NotifyPermission = "granted" | "denied" | "notDetermined" | "unavailable";
 
 /** Which model the chat assistant uses. Keys live in the keychain. */
 export type AssistantProvider = "local" | "anthropic" | "openai" | "chatgpt";
@@ -580,6 +647,24 @@ export const api = {
   /** Library health (#113): counts per row, in one source or all. */
   healthCounts: (sourceId: string | null) => invoke<HealthCounts>("health_counts", { sourceId }),
   healthDocs: (row: HealthRow, sourceId: string | null) => invoke<Hit[]>("health_docs", { row, sourceId }),
+  /** Coming up (#109): documents with a due date, and the counts for the badge. */
+  remindersList: (show: ReminderShow) =>
+    invoke<{ items: ReminderItem[]; counts: ReminderCounts }>("reminders_list", { show }),
+  remindersCounts: () => invoke<ReminderCounts>("reminders_counts"),
+  /** Marks a document done (today) or not; saved in the document. */
+  remindersSetDone: (sourceId: string, relPath: string, done: boolean) =>
+    invoke<DocMeta>("reminders_set_done", { sourceId, relPath, done }),
+  /** "Remind me later": hides it for `days` days (null shows it again). */
+  remindersSnooze: (sourceId: string, relPath: string, days: number | null) =>
+    invoke<DocMeta>("reminders_snooze", { sourceId, relPath, days }),
+  /** Opens a calendar event (.ics) with the due date and its reminder. */
+  remindersAddToCalendar: (sourceId: string, relPath: string) =>
+    invoke<void>("reminders_add_to_calendar", { sourceId, relPath }),
+  /** What a notification asked to show, if it launched Rupert. */
+  remindersTakeShown: () => invoke<{ sourceId: string | null; relPath: string | null } | null>("reminders_take_shown"),
+  notificationsPermission: () => invoke<NotifyPermission>("notifications_permission"),
+  notificationsRequest: () => invoke<NotifyPermission>("notifications_request"),
+  notificationsOpenSettings: () => invoke<void>("notifications_open_settings"),
   /** Stops the duplicate search or text recognition after the current file. */
   healthStop: () => invoke<void>("health_stop"),
   duplicatesFind: (sourceId: string | null) => invoke<DupGroup[]>("duplicates_find", { sourceId }),
@@ -857,6 +942,12 @@ export function onMenuQuickOpen(handler: () => void): Promise<UnlistenFn> {
 }
 
 /** Library health's long fixes (#113): `{ done, total, name }`. */
+export function onRemindersShow(
+  handler: (t: { sourceId: string | null; relPath: string | null }) => void,
+): Promise<UnlistenFn> {
+  return listen<{ sourceId: string | null; relPath: string | null }>("reminders-show", (e) => handler(e.payload));
+}
+
 export function onHealthProgress(handler: (p: { done: number; total: number; name: string }) => void): Promise<UnlistenFn> {
   return listen<{ done: number; total: number; name: string }>("health-progress", (e) => handler(e.payload));
 }

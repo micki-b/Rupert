@@ -22,7 +22,9 @@ mod export;
 mod health;
 mod help;
 mod inbox_import;
+mod notify;
 mod print_entry;
+mod reminders;
 mod rename;
 mod settings_window;
 mod share;
@@ -1337,12 +1339,14 @@ fn set_settings(app: AppHandle, settings: Settings, state: State<AppState>) -> C
         #[cfg(target_os = "macos")]
         install_menu(&app).map_err(err)?;
         settings_window::retitle(&app);
+        reminders::install();
     }
     // Print to Rupert follows the inbox, and is named in Rupert's language.
     if before.inbox != settings.inbox || new_language {
         print_entry::refresh(&state, &settings);
     }
     let _ = app.emit(SETTINGS_CHANGED, &settings);
+    reminders::poke();
     Ok(settings)
 }
 
@@ -1887,6 +1891,8 @@ pub fn run() {
             let config_dir = app.path().app_config_dir()?;
             let settings = SettingsStore::load(config_dir.join("settings.json"))?;
             i18n::set(i18n::resolve(settings.get().language.as_deref()));
+            // Early, so a click on a reminder that launched Rupert arrives.
+            reminders::install();
             #[cfg(target_os = "macos")]
             {
                 install_menu(app.handle())?;
@@ -1933,6 +1939,7 @@ pub fn run() {
                 },
                 move || {
                     let _ = changed_handle.emit(INDEX_CHANGED, ());
+                    reminders::poke();
                 },
             )?;
             let index = Index::open(&index_path)?;
@@ -1992,6 +1999,7 @@ pub fn run() {
             state.indexer.send(Job::SyncAll(state.sources()));
             app.manage(state);
             app.manage(assistant::AssistantState::new());
+            reminders::spawn(app.handle());
             #[cfg(target_os = "macos")]
             continuity::install(app.handle());
             #[cfg(debug_assertions)]
@@ -2061,6 +2069,15 @@ pub fn run() {
             inbox_kept_downloaded,
             keep_inbox_downloaded,
             health::health_counts,
+            reminders::reminders_list,
+            reminders::reminders_counts,
+            reminders::reminders_set_done,
+            reminders::reminders_snooze,
+            reminders::reminders_add_to_calendar,
+            reminders::reminders_take_shown,
+            reminders::notifications_permission,
+            reminders::notifications_request,
+            reminders::notifications_open_settings,
             health::health_docs,
             health::health_stop,
             health::duplicates_find,

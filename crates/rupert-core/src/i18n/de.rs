@@ -714,4 +714,29 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
     ("Minimize", "Im Dock ablegen"),
     ("Zoom", "Zoomen"),
     ("Help", "Hilfe"),
+    // Reminders (#109).
+    (
+        "This document has no due date.",
+        "Dieses Dokument hat kein Fälligkeitsdatum.",
+    ),
+    ("Not available here.", "Hier nicht verfügbar."),
+    ("Mark done", "Erledigt"),
+    ("Show", "Zeigen"),
+    ("Tomorrow", "Morgen"),
+    ("Overdue by {0} days", "Seit {0} Tagen überfällig"),
+    ("Overdue since yesterday", "Seit gestern überfällig"),
+    ("Due today", "Heute fällig"),
+    ("Due tomorrow", "Morgen fällig"),
+    ("Due in {0} days", "In {0} Tagen fällig"),
+    ("Overdue: {0}", "Überfällig: {0}"),
+    (
+        "Due within a week: {0}",
+        "Innerhalb einer Woche fällig: {0}",
+    ),
+    ("{0} more", "{0} weitere"),
+    ("Coming up", "Demnächst fällig"),
+    (
+        "\"{0}\" isn't a reminder time",
+        "„{0}“ ist keine Erinnerungszeit",
+    ),
 ];

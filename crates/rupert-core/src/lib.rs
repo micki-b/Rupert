@@ -37,6 +37,7 @@ pub mod onedrive;
 pub mod pdf_meta;
 pub mod print_entry;
 pub mod qr;
+pub mod reminders;
 pub mod remote;
 pub mod rename;
 pub mod scansnap;

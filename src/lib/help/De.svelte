@@ -7,6 +7,7 @@
     { id: "library", title: "Ihre Bibliothek" },
     { id: "finding", title: "Dokumente finden" },
     { id: "details", title: "Titel, Tags und Daten" },
+    { id: "reminders", title: "Demnächst fällig und Erinnerungen" },
     { id: "tags", title: "Tags verwalten" },
     { id: "inbox", title: "Der Eingang" },
     { id: "scanning", title: "Scannen" },
@@ -544,6 +545,43 @@
     herunterzuladen, ein Dokument nach dem anderen (<b>Stoppen</b> beendet es). Prüfen Sie die Tabelle, ändern Sie,
     was Sie möchten, und sichern Sie die angekreuzten Zeilen. Nur online verfügbare Dokumente erhalten die Angaben, wenn
     sie das nächste Mal auf diesem Computer sind. Belege aus ScanSnap Home bringen beim Import Händler und Betrag mit.
+  </p>
+</section>
+
+<!-- MARK: Demnächst fällig -->
+<section id="reminders">
+  <h2>Demnächst fällig und Erinnerungen</h2>
+  <p>
+    <b>Demnächst fällig</b> in der Seitenleiste zeigt Dokumente mit <b>Fälligkeitsdatum</b>, sobald ihre
+    Erinnerungszeit beginnt: Rechnungen eine Woche vorher, Pässe, Verträge und Garantien drei Monate vorher (beides
+    ändern Sie unter <b>Einstellungen ▸ Erinnerungen</b>). Überfälliges steht oben, dann die nächsten 7 Tage, die
+    nächsten 30 Tage und Späteres. Die Zahl daneben zählt, was überfällig oder innerhalb von 7 Tagen fällig ist, und
+    wird rot, wenn etwas überfällig ist. <b>Zeigen</b> wechselt zu allem mit Datum oder zu den erledigten Dokumenten.
+  </p>
+  <p>
+    <b>Erledigt</b> (bezahlt, verlängert oder erledigt) nimmt ein Dokument von der Liste; es bleibt in seinem Ordner.
+    <b>⋯</b> bietet <b>Später erinnern</b> (morgen, in 3 Tagen, nächste Woche), <b>Zum Kalender hinzufügen …</b>
+    (ein Termin am Fälligkeitsdatum mit einem Hinweis, wenn die Erinnerung beginnt, für jede Kalender-App) und
+    <b>Im Ordner zeigen</b>. Unter <b>Details</b> legt <b>Erinnern</b> fest, wie früh ein Dokument erscheint, und das
+    Kästchen <b>Erledigt</b> markiert es als erledigt oder nicht. Das alles wird im Dokument gespeichert, daher zeigen
+    Ihre anderen Computer dieselbe Liste.
+  </p>
+  {#if mac || windows}
+    <p>
+      Um auch außerhalb von Rupert erinnert zu werden, schalten Sie <b>Einstellungen ▸ Erinnerungen ▸ Mitteilungen
+      senden</b> ein: <b>Eine Zusammenfassung pro Tag</b> (an Tagen, an denen etwas fällig ist, zur gewählten Uhrzeit)
+      oder <b>Eine für jedes Dokument</b>{#if mac}, mit den Tasten <b>Erledigt</b>, <b>Zeigen</b> und
+        <b>Morgen</b>{/if}. Rupert übergibt sie {mac ? "macOS" : "Windows"} im Voraus, daher kommen sie auch, wenn
+      Rupert geschlossen ist.
+      {#if mac}macOS fragt einmal, ob Rupert Mitteilungen senden darf; Banner, Töne und Fokus stellen Sie unter
+        Systemeinstellungen ▸ Mitteilungen ▸ Rupert ein. <b>Anzahl auf Ruperts Symbol im Dock zeigen</b> bringt die
+        Zahl aus der Seitenleiste ins Dock.{/if}
+    </p>
+  {/if}
+  <p>
+    Brauchen Sie das nicht? Schalten Sie <b>Erinnerungen und „Demnächst fällig“</b> ganz oben unter
+    <b>Einstellungen ▸ Erinnerungen</b> aus: „Demnächst fällig“ verschwindet aus der Seitenleiste, und die Details
+    zeigen weder <b>Erinnern</b> noch <b>Erledigt</b>. Fälligkeitsdaten bleiben.
   </p>
 </section>
 

@@ -15,7 +15,7 @@ use crate::meta::{DocMeta, Storage};
 
 /// Bump to throw away and rebuild every user's index on schema changes
 /// (or add a step to `upgrade` when the tables can stay).
-const SCHEMA_VERSION: i32 = 7;
+const SCHEMA_VERSION: i32 = 8;
 
 /// Private-use characters marking highlighted words in search snippets, so
 /// the UI can split on them without parsing HTML.
@@ -216,6 +216,8 @@ pub struct Hit {
     pub amount: Option<String>,
     pub currency: Option<String>,
     pub due_date: Option<String>,
+    /// When it was marked done (#109), so a due date isn't shown as overdue.
+    pub done: Option<String>,
 }
 
 /// Everything the index knows about one document.
@@ -247,6 +249,7 @@ pub struct FolderMeta {
     pub amount: Option<String>,
     pub currency: Option<String>,
     pub due_date: Option<String>,
+    pub done: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -330,9 +333,9 @@ impl Index {
         tx.execute(
             "INSERT INTO docs (source_id, rel_path, dir, name, kind, size, mtime_ms, cloud,
                 doc_id, title, tags, notes, document_date, favorite, storage, text_state,
-                sidecar_ms, sender, amount, currency, due_date)
+                sidecar_ms, sender, amount, currency, due_date, remind, done, snoozed)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                ?18, ?19, ?20, ?21)",
+                ?18, ?19, ?20, ?21, ?22, ?23, ?24)",
             params![
                 row.source_id,
                 row.rel_path,
@@ -355,6 +358,9 @@ impl Index {
                 row.meta.amount,
                 row.meta.currency,
                 row.meta.due_date,
+                row.meta.remind,
+                row.meta.done,
+                row.meta.snoozed,
             ],
         )
         .map_err(db)?;
@@ -628,6 +634,62 @@ impl Index {
         ))
     }
 
+    /// Every document with a due date (#109: Coming up, notifications).
+    pub fn dated(&self) -> Result<Vec<crate::reminders::Dated>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT source_id, rel_path, name, title, sender, amount, currency, due_date,
+                        remind, done, snoozed, kind, size, mtime_ms, cloud
+                 FROM docs WHERE due_date IS NOT NULL AND due_date != ''",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map([], |r| {
+                Ok(crate::reminders::Dated {
+                    source_id: r.get(0)?,
+                    rel_path: r.get(1)?,
+                    name: r.get(2)?,
+                    title: r.get(3)?,
+                    sender: r.get(4)?,
+                    amount: r.get(5)?,
+                    currency: r.get(6)?,
+                    due_date: r.get(7)?,
+                    remind: r.get(8)?,
+                    done: r.get(9)?,
+                    snoozed: r.get(10)?,
+                    kind: parse_kind(&r.get::<_, String>(11)?),
+                    size: r.get::<_, i64>(12)? as u64,
+                    modified_ms: r.get(13)?,
+                    cloud: if r.get::<_, i64>(14)? != 0 {
+                        CloudState::CloudOnly
+                    } else {
+                        CloudState::Local
+                    },
+                })
+            })
+            .map_err(db)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(db)
+    }
+
+    /// Records done and "remind me later" right away (#109), so Coming up
+    /// changes before the indexer has read the changed file again.
+    pub fn set_doc_reminder(
+        &self,
+        source_id: &str,
+        rel_path: &str,
+        done: Option<&str>,
+        snoozed: Option<&str>,
+    ) -> Result<()> {
+        self.conn
+            .execute(
+                "UPDATE docs SET done = ?3, snoozed = ?4 WHERE source_id = ?1 AND rel_path = ?2",
+                params![source_id, rel_path, done, snoozed],
+            )
+            .map(|_| ())
+            .map_err(db)
+    }
+
     /// Senders for the From filter (#108): those matching `filter` (any
     /// part of the name, ignoring case), most documents first, at most
     /// `limit`.
@@ -706,7 +768,7 @@ impl Index {
             .prepare(
                 "SELECT d.source_id, d.rel_path, d.name, d.kind, d.size, d.mtime_ms, d.cloud,
                         d.title, d.tags, d.document_date, d.favorite, NULL,
-                        d.sender, d.amount, d.currency, d.due_date
+                        d.sender, d.amount, d.currency, d.due_date, d.done
                  FROM fts JOIN docs d ON d.id = fts.rowid WHERE fts MATCH :q
                  ORDER BY bm25(fts, 8.0, 10.0, 0.0, 0.0, 0.0), d.name COLLATE NOCASE
                  LIMIT :limit",
@@ -814,7 +876,7 @@ impl Index {
         let mut rows = stmt.query(params![source_id]).map_err(db)?;
         while let Some(r) = rows.next().map_err(db)? {
             let h = hit(r).map_err(db)?;
-            let body: String = r.get(16).map_err(db)?;
+            let body: String = r.get(17).map_err(db)?;
             f(h, &body);
         }
         Ok(())
@@ -830,7 +892,7 @@ impl Index {
             .prepare(
                 "SELECT source_id, rel_path, name, kind, size, mtime_ms, cloud,
                         title, tags, document_date, favorite, NULL,
-                        sender, amount, currency, due_date
+                        sender, amount, currency, due_date, done
                  FROM docs WHERE source_id = ?1 AND dir = ?2 ORDER BY name COLLATE NOCASE",
             )
             .map_err(db)?;
@@ -873,7 +935,7 @@ impl Index {
         self.conn
             .query_row(
                 "SELECT name, kind, size, mtime_ms, cloud, title, tags, document_date, favorite,
-                        notes, text_state, sender, amount, currency, due_date
+                        notes, text_state, sender, amount, currency, due_date, done
                  FROM docs WHERE source_id = ?1 AND rel_path = ?2",
                 params![source_id, rel_path],
                 |r| {
@@ -900,6 +962,7 @@ impl Index {
                             amount: r.get(12)?,
                             currency: r.get(13)?,
                             due_date: r.get(14)?,
+                            done: r.get(15)?,
                         },
                         notes: r.get(9)?,
                         text_state: TextState::parse(&r.get::<_, String>(10)?),
@@ -1098,7 +1161,7 @@ impl Index {
         self.conn
             .query_row(
                 "SELECT doc_id, title, tags, notes, document_date, favorite,
-                        sender, amount, currency, due_date FROM docs
+                        sender, amount, currency, due_date, remind, done, snoozed FROM docs
                  WHERE source_id = ?1 AND rel_path = ?2",
                 params![source_id, rel_path],
                 |r| {
@@ -1114,6 +1177,9 @@ impl Index {
                         amount: r.get(7)?,
                         currency: r.get(8)?,
                         due_date: r.get(9)?,
+                        remind: r.get(10)?,
+                        done: r.get(11)?,
+                        snoozed: r.get(12)?,
                     })
                 },
             )
@@ -1350,7 +1416,7 @@ impl Index {
             .conn
             .prepare(
                 "SELECT rel_path, title, tags, favorite, document_date,
-                        sender, amount, currency, due_date FROM docs
+                        sender, amount, currency, due_date, done FROM docs
                  WHERE source_id = ?1 AND dir = ?2",
             )
             .map_err(db)?;
@@ -1368,6 +1434,7 @@ impl Index {
                         amount: r.get(6)?,
                         currency: r.get(7)?,
                         due_date: r.get(8)?,
+                        done: r.get(9)?,
                     },
                 ))
             })
@@ -1387,8 +1454,9 @@ fn upgrade(conn: &Connection, version: i32) -> Result<bool> {
         // meanwhile. Online-only PDFs can't be read; theirs stays as the
         // catalog has it.
         // 6 → 7: who it's from, amount and due date (#108). No document has
-        // them yet, so empty columns are all it takes.
-        4..=6 => {
+        // them yet, so empty columns are all it takes. 7 → 8: how early to
+        // remind, done and "remind me later" (#109), the same way.
+        4..=7 => {
             if version < 6 {
                 conn.execute(
                     "UPDATE docs SET mtime_ms = -1 WHERE kind = 'pdf' AND cloud = 0",
@@ -1403,7 +1471,9 @@ fn upgrade(conn: &Connection, version: i32) -> Result<bool> {
                         .collect::<std::result::Result<_, _>>()
                 })
                 .map_err(db)?;
-            for col in ["sender", "amount", "currency", "due_date"] {
+            for col in [
+                "sender", "amount", "currency", "due_date", "remind", "done", "snoozed",
+            ] {
                 if !have.iter().any(|c| c == col) {
                     conn.execute_batch(&format!("ALTER TABLE docs ADD COLUMN {col} TEXT;"))
                         .map_err(db)?;
@@ -1441,6 +1511,9 @@ CREATE TABLE IF NOT EXISTS docs (
     amount TEXT,
     currency TEXT,
     due_date TEXT,
+    remind TEXT,
+    done TEXT,
+    snoozed TEXT,
     UNIQUE (source_id, rel_path)
 );
 CREATE INDEX IF NOT EXISTS docs_dir ON docs (source_id, dir);
@@ -1662,11 +1735,11 @@ fn tags_from_json(json: &str) -> Vec<String> {
 }
 
 /// The details from #108, after a search-style row's snippet.
-const DETAILS: &str = "d.sender, d.amount, d.currency, d.due_date";
+const DETAILS: &str = "d.sender, d.amount, d.currency, d.due_date, d.done";
 
 /// A search-style row: source_id, rel_path, name, kind, size, mtime_ms,
 /// cloud, title, tags, document_date, favorite, snippet, then sender,
-/// amount, currency, due_date.
+/// amount, currency, due_date, done.
 fn hit(r: &rusqlite::Row) -> rusqlite::Result<Hit> {
     let tags: String = r.get(8)?;
     Ok(Hit {
@@ -1690,6 +1763,7 @@ fn hit(r: &rusqlite::Row) -> rusqlite::Result<Hit> {
         amount: r.get(13)?,
         currency: r.get(14)?,
         due_date: r.get(15)?,
+        done: r.get(16)?,
     })
 }
 

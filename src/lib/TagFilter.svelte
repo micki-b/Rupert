@@ -2,6 +2,7 @@
   // The tag filter: type to narrow a short list of tags (most used first),
   // pick several, and choose whether documents need any or all of them.
   // Used in the desktop sidebar and the phone's tag sheet.
+  import { shortCount } from "#lib/format.ts";
   import { api, type TagList, type TagMode } from "#lib/api.ts";
   import { m } from "#lib/i18n/index.ts";
 
@@ -133,7 +134,7 @@
       <li>
         <button class="row" class:cursor={i === cursor} role="option" aria-selected={false} onclick={() => pick(t.tag)}>
           <span class="name"># {t.tag}</span>
-          <span class="count">{t.count}</span>
+          <span class="count">{shortCount(t.count)}</span>
         </button>
       </li>
     {/each}

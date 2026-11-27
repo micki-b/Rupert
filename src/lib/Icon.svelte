@@ -29,7 +29,9 @@
     | "share"
     | "mail"
     | "trash"
-    | "export";
+    | "export"
+    | "calendar"
+    | "check";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
@@ -64,6 +66,9 @@
     trash: "M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A.5.5 0 0 1 9.5 4h5a.5.5 0 0 1 .5.5V7",
     /* A box with an arrow into it: copies packed up (Export…). */
     export: "M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM3 5h18v4H3zM12 11.5v5.5M9.5 14.5 12 17l2.5-2.5",
+    /* Coming up (#109). */
+    calendar: "M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5zM4 10h16M8 3v4M16 3v4",
+    check: "M5 12.5l4.5 4.5L19 7.5",
   };
 </script>
 

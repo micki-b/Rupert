@@ -7,6 +7,7 @@
     { id: "library", title: "Tu biblioteca" },
     { id: "finding", title: "Encontrar documentos" },
     { id: "details", title: "Títulos, etiquetas y fechas" },
+    { id: "reminders", title: "Próximos vencimientos y avisos" },
     { id: "tags", title: "Administrar etiquetas" },
     { id: "inbox", title: "La bandeja de entrada" },
     { id: "scanning", title: "Escanear" },
@@ -533,6 +534,43 @@
     documento (<b>Detener</b> lo termina). Revisá la tabla, cambiá lo que quieras y guardá las filas marcadas. Los
     documentos solo en línea reciben los datos la próxima vez que estén en esta computadora. Los recibos de ScanSnap
     Home traen su comercio y su importe al importarlos.
+  </p>
+</section>
+
+<!-- MARK: Próximos vencimientos -->
+<section id="reminders">
+  <h2>Próximos vencimientos y avisos</h2>
+  <p>
+    <b>Próximos vencimientos</b> en la barra lateral muestra los documentos con <b>Fecha de vencimiento</b> cuando
+    empieza su plazo de aviso: las facturas una semana antes, los pasaportes, contratos y garantías tres meses antes
+    (cambiá los dos en <b>Configuración ▸ Avisos</b>). Primero van los vencidos, después los próximos 7 días, los
+    próximos 30 días y los que vienen más adelante. El número al lado cuenta lo vencido o lo que vence en los próximos
+    7 días, y se pone rojo cuando hay algo vencido. <b>Mostrar</b> cambia a todo lo que tiene fecha, o a los documentos
+    resueltos.
+  </p>
+  <p>
+    <b>Resuelto</b> (pagado, renovado o resuelto) saca un documento de la lista; sigue en su carpeta. <b>⋯</b> tiene
+    <b>Recordármelo más tarde</b> (mañana, en 3 días, la semana que viene), <b>Agregar al calendario…</b> (un evento en
+    la fecha de vencimiento con una alarma cuando empieza el aviso, para la app de calendario que uses) y
+    <b>Mostrar en la carpeta</b>. En <b>Detalles</b>, <b>Avisarme</b> define con cuánta anticipación aparece un
+    documento, y la casilla <b>Resuelto</b> lo marca como resuelto o no. Todo se guarda en el documento, así que tus
+    otras computadoras muestran la misma lista.
+  </p>
+  {#if mac || windows}
+    <p>
+      Para que te avise fuera de Rupert, activá <b>Configuración ▸ Avisos ▸ Notificarme</b>: <b>Un resumen por día</b>
+      (los días que algo vence, a la hora que elijas) o <b>Una por documento</b>{#if mac}, con los botones
+      <b>Resuelto</b>, <b>Mostrar</b> y <b>Mañana</b>{/if}. Rupert se las pasa a {mac ? "macOS" : "Windows"} con
+      anticipación, así que llegan aunque Rupert esté cerrado.
+      {#if mac}macOS te pregunta una vez si Rupert puede mandarte notificaciones; los avisos, sonidos y la
+        concentración están en Configuración del Sistema ▸ Notificaciones ▸ Rupert. <b>Mostrar el contador en el ícono
+        de Rupert en el Dock</b> pone el número de la barra lateral en el Dock.{/if}
+    </p>
+  {/if}
+  <p>
+    ¿No lo necesitás? Desactivá <b>Avisos y Próximos vencimientos</b> arriba de todo en <b>Configuración ▸ Avisos</b>:
+    Próximos vencimientos desaparece de la barra lateral y Detalles ya no muestra <b>Avisarme</b> ni <b>Resuelto</b>.
+    Las fechas de vencimiento se mantienen.
   </p>
 </section>
 
