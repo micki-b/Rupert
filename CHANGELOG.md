@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1 — 2026-11-28
+
+Small fixes.
+
+- **Clear a due date** (#160): an × beside **Due date** in File it and in Details takes away a date that doesn't apply, for example one the inbox suggested.
+- **Tesseract on Windows** (#163): when no text recognition is found, Settings ▸ Text recognition shows the winget command to install Tesseract, with a Copy button, and **Check Again** finds it without restarting Rupert.
+- **Tidier window** (#161): Settings and Help at the bottom left are now a gear and a ? icon, and Settings ▸ General has more room above **Check now**.
+
 ## 0.10.0 — 2026-11-27
 
 A smarter library.

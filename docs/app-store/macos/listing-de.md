@@ -39,6 +39,13 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.10.1 [4000]
+
+Kleine Korrekturen.
+
+• Ein × neben einem Fälligkeitsdatum entfernt es, im Eingang und in den Details.
+• Einstellungen und Hilfe unten links im Fenster sind jetzt Symbole.
+
 ## What's new in 0.10.0 [4000]
 
 Eine klügere Bibliothek: Fälligkeiten und Erinnerungen, gespeicherte Suchen, ein Zustandsbericht und ein Eingang, der dazulernt.

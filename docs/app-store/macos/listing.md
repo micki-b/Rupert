@@ -51,6 +51,13 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.10.1 [4000]
+
+Small fixes.
+
+• An × next to a due date takes it away, in the inbox and in Details.
+• Settings and Help at the bottom left of the window are now icons.
+
 ## What's new in 0.10.0 [4000]
 
 A smarter library: due dates and reminders, saved searches, a health check, and an inbox that learns.
