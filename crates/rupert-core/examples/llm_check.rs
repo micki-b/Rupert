@@ -44,6 +44,7 @@ fn main() {
             year: "2026",
             folders: &folders,
             tags: &tags,
+            examples: &[],
         };
         match lm.suggest(&req) {
             Ok(s) => println!(

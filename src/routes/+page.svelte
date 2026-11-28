@@ -2353,6 +2353,8 @@
             text: m.inbox.filedIn(label),
             label: m.undo.labelFiling,
           })}
+        onfiledmany={(moves) =>
+          (lastChange = { kind: "file", moves, text: m.inbox.filedMany(moves.length), label: m.undo.labelFiling })}
         onundo={undoLast}
         canUndo={lastChange?.kind === "file"}
         {filingUndone}

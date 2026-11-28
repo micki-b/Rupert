@@ -16,6 +16,7 @@
     type Filed,
     type FolderChoice,
     type IntakeItem,
+    type MoveBackItem,
     type Settings,
     type Source,
   } from "#lib/api.ts";
@@ -27,6 +28,7 @@
   import PagePicture from "#lib/PagePicture.svelte";
   import PreviewPane from "#lib/PreviewPane.svelte";
   import NotesBox from "#lib/NotesBox.svelte";
+  import FileAllDialog from "#lib/FileAllDialog.svelte";
   import { CURRENCIES, senderList } from "#lib/details.svelte.ts";
   import { crumbs, shortestEndings } from "#lib/folders.ts";
   import { dragOutSource } from "#lib/drag.svelte.ts";
@@ -44,6 +46,7 @@
     onshow,
     onfiling,
     onundo,
+    onfiledmany,
     canUndo = false,
     filingUndone = 0,
   }: {
@@ -60,6 +63,8 @@
     onfiling?: (sourceId: string, relPath: string, filed: Filed, label: string) => void;
     /** Undoes the last filing (the notice's Undo). */
     onundo?: () => void;
+    /** File All Sure Ones (#112) filed these, for one Undo. */
+    onfiledmany?: (moves: MoveBackItem[]) => void;
     /** Whether the last filing can still be undone. */
     canUndo?: boolean;
     /** Goes up when a filing was undone, from here or Edit ▸ Undo. */
@@ -68,7 +73,10 @@
 
   // A filing undone (here or with Edit ▸ Undo): its notice goes.
   $effect(() => {
-    if (filingUndone) lastFiled = null;
+    if (filingUndone) {
+      lastFiled = null;
+      filedMany = 0;
+    }
   });
 
   /** Import's summary: the documents that were already in the library. */
@@ -106,6 +114,65 @@
   let filing = $state(false);
   let error = $state<string | null>(null);
   let lastFiled = $state<{ filed: Filed; label: string } | null>(null);
+
+  // MARK: Sure ones (#112)
+
+  /** How many File All filed last (its notice). */
+  let filedMany = $state(0);
+  let fileAllOpen = $state(false);
+  /** File it: the filed documents the suggestion learned from, shown on click. */
+  let showLearned = $state(false);
+  // Another scan: its "learned from" starts folded again.
+  $effect(() => {
+    void selectedRel;
+    showLearned = false;
+  });
+  /** Scans whose suggestion agrees with how similar documents were filed. */
+  const sureItems = $derived(
+    items.filter((i) => i.stage === "ready" && i.confidence?.sure && i.suggestedFolder && i.cloud !== "cloudOnly"),
+  );
+
+  /** Files each as its suggestion says (as File it would with the form
+   * untouched), one after the other; one Undo takes them all back. */
+  async function fileAll(chosen: IntakeItem[]) {
+    const moves: MoveBackItem[] = [];
+    const failed: string[] = [];
+    for (const item of chosen) {
+      const s = item.suggestion;
+      const dest = item.suggestedFolder;
+      if (!s || !dest) continue;
+      try {
+        const filed = await api.fileDocument(item.sourceId, item.relPath, {
+          title: s.title?.trim() || null,
+          documentDate: s.documentDate || null,
+          tags: s.tags,
+          notes: null,
+          favorite: false,
+          sender: s.sender?.trim() || null,
+          amount: s.amount || null,
+          currency: s.amount ? s.currency || null : null,
+          dueDate: s.dueDate || null,
+          destSourceId: dest.sourceId,
+          destDir: dest.dir,
+          fileName: s.title?.trim()
+            ? fileNameFor(settings.namePattern, s.documentDate || null, s.title.trim())
+            : item.name.replace(/\.[^.]+$/, ""),
+        });
+        moves.push({ nowSourceId: filed.sourceId, nowRelPath: filed.relPath, wasSourceId: item.sourceId, wasRelPath: item.relPath });
+        items = items.filter((i) => i.relPath !== item.relPath);
+      } catch (e) {
+        failed.push(`${item.name}: ${e}`);
+      }
+    }
+    if (moves.length) {
+      lastFiled = null;
+      filedMany = moves.length;
+      onfiledmany?.(moves);
+      if (selectedRel && !items.some((i) => i.relPath === selectedRel)) selectedRel = items[0]?.relPath ?? null;
+      formFor = null;
+    }
+    if (failed.length) throw new Error(`${m.inbox.notFiled(failed.length)}: ${failed[0]}`);
+  }
   let os = $state<string | undefined>();
   /** The right-click menu on a scan in the list. */
   let menu = $state<{ x: number; y: number; item: IntakeItem } | null>(null);
@@ -560,6 +627,11 @@
             {inboxSource.name}{settings.inbox.relPath ? "/" + settings.inbox.relPath : ""}
           </span>
           <span class="spacer"></span>
+          {#if sureItems.length}
+            <button class="scan-btn sure-btn" onclick={() => (fileAllOpen = true)} title={m.inbox.fileAllTip}>
+              <Icon name="check" size={12} />{m.inbox.fileAllSure(sureItems.length)}
+            </button>
+          {/if}
           <button class="scan-btn" onclick={onimport} title={m.importInbox.buttonTip}>{m.importInbox.button}</button>
           <button class="scan-btn" onclick={onscan}>{m.inbox.scan}</button>
         </div>
@@ -634,6 +706,13 @@
           {/if}
         </div>
       {/if}
+      {#if filedMany && !lastFiled}
+        <div class="filed">
+          {m.inbox.filedMany(filedMany)}
+          {#if canUndo}<button class="link" onclick={() => onundo?.()}>{m.renameDocs.undo}</button>{/if}
+          <button class="link" onclick={() => (filedMany = 0)} aria-label={m.inbox.dismiss}>×</button>
+        </div>
+      {/if}
       {#if lastFiled}
         <div class="filed">
           {m.inbox.filedIn(lastFiled.label)}
@@ -671,7 +750,11 @@
                     <Icon name={entryOf(i).kind === "pdf" ? "pdf" : "file"} size={15} />
                     <span title={i.name}>{i.name}</span>
                   </td>
-                  <td class="state" class:busy={i.stage !== "ready"} title={stageText(i)}>{stageText(i)}</td>
+                  <td class="state" class:busy={i.stage !== "ready"} title={i.confidence ? `${stageText(i)}\n${i.confidence.reason}` : stageText(i)}>
+                    {#if i.stage === "ready" && i.confidence}<span class="mark" class:sure={i.confidence.sure}
+                        >{#if i.confidence.sure}<Icon name="check" size={10} />{m.inbox.sure}{:else}{m.inbox.check}{/if}</span
+                      >{/if}{stageText(i)}
+                  </td>
                   <td class="muted" title={i.suggestedFolder?.label}>{i.suggestedFolder ? shortFolder(i.suggestedFolder) : ""}</td>
                   <td class="muted when" title={formatDate(i.modifiedMs)}>{formatDay(i.modifiedMs)}</td>
                 </tr>
@@ -692,7 +775,10 @@
               title={i.suggestion?.title ? `${i.suggestion.title}\n${i.name}` : i.name}
             >
               <span class="pic"><Thumb sourceId={i.sourceId} entry={entryOf(i)} side={320} iconSize={48} /></span>
-              <span class="label">{i.suggestion?.title ?? i.name}</span>
+              <span class="label">
+                {#if i.stage === "ready" && i.confidence?.sure}<span class="mark sure"><Icon name="check" size={10} />{m.inbox.sure}</span>{/if}{i.suggestion?.title ??
+                  i.name}
+              </span>
               <span class="label muted small" class:busy={i.stage !== "ready"}>
                 {i.stage === "ready" ? i.name : stageText(i)}
               </span>
@@ -857,6 +943,27 @@
             {/each}
           </div>
         {/if}
+        {#if selected.stage === "ready" && selected.confidence}
+          {@const c = selected.confidence}
+          <div class="confidence" class:sure={c.sure}>
+            {#if c.learnedFrom.length}
+              <button class="why" onclick={() => (showLearned = !showLearned)} aria-expanded={showLearned} title={m.inbox.learnedTip}>
+                <b>{#if c.sure}<Icon name="check" size={12} />{m.inbox.sure}{:else}{m.inbox.check}{/if}</b>
+                <span>{c.reason}</span>
+              </button>
+              {#if showLearned}
+                <p class="small">{m.inbox.learnedFrom}</p>
+                <ul>
+                  {#each c.learnedFrom as l, n (n)}
+                    <li>{l.title} → {l.folder}{l.tags.length ? ` · ${l.tags.join(", ")}` : ""}</li>
+                  {/each}
+                </ul>
+              {/if}
+            {:else}
+              <p class="why"><b>{#if c.sure}<Icon name="check" size={12} />{m.inbox.sure}{:else}{m.inbox.check}{/if}</b> <span>{c.reason}</span></p>
+            {/if}
+          </div>
+        {/if}
         {#if selected.suggestion?.reason}<p class="muted small">{selected.suggestion.reason}</p>{/if}
         <label class="field">
           <span>{m.inbox.fileName}</span>
@@ -985,6 +1092,10 @@
   </div>
 {/if}
 
+
+{#if fileAllOpen}
+  <FileAllDialog items={sureItems} namePattern={settings.namePattern} onfile={fileAll} onclose={() => (fileAllOpen = false)} />
+{/if}
 
 {#if viewing && selected}
   <PageViewer
@@ -1120,6 +1231,76 @@
     flex: none;
     font-size: 12px;
     padding: 2px 10px;
+  }
+  /* #112: File All Sure Ones, and the Sure / Check marks. */
+  .sure-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 6px;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: 1px;
+  }
+  .mark.sure {
+    border-color: var(--ok-border, #b9d4b3);
+    background: var(--ok-soft, #eef5ec);
+    color: var(--ok, #2f6b2a);
+  }
+  .confidence {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .confidence.sure {
+    border-color: var(--ok-border, #b9d4b3);
+    background: var(--ok-soft, #eef5ec);
+  }
+  .confidence .why {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    width: 100%;
+  }
+  button.why {
+    cursor: pointer;
+  }
+  .confidence b {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .confidence.sure b {
+    color: var(--ok, #2f6b2a);
+  }
+  .confidence p {
+    margin: 6px 0 2px;
+    color: var(--muted);
+  }
+  .confidence ul {
+    margin: 0;
+    padding-left: 16px;
   }
   .search {
     flex: 1;

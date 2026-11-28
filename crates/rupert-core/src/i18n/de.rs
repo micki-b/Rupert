@@ -748,4 +748,26 @@ pub(super) static MESSAGES: &[(&str, &str)] = &[
         "A saved search needs a name.",
         "Eine gespeicherte Suche braucht einen Namen.",
     ),
+    // Inbox suggestions that learn (#112).
+    (
+        "Nothing like it filed yet.",
+        "Noch nichts Ähnliches abgelegt.",
+    ),
+    (
+        "Like {0} others from {1} in {2}.",
+        "Wie {0} andere von {1} in {2}.",
+    ),
+    ("Like {0} others in {1}.", "Wie {0} andere in {1}."),
+    (
+        "Similar documents are in two places: {0} in {1} and {2} in {3}.",
+        "Ähnliche Dokumente liegen an zwei Orten: {0} in {1} und {2} in {3}.",
+    ),
+    (
+        "Similar documents are in {0}.",
+        "Ähnliche Dokumente liegen in {0}.",
+    ),
+    (
+        "Only one document like it filed so far.",
+        "Bisher ist erst ein ähnliches Dokument abgelegt.",
+    ),
 ];

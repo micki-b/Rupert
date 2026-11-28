@@ -578,6 +578,12 @@ export interface IntakeItem {
   suggestedFolder: FolderChoice | null;
   folders: FolderChoice[];
   note: string | null;
+  /** #112: whether the suggestion agrees with how similar documents were filed, and why. */
+  confidence: {
+    sure: boolean;
+    reason: string;
+    learnedFrom: { title: string; folder: string; tags: string[] }[];
+  } | null;
 }
 
 export interface Filing {
