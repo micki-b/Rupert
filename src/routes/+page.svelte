@@ -3070,7 +3070,7 @@
 <footer>
   <span>
     {#if info}
-      <span title={m.main.versionTip}>{info.name} {info.version} · {editionLabel(info)}</span>
+      <span class="footer-version" title={m.main.versionTip}>{info.name} {info.version} · {editionLabel(info)}</span>
     {/if}
     <!-- #161: icons, with their names on hover. -->
     <button class="footer-icon" onclick={() => api.openSettings()} title={m.main.settings} aria-label={m.main.settings}
@@ -3118,6 +3118,10 @@
   /* Files from another app are being dragged over the folder or inbox. */
   .documents.drop {
     box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  /* 10 px more room before "Rupert 0.10.0" at the window's edge. */
+  .footer-version {
+    padding-left: 10px;
   }
   .footer-icon {
     display: inline-flex;
