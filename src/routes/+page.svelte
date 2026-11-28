@@ -51,6 +51,7 @@
   } from "#lib/api.ts";
   import { changes } from "#lib/changes.svelte.ts";
   import { addUp, formatDate, formatDay, formatMoney, formatSize, formatTotals, kindLabel, shortCount } from "#lib/format.ts";
+  import { findsText as describeSearch } from "#lib/savedSearch.ts";
   import { senderList } from "#lib/details.svelte.ts";
   import FolderNode from "#lib/FolderNode.svelte";
   import MoveDialog from "#lib/MoveDialog.svelte";
@@ -913,28 +914,9 @@
     resultsByDate = s.newest;
   }
 
-  /** What a search finds, in words ("“boat”, tagged Taxes and 2025, dated this year"). */
+  /** What a search finds, in words. */
   function findsText(s: SavedSearch): string {
-    const t = m.savedSearches;
-    const parts: string[] = [];
-    if (s.text.trim()) parts.push(`“${s.text.trim()}”`);
-    if (s.tags.length) parts.push(s.tags.length > 1 && s.tagMode === "all" ? t.taggedAll(s.tags) : t.taggedAny(s.tags));
-    if (s.favorites) parts.push(t.favorites);
-    if (s.date?.kind === "thisYear") parts.push(t.thisYear);
-    else if (s.date?.kind === "lastYear") parts.push(t.lastYear);
-    else if (s.date?.kind === "range") parts.push(t.between(formatDocDay(s.date.from) || "…", formatDocDay(s.date.to) || "…"));
-    if (s.kind && s.kind in m.kinds) parts.push(m.kinds[s.kind as keyof typeof m.kinds]);
-    if (s.from) parts.push(t.from(s.from));
-    if (s.due === "upcoming") parts.push(m.filters.dueUpcoming.toLowerCase());
-    else if (s.due === "past") parts.push(m.filters.duePast.toLowerCase());
-    if (s.scope) {
-      parts.push(
-        s.scope === "folder" && s.folder
-          ? m.filters.inFolder(s.folder.slice(s.folder.lastIndexOf("/") + 1))
-          : m.filters.inSource(sourceName(s.sourceId)),
-      );
-    }
-    return parts.length ? parts.join(", ") : t.everything;
+    return describeSearch(s, formatDocDay, sourceName);
   }
 
   function openSaveSearch() {

@@ -514,7 +514,8 @@
     Rechtsklick können Sie <b>Umbenennen …</b>, <b>Durch aktuelle Suche ersetzen</b> (nachdem Sie die Suche auf dem
     Bildschirm geändert haben) oder <b>Entfernen …</b> (nur die Suche wird vergessen). Eine gespeicherte Suche wird bei
     der Quelle gespeichert, in der sie sucht (eine Suche über alle Quellen bei der ersten), in deren verborgenem
-    Ordner <code>.rupert</code>, daher sehen Ihre anderen Computer sie auch. Rupert fragen kann sie auflisten und eine
+    Ordner <code>.rupert</code>, daher sehen Ihre anderen Computer und die
+    Rupert-Apps für Telefone sie auch. Rupert fragen kann sie auflisten und eine
     zeigen: „zeig meine Steuersuche“.
   </p>
 </section>
@@ -597,6 +598,11 @@
     Brauchen Sie das nicht? Schalten Sie <b>Erinnerungen und „Demnächst fällig“</b> ganz oben unter
     <b>Einstellungen ▸ Erinnerungen</b> aus: „Demnächst fällig“ verschwindet aus der Seitenleiste, und die Details
     zeigen weder <b>Erinnern</b> noch <b>Erledigt</b>. Fälligkeitsdaten bleiben.
+  </p>
+  <p>
+    Die Apps für iPhone und Android zeigen „Demnächst fällig“ ebenfalls, im Tab „Bibliothek“: jedes Dokument mit
+    Fälligkeitsdatum, das nicht erledigt ist (die Erinnerungszeiten gehören zu diesem Computer, daher nutzt das Telefon
+    sie nicht). Als erledigt markieren Sie Dokumente hier.
   </p>
 </section>
 
@@ -1195,6 +1201,12 @@
       <b>Suchen und stöbern</b> Sie in Titeln, Tags und Text. Der Text stammt aus dem, was Rupert auf Ihrem Computer gelesen
       hat; lassen Sie den ersten Durchgang dort also zu Ende laufen.
     </li>
+    <li>
+      <b>„Demnächst fällig“ und gespeicherte Suchen</b> finden Sie im Tab „Bibliothek“: „Demnächst fällig“ unter dem
+      Eingang listet jedes Dokument mit Fälligkeitsdatum, das nicht erledigt ist, das nächste zuerst, und Ihre
+      <b>Gespeicherten Suchen</b> (unter den Favoriten) öffnen sich mit allen Filtern. Beides lässt sich nur ansehen:
+      Dokumente als erledigt markieren und Suchen speichern Sie mit Rupert auf dem Computer.
+    </li>
     <li><b>Öffnen</b> Sie ein Dokument, um es zu laden und anzusehen, und teilen oder drucken Sie es dann.</li>
     <li>
       <b>Teilen</b> Sie ein Dokument (neben „Öffnen“), um es mit Mail, Nachrichten, AirDrop oder einer anderen App zu
@@ -1256,6 +1268,7 @@
       <b>Suchen, stöbern und öffnen</b> Sie Dokumente. Ein geöffnetes Dokument wird geladen und in einer anderen App
       angezeigt, etwa in Ihrem PDF-Betrachter.
     </li>
+    <li><b>„Demnächst fällig“ und gespeicherte Suchen</b> finden Sie im Tab „Bibliothek“, wie auf dem iPhone.</li>
     <li>
       <b>Ansichten</b>: Liste, große Symbole oder Galerie, wie auf dem iPhone, mit Bildern aus Google Drive oder OneDrive.
     </li>

@@ -10,7 +10,8 @@
   import Ask from "#lib/phone/Ask.svelte";
   import FolderPictures from "#lib/phone/FolderPictures.svelte";
   import { snippetParts, type TagMode } from "#lib/api.ts";
-  import { formatMoney, formatSize } from "#lib/format.ts";
+  import { formatIsoDay, formatMoney, formatSize } from "#lib/format.ts";
+  import { findsText } from "#lib/savedSearch.ts";
   import {
     formatDocDate,
     onFoldersReady,
@@ -32,7 +33,10 @@
     type AssistantAction,
     type AssistantStatus,
     type Overview,
+    type PhoneComingUp,
     type Progress,
+    type ReminderItem,
+    type SavedSearch,
     type ScanSettings,
     type SharedSent,
     type TagCount,
@@ -57,6 +61,16 @@
   let favFolders = $state<FavoriteFolder[]>([]);
 
   let stack = $state<Crumb[]>([]);
+  /** A page in the Library opened from its first screen (#162): Coming up,
+   * or a saved search's results. Read-only, like the rest of the phone. */
+  type Page = { kind: "comingUp" } | { kind: "favorites" } | { kind: "saved"; search: SavedSearch };
+  let page = $state<Page | null>(null);
+  let savedSearches = $state<SavedSearch[]>([]);
+  let coming = $state<PhoneComingUp | null>(null);
+  let doneItems = $state<ReminderItem[]>([]);
+  let showDone = $state(false);
+  let pageHits = $state<Hit[]>([]);
+  let pageLoading = $state(false);
   let entries = $state<Listed[]>([]);
   let listing = $state(false);
   let listError = $state<string | null>(null);
@@ -158,15 +172,25 @@
     !!here && favFolders.some((f) => f.sourceId === here.sourceId && f.relPath === here.relPath),
   );
   let favBusy = $state(false);
+  /** Favorite folders and documents: the Library's Favorites row shows when there are any. */
+  const favCount = $derived(favFolders.length + (overview?.stats.favorites ?? 0));
   let favError = $state<string | null>(null);
   const progress = $derived(overview?.progress);
   const busyIndexing = $derived(Boolean(progress?.active || remoteProgress?.active));
   const shownProgress = $derived(remoteProgress?.active ? remoteProgress : progress);
   const title = $derived(
     tab === "library"
-      ? here?.inbox
-        ? m.phone.inbox
-        : (here?.name ?? m.phone.library)
+      ? here
+        ? here.inbox
+          ? m.phone.inbox
+          : here.name
+        : page
+          ? page.kind === "comingUp"
+            ? m.reminders.title
+            : page.kind === "favorites"
+              ? m.phone.favorites
+              : page.search.name
+          : m.phone.library
       : tab === "search"
         ? m.phone.search
         : tab === "scan"
@@ -184,6 +208,8 @@
     gd = await phone.gdriveStatus().catch(() => null);
     favFolders = await phone.favoriteFolders().catch(() => []);
     sendNotes = await phone.sendNotes().catch(() => false);
+    savedSearches = await phone.savedSearches().catch(() => []);
+    coming = await phone.comingUp(false).catch(() => null);
   }
 
   async function loadFolder() {
@@ -216,6 +242,7 @@
     refreshTimer = setTimeout(() => {
       loadOverview();
       if (here) loadFolder();
+      if (page) loadPage();
       if (tab === "search") runSearch();
       phone.tags().then((t) => (tags = t));
       indexTick++;
@@ -352,12 +379,13 @@
     else if (tagSheet) tagSheet = false;
     else if (confirmRemove) confirmRemove = null;
     else if (tab === "library" && stack.length) back();
+    else if (tab === "library" && page) closePage();
     else if (tab !== "library") switchTab("library");
     else return false;
     return true;
   }
   const canGoBack = $derived(
-    Boolean(chooser || sheet || tagSheet || confirmRemove || stack.length || tab !== "library"),
+    Boolean(chooser || sheet || tagSheet || confirmRemove || page || stack.length || tab !== "library"),
   );
   // Listen only while there's something to go back from; otherwise Android's
   // own back gesture leaves the app.
@@ -383,6 +411,7 @@
     const place = overview?.inboxPlace;
     if (!place) return;
     tab = "library";
+    page = null;
     stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: m.phone.inbox, inbox: true }];
     entries = [];
     loadFolder();
@@ -420,13 +449,6 @@
     }
   }
 
-  function showFavoriteDocuments() {
-    favoritesOnly = true;
-    selectedTags = [];
-    query = "";
-    switchTab("search");
-  }
-
   function openEntry(e: Listed) {
     if (!here) return;
     if (e.isDir) {
@@ -444,6 +466,81 @@
     if (here) loadFolder();
   }
 
+  // MARK: Coming up and saved searches (#162)
+
+  function openPage(p: Page) {
+    tab = "library";
+    stack = [];
+    showDone = false;
+    doneItems = [];
+    pageHits = [];
+    page = p;
+    loadPage();
+  }
+
+  function closePage() {
+    page = null;
+    pageHits = [];
+    doneItems = [];
+  }
+
+  async function loadPage() {
+    const p = page;
+    if (!p) return;
+    pageLoading = true;
+    try {
+      if (p.kind === "comingUp") {
+        coming = await phone.comingUp(false);
+        if (showDone) doneItems = (await phone.comingUp(true)).items;
+      } else if (p.kind === "favorites") {
+        favFolders = await phone.favoriteFolders();
+        const found = await phone.search("", [], "any", true);
+        if (page === p) pageHits = found;
+      } else {
+        const found = await phone.runSavedSearch(p.search);
+        if (page === p) pageHits = found;
+      }
+    } catch {
+      /* the page says there's nothing */
+    } finally {
+      pageLoading = false;
+    }
+  }
+
+  async function toggleDone() {
+    showDone = !showDone;
+    doneItems = showDone ? ((await phone.comingUp(true).catch(() => null))?.items ?? []) : [];
+  }
+
+  /** Coming up's groups, soonest first. */
+  const comingGroups = $derived.by(() => {
+    const order = ["overdue", "week", "month", "later"] as const;
+    const items = coming?.items ?? [];
+    return order.map((g) => ({ g, items: items.filter((i) => i.group === g) })).filter((x) => x.items.length);
+  });
+
+  function groupName(g: ReminderItem["group"]): string {
+    const r = m.reminders;
+    return { overdue: r.overdue, week: r.week, month: r.month, later: r.laterAll, done: r.doneGroup }[g];
+  }
+
+  /** "in 3 days", "yesterday" (as on the computer). */
+  function when(i: ReminderItem): string {
+    const r = m.reminders;
+    if (i.done) return r.doneOn(formatIsoDay(i.done));
+    if (i.days < 0) return r.daysAgo(-i.days);
+    if (i.days === 0) return r.today;
+    if (i.days === 1) return r.tomorrow;
+    if (i.days < 60) return r.inDays(i.days);
+    return r.inMonths(Math.round(i.days / 30.4));
+  }
+
+  /** What a saved search finds, as a sentence ("Dated this year, PDF"). */
+  function describe(s: SavedSearch): string {
+    const text = findsText(s, formatDocDate, sourceName);
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
   async function loadAskStatus() {
     askStatus = await phone.assistantStatus().catch(() => null);
   }
@@ -454,6 +551,7 @@
     switch (a.kind) {
       case "openFolder":
         tab = "library";
+        page = null;
         stack = [{ sourceId: a.sourceId, relPath: a.relPath, name: a.relPath ? last(a.relPath) : sourceName(a.sourceId) }];
         entries = [];
         loadFolder();
@@ -463,9 +561,16 @@
         showDoc(a.sourceId, a.relPath, last(a.relPath), info?.cloud === "cloudOnly", info?.size ?? 0);
         break;
       }
-      // The phone runs a saved search (#110) by its words and tags.
+      // A saved search opens with all its filters (#162), if the phone has it.
+      case "savedSearch": {
+        const s = savedSearches.find((x) => x.sourceId === a.sourceId && x.id === a.id);
+        if (s) {
+          openPage({ kind: "saved", search: s });
+          break;
+        }
+      }
+      // falls through: run it by its words and tags
       case "search":
-      case "savedSearch":
         query = a.text;
         selectedTags = [...a.tags];
         tagMode = a.tagMode;
@@ -476,7 +581,10 @@
   }
 
   function switchTab(t: Tab) {
-    if (t === tab && t === "library") stack = [];
+    if (t === tab && t === "library") {
+      stack = [];
+      closePage();
+    }
     if (t === "ask") loadAskStatus();
     tab = t;
     if (t === "search") runSearch();
@@ -629,8 +737,8 @@
 
 <div class="app">
   <header>
-    {#if tab === "library" && here}
-      <button class="back" onclick={back} aria-label={m.phone.back}><Icon name="back" size={22} /></button>
+    {#if tab === "library" && (here || page)}
+      <button class="back" onclick={() => (here ? back() : closePage())} aria-label={m.phone.back}><Icon name="back" size={22} /></button>
     {/if}
     <h1>{title}</h1>
     {#if tab === "library" && here}
@@ -672,7 +780,61 @@
 
   <main hidden={tab === "ask"}>
     {#if tab === "library"}
-      {#if !here}
+      {#if !here && page?.kind === "comingUp"}
+        {#if coming && !comingGroups.length && !pageLoading}
+          <p class="note">{m.reminders.nothing}</p>
+        {/if}
+        {#each comingGroups as { g, items } (g)}
+          <h2 class="group" class:late={g === "overdue"}>{groupName(g)}</h2>
+          {@render dueRows(items)}
+        {/each}
+        {#if coming?.done}
+          <ul class="list">
+            <li>
+              <button class="row" onclick={toggleDone} aria-expanded={showDone}>
+                <span class="icon"><Icon name="check" size={20} /></span>
+                <span class="main"><span class="name">{showDone ? m.phone.hideDone : m.phone.showDone(coming.done)}</span></span>
+              </button>
+            </li>
+          </ul>
+          {#if showDone && doneItems.length}
+            <h2 class="group">{m.reminders.doneGroup}</h2>
+            {@render dueRows(doneItems)}
+          {/if}
+        {/if}
+        <p class="note">{m.phone.comingUpNote}</p>
+      {:else if !here && page?.kind === "favorites"}
+        {#if favFolders.length}
+          <h2 class="group">{m.phone.folders}</h2>
+          <ul class="list">
+            {#each favFolders as f (f.sourceId + "/" + f.relPath)}
+              <li>
+                <button class="row" onclick={() => openFavorite(f)}>
+                  <span class="icon folder"><Icon name="folder" size={22} /></span>
+                  <span class="main">
+                    <span class="name">{f.name}</span>
+                    <span class="sub">{f.relPath ? `${f.sourceName} / ${f.relPath}` : f.sourceName}</span>
+                  </span>
+                  <Icon name="chevron" />
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if pageHits.length}
+          <h2 class="group">{m.phone.documents}</h2>
+          {@render hitRows(pageHits)}
+        {/if}
+        {#if !pageLoading && !favFolders.length && !pageHits.length}
+          <p class="note">{m.phone.noFavorites}</p>
+        {/if}
+      {:else if !here && page?.kind === "saved"}
+        <p class="note finds">{describe(page.search)}</p>
+        {#if !pageLoading && pageHits.length === 0}
+          <p class="note">{m.phone.nothingFound}</p>
+        {/if}
+        {@render hitRows(pageHits)}
+      {:else if !here}
         {#if overview && library.length === 0 && !overview.inboxPlace}
           <div class="empty">
             <p>{tx?.pickFolders ?? m.phone.pickFolders}</p>
@@ -694,37 +856,10 @@
             {#if settingsError}<p class="error">{settingsError}</p>{/if}
           </div>
         {:else if overview}
-          {#if favFolders.length || overview.stats.favorites}
-            <h2 class="group">{m.phone.favorites}</h2>
-            <ul class="list">
-              {#each favFolders as f (f.sourceId + "/" + f.relPath)}
-                <li>
-                  <button class="row" onclick={() => openFavorite(f)}>
-                    <span class="icon folder"><Icon name="folder" size={22} /></span>
-                    <span class="main">
-                      <span class="name">{f.name}</span>
-                      <span class="sub">{f.relPath ? `${f.sourceName} / ${f.relPath}` : f.sourceName}</span>
-                    </span>
-                    <Icon name="chevron" />
-                  </button>
-                </li>
-              {/each}
-              {#if overview.stats.favorites}
-                <li>
-                  <button class="row" onclick={showFavoriteDocuments}>
-                    <span class="icon fav"><Icon name="star" size={22} /></span>
-                    <span class="main">
-                      <span class="name">{m.phone.favoriteDocuments}</span>
-                      <span class="sub">{overview.stats.favorites}</span>
-                    </span>
-                    <Icon name="chevron" />
-                  </button>
-                </li>
-              {/if}
-            </ul>
-            <h2 class="group">{m.phone.library}</h2>
-          {/if}
-          <ul class="list">
+          <!-- As in the computer's sidebar (#162): Inbox, Coming up and
+               Favorites, then Saved searches, then the sources. -->
+          {#if overview.inboxPlace || (coming && (coming.open || coming.done)) || favCount}
+            <ul class="list top">
             {#if overview.inboxPlace}
               <li>
                 <button class="row" onclick={openInbox}>
@@ -737,6 +872,51 @@
                 </button>
               </li>
             {/if}
+            {#if coming && (coming.open || coming.done)}
+              <li>
+                <button class="row" onclick={() => openPage({ kind: "comingUp" })}>
+                  <span class="icon folder"><Icon name="calendar" size={22} /></span>
+                  <span class="main">
+                    <span class="name">{m.reminders.title}</span>
+                    <span class="sub" class:late={coming.overdue > 0}>{m.phone.comingUpCount(coming.open, coming.overdue)}</span>
+                  </span>
+                  <Icon name="chevron" />
+                </button>
+              </li>
+            {/if}
+              {#if favCount}
+                <li>
+                  <button class="row" onclick={() => openPage({ kind: "favorites" })}>
+                    <span class="icon fav"><Icon name="star" size={22} /></span>
+                    <span class="main">
+                      <span class="name">{m.phone.favorites}</span>
+                      <span class="sub">{m.phone.favoritesCount(favFolders.length, overview.stats.favorites)}</span>
+                    </span>
+                    <Icon name="chevron" />
+                  </button>
+                </li>
+              {/if}
+            </ul>
+          {/if}
+          {#if savedSearches.length}
+            <h2 class="group">{m.savedSearches.title}</h2>
+            <ul class="list">
+              {#each savedSearches as ss (ss.sourceId + "/" + ss.id)}
+                <li>
+                  <button class="row" onclick={() => openPage({ kind: "saved", search: ss })}>
+                    <span class="icon folder"><Icon name="search" size={22} /></span>
+                    <span class="main">
+                      <span class="name">{ss.name}</span>
+                      <span class="sub">{describe(ss)}</span>
+                    </span>
+                    <Icon name="chevron" />
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          <h2 class="group">{m.main.sources}</h2>
+          <ul class="list">
             {#each library as s (s.id)}
               <li>
                 <button class="row" onclick={() => openSource(s.id, s.name)} disabled={!s.available}>
@@ -832,27 +1012,7 @@
       {#if hits.length === 0 && (query || selectedTags.length || favoritesOnly)}
         <p class="note">{m.phone.nothingFound}</p>
       {/if}
-      <ul class="list">
-        {#each hits as h (h.sourceId + h.relPath)}
-          <li>
-            <button class="row" onclick={() => showDoc(h.sourceId, h.relPath, h.name, h.cloud === "cloudOnly", h.size)}>
-              <span class="icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={22} /></span>
-              <span class="main">
-                <span class="name">{h.title || h.name}</span>
-                <span class="sub">
-                  {[formatDocDate(h.documentDate), folderOf(h.relPath) || sourceName(h.sourceId)].filter(Boolean).join(" · ")}
-                </span>
-                {#if h.snippet}
-                  <span class="snippet">
-                    {#each snippetParts(h.snippet) as p, i (i)}{#if p.hit}<mark>{p.text}</mark>{:else}{p.text}{/if}{/each}
-                  </span>
-                {/if}
-              </span>
-              {#if h.cloud === "cloudOnly"}<span class="cloud"><Icon name="cloud" /></span>{/if}
-            </button>
-          </li>
-        {/each}
-      </ul>
+      {@render hitRows(hits)}
     {:else if tab === "scan"}
       <div class="scan">
         {#if overview && !overview.inbox}
@@ -1217,6 +1377,50 @@
   {/if}
 </div>
 
+
+{#snippet hitRows(list: Hit[])}
+  <ul class="list">
+    {#each list as h (h.sourceId + h.relPath)}
+      <li>
+        <button class="row" onclick={() => showDoc(h.sourceId, h.relPath, h.name, h.cloud === "cloudOnly", h.size)}>
+          <span class="icon"><Icon name={h.kind === "pdf" ? "pdf" : "file"} size={22} /></span>
+          <span class="main">
+            <span class="name">{h.title || h.name}</span>
+            <span class="sub">
+              {[formatDocDate(h.documentDate), folderOf(h.relPath) || sourceName(h.sourceId)].filter(Boolean).join(" · ")}
+            </span>
+            {#if h.snippet}
+              <span class="snippet">
+                {#each snippetParts(h.snippet) as p, i (i)}{#if p.hit}<mark>{p.text}</mark>{:else}{p.text}{/if}{/each}
+              </span>
+            {/if}
+          </span>
+          {#if h.cloud === "cloudOnly"}<span class="cloud"><Icon name="cloud" /></span>{/if}
+        </button>
+      </li>
+    {/each}
+  </ul>
+{/snippet}
+
+{#snippet dueRows(list: ReminderItem[])}
+  <ul class="list">
+    {#each list as i (i.sourceId + i.relPath)}
+      <li>
+        <button class="row" onclick={() => showDoc(i.sourceId, i.relPath, i.name, i.cloud === "cloudOnly", i.size)}>
+          <span class="icon"><Icon name={i.kind === "pdf" ? "pdf" : "file"} size={22} /></span>
+          <span class="main">
+            <span class="name">{i.title || i.name.replace(/\.[^.]+$/, "")}</span>
+            <span class="sub">
+              <span class:late={i.days < 0 && !i.done}>{formatIsoDay(i.dueDate)} · {when(i)}</span>{#if i.sender}{" · "}{i.sender}{/if}
+            </span>
+          </span>
+          {#if i.amount}<span class="amount">{formatMoney(i.amount, i.currency)}</span>{/if}
+        </button>
+      </li>
+    {/each}
+  </ul>
+{/snippet}
+
 <style>
   .app {
     position: fixed;
@@ -1369,6 +1573,20 @@
   .cloud {
     color: var(--cloud);
     display: flex;
+  }
+  /* Coming up (#162): overdue in red, the amount on the right. */
+  .late {
+    color: var(--danger);
+  }
+  .amount {
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  /* What a saved search finds, above its results. */
+  .note.finds {
+    margin-top: 12px;
   }
   .snippet {
     font-size: 13px;
