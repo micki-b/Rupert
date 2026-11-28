@@ -234,7 +234,7 @@
       {:else if tab === "reminders"}
         <Reminders bind:settings {os} />
       {:else if tab === "text"}
-        <TextRecognition bind:settings />
+        <TextRecognition bind:settings {os} />
       {:else if tab === "local-ai"}
         <LocalAi bind:settings />
       {:else if tab === "assistant"}

@@ -688,6 +688,8 @@
     <div class="note">
       En Windows y Linux, el reconocimiento de texto usa el programa gratuito <b>Tesseract</b>. Si la Configuración dice
       que no se encontró ningún motor, instalá Tesseract y volvé a abrir Rupert.
+      {#if windows}En Windows, <b>Configuración ▸ Reconocimiento de texto</b> muestra un comando de winget para copiar y
+        pegar en PowerShell; después <b>Volver a buscar</b> encuentra Tesseract sin reiniciar.{/if}
     </div>
   {/if}
 </section>

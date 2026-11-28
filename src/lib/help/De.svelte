@@ -701,6 +701,8 @@
     <div class="note">
       Die Texterkennung unter Windows und Linux verwendet das kostenlose Programm <b>Tesseract</b>. Wenn die
       Einstellungen melden, dass keine Texterkennung gefunden wurde, installieren Sie Tesseract und starten Sie Rupert neu.
+      {#if windows}Unter Windows zeigt <b>Einstellungen ▸ Texterkennung</b> einen winget-Befehl zum Kopieren und
+        Einfügen in PowerShell; danach findet <b>Erneut prüfen</b> Tesseract ohne Neustart.{/if}
     </div>
   {/if}
 </section>

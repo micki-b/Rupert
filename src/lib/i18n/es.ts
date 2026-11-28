@@ -614,6 +614,12 @@ const es: Messages = {
     textRecognition: "Reconocimiento de texto",
     recognize: "Reconocer el texto de los escaneos",
     noEngine: "No se encontró ningún motor de reconocimiento de texto. Instalá Tesseract para activarlo.",
+    wingetIntro: "Instalalo con winget: copiá este comando, pegalo en PowerShell o en Terminal de Windows y apretá Enter (Windows pide permiso para el instalador).",
+    wingetLanguages: "Para documentos en alemán o español también, usá este en su lugar y marcá esos idiomas en “Additional language data”:",
+    copy: "Copiar",
+    copied: "Copiado",
+    checkAgain: "Volver a buscar",
+    wingetManual: "O descargá el instalador",
     ocrNote:
       "Agrega una capa de texto invisible a los PDF escaneados, para que cualquier lector de PDF pueda buscar en ellos. Funciona en esta computadora.",
     localAi: "IA local",
