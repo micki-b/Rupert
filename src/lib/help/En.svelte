@@ -594,6 +594,15 @@
     a small window it shrinks or gives way so the form never has to be scrolled (see
     <a href="#page-preview">Page preview</a>).
   </p>
+  <p id="file-all">
+    Suggestions learn from how you filed: Local AI also sees the two or three documents most like the scan that you
+    already filed, with the title, folder and tags you gave them, so a correction you made once carries over. A
+    suggestion is marked <b>Sure</b> when its folder is where most of those similar documents are (at least two, from
+    the same sender when known), otherwise <b>Check</b>, with the reason in <b>File it</b>; click it to see the
+    documents it learned from. <b>File All Sure Ones…</b> at the top of the inbox lists every sure scan with its new
+    name, folder and tags; untick any to leave it, then <b>File</b>. Edit ▸ Undo Filing takes them all back. Nothing
+    is filed without you pressing a button, and nothing about you is stored: the examples come from your library.
+  </p>
   <p id="inbox-cloud">
     When the inbox folder is in iCloud Drive, OneDrive, Google Drive or Dropbox, the system may make scans
     online-only to save space. Rupert then downloads them again by itself to show, read and file them, and shows the

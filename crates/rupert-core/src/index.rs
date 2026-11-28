@@ -220,6 +220,18 @@ pub struct Hit {
     pub done: Option<String>,
 }
 
+/// A filed document like a new scan (#112), from [`Index::similar_docs`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimilarDoc {
+    pub source_id: String,
+    pub dir: String,
+    pub name: String,
+    pub title: Option<String>,
+    pub tags: Vec<String>,
+    pub sender: Option<String>,
+}
+
 /// Everything the index knows about one document.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1292,6 +1304,62 @@ impl Index {
         counts.sort_by_key(|a| std::cmp::Reverse(a.2));
         counts.truncate(limit);
         Ok(counts)
+    }
+
+    /// The filed documents most like `text` (#112), best first: how the
+    /// person titled, tagged and filed them is what inbox suggestions learn
+    /// from. Leaves out `exclude` (the inbox folder and below).
+    pub fn similar_docs(
+        &self,
+        text: &str,
+        exclude: Option<(&str, &str)>,
+        limit: usize,
+    ) -> Result<Vec<SimilarDoc>> {
+        let words = telling_words(text, 40);
+        if words.is_empty() {
+            return Ok(Vec::new());
+        }
+        let query = words
+            .iter()
+            .map(|w| format!("\"{w}\""))
+            .collect::<Vec<_>>()
+            .join(" OR ");
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT d.source_id, d.dir, d.name, d.title, d.tags, d.sender
+                 FROM fts JOIN docs d ON d.id = fts.rowid
+                 WHERE fts MATCH ?1 ORDER BY bm25(fts, 8.0, 10.0, 6.0, 3.0, 1.0) LIMIT 60",
+            )
+            .map_err(db)?;
+        let rows = stmt
+            .query_map([query], |r| {
+                let tags: String = r.get(4)?;
+                Ok(SimilarDoc {
+                    source_id: r.get(0)?,
+                    dir: r.get(1)?,
+                    name: r.get(2)?,
+                    title: r.get(3)?,
+                    tags: tags_from_json(&tags),
+                    sender: r.get(5)?,
+                })
+            })
+            .map_err(db)?;
+        let mut out = Vec::new();
+        for row in rows {
+            let doc = row.map_err(db)?;
+            if let Some((xs, xd)) = exclude
+                && doc.source_id == xs
+                && (xd.is_empty() || doc.dir == xd || doc.dir.starts_with(&format!("{xd}/")))
+            {
+                continue;
+            }
+            out.push(doc);
+            if out.len() >= limit {
+                break;
+            }
+        }
+        Ok(out)
     }
 
     /// Every folder that holds documents, and the folders above them, as

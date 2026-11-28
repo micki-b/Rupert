@@ -40,6 +40,8 @@ use crate::text::TextExtractor;
 const OCR_TEXT_SOURCE: &str = "Rupert OCR";
 /// Folders offered to the model (and in the review) per document.
 const CANDIDATE_FOLDERS: usize = 12;
+/// How many similar filed documents a suggestion is weighed against (#112).
+const SIMILAR_DOCS: usize = 20;
 
 // MARK: - Items
 
@@ -84,6 +86,31 @@ pub struct IntakeItem {
     pub folders: Vec<FolderChoice>,
     /// Problems worth showing (e.g. Local AI not running).
     pub note: Option<String>,
+    /// Whether the suggestion is sure (#112), and why.
+    pub confidence: Option<Confidence>,
+}
+
+/// Whether a suggestion agrees with how similar documents were filed
+/// (#112): sure ones can be filed all at once.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Confidence {
+    pub sure: bool,
+    /// Why, in Rupert's language: "Like 6 others from Allianz in Car/Insurance".
+    pub reason: String,
+    /// The filed documents the suggestion learned from.
+    #[serde(default)]
+    pub learned_from: Vec<Learned>,
+}
+
+/// A filed document a suggestion learned from: how it was titled, filed and
+/// tagged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Learned {
+    pub title: String,
+    pub folder: String,
+    pub tags: Vec<String>,
 }
 
 /// Cached results for one file version.
@@ -96,6 +123,8 @@ struct Done {
     suggestion: Option<Suggestion>,
     folders: Vec<FolderChoice>,
     note: Option<String>,
+    #[serde(default)]
+    confidence: Option<Confidence>,
 }
 
 // MARK: - Handle
@@ -291,6 +320,7 @@ impl Worker {
                 suggested_folder: None,
                 folders: Vec::new(),
                 note: None,
+                confidence: None,
             };
             if let Some(d) = done {
                 item.stage = Stage::Ready;
@@ -299,6 +329,7 @@ impl Worker {
                 item.folders = d.folders.clone();
                 item.note = d.note.clone();
                 item.suggested_folder = suggested_folder(&item);
+                item.confidence = d.confidence.clone();
             } else if e.cloud == CloudState::CloudOnly && !streamed {
                 // Waiting for its download (below), or it couldn't be had.
                 item.stage = Stage::Ready;
@@ -479,6 +510,8 @@ impl Worker {
         });
         let mut folders = Vec::new();
         let mut suggestion = None;
+        let mut similar = Vec::new();
+        let mut learned = Vec::new();
         let apple = self.settings.local_engine == LocalEngine::Apple;
         let elsewhere = !apple && llm::reach(&self.settings.local_url) == Reach::Elsewhere;
         if self.settings.suggestions && elsewhere {
@@ -494,6 +527,21 @@ impl Worker {
             });
             folders = self.candidate_folders(&text);
             let labels: Vec<String> = folders.iter().map(|f| f.label.clone()).collect();
+            // #112: how the person filed documents like this one. Apple
+            // Intelligence's context is short: two examples; a server model
+            // takes three.
+            similar = self.similar_docs(&text);
+            learned = self.learned_from(&similar, if apple { 2 } else { 3 });
+            let examples: Vec<String> = learned
+                .iter()
+                .map(|l| {
+                    let mut e = format!("{} → {}", l.title, l.folder);
+                    if !l.tags.is_empty() {
+                        e.push_str(&format!(" · {}", l.tags.join(", ")));
+                    }
+                    e
+                })
+                .collect();
             let tags = Index::open(&self.index_path)
                 .and_then(|i| i.top_tags(150))
                 .unwrap_or_default();
@@ -504,6 +552,7 @@ impl Worker {
                 year: &year,
                 folders: &labels,
                 tags: &tags,
+                examples: &examples,
             };
             let result = if apple {
                 AppleAi.suggest(&req)
@@ -529,6 +578,21 @@ impl Worker {
         let (size, modified_ms) = entry
             .map(|e| (e.size, e.modified_ms))
             .unwrap_or((item.size, item.modified_ms));
+        let confidence = suggestion.as_ref().map(|s: &Suggestion| {
+            let chosen = s
+                .folder
+                .as_ref()
+                .and_then(|label| folders.iter().find(|f| &f.label == label));
+            let mut c = assess(&similar, s.sender.as_deref(), chosen, |source, dir| {
+                self.sources
+                    .iter()
+                    .find(|x| x.id == source)
+                    .map(|x| folder_choice(x, dir).label)
+                    .unwrap_or_else(|| dir.to_string())
+            });
+            c.learned_from = learned.clone();
+            c
+        });
         let done = Done {
             size,
             modified_ms,
@@ -536,6 +600,7 @@ impl Worker {
             suggestion,
             folders,
             note: (!notes.is_empty()).then(|| notes.join(" ")),
+            confidence,
         };
         self.cache.insert(item.rel_path.clone(), done.clone());
         self.save_cache();
@@ -549,6 +614,7 @@ impl Worker {
             i.folders = done.folders;
             i.note = done.note;
             i.suggested_folder = suggested_folder(i);
+            i.confidence = done.confidence;
         });
     }
 
@@ -573,6 +639,41 @@ impl Worker {
             .collect()
     }
 
+    /// Filed documents most like this one (#112), not in the inbox.
+    fn similar_docs(&self, text: &str) -> Vec<crate::index::SimilarDoc> {
+        let Ok(index) = Index::open(&self.index_path) else {
+            return Vec::new();
+        };
+        let exclude = self
+            .settings
+            .inbox
+            .as_ref()
+            .map(|i| (i.source_id.as_str(), i.rel_path.as_str()));
+        index
+            .similar_docs(text, exclude, SIMILAR_DOCS)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|d| self.sources.iter().any(|s| s.id == d.source_id))
+            .collect()
+    }
+
+    /// The closest filed documents with a title, as examples for Local AI.
+    fn learned_from(&self, similar: &[crate::index::SimilarDoc], n: usize) -> Vec<Learned> {
+        similar
+            .iter()
+            .filter_map(|d| {
+                let title = d.title.clone().filter(|t| !t.trim().is_empty())?;
+                let source = self.sources.iter().find(|s| s.id == d.source_id)?;
+                Some(Learned {
+                    title,
+                    folder: folder_choice(source, &d.dir).label,
+                    tags: d.tags.clone(),
+                })
+            })
+            .take(n)
+            .collect()
+    }
+
     fn save_cache(&self) {
         if let Ok(bytes) = serde_json::to_vec(&self.cache) {
             let tmp = self.cache_path.with_extension("json.tmp");
@@ -581,6 +682,91 @@ impl Worker {
             }
         }
     }
+}
+
+// MARK: - Sure or not (#112)
+
+/// Whether a suggestion is sure: the folder it suggests is where most of
+/// the closest filed documents are (at least two, and more than in any
+/// other), counting only those from the same sender when some are. `label`
+/// names a folder ("Documents/Car/Insurance"). The reason is in Rupert's
+/// language; `learned_from` is left for the caller.
+pub fn assess(
+    similar: &[crate::index::SimilarDoc],
+    sender: Option<&str>,
+    chosen: Option<&FolderChoice>,
+    label: impl Fn(&str, &str) -> String,
+) -> Confidence {
+    let sender = sender.map(str::trim).filter(|s| !s.is_empty());
+    let same_sender: Vec<_> = sender
+        .map(|from| {
+            similar
+                .iter()
+                .filter(|d| {
+                    d.sender
+                        .as_deref()
+                        .is_some_and(|s| s.eq_ignore_ascii_case(from))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let (pool, from): (Vec<_>, Option<&str>) = if same_sender.is_empty() {
+        (similar.iter().take(10).collect(), None)
+    } else {
+        (same_sender, sender)
+    };
+    let not_sure = |reason: String| Confidence {
+        sure: false,
+        reason,
+        learned_from: Vec::new(),
+    };
+    if pool.is_empty() {
+        return not_sure(tr("Nothing like it filed yet.").into());
+    }
+    // Folders by how many of the pool are in each, in order of similarity.
+    let mut counts: Vec<((&str, &str), usize)> = Vec::new();
+    for d in &pool {
+        let key = (d.source_id.as_str(), d.dir.as_str());
+        match counts.iter_mut().find(|(k, _)| *k == key) {
+            Some((_, n)) => *n += 1,
+            None => counts.push((key, 1)),
+        }
+    }
+    counts.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+    let ((best_source, best_dir), best) = counts[0];
+    let second = counts.get(1).map(|(_, n)| *n).unwrap_or(0);
+    let best_label = label(best_source, best_dir);
+    let matches = chosen.is_some_and(|c| c.source_id == best_source && c.dir == best_dir);
+    let others = best.to_string();
+    if matches && best >= 2 && second < best {
+        return Confidence {
+            sure: true,
+            reason: match from {
+                Some(from) => trf(
+                    "Like {0} others from {1} in {2}.",
+                    &[&others, &from, &best_label],
+                ),
+                None => trf("Like {0} others in {1}.", &[&others, &best_label]),
+            },
+            learned_from: Vec::new(),
+        };
+    }
+    if second > 0 {
+        let ((s2, d2), n2) = counts[1];
+        return not_sure(trf(
+            "Similar documents are in two places: {0} in {1} and {2} in {3}.",
+            &[
+                &best.to_string(),
+                &best_label,
+                &n2.to_string(),
+                &label(s2, d2),
+            ],
+        ));
+    }
+    if !matches {
+        return not_sure(trf("Similar documents are in {0}.", &[&best_label]));
+    }
+    not_sure(tr("Only one document like it filed so far.").into())
 }
 
 fn suggested_folder(item: &IntakeItem) -> Option<FolderChoice> {
@@ -736,6 +922,66 @@ pub fn preview(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn similar(dir: &str, sender: Option<&str>) -> crate::index::SimilarDoc {
+        crate::index::SimilarDoc {
+            source_id: "s".into(),
+            dir: dir.into(),
+            name: "x.pdf".into(),
+            title: Some("x".into()),
+            tags: Vec::new(),
+            sender: sender.map(Into::into),
+        }
+    }
+
+    fn choice(dir: &str) -> FolderChoice {
+        FolderChoice {
+            source_id: "s".into(),
+            dir: dir.into(),
+            label: format!("Docs/{dir}"),
+        }
+    }
+
+    #[test]
+    fn sure_when_the_closest_filed_documents_agree() {
+        let label = |_: &str, dir: &str| format!("Docs/{dir}");
+        let docs = vec![
+            similar("Car/Insurance", Some("Allianz")),
+            similar("Home", Some("City Power")),
+            similar("Car/Insurance", Some("ALLIANZ")),
+            similar("Car/Insurance", Some("Allianz")),
+            similar("Home", None),
+        ];
+        let sure = assess(
+            &docs,
+            Some("Allianz"),
+            Some(&choice("Car/Insurance")),
+            label,
+        );
+        assert!(sure.sure);
+        assert_eq!(
+            sure.reason,
+            "Like 3 others from Allianz in Docs/Car/Insurance."
+        );
+        // Another folder than where they are: not sure.
+        let other = assess(&docs, Some("Allianz"), Some(&choice("Home")), label);
+        assert!(!other.sure);
+        assert_eq!(other.reason, "Similar documents are in Docs/Car/Insurance.");
+        // No sender known: all the closest count, and they're split.
+        let split = assess(&docs[..2], None, Some(&choice("Car/Insurance")), label);
+        assert!(!split.sure);
+        assert!(
+            split
+                .reason
+                .starts_with("Similar documents are in two places")
+        );
+        // Only one like it, or none.
+        assert!(!assess(&docs[..1], None, Some(&choice("Car/Insurance")), label).sure);
+        assert_eq!(
+            assess(&[], None, None, label).reason,
+            "Nothing like it filed yet."
+        );
+    }
     use crate::source::Provider;
 
     fn source(root: &Path) -> Source {

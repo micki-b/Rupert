@@ -334,6 +334,7 @@ pub async fn suggest_propose(
             year: &year,
             folders: &[],
             tags: &tags,
+            examples: &[],
         })
     })
     .await

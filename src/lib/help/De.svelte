@@ -656,6 +656,16 @@
     in einem kleinen Fenster wird sie kleiner oder verschwindet, damit das Formular nie gescrollt werden muss (siehe
     <a href="#page-preview">Seitenvorschau</a>).
   </p>
+  <p id="file-all">
+    Vorschläge lernen daraus, wie Sie ablegen: Die lokale KI sieht auch die zwei oder drei bereits abgelegten
+    Dokumente, die dem Scan am ähnlichsten sind, mit dem Titel, Ordner und den Tags, die Sie ihnen gegeben haben, daher
+    bleibt eine einmal gemachte Korrektur erhalten. Ein Vorschlag ist <b>Sicher</b>, wenn sein Ordner dort ist, wo die
+    meisten dieser ähnlichen Dokumente liegen (mindestens zwei, vom selben Absender, wenn bekannt), sonst <b>Prüfen</b>,
+    mit dem Grund unter <b>Ablegen</b>; ein Klick zeigt die Dokumente, aus denen er gelernt hat. <b>Alle sicheren
+    ablegen …</b> oben im Eingang listet jeden sicheren Scan mit neuem Namen, Ordner und Tags; entfernen Sie Häkchen,
+    um einzelne zu lassen, dann <b>Ablegen</b>. Bearbeiten ▸ Ablegen widerrufen holt alle zurück. Nichts wird ohne
+    Ihren Klick abgelegt, und nichts über Sie wird gespeichert: Die Beispiele kommen aus Ihrer Bibliothek.
+  </p>
   <p id="inbox-cloud">
     Liegt der Eingangsordner in iCloud Drive, OneDrive, Google Drive oder Dropbox, kann das System Scans nur online
     behalten, um Platz zu sparen. Rupert lädt sie dann von selbst wieder herunter, um sie zu zeigen, zu lesen und

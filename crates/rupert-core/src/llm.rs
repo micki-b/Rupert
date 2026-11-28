@@ -37,6 +37,9 @@ pub struct Request<'a> {
     /// Existing folders to choose from, as shown to the user ("Source/Dir").
     pub folders: &'a [String],
     pub tags: &'a [String],
+    /// Documents like this one already filed (#112), as "title → folder ·
+    /// tags": how the person titles, tags and files this kind of document.
+    pub examples: &'a [String],
 }
 
 /// What the model suggests. Everything is optional; the user reviews it.
@@ -420,6 +423,20 @@ fn user_prompt(req: &Request, max_text: usize, lang: Lang) -> String {
     } else {
         req.tags.join(", ")
     };
+    // #112: the person's own filings of documents like this one.
+    let examples = if req.examples.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "Documents like this one the user already filed (title → folder · tags). If this \
+             document is the same kind, title, tag and file it the same way:\n{}\n\n",
+            req.examples
+                .iter()
+                .map(|e| format!("- {e}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    };
     format!(
         "The current year is {year}. File name: {name}\n\n\
          Suggest how to file this document:\n\
@@ -445,6 +462,7 @@ fn user_prompt(req: &Request, max_text: usize, lang: Lang) -> String {
          - reason: one short sentence on why that folder, written in {language}. Only the \
            reason is in {language}.\n\n\
          Folders where similar documents are filed:\n{folders}\n\n\
+         {examples}\
          Tags in use: {tags}\n\n\
          Document text:\n\"\"\"\n{text}\n\"\"\"",
         year = req.year,
@@ -818,6 +836,7 @@ mod tests {
         let req = Request {
             folders: &folders,
             tags: &tags,
+            examples: &[],
             ..Default::default()
         };
         let answer = "```json\n{\"title\": \" City Electric bill \", \"document_date\": \"2026-10-03\", \

@@ -643,6 +643,16 @@
     borde entre los dos para elegir su alto, y en una ventana chica se achica o desaparece para que el formulario nunca
     haya que desplazarlo (mirá <a href="#page-preview">Vista previa</a>).
   </p>
+  <p id="file-all">
+    Las sugerencias aprenden de cómo archivás: la IA local también ve los dos o tres documentos más parecidos al
+    escaneo que ya archivaste, con el título, la carpeta y las etiquetas que les pusiste, así que una corrección que
+    hiciste una vez se mantiene. Una sugerencia se marca <b>Seguro</b> cuando su carpeta es donde está la mayoría de
+    esos documentos parecidos (al menos dos, del mismo remitente si se conoce); si no, <b>Revisar</b>, con el motivo en
+    <b>Archivarlo</b>; hacé clic para ver los documentos de los que aprendió. <b>Archivar todos los seguros…</b> arriba de
+    la bandeja de entrada lista cada escaneo seguro con su nombre nuevo, carpeta y etiquetas; desmarcá los que quieras
+    dejar y elegí <b>Archivar</b>. Edición ▸ Deshacer el archivado los devuelve a todos. Nada se archiva sin que
+    aprietes un botón, y no se guarda nada sobre vos: los ejemplos salen de tu biblioteca.
+  </p>
   <p id="inbox-cloud">
     Si la carpeta de la bandeja de entrada está en iCloud Drive, OneDrive, Google Drive o Dropbox, el sistema puede
     dejar escaneos solo en línea para ahorrar espacio. Rupert los vuelve a descargar solo para mostrarlos, leerlos y

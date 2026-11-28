@@ -69,6 +69,7 @@ fn main() {
             year: "2026",
             folders: &folders,
             tags: &tags,
+            examples: &[],
         };
         println!(
             "■ {}  [{}; {}; {}]",
