@@ -51,6 +51,18 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.10.0 [4000]
+
+A smarter library: due dates and reminders, saved searches, a health check, and an inbox that learns.
+
+• From, amount and due date: Rupert suggests who a document is from, its amount and when it's due, and adds up amounts for a selection or a search.
+• Coming up: documents with a due date soon, with Done, Remind me later and Add to Calendar. Optional notifications and a count on the Dock icon.
+• Saved searches in the sidebar: one click runs a search again.
+• Library health: find duplicate copies and compare them side by side, recognize text in old scans, and fill in missing dates and tags.
+• The inbox learns from how you filed similar documents, and File All Sure Ones files the obvious ones at once.
+• An inbox in iCloud Drive or OneDrive works with online-only scans.
+• Fixes.
+
 ## What's new in 0.9.0 [4000]
 
 Work with many documents at once.
