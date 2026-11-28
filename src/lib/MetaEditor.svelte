@@ -304,7 +304,21 @@
     </div>
     <label class="field">
       <span>{m.details.dueDate}</span>
-      <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} disabled={loading} />
+      <span class="date-clear">
+        <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} disabled={loading} />
+        {#if form.dueDate && !loading}
+          <button
+            type="button"
+            class="clear"
+            title={m.details.clearDueDate}
+            aria-label={m.details.clearDueDate}
+            onclick={(e) => {
+              e.preventDefault();
+              form.dueDate = "";
+            }}>×</button
+          >
+        {/if}
+      </span>
     </label>
     <!-- #109: how early it shows in Coming up, and done. -->
     {#if form.dueDate && reminderSettings.value?.enabled !== false}
@@ -411,6 +425,32 @@
   .tags:focus-within {
     outline: 2px solid var(--accent-soft);
     border-color: var(--accent);
+  }
+  /* #160: × next to the due date clears it. */
+  .date-clear {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .date-clear input {
+    flex: 1;
+    min-width: 0;
+  }
+  .clear {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 11px;
+    background: none;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .clear:hover {
+    background: var(--hover);
+    color: var(--text);
   }
   .done-row {
     display: flex;

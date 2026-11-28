@@ -467,6 +467,7 @@ const es: Messages = {
     amount: "Importe",
     currency: "Moneda",
     dueDate: "Vencimiento",
+    clearDueDate: "Quitar la fecha de vencimiento",
     fromWho: (name: string) => `de ${name}`,
     dueOn: (date: string) => `vence el ${date}`,
   },

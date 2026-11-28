@@ -3072,8 +3072,13 @@
     {#if info}
       <span title={m.main.versionTip}>{info.name} {info.version} · {editionLabel(info)}</span>
     {/if}
-    <button class="footer-btn" onclick={() => api.openSettings()} title={m.main.settings}>{m.main.settings}</button>
-    <button class="footer-btn" onclick={() => api.openHelp()} title={m.main.helpTip}>{m.main.help}</button>
+    <!-- #161: icons, with their names on hover. -->
+    <button class="footer-icon" onclick={() => api.openSettings()} title={m.main.settings} aria-label={m.main.settings}
+      ><Icon name="gear" size={13} /></button
+    >
+    <button class="footer-icon" onclick={() => api.openHelp()} title={m.main.helpTip} aria-label={m.main.help}
+      ><Icon name="help" size={13} /></button
+    >
   </span>
   <span class="status">
     {#if updates.status === "available"}
@@ -3113,6 +3118,27 @@
   /* Files from another app are being dragged over the folder or inbox. */
   .documents.drop {
     box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .footer-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 16px;
+    margin-left: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    vertical-align: -3px;
+  }
+  .footer-icon:first-of-type {
+    margin-left: 10px;
+  }
+  .footer-icon:hover {
+    background: var(--hover);
+    color: var(--text);
   }
   .footer-btn.update {
     padding: 0;

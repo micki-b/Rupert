@@ -470,6 +470,7 @@ const de: Messages = {
     amount: "Betrag",
     currency: "Währung",
     dueDate: "Fällig am",
+    clearDueDate: "Fälligkeitsdatum entfernen",
     fromWho: (name: string) => `von ${name}`,
     dueOn: (date: string) => `fällig am ${date}`,
   },
