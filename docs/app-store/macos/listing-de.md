@@ -4,34 +4,47 @@ The macOS version's texts for the **German** localization that the iPhone app al
 
 ## Promotional text [170]
 
-Durchsuchen Sie den Text jedes Scans, lassen Sie neue Scans sich selbst benennen und ablegen, und fragen Sie Rupert, wo etwas liegt. In Ihren eigenen Ordnern.
+Durchsuchen Sie den Text jedes Scans, lassen Sie neue Scans sich selbst benennen und ablegen, behalten Sie fällige Rechnungen im Blick und fragen Sie Rupert.
 
 ## Description [4000]
 
 Rupert ist der Bibliothekar für Ihre gescannten Dokumente. Er arbeitet direkt mit den Ordnern, die Sie schon auf Ihrem Mac, in iCloud Drive, OneDrive oder Google Drive haben: Es gibt nichts zu importieren und nichts, das Sie bindet. Ihre Ordner bleiben Ihre Bibliothek.
 
 ALLES FINDEN
-• Durchsuchen Sie Titel, Tags, Notizen und den Text in jedem PDF, mit hervorgehobenen Treffern.
-• Sehen Sie Ordner als Liste, als große Symbole oder in einer Galerie, die durch die Seiten blättert.
-• Filtern Sie nach Tags, und behalten Sie Lieblingsdokumente und -ordner in der Seitenleiste.
-• Räumen Sie auf, indem Sie Dokumente und Ordner in einen anderen Ordner ziehen; ihre Angaben gehen mit.
-• Markdown-Notizen öffnen sich formatiert.
+• Durchsuchen Sie Titel, Tags, Notizen und den Text in jedem PDF, mit den Treffern auf der Seite markiert.
+• Grenzen Sie eine Suche nach Datum, Art, Absender, Fälligkeit und Ordner ein, und speichern Sie sie in der Seitenleiste, um sie mit einem Klick erneut auszuführen.
+• Sehen Sie Ordner als Liste, als große Symbole oder in einer Galerie, die durch die Seiten blättert. Die Leertaste zeigt eine Vorschau, ⌘K führt überallhin.
+• Behalten Sie Lieblingsdokumente und -ordner in der Seitenleiste.
 
 EIN EINGANG, DER SICH SELBST ABLEGT
-• Scannen Sie in den Eingangsordner, mit Ihrem Scanner, Ihrem ScanSnap oder Ihrem iPhone.
-• Rupert erkennt den Text auf Ihrem Mac und schlägt Titel, Datum, Tags und Ordner vor.
-• Prüfen Sie den Vorschlag und legen Sie das Dokument mit einem Klick ab: Das PDF wird umbenannt, in seinen Ordner verschoben, und die Angaben werden in der Datei gespeichert.
+• Scannen Sie in den Eingang mit Ihrem Scanner oder ScanSnap, mit Ihrem iPhone, oder drucken Sie aus jeder App an Rupert.
+• Rupert erkennt den Text auf Ihrem Mac und schlägt Titel, Datum, Tags, Absender, Betrag, Fälligkeit und Ordner vor.
+• Er lernt daraus, wie Sie ähnliche Dokumente abgelegt haben, und „Alle sicheren ablegen“ legt die eindeutigen auf einmal ab.
+• Prüfen Sie einen Vorschlag und legen Sie das Dokument mit einem Klick ab: Das PDF wird umbenannt, in seinen Ordner verschoben, und die Angaben werden in der Datei gespeichert.
+
+WISSEN, WAS FÄLLIG IST
+• „Demnächst fällig“ listet Rechnungen und andere Dokumente, die bald fällig sind, mit „Erledigt“, „Später erinnern“ und „Zum Kalender hinzufügen“.
+• Auf Wunsch Mitteilungen, auch wenn Rupert geschlossen ist, und eine Zahl am Dock-Symbol.
+• Zählen Sie die Beträge einer Auswahl oder einer Suche zusammen.
+
+ORDNUNG HALTEN
+• Wählen Sie mehrere Dokumente aus, um sie gemeinsam zu verschieben, zu taggen, mit einem Stern zu markieren, zu teilen oder zu exportieren. „Widerrufen“ nimmt die letzte Änderung zurück.
+• Benennen Sie die Dokumente eines Ordners auf einmal um, nach Datum und Titel.
+• „Zustand der Bibliothek“ findet doppelte Kopien, Scans ohne Text und Dokumente ohne Datum oder Tags, mit einer Lösung für jedes.
 
 RUPERT FRAGEN
 • Fragen Sie in Ihren eigenen Worten: „Was hat der Klempner im April berechnet?“ oder „Zeig mir die Autoversicherung.“
-• Rupert durchsucht Ihre Bibliothek und antwortet aus Ihren eigenen Dokumenten.
+• Rupert durchsucht Ihre Bibliothek, antwortet aus Ihren eigenen Dokumenten und nennt die Seite; ein Klick zeigt die Stelle.
 • Nutzt standardmäßig Apple Intelligence auf Ihrem Mac oder eine kostenlose App wie LM Studio oder Ollama. Sie können auch Claude oder ChatGPT wählen; Rupert zeigt immer, wenn ein Cloud-Dienst genutzt wird.
 
 IHRE DOKUMENTE BLEIBEN IHRE
-• Titel, Tags und Daten werden in den PDFs gespeichert (bei anderen Dateiarten in einer kleinen versteckten Datei daneben), gehen also mit der Datei mit und erscheinen auch auf Ihrem iPhone.
+• Titel, Tags, Daten und Fälligkeiten werden in den PDFs gespeichert (bei anderen Dateiarten in einer kleinen versteckten Datei daneben), gehen also mit der Datei mit und erscheinen auch auf Ihrem iPhone.
 • Texterkennung und Ablagevorschläge verlassen Ihren Mac nie.
 • Dateien, die nur online in iCloud Drive, OneDrive und Google Drive liegen, werden angezeigt, ohne sie zu laden.
 • Kein Konto bei uns, kein Tracking, keine Werbung.
+
+IN IHRER SPRACHE
+Rupert spricht Deutsch, Englisch und Spanisch und folgt der Sprache Ihres Macs. Auf Deutsch trägt die Eule Lederhosen, auf Spanisch das himmelblau-weiß gestreifte Trikot.
 
 Rupert ist kostenlos und quelloffen.
 

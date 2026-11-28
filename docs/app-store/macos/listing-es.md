@@ -4,36 +4,49 @@ The macOS version's texts for the **Spanish (Mexico)** localization that the iPh
 
 ## Promotional text [170]
 
-Buscá en el texto de cada escaneo, dejá que los nuevos se nombren y archiven solos, y preguntale a Rupert dónde están las cosas. En tus propias carpetas.
+Buscá en el texto de cada escaneo, dejá que los nuevos se nombren y archiven solos, seguí las cuentas por vencer y preguntale a Rupert. En tus propias carpetas.
 
 ## Description [4000]
 
 Rupert es el bibliotecario de tus documentos escaneados. Trabaja directamente sobre las carpetas que ya tenés en tu Mac, en iCloud Drive, OneDrive o Google Drive: no hay nada que importar ni nada que te ate. Tus carpetas siguen siendo tu biblioteca.
 
 ENCONTRÁ CUALQUIER COSA
-• Buscá en títulos, etiquetas, notas y el texto de cada PDF, con las palabras encontradas resaltadas.
-• Mirá las carpetas como lista, como íconos grandes o en una galería que recorre las páginas.
-• Filtrá por etiquetas, y tené tus documentos y carpetas favoritos en la barra lateral.
-• Ordená arrastrando documentos y carpetas a otra carpeta; sus datos van con ellos.
-• Las notas en Markdown se abren con formato.
+• Buscá en títulos, etiquetas, notas y el texto de cada PDF, con las palabras encontradas marcadas en la página.
+• Acotá una búsqueda por fecha, tipo, remitente, vencimiento y carpeta, y guardala en la barra lateral para repetirla con un clic.
+• Mirá las carpetas como lista, como íconos grandes o en una galería que recorre las páginas. Espacio muestra una vista previa; ⌘K te lleva a cualquier lado.
+• Tené tus documentos y carpetas favoritos en la barra lateral.
 
 UNA BANDEJA DE ENTRADA QUE ARCHIVA SOLA
-• Escaneá a la carpeta de entrada desde tu escáner, tu ScanSnap o tu iPhone.
-• Rupert reconoce el texto en tu Mac y sugiere un título, una fecha, etiquetas y una carpeta.
-• Revisá la sugerencia y archivalo con un clic: el PDF se renombra, se mueve a su carpeta y los datos quedan guardados dentro del archivo.
+• Escaneá a la bandeja de entrada desde tu escáner o tu ScanSnap, con tu iPhone, o imprimí a Rupert desde cualquier app.
+• Rupert reconoce el texto en tu Mac y sugiere título, fecha, etiquetas, de quién es, el importe, el vencimiento y la carpeta.
+• Aprende de cómo archivaste documentos parecidos, y Archivar todos los seguros archiva de una vez los evidentes.
+• Revisá una sugerencia y archivalo con un clic: el PDF se renombra, se mueve a su carpeta y los datos quedan guardados dentro del archivo.
+
+SABÉ QUÉ VENCE
+• Próximos vencimientos lista las cuentas y otros documentos que vencen pronto, con Resuelto, Recordármelo más tarde y Agregar al calendario.
+• Notificaciones opcionales, aunque Rupert esté cerrado, y un número en el ícono del Dock.
+• Sumá los importes de una selección o de una búsqueda.
+
+MANTENELA ORDENADA
+• Seleccioná varios documentos para moverlos, etiquetarlos, marcarlos con estrella, compartirlos o exportarlos juntos. Deshacer revierte el último cambio.
+• Renombrá de una vez los documentos de una carpeta, a partir de su fecha y título.
+• Estado de la biblioteca encuentra copias duplicadas, escaneos sin texto y documentos sin fecha o sin etiquetas, con un arreglo para cada cosa.
 
 PREGUNTALE A RUPERT
 • Preguntá con tus palabras: "¿Cuánto cobró el plomero en abril?" o "Mostrame el seguro del auto".
-• Rupert busca en tu biblioteca y responde a partir de tus propios documentos.
+• Rupert busca en tu biblioteca, responde a partir de tus propios documentos y nombra la página; hacé clic para ver el pasaje.
 • Usa Apple Intelligence en tu Mac de forma predeterminada, o una app gratuita como LM Studio u Ollama. También podés elegir Claude o ChatGPT; Rupert siempre muestra cuándo se usa un servicio en la nube.
 
 TUS DOCUMENTOS SIGUEN SIENDO TUYOS
-• Los títulos, las etiquetas y las fechas se guardan dentro de los PDF (o en un pequeño archivo oculto al lado, para otros tipos), así que van adonde vaya el archivo y aparecen también en tu iPhone.
+• Los títulos, las etiquetas, las fechas y los vencimientos se guardan dentro de los PDF (o en un pequeño archivo oculto al lado, para otros tipos), así que van adonde vaya el archivo y aparecen también en tu iPhone.
 • El reconocimiento de texto y las sugerencias para archivar nunca salen de tu Mac.
 • Los archivos solo en línea de iCloud Drive, OneDrive y Google Drive se muestran sin descargarlos.
-• Sin cuenta con nosotros, sin seguimiento, sin publicidad.
+• Sin cuenta con nosotros, sin rastreo, sin publicidad.
 
-Rupert es libre y gratis.
+EN TU IDIOMA
+Rupert habla español, inglés y alemán, y sigue el idioma de tu Mac. En español, el búho se pone la camiseta albiceleste; en alemán, pantalones de cuero.
+
+Rupert es libre, gratis y de código abierto.
 
 ## Keywords [100]
 

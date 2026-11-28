@@ -8,7 +8,7 @@ Add **Spanish (Latin America)** (`es-419`) in Play Console ▸ Store presence �
 
 ## Short description [80]
 
-Encontrá, buscá y escaneá tus documentos en Google Drive y OneDrive.
+Encontrá, escaneá y seguí tus documentos y cuentas en Google Drive y OneDrive.
 
 ## Full description [4000]
 
@@ -16,25 +16,32 @@ Rupert es el bibliotecario de tus documentos escaneados. Trabaja con las carpeta
 
 ENCONTRÁ CUALQUIER COSA
 • Buscá en títulos, etiquetas, notas y en el texto de tus documentos.
-• Filtrá por etiquetas, y tené tus carpetas favoritas a un toque.
-• Abrí cualquier documento en tu visor de PDF para leerlo, compartirlo o imprimirlo.
+• Mirá una carpeta como lista, como íconos grandes o en una galería.
+• Tus búsquedas guardadas en la computadora se abren con todos sus filtros.
+• Tus documentos y carpetas favoritos están a un toque.
+• Abrí cualquier documento en tu visor de PDF, o compartilo con Gmail, Mensajes u otra app.
+
+SABÉ QUÉ VENCE
+• Los detalles de un documento muestran de quién es, su importe y cuándo vence.
+• Próximos vencimientos lista las cuentas y otros documentos por vencer, primero los vencidos.
 
 ESCANEÁ DIRECTO A TU BANDEJA DE ENTRADA
 • El escáner de documentos de Google encuentra los bordes de la hoja, la endereza y la limpia.
 • Elegí color, escala de grises o blanco y negro, y la resolución.
 • Varias páginas forman un solo PDF, guardado en tu bandeja de entrada en Google Drive u OneDrive.
-• La bandeja de entrada está siempre arriba de todo en la Biblioteca, así encontrás los escaneos nuevos enseguida.
+• Compartí documentos desde otras apps con Rupert y van a tu bandeja de entrada.
+• En tu computadora, Escanear… en Rupert muestra un código: apuntale la cámara del teléfono para empezar a escanear.
 
 FUNCIONA CON RUPERT EN TU COMPUTADORA
-Rupert para Mac, Windows y Linux (gratis) reconoce el texto de los escaneos nuevos, sugiere título, fecha, etiquetas y carpeta, y los archiva cuando estás de acuerdo. Los títulos, las etiquetas y las fechas se guardan dentro de los PDF, así que también aparecen en tu teléfono.
+Rupert para Mac, Windows y Linux (gratis) reconoce el texto de los escaneos nuevos, sugiere título, fecha, etiquetas, remitente, importe, vencimiento y carpeta, aprende de cómo archivás, y los archiva cuando estás de acuerdo. Los datos se guardan dentro de los PDF, así que también aparecen en tu teléfono.
 
 EN TU IDIOMA
-Rupert habla español, inglés y alemán, y usa el idioma de tu teléfono. En español, el búho se pone la camiseta albiceleste.
+Rupert habla español, inglés y alemán, y usa el idioma de tu teléfono. En español, el búho se pone la camiseta albiceleste; en alemán, pantalones de cuero.
 
 TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 • Sin cuenta con nosotros, sin rastreo, sin publicidad. Rupert no recopila nada.
 • Tus archivos se quedan en tu propio almacenamiento; Rupert los lee donde están.
-• Iniciá sesión con tu cuenta de Google o de Microsoft; Rupert solo lee tus carpetas, agrega los escaneos nuevos a tu bandeja de entrada y recuerda las carpetas que marcás con estrella.
+• Iniciá sesión con tu cuenta de Google o de Microsoft. Rupert solo lee tus carpetas, agrega los escaneos nuevos a tu bandeja de entrada y recuerda las carpetas que marcás con estrella.
 
 Rupert es libre, gratis y de código abierto.
 
