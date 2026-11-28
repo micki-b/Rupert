@@ -309,6 +309,16 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    font-size: 12px;
+  }
+  /* The same look as the search filters above it. */
+  .pick select {
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    padding: 3px 6px;
   }
   .muted {
     color: var(--muted);
