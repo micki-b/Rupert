@@ -1032,6 +1032,13 @@ const es: Messages = {
       "Para las carpetas de Google Drive primero hay que iniciar sesión: Configuración ▸ Google Drive.",
     favorites: "Favoritos",
     favoriteDocuments: "Documentos favoritos",
+    favoritesCount: (folders: number, documents: number) =>
+      [folders ? `${num(folders)} ${plural(folders, "carpeta", "carpetas")}` : "", documents ? `${num(documents)} ${plural(documents, "documento", "documentos")}` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    folders: "Carpetas",
+    documents: "Documentos",
+    noFavorites: "Todavía no hay favoritos. Marcá una carpeta con la estrella acá, o un documento en Rupert en tu computadora.",
     // Próximos vencimientos en el teléfono (#162): solo lectura.
     comingUpCount: (open: number, overdue: number) =>
       open === 0

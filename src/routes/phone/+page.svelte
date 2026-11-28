@@ -63,7 +63,7 @@
   let stack = $state<Crumb[]>([]);
   /** A page in the Library opened from its first screen (#162): Coming up,
    * or a saved search's results. Read-only, like the rest of the phone. */
-  type Page = { kind: "comingUp" } | { kind: "saved"; search: SavedSearch };
+  type Page = { kind: "comingUp" } | { kind: "favorites" } | { kind: "saved"; search: SavedSearch };
   let page = $state<Page | null>(null);
   let savedSearches = $state<SavedSearch[]>([]);
   let coming = $state<PhoneComingUp | null>(null);
@@ -172,19 +172,25 @@
     !!here && favFolders.some((f) => f.sourceId === here.sourceId && f.relPath === here.relPath),
   );
   let favBusy = $state(false);
+  /** Favorite folders and documents: the Library's Favorites row shows when there are any. */
+  const favCount = $derived(favFolders.length + (overview?.stats.favorites ?? 0));
   let favError = $state<string | null>(null);
   const progress = $derived(overview?.progress);
   const busyIndexing = $derived(Boolean(progress?.active || remoteProgress?.active));
   const shownProgress = $derived(remoteProgress?.active ? remoteProgress : progress);
   const title = $derived(
     tab === "library"
-      ? page
-        ? page.kind === "comingUp"
-          ? m.reminders.title
-          : page.search.name
-        : here?.inbox
+      ? here
+        ? here.inbox
           ? m.phone.inbox
-          : (here?.name ?? m.phone.library)
+          : here.name
+        : page
+          ? page.kind === "comingUp"
+            ? m.reminders.title
+            : page.kind === "favorites"
+              ? m.phone.favorites
+              : page.search.name
+          : m.phone.library
       : tab === "search"
         ? m.phone.search
         : tab === "scan"
@@ -372,8 +378,8 @@
     else if (sheet) sheet = null;
     else if (tagSheet) tagSheet = false;
     else if (confirmRemove) confirmRemove = null;
-    else if (tab === "library" && page) closePage();
     else if (tab === "library" && stack.length) back();
+    else if (tab === "library" && page) closePage();
     else if (tab !== "library") switchTab("library");
     else return false;
     return true;
@@ -405,6 +411,7 @@
     const place = overview?.inboxPlace;
     if (!place) return;
     tab = "library";
+    page = null;
     stack = [{ sourceId: place.sourceId, relPath: place.relPath, name: m.phone.inbox, inbox: true }];
     entries = [];
     loadFolder();
@@ -440,13 +447,6 @@
       favFolders = await phone.favoriteFolders().catch(() => favFolders);
       favBusy = false;
     }
-  }
-
-  function showFavoriteDocuments() {
-    favoritesOnly = true;
-    selectedTags = [];
-    query = "";
-    switchTab("search");
   }
 
   function openEntry(e: Listed) {
@@ -492,6 +492,10 @@
       if (p.kind === "comingUp") {
         coming = await phone.comingUp(false);
         if (showDone) doneItems = (await phone.comingUp(true)).items;
+      } else if (p.kind === "favorites") {
+        favFolders = await phone.favoriteFolders();
+        const found = await phone.search("", [], "any", true);
+        if (page === p) pageHits = found;
       } else {
         const found = await phone.runSavedSearch(p.search);
         if (page === p) pageHits = found;
@@ -547,6 +551,7 @@
     switch (a.kind) {
       case "openFolder":
         tab = "library";
+        page = null;
         stack = [{ sourceId: a.sourceId, relPath: a.relPath, name: a.relPath ? last(a.relPath) : sourceName(a.sourceId) }];
         entries = [];
         loadFolder();
@@ -733,7 +738,7 @@
 <div class="app">
   <header>
     {#if tab === "library" && (here || page)}
-      <button class="back" onclick={() => (page ? closePage() : back())} aria-label={m.phone.back}><Icon name="back" size={22} /></button>
+      <button class="back" onclick={() => (here ? back() : closePage())} aria-label={m.phone.back}><Icon name="back" size={22} /></button>
     {/if}
     <h1>{title}</h1>
     {#if tab === "library" && here}
@@ -775,7 +780,7 @@
 
   <main hidden={tab === "ask"}>
     {#if tab === "library"}
-      {#if page?.kind === "comingUp"}
+      {#if !here && page?.kind === "comingUp"}
         {#if coming && !comingGroups.length && !pageLoading}
           <p class="note">{m.reminders.nothing}</p>
         {/if}
@@ -798,7 +803,32 @@
           {/if}
         {/if}
         <p class="note">{m.phone.comingUpNote}</p>
-      {:else if page?.kind === "saved"}
+      {:else if !here && page?.kind === "favorites"}
+        {#if favFolders.length}
+          <h2 class="group">{m.phone.folders}</h2>
+          <ul class="list">
+            {#each favFolders as f (f.sourceId + "/" + f.relPath)}
+              <li>
+                <button class="row" onclick={() => openFavorite(f)}>
+                  <span class="icon folder"><Icon name="folder" size={22} /></span>
+                  <span class="main">
+                    <span class="name">{f.name}</span>
+                    <span class="sub">{f.relPath ? `${f.sourceName} / ${f.relPath}` : f.sourceName}</span>
+                  </span>
+                  <Icon name="chevron" />
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if pageHits.length}
+          <h2 class="group">{m.phone.documents}</h2>
+          {@render hitRows(pageHits)}
+        {/if}
+        {#if !pageLoading && !favFolders.length && !pageHits.length}
+          <p class="note">{m.phone.noFavorites}</p>
+        {/if}
+      {:else if !here && page?.kind === "saved"}
         <p class="note finds">{describe(page.search)}</p>
         {#if !pageLoading && pageHits.length === 0}
           <p class="note">{m.phone.nothingFound}</p>
@@ -826,11 +856,10 @@
             {#if settingsError}<p class="error">{settingsError}</p>{/if}
           </div>
         {:else if overview}
-          <!-- Library first, then Favorites and Saved searches (#162). -->
-          {#if favFolders.length || overview.stats.favorites || savedSearches.length}
-            <h2 class="group">{m.phone.library}</h2>
-          {/if}
-          <ul class="list">
+          <!-- As in the computer's sidebar (#162): Inbox, Coming up and
+               Favorites, then Saved searches, then the sources. -->
+          {#if overview.inboxPlace || (coming && (coming.open || coming.done)) || favCount}
+            <ul class="list top">
             {#if overview.inboxPlace}
               <li>
                 <button class="row" onclick={openInbox}>
@@ -855,44 +884,13 @@
                 </button>
               </li>
             {/if}
-            {#each library as s (s.id)}
-              <li>
-                <button class="row" onclick={() => openSource(s.id, s.name)} disabled={!s.available}>
-                  <span class="icon folder"><Icon name="library" size={22} /></span>
-                  <span class="main">
-                    <span class="name">{s.name}</span>
-                    <span class="sub">{s.available ? providerName[s.provider] : (tx?.notAvailable ?? m.phone.notAvailable)}</span>
-                  </span>
-                  <Icon name="chevron" />
-                </button>
-              </li>
-            {/each}
-          </ul>
-          {#if library.length === 0}
-            <p class="note">{m.phone.addInSettings}</p>
-          {/if}
-          {#if favFolders.length || overview.stats.favorites}
-            <h2 class="group">{m.phone.favorites}</h2>
-            <ul class="list">
-              {#each favFolders as f (f.sourceId + "/" + f.relPath)}
+              {#if favCount}
                 <li>
-                  <button class="row" onclick={() => openFavorite(f)}>
-                    <span class="icon folder"><Icon name="folder" size={22} /></span>
-                    <span class="main">
-                      <span class="name">{f.name}</span>
-                      <span class="sub">{f.relPath ? `${f.sourceName} / ${f.relPath}` : f.sourceName}</span>
-                    </span>
-                    <Icon name="chevron" />
-                  </button>
-                </li>
-              {/each}
-              {#if overview.stats.favorites}
-                <li>
-                  <button class="row" onclick={showFavoriteDocuments}>
+                  <button class="row" onclick={() => openPage({ kind: "favorites" })}>
                     <span class="icon fav"><Icon name="star" size={22} /></span>
                     <span class="main">
-                      <span class="name">{m.phone.favoriteDocuments}</span>
-                      <span class="sub">{overview.stats.favorites}</span>
+                      <span class="name">{m.phone.favorites}</span>
+                      <span class="sub">{m.phone.favoritesCount(favFolders.length, overview.stats.favorites)}</span>
                     </span>
                     <Icon name="chevron" />
                   </button>
@@ -916,6 +914,24 @@
                 </li>
               {/each}
             </ul>
+          {/if}
+          <h2 class="group">{m.main.sources}</h2>
+          <ul class="list">
+            {#each library as s (s.id)}
+              <li>
+                <button class="row" onclick={() => openSource(s.id, s.name)} disabled={!s.available}>
+                  <span class="icon folder"><Icon name="library" size={22} /></span>
+                  <span class="main">
+                    <span class="name">{s.name}</span>
+                    <span class="sub">{s.available ? providerName[s.provider] : (tx?.notAvailable ?? m.phone.notAvailable)}</span>
+                  </span>
+                  <Icon name="chevron" />
+                </button>
+              </li>
+            {/each}
+          </ul>
+          {#if library.length === 0}
+            <p class="note">{m.phone.addInSettings}</p>
           {/if}
           <p class="note">{m.phone.stats(overview.stats.documents, overview.stats.withText)}</p>
         {/if}

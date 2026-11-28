@@ -1018,6 +1018,13 @@ const en = {
     googleDriveSignInFirst: "Google Drive folders need a sign-in first: Settings ▸ Google Drive.",
     favorites: "Favorites",
     favoriteDocuments: "Favorite documents",
+    favoritesCount: (folders: number, documents: number) =>
+      [folders ? `${num(folders)} ${plural(folders, "folder", "folders")}` : "", documents ? `${num(documents)} ${plural(documents, "document", "documents")}` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    folders: "Folders",
+    documents: "Documents",
+    noFavorites: "No favorites yet. Star a folder here, or a document in Rupert on your computer.",
     // Coming up on the phone (#162): read-only.
     comingUpCount: (open: number, overdue: number) =>
       open === 0 ? "Nothing due" : overdue ? `${num(open)} due · ${num(overdue)} overdue` : `${num(open)} due`,

@@ -1033,6 +1033,13 @@ const de: Messages = {
     googleDriveSignInFirst: "Für Google Drive-Ordner ist zuerst eine Anmeldung nötig: Einstellungen ▸ Google Drive.",
     favorites: "Favoriten",
     favoriteDocuments: "Favorisierte Dokumente",
+    favoritesCount: (folders: number, documents: number) =>
+      [folders ? `${num(folders)} ${plural(folders, "Ordner", "Ordner")}` : "", documents ? `${num(documents)} ${plural(documents, "Dokument", "Dokumente")}` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    folders: "Ordner",
+    documents: "Dokumente",
+    noFavorites: "Noch keine Favoriten. Markieren Sie hier einen Ordner mit dem Stern oder ein Dokument in Rupert auf Ihrem Computer.",
     // Demnächst fällig auf dem Telefon (#162): nur lesen.
     comingUpCount: (open: number, overdue: number) =>
       open === 0 ? "Nichts fällig" : overdue ? `${num(open)} fällig · ${num(overdue)} überfällig` : `${num(open)} fällig`,
