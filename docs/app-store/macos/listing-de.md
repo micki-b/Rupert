@@ -39,6 +39,15 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.10.2 [4000]
+
+Kleine Korrekturen.
+
+• Ein × neben einem Fälligkeitsdatum entfernt es, im Eingang und in den Details.
+• Einstellungen und Hilfe unten links im Fenster sind jetzt Symbole.
+• Das Menü „Anzeigen“ in „Demnächst fällig“ sieht aus wie die Suchfilter darüber.
+• „Demnächst fällig“ und gespeicherte Suchen gibt es jetzt auch auf dem iPhone.
+
 ## What's new in 0.10.1 [4000]
 
 Kleine Korrekturen.

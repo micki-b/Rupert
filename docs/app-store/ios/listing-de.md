@@ -51,6 +51,14 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.10.2 [4000]
+
+„Demnächst fällig“ und gespeicherte Suchen auf Ihrem iPhone.
+
+• „Demnächst fällig“ in der Bibliothek listet fällige Dokumente, überfällige zuerst, mit Absender und Betrag.
+• Ihre gespeicherten Suchen öffnen sich mit allen Filtern, auch aus „Rupert fragen“.
+• Die Bibliothek ist wie die Seitenleiste auf Ihrem Computer geordnet: Eingang, „Demnächst fällig“ und Favoriten, dann gespeicherte Suchen und Ordner.
+
 ## What's new in 0.10.0 [4000]
 
 Sehen Sie, von wem ein Dokument ist, seinen Betrag und seine Fälligkeit.

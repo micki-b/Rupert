@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.2 — 2026-11-28
+
+Coming up and saved searches on the phones.
+
+- **Phones: Coming up and saved searches** (#162): the Library tab on the iPhone and Android is now arranged like the computer's sidebar: Inbox, Coming up and Favorites, then Saved searches, then the folders. **Coming up** lists every document that's due and not done, overdue first, with who it's from and the amount; the done ones are a tap away. A **saved search** opens with all its filters, also when Ask Rupert shows one. Both are read-only: mark documents done and save searches on the computer.
+- **Coming up on the computer** (#166): its **Show** menu looks like the search filters above it.
+
 ## 0.10.1 — 2026-11-28
 
 Small fixes.
