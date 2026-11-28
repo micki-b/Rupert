@@ -504,7 +504,7 @@
     <b>Renombrar…</b>, <b>Actualizar con la búsqueda actual</b> (después de cambiar la búsqueda en pantalla) o
     <b>Eliminar…</b> (solo se olvida la búsqueda). Una búsqueda guardada se guarda con la fuente en la que busca (una
     en todas las fuentes, con la primera), en su carpeta oculta <code>.rupert</code>, así que tus otras computadoras
-    también la ven. Preguntale a Rupert puede listarlas y mostrar una: «mostrame mi búsqueda de impuestos».
+    y las apps de Rupert para teléfonos también la ven. Preguntale a Rupert puede listarlas y mostrar una: «mostrame mi búsqueda de impuestos».
   </p>
 </section>
 
@@ -585,6 +585,11 @@
     ¿No lo necesitás? Desactivá <b>Avisos y Próximos vencimientos</b> arriba de todo en <b>Configuración ▸ Avisos</b>:
     Próximos vencimientos desaparece de la barra lateral y Detalles ya no muestra <b>Avisarme</b> ni <b>Resuelto</b>.
     Las fechas de vencimiento se mantienen.
+  </p>
+  <p>
+    Las apps para iPhone y Android también muestran Próximos vencimientos, en su pestaña Biblioteca: todos los documentos
+    con fecha de vencimiento que no estén resueltos (los tiempos de aviso son propios de esta computadora, así que el
+    teléfono no los usa). Marcá los documentos como resueltos acá.
   </p>
 </section>
 
@@ -1164,6 +1169,12 @@
       <b>Buscá y recorré</b> títulos, etiquetas y texto. El texto sale de lo que Rupert leyó en tu computadora, así que
       dejá que termine ahí su primera pasada.
     </li>
+    <li>
+      <b>Próximos vencimientos y búsquedas guardadas</b> están en la pestaña Biblioteca: Próximos vencimientos, debajo de
+      la Bandeja de entrada, lista todos los documentos con fecha de vencimiento que no estén resueltos, del más próximo
+      al más lejano, y tus <b>Búsquedas guardadas</b> (debajo de Favoritos) se abren con todos sus filtros. Las dos son
+      de solo lectura: marcá documentos como resueltos y guardá búsquedas con Rupert en la computadora.
+    </li>
     <li><b>Abrí</b> un documento para descargarlo y verlo, y después compartirlo o imprimirlo.</li>
     <li>
       <b>Compartí</b> un documento (junto a Abrir) para enviarlo con Mail, Mensajes, AirDrop u otra app. Como en la
@@ -1223,6 +1234,7 @@
     <li>
       <b>Buscá, recorré y abrí</b> documentos. Al abrir uno, se descarga y se muestra en otra app, como tu visor de PDF.
     </li>
+    <li><b>Próximos vencimientos y búsquedas guardadas</b> están en la pestaña Biblioteca, como en el iPhone.</li>
     <li>
       <b>Vistas</b>: lista, íconos grandes o galería, como en el iPhone, con imágenes de Google Drive o OneDrive.
     </li>

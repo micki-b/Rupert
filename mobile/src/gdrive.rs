@@ -384,6 +384,7 @@ fn sync_all(app: &AppHandle) -> Result<(), String> {
             &mut on_progress,
         )
         .map_err(err)?;
+        crate::cloud::keep_saved_searches(app, &folder.id, &listing.files, &fetch);
         gd.listings
             .lock()
             .unwrap()

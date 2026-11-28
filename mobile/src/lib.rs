@@ -32,6 +32,8 @@ use onedrive::OneDrive;
 
 use rupert_core::camera;
 use rupert_core::indexer::{self, Mode, Options, PrepareHidden};
+use rupert_core::reminders::{self, Dated, Day, Group, ReminderSettings, Show};
+use rupert_core::saved_search::{self, SavedSearch};
 use rupert_core::text::TextExtractor;
 use rupert_core::{
     DocInfo, Entry, FolderMeta, Hit, Index, IndexStats, IndexerHandle, Job, Progress, Provider,
@@ -860,6 +862,122 @@ fn search(query: SearchArgs, state: State<AppState>) -> CmdResult<Vec<Hit>> {
     state.index.lock().unwrap().search(&q).map_err(err)
 }
 
+// MARK: - Commands: saved searches and Coming up (#162)
+
+/// A saved search and the source it's kept with (see `rupert_core::saved_search`).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ListedSearch {
+    source_id: String,
+    #[serde(flatten)]
+    search: SavedSearch,
+}
+
+/// The saved searches in the library's folders, by name: read from each
+/// folder on the phone (fetched with Rupert's other files while indexing)
+/// and from the copies kept of the cloud folders'. Read-only.
+#[tauri::command]
+async fn saved_searches(app: AppHandle) -> CmdResult<Vec<ListedSearch>> {
+    blocking(move || {
+        let state = app.state::<AppState>();
+        let local = state
+            .sources()
+            .into_iter()
+            .map(|s| (s.id, saved_search::list(&s.root)));
+        let remote: Vec<String> = state
+            .saved
+            .lock()
+            .unwrap()
+            .saved
+            .remote
+            .iter()
+            .map(|f| f.id.clone())
+            .collect();
+        let remote = remote.into_iter().map(|id| {
+            let found = cloud::saved_searches(&app, &id);
+            (id, found)
+        });
+        let mut all: Vec<ListedSearch> = local
+            .chain(remote)
+            .flat_map(|(source_id, found)| {
+                found.into_iter().map(move |search| ListedSearch {
+                    source_id: source_id.clone(),
+                    search,
+                })
+            })
+            .collect();
+        all.sort_by_key(|l| l.search.name.to_lowercase());
+        Ok(all)
+    })
+    .await
+}
+
+/// Runs a saved search with all its filters, as the computer does.
+#[tauri::command]
+fn run_saved_search(
+    source_id: String,
+    search: SavedSearch,
+    state: State<AppState>,
+) -> CmdResult<Vec<Hit>> {
+    let q = search.query(&source_id, Day::today(), 200);
+    state.index.lock().unwrap().search(&q).map_err(err)
+}
+
+/// Coming up on the phone: every document with a due date that isn't done
+/// (or, with `done`, those marked done), and how many there are of each.
+/// Lead times are each computer's own setting, so the phone doesn't use them.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ComingUp {
+    items: Vec<reminders::Item>,
+    /// Not done, and overdue.
+    open: usize,
+    overdue: usize,
+    done: usize,
+}
+
+#[tauri::command]
+async fn coming_up(done: bool, app: AppHandle) -> CmdResult<ComingUp> {
+    blocking(move || {
+        let state = app.state::<AppState>();
+        let mut ids: Vec<String> = state.sources().into_iter().map(|s| s.id).collect();
+        ids.extend(
+            state
+                .saved
+                .lock()
+                .unwrap()
+                .saved
+                .remote
+                .iter()
+                .map(|f| f.id.clone()),
+        );
+        let docs: Vec<Dated> = state
+            .index
+            .lock()
+            .unwrap()
+            .dated()
+            .map_err(err)?
+            .into_iter()
+            .filter(|d| ids.contains(&d.source_id))
+            .collect();
+        let today = Day::today();
+        let settings = ReminderSettings::default();
+        let open = reminders::coming_up(docs.clone(), &settings, today, Show::All);
+        let done_count = docs.iter().filter(|d| d.done.is_some()).count();
+        Ok(ComingUp {
+            overdue: open.iter().filter(|i| i.group == Group::Overdue).count(),
+            open: open.len(),
+            done: done_count,
+            items: if done {
+                reminders::coming_up(docs, &settings, today, Show::Done)
+            } else {
+                open
+            },
+        })
+    })
+    .await
+}
+
 /// Tags for the tag filter (see `Index::tag_suggestions`).
 #[tauri::command]
 fn tag_suggestions(
@@ -1366,6 +1484,9 @@ pub fn run() {
             favorite_folders,
             set_folder_favorite,
             tag_suggestions,
+            saved_searches,
+            run_saved_search,
+            coming_up,
             document,
             open_document,
             scan,

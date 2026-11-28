@@ -1032,6 +1032,16 @@ const es: Messages = {
       "Para las carpetas de Google Drive primero hay que iniciar sesión: Configuración ▸ Google Drive.",
     favorites: "Favoritos",
     favoriteDocuments: "Documentos favoritos",
+    // Próximos vencimientos en el teléfono (#162): solo lectura.
+    comingUpCount: (open: number, overdue: number) =>
+      open === 0
+        ? "Nada pendiente"
+        : overdue
+          ? `${num(open)} ${plural(open, "pendiente", "pendientes")} · ${num(overdue)} ${plural(overdue, "vencido", "vencidos")}`
+          : `${num(open)} ${plural(open, "pendiente", "pendientes")}`,
+    showDone: (n: number) => `Mostrar resueltos (${num(n)})`,
+    hideDone: "Ocultar resueltos",
+    comingUpNote: "Para marcar un documento como resuelto, usá Rupert en tu computadora.",
     newScans: (inbox: string) => `Escaneos nuevos · ${inbox}`,
     notAvailable: "No disponible en este iPhone",
     addInSettings: "Agregá las carpetas donde tenés tus documentos en Configuración ▸ Carpetas de la biblioteca.",

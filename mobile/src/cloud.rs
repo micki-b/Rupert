@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use rupert_core::folder_info::FolderInfo;
+use rupert_core::remote::{Fetch, RemoteFile};
+use rupert_core::saved_search::{self, SavedSearch};
 use rupert_core::{Provider, Source};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -229,4 +231,49 @@ pub fn tidy_cache(app: &AppHandle) {
         }
     }
     walk(&dir, max_age);
+}
+
+// MARK: - Saved searches (#162)
+
+/// Where a copy of each cloud folder's saved searches is kept, so the
+/// Library lists them before the next sync (and offline).
+fn searches_file(app: &AppHandle, folder_id: &str) -> Result<PathBuf, String> {
+    Ok(app
+        .path()
+        .app_data_dir()
+        .map_err(crate::err)?
+        .join("saved-searches")
+        .join(format!("{folder_id}.json")))
+}
+
+/// After a sync: keeps a copy of the folder's `.rupert/searches.json` when
+/// the listing has one, or forgets the copy when it's gone. Read-only
+/// toward the folder.
+pub fn keep_saved_searches(app: &AppHandle, folder_id: &str, files: &[RemoteFile], fetch: &Fetch) {
+    let Ok(path) = searches_file(app, folder_id) else {
+        return;
+    };
+    if !files.iter().any(|f| f.rel_path == saved_search::REL_PATH) {
+        let _ = std::fs::remove_file(&path);
+        return;
+    }
+    match fetch(saved_search::REL_PATH) {
+        Ok(bytes) => {
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let _ = std::fs::write(&path, bytes);
+        }
+        // Keep the last copy; the next sync tries again.
+        Err(e) => eprintln!("rupert: couldn't fetch saved searches: {e}"),
+    }
+}
+
+/// The saved searches last fetched from a cloud folder.
+pub fn saved_searches(app: &AppHandle, folder_id: &str) -> Vec<SavedSearch> {
+    searches_file(app, folder_id)
+        .ok()
+        .and_then(|path| std::fs::read(path).ok())
+        .map(|bytes| saved_search::parse(&bytes))
+        .unwrap_or_default()
 }

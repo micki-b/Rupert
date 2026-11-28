@@ -1018,6 +1018,12 @@ const en = {
     googleDriveSignInFirst: "Google Drive folders need a sign-in first: Settings ▸ Google Drive.",
     favorites: "Favorites",
     favoriteDocuments: "Favorite documents",
+    // Coming up on the phone (#162): read-only.
+    comingUpCount: (open: number, overdue: number) =>
+      open === 0 ? "Nothing due" : overdue ? `${num(open)} due · ${num(overdue)} overdue` : `${num(open)} due`,
+    showDone: (n: number) => `Show done (${num(n)})`,
+    hideDone: "Hide done",
+    comingUpNote: "To mark a document done, use Rupert on your computer.",
     newScans: (inbox: string) => `New scans · ${inbox}`,
     notAvailable: "Not available on this iPhone",
     addInSettings: "Add the folders that hold your documents in Settings ▸ Library folders.",

@@ -294,6 +294,7 @@ fn sync_all(app: &AppHandle) -> Result<(), String> {
         };
         let result = remote::sync(&index, &folder.source(), &files, &fetch, &mut on_progress)
             .map_err(err)?;
+        crate::cloud::keep_saved_searches(app, &folder.id, &files, &fetch);
         if result.indexed + result.removed > 0 {
             let _ = app.emit(INDEX_CHANGED, ());
         }

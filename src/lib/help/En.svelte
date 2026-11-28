@@ -465,7 +465,7 @@
     (“this year” means the current year). Right-click one to <b>Rename…</b>, <b>Update to the Current Search</b>
     (after changing the search on screen) or <b>Remove…</b> (only the search is forgotten). A saved search is kept with
     the source it searches (one over all sources with the first), in its hidden <code>.rupert</code> folder, so your
-    other computers see it too. Ask Rupert can list them and show one: “show my tax search”.
+    other computers and the Rupert phone apps see it too. Ask Rupert can list them and show one: “show my tax search”.
   </p>
 </section>
 
@@ -539,6 +539,10 @@
   <p>
     Don't need any of it? Turn off <b>Reminders and Coming up</b> at the top of <b>Settings ▸ Reminders</b>: Coming up
     leaves the sidebar and Details no longer shows <b>Remind me</b> or <b>Done</b>. Due dates stay.
+  </p>
+  <p>
+    The iPhone and Android apps show Coming up too, in their Library tab: every document with a due date that isn't done
+    (the reminder times are this computer's own, so the phone doesn't use them). Mark documents done here.
   </p>
 </section>
 
@@ -1083,6 +1087,11 @@
       <b>Search and browse</b> titles, tags and text. The text comes from what Rupert on your computer has read, so let it
       finish its first pass there.
     </li>
+    <li>
+      <b>Coming up and saved searches</b> are in the Library tab: Coming up below the Inbox lists every document with a due
+      date that isn't done, soonest first, and your <b>Saved searches</b> (below Favorites) open with all their filters.
+      Both are read-only: mark documents done and save searches with Rupert on the computer.
+    </li>
     <li><b>Open</b> a document to download and view it, then share or print it.</li>
     <li>
       <b>Share</b> a document (beside Open) to send it with Mail, Messages, AirDrop or another app. As on the computer, a
@@ -1138,6 +1147,7 @@
       <b>Search, browse and open</b> documents. Opening one downloads it and shows it in another app, such as your PDF
       viewer.
     </li>
+    <li><b>Coming up and saved searches</b> are in the Library tab, as on the iPhone.</li>
     <li>
       <b>Views</b>: a list, large icons or a gallery, as on the iPhone, with pictures from Google Drive or OneDrive.
     </li>

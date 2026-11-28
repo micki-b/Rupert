@@ -1033,6 +1033,12 @@ const de: Messages = {
     googleDriveSignInFirst: "Für Google Drive-Ordner ist zuerst eine Anmeldung nötig: Einstellungen ▸ Google Drive.",
     favorites: "Favoriten",
     favoriteDocuments: "Favorisierte Dokumente",
+    // Demnächst fällig auf dem Telefon (#162): nur lesen.
+    comingUpCount: (open: number, overdue: number) =>
+      open === 0 ? "Nichts fällig" : overdue ? `${num(open)} fällig · ${num(overdue)} überfällig` : `${num(open)} fällig`,
+    showDone: (n: number) => `Erledigte zeigen (${num(n)})`,
+    hideDone: "Erledigte ausblenden",
+    comingUpNote: "Als erledigt markieren Sie ein Dokument in Rupert auf Ihrem Computer.",
     newScans: (inbox: string) => `Neue Scans · ${inbox}`,
     notAvailable: "Auf diesem iPhone nicht verfügbar",
     addInSettings: "Fügen Sie die Ordner mit Ihren Dokumenten unter Einstellungen ▸ Bibliotheksordner hinzu.",

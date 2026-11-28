@@ -12,11 +12,22 @@ import type {
   IndexStats,
   Progress,
   Provider,
+  ReminderItem,
+  SavedSearch,
   TagCount,
   TagMode,
 } from "#lib/api.ts";
 
-export type { AssistantAction, AssistantStep, FavoriteFolder };
+export type { AssistantAction, AssistantStep, FavoriteFolder, ReminderItem, SavedSearch };
+
+/** Coming up on the phone (#162): every document due and not done, or with
+ * `done` those marked done; the counts are for the Library's row. */
+export interface PhoneComingUp {
+  items: ReminderItem[];
+  open: number;
+  overdue: number;
+  done: number;
+}
 
 export type { Entry, Hit, Progress, TagCount };
 
@@ -132,6 +143,13 @@ export const phone = {
     invoke<Hit[]>("search", { query: { text, tags, tagMode, favoritesOnly } }),
   tags: () => invoke<TagCount[]>("list_tags"),
   favoriteFolders: () => invoke<FavoriteFolder[]>("favorite_folders"),
+  /** Saved searches (#110) from the library's folders, read-only (#162). */
+  savedSearches: () => invoke<SavedSearch[]>("saved_searches"),
+  runSavedSearch: (s: SavedSearch) => {
+    const { sourceId, ...search } = s;
+    return invoke<Hit[]>("run_saved_search", { sourceId, search });
+  },
+  comingUp: (done: boolean) => invoke<PhoneComingUp>("coming_up", { done }),
   setFolderFavorite: (sourceId: string, relPath: string, favorite: boolean) =>
     invoke<void>("set_folder_favorite", { sourceId, relPath, favorite }),
   document: (sourceId: string, relPath: string) => invoke<DocInfo | null>("document", { sourceId, relPath }),
