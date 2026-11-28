@@ -2,6 +2,29 @@
 
 One block per build uploaded to Google Play, newest first. Paste the whole block into Play Console's **Release notes** field (Test and release ▸ Testing ▸ Closed testing, or Production ▸ Create new release): the tags are Play's language codes, and Play fills in each language from its tag. At most 500 characters per language. Each block covers everything since the previous build on Google Play, not only its own version.
 
+## 0.10.0 (version code: added when the bundle is built)
+
+Since 0.9.0. If 0.9.0 never reached Google Play, put its lines (page citations, faster search) in front of these.
+
+```
+<en-US>
+A document's details show who it's from, its amount and its due date.
+Ask Rupert can add up amounts: "how much did I pay the dentist this year?"
+</en-US>
+<es-419>
+Los detalles de un documento muestran de quién es, su importe y cuándo vence.
+Preguntale a Rupert puede sumar importes: «¿cuánto le pagué al dentista este año?»
+</es-419>
+<es-ES>
+Los detalles de un documento muestran de quién es, su importe y cuándo vence.
+Preguntale a Rupert puede sumar importes: «¿cuánto le pagué al dentista este año?»
+</es-ES>
+<de-DE>
+Die Details eines Dokuments zeigen, von wem es ist, den Betrag und wann es fällig ist.
+„Rupert fragen“ kann Beträge zusammenzählen: „Wie viel habe ich dieses Jahr an den Zahnarzt gezahlt?“
+</de-DE>
+```
+
 ## 0.9.0 (version code 263302331)
 
 Since 0.8.0. If 0.8.0 never reached Google Play, put 0.8.0's lines (the scan link) in front of these.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0 — 2026-11-27
+
+A smarter library.
+
+- **From, amount and due date** (#108): documents can record who they're from, the amount on them with its currency, and when they're due (to pay by, or valid until). The inbox suggests them, only when the text shows them; **Read details…** fills them in for documents you already have. Search by **From** and by due date, show them as list columns, see totals for a selection or a search, and ask Rupert "how much did I pay the dentist this year?".
+- **Coming up** (#109): a list in the sidebar of documents whose due date is near (bills a week ahead, passports and contracts three months ahead), with **Done**, **Remind me later** and **Add to Calendar…**. The count beside it shows what's overdue or due within a week. In Settings ▸ Reminders, notifications from macOS or Windows (one summary a day, or one per document) that arrive even when Rupert is closed, and the count on the Dock icon. One switch turns it all off.
+- **Saved searches** (#110): **Save Search…** keeps a search with its filters under a name in the sidebar; one click runs it again. They're kept with the library, so your other computers see them, and Ask Rupert can show one.
+- **Library health and duplicates** (#111, #113): **Library health** in the sidebar shows what could be better, with a fix for each: duplicate copies (compare side by side, keep one, or keep all as they are), scans without text (recognized in place), online-only documents not yet indexed, documents without a date or tags (suggested), and scanner-style names.
+- **Suggestions that learn, and File all** (#112): inbox suggestions learn from how you filed similar documents. A suggestion that matches them is marked **Sure**, and **File All Sure Ones…** files them all after a review, with one Undo.
+- **Inbox in a cloud folder** (#144): online-only scans in the inbox are downloaded so they can be read and filed, and Settings ▸ Inbox recommends keeping the folder downloaded.
+- **Google Drive on Windows** (#153, #155): the inbox shows its page previews, and a source can be marked **Files here are available offline**, so its files count as on the computer.
+- **Fixed:** the right column no longer flickers at some widths on Windows. Finder aliases are left out of the library. Counts past 999 read 1.2K.
+- **Phones:** a document's details show who it's from, its amount and its due date, and Ask Rupert can add up amounts.
+
 ## 0.9.0 — 2026-11-26
 
 Working with many documents.

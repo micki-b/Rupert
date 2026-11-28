@@ -51,6 +51,13 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.10.0 [4000]
+
+Mirá de quién es un documento, su importe y su vencimiento.
+
+• Los detalles de un documento muestran de quién es, su importe y cuándo vence.
+• Preguntale a Rupert puede sumar importes: «¿cuánto le pagué al dentista este año?»
+
 ## What's new in 0.9.0 [4000]
 
 Preguntale a Rupert dice de qué página sale una respuesta.

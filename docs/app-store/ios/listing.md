@@ -61,6 +61,13 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.10.0 [4000]
+
+See who a document is from, its amount and its due date.
+
+• A document's details show who it's from, the amount on it and when it's due.
+• Ask Rupert can add up amounts: "how much did I pay the dentist this year?"
+
 ## What's new in 0.9.0 [4000]
 
 Ask Rupert names the page an answer comes from.

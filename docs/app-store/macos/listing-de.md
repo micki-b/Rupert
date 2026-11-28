@@ -39,6 +39,18 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,ablage,tags,archiv,ki,lm studio,ollama`
 
+## What's new in 0.10.0 [4000]
+
+Eine klügere Bibliothek: Fälligkeiten und Erinnerungen, gespeicherte Suchen, ein Zustandsbericht und ein Eingang, der dazulernt.
+
+• Von, Betrag und Fälligkeit: Rupert schlägt vor, von wem ein Dokument ist, seinen Betrag und wann es fällig ist, und zählt Beträge einer Auswahl oder Suche zusammen.
+• Demnächst fällig: Dokumente, die bald fällig sind, mit Erledigt, Später erinnern und Zum Kalender hinzufügen. Wahlweise Mitteilungen und eine Zahl auf dem Dock-Symbol.
+• Gespeicherte Suchen in der Seitenleiste: Ein Klick wiederholt eine Suche.
+• Zustand der Bibliothek: doppelte Kopien finden und nebeneinander vergleichen, Text in alten Scans erkennen und fehlende Daten und Tags ergänzen.
+• Der Eingang lernt daraus, wie Sie ähnliche Dokumente abgelegt haben, und „Alle sicheren ablegen“ legt die eindeutigen auf einmal ab.
+• Ein Eingang in iCloud Drive oder OneDrive funktioniert mit Nur-online-Scans.
+• Fehlerbehebungen.
+
 ## What's new in 0.9.0 [4000]
 
 Mit vielen Dokumenten auf einmal arbeiten.

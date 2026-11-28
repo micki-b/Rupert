@@ -51,6 +51,13 @@ Rupert ist kostenlos und quelloffen.
 
 `scanner,dokumente,pdf,suche,ocr,belege,rechnungen,papierlos,onedrive,icloud,archiv,ki,assistent`
 
+## What's new in 0.10.0 [4000]
+
+Sehen Sie, von wem ein Dokument ist, seinen Betrag und seine Fälligkeit.
+
+• Die Details eines Dokuments zeigen, von wem es ist, den Betrag und wann es fällig ist.
+• „Rupert fragen“ kann Beträge zusammenzählen: „Wie viel habe ich dieses Jahr an den Zahnarzt gezahlt?“
+
 ## What's new in 0.9.0 [4000]
 
 „Rupert fragen“ nennt die Seite, aus der eine Antwort stammt.

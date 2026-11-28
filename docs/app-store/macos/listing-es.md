@@ -39,6 +39,18 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.10.0 [4000]
+
+Una biblioteca más inteligente: vencimientos y avisos, búsquedas guardadas, un control de salud y una bandeja de entrada que aprende.
+
+• De, importe y vencimiento: Rupert sugiere de quién es un documento, su importe y cuándo vence, y suma los importes de una selección o una búsqueda.
+• Próximos vencimientos: los documentos que vencen pronto, con Resuelto, Recordármelo más tarde y Agregar al calendario. Notificaciones opcionales y un contador en el ícono del Dock.
+• Búsquedas guardadas en la barra lateral: un clic repite una búsqueda.
+• Estado de la biblioteca: encontrá copias duplicadas y comparalas lado a lado, reconocé el texto de escaneos viejos y completá fechas y etiquetas que faltan.
+• La bandeja de entrada aprende de cómo archivaste documentos parecidos, y Archivar todos los seguros archiva los evidentes de una vez.
+• Una bandeja de entrada en iCloud Drive u OneDrive funciona con escaneos solo en línea.
+• Correcciones.
+
 ## What's new in 0.9.0 [4000]
 
 Trabajá con muchos documentos a la vez.
