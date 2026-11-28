@@ -2,7 +2,7 @@
 
 One block per build uploaded to Google Play, newest first. Paste the whole block into Play Console's **Release notes** field (Test and release ▸ Testing ▸ Closed testing, or Production ▸ Create new release): the tags are Play's language codes, and Play fills in each language from its tag. At most 500 characters per language. Each block covers everything since the previous build on Google Play, not only its own version.
 
-## 0.10.2 (version code: added when the bundle is built)
+## 0.10.2 (version code 263320907)
 
 Since 0.10.0 (0.10.1 changed only the computer version).
 
