@@ -27,6 +27,7 @@ fn main() {
                 root,
                 show_all_types: false,
                 download_online_only: false,
+                offline: false,
                 bookmark: None,
             }
         })

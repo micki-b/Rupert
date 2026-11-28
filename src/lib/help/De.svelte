@@ -377,7 +377,10 @@
     auf dem Computer liegen, daher behandelt Rupert jede Datei auf dem Laufwerk <b>Google Drive (G:)</b> als nur online.
     Titel, Tags und Text kommen dann von Rupert auf einem anderen Computer (über den gemeinsamen Katalog) oder von
     <b>Nur-online-Dateien zum Indexieren laden</b>. Mit <b>Dateien spiegeln</b> liegt alles auf dem Computer und wird
-    normal gelesen.
+    normal gelesen. Haben Sie den Ordner einer Quelle im Explorer <b>Offline verfügbar</b> gemacht, schalten Sie im
+    Menü <b>⋯</b> der Quelle (oder unter Einstellungen ▸ Bibliothek) <b>Dateien hier sind offline verfügbar</b> ein:
+    Rupert behandelt ihre Dateien dann wie Dateien auf diesem Computer, mit Vorschauen und Text. Der Eingangsordner
+    wird ohnehin gelesen.
   </p>
   <p>
     Um den <em>Text</em> von Dokumenten zu durchsuchen, die nur online verfügbar sind, schalten Sie für diesen Ordner

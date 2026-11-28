@@ -920,6 +920,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         Fixture {
@@ -1108,6 +1109,7 @@ mod tests {
             provider: Provider::OneDrive,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         let item = ImportItem {

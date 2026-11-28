@@ -20,6 +20,7 @@ fn main() {
         provider: Provider::Local,
         show_all_types: false,
         download_online_only: false,
+        offline: false,
         bookmark: None,
     };
     // Real sources only lend their names to folder suggestions; nothing is

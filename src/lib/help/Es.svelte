@@ -367,7 +367,10 @@
     computadora, así que Rupert trata todos los archivos de su unidad <b>Google Drive (G:)</b> como solo en línea. Los
     títulos, las etiquetas y el texto vienen entonces de Rupert en otra computadora (a través del catálogo compartido), o
     de <b>Descargar los archivos solo en línea para indexarlos</b>. Con Google Drive en <b>Duplicar archivos</b>, todo
-    está en la computadora y se lee como siempre.
+    está en la computadora y se lee como siempre. Si marcaste la carpeta de una fuente como <b>Disponible sin
+    conexión</b> en el Explorador de archivos, activá <b>Los archivos de acá están disponibles sin conexión</b> en el
+    menú <b>⋯</b> de la fuente (o en Configuración ▸ Biblioteca): Rupert trata entonces sus archivos como si estuvieran
+    en esta computadora, con vistas previas y texto. La carpeta de la bandeja de entrada se lee de todos modos.
   </p>
   <p>
     Para buscar en el <em>texto</em> de los documentos solo en línea, activá <b>Descargar los archivos solo en línea para

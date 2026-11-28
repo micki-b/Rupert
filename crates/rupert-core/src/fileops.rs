@@ -683,6 +683,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         assert_eq!(create_folder(&src, "", "Boats").unwrap(), "Boats");
@@ -747,6 +748,7 @@ mod tests {
             provider: Provider::OneDrive,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         catalog::write(
@@ -939,6 +941,7 @@ mod tests {
             provider,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         }
     }

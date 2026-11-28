@@ -82,8 +82,36 @@ fn xattr(path: &Path, name: &str) -> Option<String> {
 /// and iCloud Drive mark online-only files, and Google Drive does on macOS,
 /// so this is only ever true on Windows. Everything on such a drive counts
 /// as online-only: reading it would download it.
-#[cfg(windows)]
+///
+/// A folder the person said is kept "Available offline" (a source's
+/// [`crate::Source::offline`], see [`set_offline_roots`]) doesn't count.
 pub fn streams_on_demand(path: &Path) -> bool {
+    drive_streams(path) && !kept_offline(path)
+}
+
+/// Sources whose folders are kept available offline on a streaming drive
+/// (#155): their files count as on this computer. Set by the app whenever
+/// its sources change.
+static OFFLINE_ROOTS: std::sync::RwLock<Vec<std::path::PathBuf>> =
+    std::sync::RwLock::new(Vec::new());
+
+pub fn set_offline_roots(roots: Vec<std::path::PathBuf>) {
+    *OFFLINE_ROOTS.write().unwrap() = roots;
+}
+
+fn kept_offline(path: &Path) -> bool {
+    OFFLINE_ROOTS
+        .read()
+        .unwrap()
+        .iter()
+        .any(|root| path.starts_with(root))
+}
+
+/// Whether `path` is on a drive that streams files without saying which are
+/// on this computer (Google Drive for desktop on Windows), whatever the
+/// person said about it: for showing the "available offline" switch.
+#[cfg(windows)]
+pub fn drive_streams(path: &Path) -> bool {
     use std::collections::HashMap;
     use std::os::windows::ffi::OsStrExt;
     use std::path::PathBuf;
@@ -129,7 +157,7 @@ pub fn streams_on_demand(path: &Path) -> bool {
 }
 
 #[cfg(not(windows))]
-pub fn streams_on_demand(_path: &Path) -> bool {
+pub fn drive_streams(_path: &Path) -> bool {
     false
 }
 
@@ -260,6 +288,15 @@ pub fn keep_downloaded(_path: &Path) -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn folders_kept_offline() {
+        set_offline_roots(vec!["/G/My Drive/Scans".into()]);
+        assert!(kept_offline(Path::new("/G/My Drive/Scans/2026/bill.pdf")));
+        assert!(!kept_offline(Path::new("/G/My Drive/Scansion/bill.pdf")));
+        assert!(!kept_offline(Path::new("/G/My Drive/Other")));
+        set_offline_roots(Vec::new());
+    }
     use super::*;
 
     #[test]
