@@ -522,6 +522,7 @@ mod tests {
             provider: crate::source::Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         }];
         let c = candidates(&idx, None).unwrap();

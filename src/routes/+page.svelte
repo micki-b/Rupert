@@ -1124,6 +1124,19 @@
     await loadSources();
   }
 
+  /** #155: a Google Drive folder kept available offline (Windows). */
+  async function toggleOffline(s: Source) {
+    menuFor = null;
+    const on = !s.offline;
+    if (on) {
+      const ok = await ask(m.main.offlineAsk(s.name), { title: m.main.offlineTitle, kind: "info", okLabel: m.main.offlineOk });
+      if (!ok) return;
+    }
+    await run(() => api.updateSource(s.id, { offline: on }));
+    await loadSources();
+    if (folder?.sourceId === s.id) loadEntries();
+  }
+
   function startRename(s: Source) {
     menuFor = null;
     renaming = s.id;
@@ -2254,6 +2267,11 @@
           title={m.main.downloadTip}
         >
           <span class="check">{s.downloadOnlineOnly ? "✓" : ""}</span>{m.main.downloadToIndex}
+        </button>
+      {/if}
+      {#if s.streaming}
+        <button role="menuitemcheckbox" aria-checked={s.offline} onclick={() => toggleOffline(s)} title={m.main.offlineTip}>
+          <span class="check">{s.offline ? "✓" : ""}</span>{m.main.offline}
         </button>
       {/if}
       <button role="menuitem" onclick={() => indexFolder(s.id, "")} title={m.main.indexFolderTip}>

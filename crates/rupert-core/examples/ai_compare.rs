@@ -182,6 +182,7 @@ fn index(lib: &Path, folder: &Path, db: &Path, name: &str) {
         provider: Provider::Local,
         show_all_types: false,
         download_online_only: false,
+        offline: false,
         bookmark: None,
     }]));
     let start = Instant::now();

@@ -16,7 +16,11 @@ export interface Source {
   showAllTypes: boolean;
   /** Download online-only documents to read their text, then free the space. */
   downloadOnlineOnly: boolean;
+  /** Google Drive on Windows (#155): the person says its files are kept available offline. */
+  offline: boolean;
   available: boolean;
+  /** On a drive that doesn't say which files are on this computer (Google Drive on Windows). */
+  streaming: boolean;
 }
 
 export interface Entry {
@@ -619,7 +623,7 @@ export const api = {
   removeSource: (id: string) => invoke<void>("remove_source", { id }),
   updateSource: (
     id: string,
-    changes: { name?: string; showAllTypes?: boolean; downloadOnlineOnly?: boolean },
+    changes: { name?: string; showAllTypes?: boolean; downloadOnlineOnly?: boolean; offline?: boolean },
   ) =>
     invoke<Source>("update_source", { id, ...changes }),
   listDir: (sourceId: string, relPath: string) =>

@@ -72,6 +72,12 @@ pub struct Source {
     /// space again (see [`crate::cloud`]).
     #[serde(default)]
     pub download_online_only: bool,
+    /// Windows, Google Drive's streaming drive (#155): the person says the
+    /// folder is kept "Available offline", which the drive doesn't tell
+    /// programs, so its files count as on this computer (see
+    /// [`crate::cloud::streams_on_demand`]).
+    #[serde(default)]
+    pub offline: bool,
     /// macOS: a security-scoped bookmark (base64) for the folder, so a
     /// sandboxed app keeps access across launches and a moved folder is
     /// found again (see [`crate::bookmark`]). Not used on the phone.
@@ -189,6 +195,7 @@ impl SourceStore {
             provider,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         self.sources.push(source.clone());
@@ -226,6 +233,19 @@ impl SourceStore {
         if let Some(download) = download_online_only {
             source.download_online_only = download;
         }
+        let updated = source.clone();
+        self.save()?;
+        Ok(updated)
+    }
+
+    /// Marks a source as kept available offline, or not (#155).
+    pub fn set_offline(&mut self, id: &str, offline: bool) -> Result<Source> {
+        let source = self
+            .sources
+            .iter_mut()
+            .find(|s| s.id == id)
+            .ok_or(Error::UnknownSource)?;
+        source.offline = offline;
         let updated = source.clone();
         self.save()?;
         Ok(updated)

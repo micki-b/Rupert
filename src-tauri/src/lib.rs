@@ -116,6 +116,15 @@ struct AppState {
 impl AppState {
     fn rewatch(&self) {
         let store = self.store.lock().unwrap();
+        // Folders kept available offline on a streaming drive (#155).
+        rupert_core::cloud::set_offline_roots(
+            store
+                .sources()
+                .iter()
+                .filter(|s| s.offline)
+                .map(|s| s.root.clone())
+                .collect(),
+        );
         if let Some(watcher) = self.watcher.lock().unwrap().as_mut()
             && let Err(e) = watcher.set_sources(store.sources())
         {
@@ -196,13 +205,21 @@ struct SourceView {
     #[serde(flatten)]
     source: Source,
     available: bool,
+    /// On a drive that doesn't say which files are on this computer (Google
+    /// Drive on Windows): the window offers "available offline" (#155).
+    streaming: bool,
 }
 
 impl From<Source> for SourceView {
     fn from(mut source: Source) -> Self {
         let available = source.is_available();
+        let streaming = available && rupert_core::cloud::drive_streams(&source.root);
         source.bookmark = None; // opaque, and the window doesn't need it
-        Self { source, available }
+        Self {
+            source,
+            available,
+            streaming,
+        }
     }
 }
 
@@ -268,17 +285,28 @@ fn update_source(
     name: Option<String>,
     show_all_types: Option<bool>,
     download_online_only: Option<bool>,
+    offline: Option<bool>,
     app: AppHandle,
     state: State<AppState>,
 ) -> CmdResult<SourceView> {
-    let updated = state
+    let mut updated = state
         .store
         .lock()
         .unwrap()
         .update(&id, name, show_all_types, download_online_only)
         .map_err(err)?;
-    // Re-sync: the file filter changed, or downloads start/stop.
-    if show_all_types.is_some() || download_online_only.is_some() {
+    if let Some(offline) = offline {
+        updated = state
+            .store
+            .lock()
+            .unwrap()
+            .set_offline(&id, offline)
+            .map_err(err)?;
+        state.rewatch();
+    }
+    // Re-sync: the file filter changed, downloads start/stop, or its files
+    // now count as on this computer (or online-only) again.
+    if show_all_types.is_some() || download_online_only.is_some() || offline.is_some() {
         state.indexer.send(Job::SyncSource(updated.clone()));
     }
     let _ = app.emit(SOURCES_CHANGED, ());

@@ -361,6 +361,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         let index = index_as_local(root, &source);
@@ -478,6 +479,7 @@ mod tests {
             provider: Provider::Local,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         let index = index_as_local(root, &source);
@@ -533,6 +535,7 @@ mod tests {
             provider: Provider::OneDrive,
             show_all_types: false,
             download_online_only: false,
+            offline: false,
             bookmark: None,
         };
         // As if imported for an online-only PDF: details pending beside it.

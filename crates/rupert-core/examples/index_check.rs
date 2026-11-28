@@ -50,6 +50,7 @@ fn main() {
         },
         show_all_types: false,
         download_online_only: false,
+        offline: false,
         bookmark: None,
     }]));
     while !*idle.lock().unwrap() {

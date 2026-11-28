@@ -343,6 +343,9 @@
     Rupert treats every file on its <b>Google Drive (G:)</b> drive as online-only. Titles, tags and text then come
     from Rupert on another computer (through the shared catalog), or from <b>Download online-only files to index
     them</b>. With Google Drive set to <b>Mirror files</b>, everything is on the computer and read as usual.
+    If you made a source's folder <b>Available offline</b> in File Explorer, turn on <b>Files here are available
+    offline</b> in the source's <b>⋯</b> menu (or Settings ▸ Library): Rupert then treats its files as on this
+    computer, with previews and text. The inbox folder is read anyway.
   </p>
   <p>
     To search the <em>text</em> of online-only documents, turn on <b>Download online-only files to index them</b> for that
