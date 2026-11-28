@@ -39,6 +39,13 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.10.1 [4000]
+
+Pequeñas correcciones.
+
+• Una × al lado de una fecha de vencimiento la quita, en la bandeja de entrada y en Detalles.
+• Configuración y Ayuda, abajo a la izquierda de la ventana, ahora son íconos.
+
 ## What's new in 0.10.0 [4000]
 
 Una biblioteca más inteligente: vencimientos y avisos, búsquedas guardadas, un control de salud y una bandeja de entrada que aprende.
