@@ -618,6 +618,12 @@ const de: Messages = {
     textRecognition: "Texterkennung",
     recognize: "Text in Scans erkennen",
     noEngine: "Keine Texterkennung gefunden. Installieren Sie Tesseract, um sie zu aktivieren.",
+    wingetIntro: "Installieren Sie es mit winget: Kopieren Sie diesen Befehl, fügen Sie ihn in PowerShell oder das Windows-Terminal ein und drücken Sie die Eingabetaste (Windows fragt nach der Erlaubnis für das Installationsprogramm).",
+    wingetLanguages: "Für deutsche oder spanische Dokumente nehmen Sie stattdessen diesen und wählen Sie diese Sprachen unter „Additional language data“:",
+    copy: "Kopieren",
+    copied: "Kopiert",
+    checkAgain: "Erneut prüfen",
+    wingetManual: "Oder das Installationsprogramm laden",
     ocrNote:
       "Fügt gescannten PDFs eine unsichtbare Textebene hinzu, damit jedes PDF-Programm sie durchsuchen kann. Läuft auf diesem Computer.",
     localAi: "Lokale KI",

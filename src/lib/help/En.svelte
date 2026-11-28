@@ -635,6 +635,8 @@
     <div class="note">
       Text recognition on Windows and Linux uses the free <b>Tesseract</b> program. If Settings says no engine was
       found, install Tesseract and restart Rupert.
+      {#if windows}On Windows, <b>Settings ▸ Text recognition</b> shows a winget command to copy and paste into
+        PowerShell, then <b>Check Again</b> finds Tesseract without restarting.{/if}
     </div>
   {/if}
 </section>
