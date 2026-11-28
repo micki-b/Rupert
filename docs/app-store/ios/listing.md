@@ -18,38 +18,44 @@ Draft texts and answers for App Store Connect. Character limits in brackets.
 
 ## Promotional text [170]
 
-Ask Rupert about your documents and get answers right on your iPhone. Find any scan in seconds in iCloud Drive or OneDrive, and scan paper straight into your inbox.
+Find any scan in iCloud Drive, OneDrive or Google Drive in seconds, see which bills are due, scan paper straight into your inbox, and ask Rupert about your documents.
 
 ## Description [4000]
 
-Rupert is the librarian for your scanned documents. It works with the folders you already have in iCloud Drive, OneDrive or on your iPhone, so there's nothing to import and nothing to lock in.
+Rupert is the librarian for your scanned documents. It works with the folders you already have in iCloud Drive, OneDrive, Google Drive or on your iPhone, so there's nothing to import and nothing to lock in.
 
 FIND ANYTHING
 • Search titles, tags, notes and the text of your documents.
-• Filter by tags, and keep favorite documents and folders one tap away.
-• Open any document to read, share or print it.
+• Browse a folder as a list, as large icons or in a gallery.
+• Your saved searches from the computer open with all their filters.
+• Favorite documents and folders are one tap away.
+• Open any document to read or print it, or share it with Mail, Messages or AirDrop.
+
+KNOW WHAT'S DUE
+• A document's details show who it's from, the amount on it and when it's due.
+• Coming up lists the bills and other documents that are due, overdue first.
 
 SCAN STRAIGHT INTO YOUR INBOX
 • Rupert's own camera scanner finds the page's edges, straightens it and saves a sharp PDF.
 • Choose color, grayscale or black & white, and the resolution.
-• Several pages become one PDF, saved to your inbox folder in iCloud Drive or OneDrive.
-• Your inbox is always at the top of the Library, so new scans are easy to find.
+• Several pages become one PDF, saved to your inbox folder.
+• Send documents to the inbox from Mail, Files, Photos or Safari: tap Share ▸ Rupert.
+• On your computer, Scan… in Rupert shows a code: point the iPhone's camera at it to start scanning.
 
 ASK RUPERT
-On an iPhone with Apple Intelligence (iOS 26 or later), ask about your documents in your own words. Rupert searches and reads them on the iPhone itself and answers, with buttons to open what he found. Nothing leaves your iPhone.
+On an iPhone with Apple Intelligence (iOS 26 or later), ask about your documents in your own words: "How much did I pay the dentist this year?" Rupert searches and reads them on the iPhone itself, says which page an answer comes from, and gives you buttons to open what he found. Nothing leaves your iPhone.
+
+WORKS WITH RUPERT ON YOUR COMPUTER
+Rupert for Mac, Windows and Linux (free) recognizes the text in new scans, suggests a title, date, tags, sender, amount, due date and folder, learns from how you file, and files them when you agree. The details are stored inside the PDFs, so they appear on your iPhone too.
 
 IN YOUR LANGUAGE
 Rupert speaks English, Spanish and German, and uses your iPhone's language. In Spanish the owl wears the sky-blue and white striped jersey; in German, lederhosen.
-
-WORKS WITH RUPERT ON YOUR COMPUTER
-Rupert for Mac, Windows and Linux (free) recognizes the text in new scans, suggests a title, date, tags and folder, and files them when you agree. Titles, tags and dates are stored inside the PDFs, so they appear on your iPhone too.
 
 YOUR DOCUMENTS STAY YOURS
 • No account with us, no tracking, no ads. Rupert collects nothing.
 • Your files stay in your own storage; Rupert reads them where they are.
 • Online-only files aren't downloaded until you open one.
-• OneDrive: sign in with your Microsoft account; Rupert only reads your folders and adds new scans to your inbox.
-• Google Drive (preview): sign in with your Google account, the same way.
+• OneDrive and Google Drive (preview): sign in with your Microsoft or Google account. Rupert only reads your folders, adds new scans to your inbox and remembers the folders you star.
 
 Rupert is free and open source.
 

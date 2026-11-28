@@ -12,38 +12,44 @@ The German localization in App Store Connect: add **German**. Formal "Sie", like
 
 ## Promotional text [170]
 
-Fragen Sie Rupert nach Ihren Dokumenten: Er antwortet direkt auf dem iPhone. Finden Sie jeden Scan in iCloud Drive oder OneDrive und scannen Sie Papier in den Eingang.
+Finden Sie jeden Scan in iCloud Drive, OneDrive oder Google Drive in Sekunden, sehen Sie fällige Rechnungen, scannen Sie in den Eingang und fragen Sie Rupert.
 
 ## Description [4000]
 
-Rupert ist der Bibliothekar für Ihre gescannten Dokumente. Er arbeitet mit den Ordnern, die Sie schon in iCloud Drive, OneDrive oder auf Ihrem iPhone haben: Es gibt nichts zu importieren und nichts, das Sie bindet.
+Rupert ist der Bibliothekar für Ihre gescannten Dokumente. Er arbeitet mit den Ordnern, die Sie schon in iCloud Drive, OneDrive, Google Drive oder auf Ihrem iPhone haben: Es gibt nichts zu importieren und nichts, das Sie bindet.
 
 ALLES FINDEN
 • Durchsuchen Sie Titel, Tags, Notizen und den Text Ihrer Dokumente.
-• Filtern Sie nach Tags und halten Sie favorisierte Dokumente und Ordner nur einen Tipp entfernt.
-• Öffnen Sie jedes Dokument zum Lesen, Teilen oder Drucken.
+• Sehen Sie einen Ordner als Liste, als große Symbole oder in einer Galerie.
+• Ihre auf dem Computer gespeicherten Suchen öffnen sich mit allen Filtern.
+• Favorisierte Dokumente und Ordner sind nur einen Tipp entfernt.
+• Öffnen Sie jedes Dokument zum Lesen oder Drucken, oder teilen Sie es mit Mail, Nachrichten oder AirDrop.
+
+WISSEN, WAS FÄLLIG IST
+• Die Details eines Dokuments zeigen, von wem es ist, den Betrag und wann es fällig ist.
+• „Demnächst fällig“ listet Rechnungen und andere fällige Dokumente, überfällige zuerst.
 
 DIREKT IN DEN EINGANG SCANNEN
 • Ruperts eigener Scanner erkennt die Ränder der Seite, richtet sie gerade aus und speichert ein scharfes PDF.
 • Wählen Sie Farbe, Graustufen oder Schwarzweiß und die Auflösung.
-• Mehrere Seiten werden zu einem PDF, gespeichert in Ihrem Eingang in iCloud Drive oder OneDrive.
-• Der Eingang steht immer oben in der Bibliothek, sodass Sie neue Scans sofort finden.
-
-ZUSAMMEN MIT RUPERT AUF IHREM COMPUTER
-Rupert für Mac, Windows und Linux (kostenlos) erkennt den Text neuer Scans, schlägt Titel, Datum, Tags und Ordner vor und legt sie ab, wenn Sie zustimmen. Titel, Tags und Daten werden in den PDFs gespeichert und erscheinen deshalb auch auf Ihrem iPhone.
+• Mehrere Seiten werden zu einem PDF, gespeichert in Ihrem Eingang.
+• Schicken Sie Dokumente aus Mail, Dateien, Fotos oder Safari in den Eingang: Teilen ▸ Rupert.
+• Auf dem Computer zeigt „Scannen …“ in Rupert einen Code: Richten Sie die Kamera des iPhones darauf, um mit dem Scannen zu beginnen.
 
 RUPERT FRAGEN
-Auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer) fragen Sie in eigenen Worten nach Ihren Dokumenten. Rupert sucht und liest sie auf dem iPhone selbst und antwortet, mit Tasten zum Öffnen des Gefundenen. Nichts verlässt Ihr iPhone.
+Auf einem iPhone mit Apple Intelligence (iOS 26 oder neuer) fragen Sie in eigenen Worten nach Ihren Dokumenten: „Wie viel habe ich dieses Jahr an den Zahnarzt gezahlt?“ Rupert sucht und liest sie auf dem iPhone selbst, nennt die Seite, aus der eine Antwort stammt, und gibt Ihnen Tasten zum Öffnen des Gefundenen. Nichts verlässt Ihr iPhone.
+
+ZUSAMMEN MIT RUPERT AUF IHREM COMPUTER
+Rupert für Mac, Windows und Linux (kostenlos) erkennt den Text neuer Scans, schlägt Titel, Datum, Tags, Absender, Betrag, Fälligkeit und Ordner vor, lernt aus Ihrer Ablage und legt die Scans ab, wenn Sie zustimmen. Die Angaben werden in den PDFs gespeichert und erscheinen deshalb auch auf Ihrem iPhone.
 
 IN IHRER SPRACHE
-Rupert spricht Deutsch, Englisch und Spanisch und verwendet die Sprache Ihres iPhones. Auf Deutsch trägt die Eule Lederhosen.
+Rupert spricht Deutsch, Englisch und Spanisch und verwendet die Sprache Ihres iPhones. Auf Deutsch trägt die Eule Lederhosen, auf Spanisch das himmelblau-weiß gestreifte Trikot.
 
 IHRE DOKUMENTE BLEIBEN IHRE
 • Kein Konto bei uns, kein Tracking, keine Werbung. Rupert sammelt nichts.
 • Ihre Dateien bleiben in Ihrem eigenen Speicher; Rupert liest sie dort, wo sie sind.
 • Dateien, die nur online verfügbar sind, werden erst heruntergeladen, wenn Sie eine öffnen.
-• OneDrive: Melden Sie sich mit Ihrem Microsoft-Konto an; Rupert liest nur Ihre Ordner und legt neue Scans in Ihren Eingang.
-• Google Drive (Vorschau): Melden Sie sich genauso mit Ihrem Google-Konto an.
+• OneDrive und Google Drive (Vorschau): Melden Sie sich mit Ihrem Microsoft- oder Google-Konto an. Rupert liest nur Ihre Ordner, legt neue Scans in Ihren Eingang und merkt sich die Ordner, die Sie mit einem Stern markieren.
 
 Rupert ist kostenlos und quelloffen.
 

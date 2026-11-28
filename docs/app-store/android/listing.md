@@ -16,7 +16,7 @@ Draft texts and Play Console answers. Character limits in brackets. Spanish and 
 
 ## Short description [80]
 
-Find, search and scan your documents in Google Drive and OneDrive.
+Find, scan and track your documents and bills in Google Drive and OneDrive.
 
 ## Full description [4000]
 
@@ -24,17 +24,24 @@ Rupert is the librarian for your scanned documents. It works with the folders yo
 
 FIND ANYTHING
 • Search titles, tags, notes and the text of your documents.
-• Filter by tags, and keep favorite folders one tap away.
-• Open any document in your PDF viewer to read, share or print it.
+• Browse a folder as a list, as large icons or in a gallery.
+• Your saved searches from the computer open with all their filters.
+• Favorite documents and folders are one tap away.
+• Open any document in your PDF viewer, or share it with Gmail, Messages or another app.
+
+KNOW WHAT'S DUE
+• A document's details show who it's from, the amount on it and when it's due.
+• Coming up lists the bills and other documents that are due, overdue first.
 
 SCAN STRAIGHT INTO YOUR INBOX
 • Google's document scanner finds the page's edges, straightens and cleans it up.
 • Choose color, grayscale or black & white, and the resolution.
 • Several pages become one PDF, saved to your inbox folder in Google Drive or OneDrive.
-• Your inbox is always at the top of the Library, so new scans are easy to find.
+• Share documents from other apps to Rupert, and they go to your inbox.
+• On your computer, Scan… in Rupert shows a code: point the phone's camera at it to start scanning.
 
 WORKS WITH RUPERT ON YOUR COMPUTER
-Rupert for Mac, Windows and Linux (free) recognizes the text in new scans, suggests a title, date, tags and folder, and files them when you agree. Titles, tags and dates are stored inside the PDFs, so they appear on your phone too.
+Rupert for Mac, Windows and Linux (free) recognizes the text in new scans, suggests a title, date, tags, sender, amount, due date and folder, learns from how you file, and files them when you agree. The details are stored inside the PDFs, so they appear on your phone too.
 
 IN YOUR LANGUAGE
 Rupert speaks English, Spanish and German, and uses your phone's language. In Spanish the owl wears the sky-blue and white striped jersey; in German, lederhosen.
@@ -42,7 +49,7 @@ Rupert speaks English, Spanish and German, and uses your phone's language. In Sp
 YOUR DOCUMENTS STAY YOURS
 • No account with us, no tracking, no ads. Rupert collects nothing.
 • Your files stay in your own storage; Rupert reads them where they are.
-• Sign in with your Google or Microsoft account; Rupert only reads your folders, adds new scans to your inbox and remembers the folders you star.
+• Sign in with your Google or Microsoft account. Rupert only reads your folders, adds new scans to your inbox and remembers the folders you star.
 
 Rupert is free and open source.
 

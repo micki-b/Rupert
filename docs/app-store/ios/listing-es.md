@@ -12,38 +12,44 @@ The Spanish localization in App Store Connect: add **Spanish (Mexico)**, which A
 
 ## Promotional text [170]
 
-Preguntale a Rupert por tus documentos y te responde en el mismo iPhone. Encontrá cualquier escaneo en iCloud Drive u OneDrive, y escaneá papel directo a tu bandeja.
+Encontrá cualquier escaneo en iCloud Drive, OneDrive o Google Drive en segundos, mirá qué cuentas vencen, escaneá papel a tu bandeja y preguntale a Rupert.
 
 ## Description [4000]
 
-Rupert es el bibliotecario de tus documentos escaneados. Trabaja con las carpetas que ya tenés en iCloud Drive, OneDrive o en tu iPhone, así que no hay nada que importar ni nada que te ate.
+Rupert es el bibliotecario de tus documentos escaneados. Trabaja con las carpetas que ya tenés en iCloud Drive, OneDrive, Google Drive o en tu iPhone, así que no hay nada que importar ni nada que te ate.
 
 ENCONTRÁ CUALQUIER COSA
 • Buscá en títulos, etiquetas, notas y en el texto de tus documentos.
-• Filtrá por etiquetas, y tené tus documentos y carpetas favoritos a un toque.
-• Abrí cualquier documento para leerlo, compartirlo o imprimirlo.
+• Mirá una carpeta como lista, como íconos grandes o en una galería.
+• Tus búsquedas guardadas en la computadora se abren con todos sus filtros.
+• Tus documentos y carpetas favoritos están a un toque.
+• Abrí cualquier documento para leerlo o imprimirlo, o compartilo con Mail, Mensajes o AirDrop.
+
+SABÉ QUÉ VENCE
+• Los detalles de un documento muestran de quién es, su importe y cuándo vence.
+• Próximos vencimientos lista las cuentas y otros documentos por vencer, primero los vencidos.
 
 ESCANEÁ DIRECTO A TU BANDEJA DE ENTRADA
 • El escáner de Rupert encuentra los bordes de la hoja, la endereza y guarda un PDF nítido.
 • Elegí color, escala de grises o blanco y negro, y la resolución.
-• Varias páginas forman un solo PDF, guardado en tu bandeja de entrada en iCloud Drive u OneDrive.
-• La bandeja de entrada está siempre arriba de todo en la Biblioteca, así encontrás los escaneos nuevos enseguida.
-
-FUNCIONA CON RUPERT EN TU COMPUTADORA
-Rupert para Mac, Windows y Linux (gratis) reconoce el texto de los escaneos nuevos, sugiere título, fecha, etiquetas y carpeta, y los archiva cuando estás de acuerdo. Los títulos, las etiquetas y las fechas se guardan dentro de los PDF, así que también aparecen en tu iPhone.
+• Varias páginas forman un solo PDF, guardado en tu bandeja de entrada.
+• Mandá documentos a la bandeja desde Mail, Archivos, Fotos o Safari: tocá Compartir ▸ Rupert.
+• En tu computadora, Escanear… en Rupert muestra un código: apuntale la cámara del iPhone para empezar a escanear.
 
 PREGUNTALE A RUPERT
-En un iPhone con Apple Intelligence (iOS 26 o posterior), preguntá por tus documentos con tus palabras. Rupert los busca y los lee en el mismo iPhone, y te responde con botones para abrir lo que encontró. Nada sale de tu iPhone.
+En un iPhone con Apple Intelligence (iOS 26 o posterior), preguntá por tus documentos con tus palabras: «¿Cuánto le pagué al dentista este año?». Rupert los busca y los lee en el mismo iPhone, te dice de qué página sale cada respuesta y te da botones para abrir lo que encontró. Nada sale de tu iPhone.
+
+FUNCIONA CON RUPERT EN TU COMPUTADORA
+Rupert para Mac, Windows y Linux (gratis) reconoce el texto de los escaneos nuevos, sugiere título, fecha, etiquetas, remitente, importe, vencimiento y carpeta, aprende de cómo archivás, y los archiva cuando estás de acuerdo. Los datos se guardan dentro de los PDF, así que también aparecen en tu iPhone.
 
 EN TU IDIOMA
-Rupert habla español, inglés y alemán, y usa el idioma de tu iPhone. En español, el búho se pone la camiseta albiceleste.
+Rupert habla español, inglés y alemán, y usa el idioma de tu iPhone. En español, el búho se pone la camiseta albiceleste; en alemán, pantalones de cuero.
 
 TUS DOCUMENTOS SIGUEN SIENDO TUYOS
 • Sin cuenta con nosotros, sin rastreo, sin publicidad. Rupert no recopila nada.
 • Tus archivos se quedan en tu propio almacenamiento; Rupert los lee donde están.
 • Los archivos solo en línea no se descargan hasta que abrís uno.
-• OneDrive: iniciá sesión con tu cuenta de Microsoft; Rupert solo lee tus carpetas y agrega los escaneos nuevos a tu bandeja de entrada.
-• Google Drive (vista previa): iniciá sesión con tu cuenta de Google, de la misma manera.
+• OneDrive y Google Drive (vista previa): iniciá sesión con tu cuenta de Microsoft o de Google. Rupert solo lee tus carpetas, agrega los escaneos nuevos a tu bandeja de entrada y recuerda las carpetas que marcás con estrella.
 
 Rupert es libre, gratis y de código abierto.
 

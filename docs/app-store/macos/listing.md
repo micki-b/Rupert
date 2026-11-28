@@ -20,34 +20,47 @@ All of it shows a made-up library (`../tools/sample-library/`) in a copy of the 
 
 ## Promotional text [170]
 
-Search the text of every scanned document, let new scans name and file themselves, and ask Rupert where things are. Works on the folders you already have.
+Search inside every scanned document, let new scans name and file themselves, keep track of bills that are due, and ask Rupert where things are. In your own folders.
 
 ## Description [4000]
 
 Rupert is the librarian for your scanned documents. It works directly on the folders you already keep on your Mac, in iCloud Drive, OneDrive or Google Drive, so there's nothing to import and nothing to lock in. Your folders stay your library.
 
 FIND ANYTHING
-• Search titles, tags, notes and the text inside every PDF, with the matching words highlighted.
-• Browse as a list, as large icons, or in a gallery that flips through the pages.
-• Filter by tags, and keep favorite documents and folders in the sidebar.
-• Tidy up by dragging documents and folders to another folder; their details move with them.
-• Markdown notes open formatted.
+• Search titles, tags, notes and the text inside every PDF, with the matching words marked on the page.
+• Narrow a search by date, kind, sender, due date and folder, and save it in the sidebar to run again with one click.
+• Browse as a list, as large icons, or in a gallery that flips through the pages. Press Space to preview, ⌘K to go anywhere.
+• Keep favorite documents and folders in the sidebar.
 
 AN INBOX THAT FILES ITSELF
-• Scan into the inbox folder from your scanner, ScanSnap or iPhone.
-• Rupert recognizes the text on your Mac and suggests a title, date, tags and folder.
-• Check the suggestion and file it with a click: the PDF is renamed, moved to its folder, and the details are written inside the file.
+• Scan into the inbox from your scanner or ScanSnap, with your iPhone, or print to Rupert from any app.
+• Rupert recognizes the text on your Mac and suggests a title, date, tags, who it's from, the amount, the due date and the folder.
+• It learns from how you filed similar documents, and File All Sure Ones files the obvious ones at once.
+• Check a suggestion and file it with a click: the PDF is renamed, moved to its folder, and the details are written inside the file.
+
+KNOW WHAT'S DUE
+• Coming up lists bills and other documents whose due date is near, with Done, Remind me later and Add to Calendar.
+• Optional notifications, even when Rupert is closed, and a count on the Dock icon.
+• Add up the amounts of a selection or a search.
+
+KEEP IT TIDY
+• Select several documents to move, tag, star, share or export them together. Undo takes back the last change.
+• Rename a folder's documents at once, from their date and title.
+• Library health finds duplicate copies, scans without text and documents missing a date or tags, with a fix for each.
 
 ASK RUPERT
 • Ask in plain words: "How much did the plumber charge in April?" or "Show my car insurance."
-• Rupert searches your library and answers from your own documents.
+• Rupert searches your library, answers from your own documents and names the page; click it to see the passage.
 • Uses Apple Intelligence on your Mac by default, or a free app such as LM Studio or Ollama. You can choose Claude or ChatGPT instead; Rupert always shows when a cloud service is in use.
 
 YOUR DOCUMENTS STAY YOURS
-• Titles, tags and dates are stored inside the PDFs (or in a small hidden file next to other kinds), so they go wherever the file goes and appear on your iPhone too.
+• Titles, tags, dates and due dates are stored inside the PDFs (or in a small hidden file next to other kinds), so they go wherever the file goes and appear on your iPhone too.
 • Text recognition and filing suggestions never leave your Mac.
 • Online-only files in iCloud Drive, OneDrive and Google Drive are shown without downloading them.
 • No account with us, no tracking, no ads.
+
+IN YOUR LANGUAGE
+Rupert speaks English, Spanish and German, and follows your Mac's language. In Spanish the owl wears the sky-blue and white striped jersey; in German, lederhosen.
 
 Rupert is free and open source.
 

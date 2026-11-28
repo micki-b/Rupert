@@ -8,7 +8,7 @@ Add **German** (`de-DE`) in Play Console ▸ Store presence ▸ Main store listi
 
 ## Short description [80]
 
-Dokumente in Google Drive und OneDrive finden, durchsuchen und scannen.
+Dokumente und Rechnungen in Google Drive und OneDrive finden und scannen.
 
 ## Full description [4000]
 
@@ -16,25 +16,32 @@ Rupert ist der Bibliothekar für Ihre gescannten Dokumente. Er arbeitet mit den 
 
 ALLES FINDEN
 • Durchsuchen Sie Titel, Tags, Notizen und den Text Ihrer Dokumente.
-• Filtern Sie nach Tags und halten Sie favorisierte Ordner nur einen Tipp entfernt.
-• Öffnen Sie jedes Dokument in Ihrem PDF-Viewer zum Lesen, Teilen oder Drucken.
+• Sehen Sie einen Ordner als Liste, als große Symbole oder in einer Galerie.
+• Ihre auf dem Computer gespeicherten Suchen öffnen sich mit allen Filtern.
+• Favorisierte Dokumente und Ordner sind nur einen Tipp entfernt.
+• Öffnen Sie jedes Dokument in Ihrem PDF-Viewer, oder teilen Sie es mit Gmail, Nachrichten oder einer anderen App.
+
+WISSEN, WAS FÄLLIG IST
+• Die Details eines Dokuments zeigen, von wem es ist, den Betrag und wann es fällig ist.
+• „Demnächst fällig“ listet Rechnungen und andere fällige Dokumente, überfällige zuerst.
 
 DIREKT IN DEN EINGANG SCANNEN
 • Googles Dokumentenscanner erkennt die Ränder der Seite, richtet sie gerade aus und bereinigt sie.
 • Wählen Sie Farbe, Graustufen oder Schwarzweiß und die Auflösung.
 • Mehrere Seiten werden zu einem PDF, gespeichert in Ihrem Eingang in Google Drive oder OneDrive.
-• Der Eingang steht immer oben in der Bibliothek, sodass Sie neue Scans sofort finden.
+• Teilen Sie Dokumente aus anderen Apps mit Rupert, und sie landen in Ihrem Eingang.
+• Auf dem Computer zeigt „Scannen …“ in Rupert einen Code: Richten Sie die Kamera des Telefons darauf, um mit dem Scannen zu beginnen.
 
 ZUSAMMEN MIT RUPERT AUF IHREM COMPUTER
-Rupert für Mac, Windows und Linux (kostenlos) erkennt den Text neuer Scans, schlägt Titel, Datum, Tags und Ordner vor und legt sie ab, wenn Sie zustimmen. Titel, Tags und Daten werden in den PDFs gespeichert und erscheinen deshalb auch auf Ihrem Telefon.
+Rupert für Mac, Windows und Linux (kostenlos) erkennt den Text neuer Scans, schlägt Titel, Datum, Tags, Absender, Betrag, Fälligkeit und Ordner vor, lernt aus Ihrer Ablage und legt die Scans ab, wenn Sie zustimmen. Die Angaben werden in den PDFs gespeichert und erscheinen deshalb auch auf Ihrem Telefon.
 
 IN IHRER SPRACHE
-Rupert spricht Deutsch, Englisch und Spanisch und verwendet die Sprache Ihres Telefons. Auf Deutsch trägt die Eule Lederhosen.
+Rupert spricht Deutsch, Englisch und Spanisch und verwendet die Sprache Ihres Telefons. Auf Deutsch trägt die Eule Lederhosen, auf Spanisch das himmelblau-weiß gestreifte Trikot.
 
 IHRE DOKUMENTE BLEIBEN IHRE
 • Kein Konto bei uns, kein Tracking, keine Werbung. Rupert sammelt nichts.
 • Ihre Dateien bleiben in Ihrem eigenen Speicher; Rupert liest sie dort, wo sie sind.
-• Melden Sie sich mit Ihrem Google- oder Microsoft-Konto an; Rupert liest nur Ihre Ordner, legt neue Scans in Ihren Eingang und merkt sich die Ordner, die Sie mit einem Stern markieren.
+• Melden Sie sich mit Ihrem Google- oder Microsoft-Konto an. Rupert liest nur Ihre Ordner, legt neue Scans in Ihren Eingang und merkt sich die Ordner, die Sie mit einem Stern markieren.
 
 Rupert ist kostenlos und quelloffen.
 
