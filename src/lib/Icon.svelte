@@ -31,7 +31,8 @@
     | "trash"
     | "export"
     | "calendar"
-    | "check";
+    | "check"
+    | "help";
   let { name, size = 16 }: { name: Name; size?: number } = $props();
 
   const paths: Record<Name, string> = {
@@ -69,6 +70,8 @@
     /* Coming up (#109). */
     calendar: "M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5zM4 10h16M8 3v4M16 3v4",
     check: "M5 12.5l4.5 4.5L19 7.5",
+    /* Help (#161): a question mark in a circle. */
+    help: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.6 9.3a2.5 2.5 0 0 1 4.9.7c0 1.7-2.5 2.2-2.5 3.8M12 17h.01",
   };
 </script>
 

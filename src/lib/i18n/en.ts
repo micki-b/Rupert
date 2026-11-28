@@ -458,6 +458,7 @@ const en = {
     amount: "Amount",
     currency: "Currency",
     dueDate: "Due date",
+    clearDueDate: "Remove the due date",
     fromWho: (name: string) => `from ${name}`,
     dueOn: (date: string) => `due ${date}`,
   },

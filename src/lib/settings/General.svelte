@@ -37,7 +37,7 @@
         <input type="checkbox" bind:checked={settings.checkUpdates} />
         {m.settings.checkAutomatically}
       </label>
-      <div class="line">
+      <div class="line check-now">
         <button
           onclick={() => updates.check(true)}
           disabled={updates.status === "checking" || updates.status === "downloading"}
@@ -61,3 +61,10 @@
     </div>
   {/if}
 </div>
+
+<style>
+  /* #161: room between "Check automatically" and Check Now. */
+  .check-now {
+    margin-top: 10px;
+  }
+</style>

@@ -911,7 +911,22 @@
           </label>
           <label class="field">
             <span>{m.details.dueDate}</span>
-            <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} />
+            <!-- #160: not every document has one; × takes a suggested date away. -->
+            <span class="date-clear">
+              <input type="date" class:unset={!form.dueDate} bind:value={form.dueDate} />
+              {#if form.dueDate}
+                <button
+                  type="button"
+                  class="clear"
+                  title={m.details.clearDueDate}
+                  aria-label={m.details.clearDueDate}
+                  onclick={(e) => {
+                    e.preventDefault();
+                    form.dueDate = "";
+                  }}>×</button
+                >
+              {/if}
+            </span>
           </label>
         </div>
         <datalist id="inbox-senders">
@@ -1538,6 +1553,31 @@
   .money input {
     width: 100%;
     box-sizing: border-box;
+  }
+  .date-clear {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .date-clear input {
+    flex: 1;
+    min-width: 0;
+  }
+  .clear {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 11px;
+    background: none;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .clear:hover {
+    background: var(--hover);
+    color: var(--text);
   }
   .two {
     display: grid;
