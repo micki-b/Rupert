@@ -2,6 +2,33 @@
 
 One block per build uploaded to Google Play, newest first. Paste the whole block into Play Console's **Release notes** field (Test and release ▸ Testing ▸ Closed testing, or Production ▸ Create new release): the tags are Play's language codes, and Play fills in each language from its tag. At most 500 characters per language. Each block covers everything since the previous build on Google Play, not only its own version.
 
+## 0.10.2 (version code: added when the bundle is built)
+
+Since 0.10.0 (0.10.1 changed only the computer version).
+
+```
+<en-US>
+Coming up, in the Library, lists the documents that are due, overdue first, with who they're from and the amount.
+Saved searches from your computer open with all their filters.
+The Library is arranged like the sidebar on your computer: Inbox, Coming up and Favorites, then saved searches and folders.
+</en-US>
+<es-419>
+Próximos vencimientos, en la Biblioteca, lista los documentos por vencer, primero los vencidos, con de quién son y su importe.
+Las búsquedas guardadas en tu computadora se abren con todos sus filtros.
+La Biblioteca se ordena como la barra lateral de tu computadora: Bandeja de entrada, Próximos vencimientos y Favoritos, después las búsquedas guardadas y las carpetas.
+</es-419>
+<es-ES>
+Próximos vencimientos, en la Biblioteca, lista los documentos por vencer, primero los vencidos, con de quién son y su importe.
+Las búsquedas guardadas en tu computadora se abren con todos sus filtros.
+La Biblioteca se ordena como la barra lateral de tu computadora: Bandeja de entrada, Próximos vencimientos y Favoritos, después las búsquedas guardadas y las carpetas.
+</es-ES>
+<de-DE>
+„Demnächst fällig“ in der Bibliothek listet fällige Dokumente, überfällige zuerst, mit Absender und Betrag.
+Auf Ihrem Computer gespeicherte Suchen öffnen sich mit allen Filtern.
+Die Bibliothek ist wie die Seitenleiste auf Ihrem Computer geordnet: Eingang, „Demnächst fällig“ und Favoriten, dann gespeicherte Suchen und Ordner.
+</de-DE>
+```
+
 ## 0.10.0 (version code 263320125)
 
 Since 0.9.0. If 0.9.0 never reached Google Play, put its lines (page citations, faster search) in front of these.

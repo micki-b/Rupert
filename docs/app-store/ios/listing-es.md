@@ -51,6 +51,14 @@ Rupert es libre, gratis y de código abierto.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,onedrive,icloud,etiquetas,ia,asistente`
 
+## What's new in 0.10.2 [4000]
+
+Próximos vencimientos y búsquedas guardadas en tu iPhone.
+
+• Próximos vencimientos, en la Biblioteca, lista los documentos por vencer, primero los vencidos, con de quién son y su importe.
+• Tus búsquedas guardadas se abren con todos sus filtros, también desde Preguntale a Rupert.
+• La Biblioteca se ordena como la barra lateral de tu computadora: Bandeja de entrada, Próximos vencimientos y Favoritos, después las búsquedas guardadas y las carpetas.
+
 ## What's new in 0.10.0 [4000]
 
 Mirá de quién es un documento, su importe y su vencimiento.

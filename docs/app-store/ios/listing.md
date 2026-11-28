@@ -61,6 +61,14 @@ Rupert is free and open source.
 
 First release.
 
+## What's new in 0.10.2 [4000]
+
+Coming up and saved searches on your iPhone.
+
+• Coming up, in the Library, lists the documents that are due, overdue first, with who they're from and the amount.
+• Your saved searches open with all their filters, also from Ask Rupert.
+• The Library is arranged like the sidebar on your computer: Inbox, Coming up and Favorites, then saved searches and folders.
+
 ## What's new in 0.10.0 [4000]
 
 See who a document is from, its amount and its due date.

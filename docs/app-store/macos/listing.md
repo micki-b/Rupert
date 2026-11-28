@@ -51,6 +51,15 @@ YOUR DOCUMENTS STAY YOURS
 
 Rupert is free and open source.
 
+## What's new in 0.10.2 [4000]
+
+Small fixes.
+
+• An × next to a due date takes it away, in the inbox and in Details.
+• Settings and Help at the bottom left of the window are now icons.
+• Coming up's Show menu looks like the search filters above it.
+• Coming up and saved searches are on the iPhone too.
+
 ## What's new in 0.10.1 [4000]
 
 Small fixes.

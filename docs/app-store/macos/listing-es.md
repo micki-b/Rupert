@@ -39,6 +39,15 @@ Rupert es libre y gratis.
 
 `escáner,digitalizar,pdf,buscar,ocr,recibos,facturas,archivos,bandeja,etiquetas,ia,lm studio,ollama`
 
+## What's new in 0.10.2 [4000]
+
+Pequeñas correcciones.
+
+• Una × al lado de una fecha de vencimiento la quita, en la bandeja de entrada y en Detalles.
+• Configuración y Ayuda, abajo a la izquierda de la ventana, ahora son íconos.
+• El menú Mostrar de Próximos vencimientos se ve como los filtros de búsqueda de arriba.
+• Próximos vencimientos y las búsquedas guardadas también están en el iPhone.
+
 ## What's new in 0.10.1 [4000]
 
 Pequeñas correcciones.
